@@ -3,46 +3,32 @@
 > vitest run --passWithNoTests tests/panel.test.ts -t snapshots canonical defaults
 
 
- RUN  v4.1.9 /tmp/fleet-panel-defaults-counterexample-cgwdl344/extensions/collections/toolkit/gemini-toolkit
+ RUN  v4.1.9 /tmp/fleet-panel-defaults-counterexample-8eblq_ge/extensions/collections/toolkit/gemini-toolkit
 
- ❯ tests/panel.test.ts (0 test)
+ ❯ tests/panel.test.ts (36 tests | 1 failed | 35 skipped) 62ms
+     × snapshots canonical defaults before the first update instead of maintaining a second schema 48ms
 
  Test Files  1 failed (1)
-      Tests  no tests
-   Start at  16:59:29
-   Duration  3.53s (transform 0ms, setup 0ms, import 0ms, tests 0ms, environment 2.19s)
-
-▲ [WARNING] Cannot find base config file "./.wxt/tsconfig.json" [tsconfig.json]
-
-    tsconfig.json:2:13:
-      2 │   "extends": "./.wxt/tsconfig.json",
-        ╵              ~~~~~~~~~~~~~~~~~~~~~~
+      Tests  1 failed | 35 skipped (36)
+   Start at  17:01:23
+   Duration  4.75s (transform 1.97s, setup 686ms, import 1.40s, tests 62ms, environment 1.95s)
 
 
-⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
 
- FAIL  tests/panel.test.ts [ tests/panel.test.ts ]
-TSConfckParseError: failed to resolve "extends":"./.wxt/tsconfig.json" in /tmp/fleet-panel-defaults-counterexample-cgwdl344/extensions/collections/toolkit/gemini-toolkit/tsconfig.json
-  Plugin: vite:esbuild
-  File: /tmp/fleet-panel-defaults-counterexample-cgwdl344/extensions/collections/toolkit/gemini-toolkit/tests/setup.ts
- ❯ resolveExtends ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:5809:8
- ❯ parseExtends ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:5775:71
- ❯ parse$13 ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:5677:23
- ❯ loadTsconfigJsonForFile ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:6302:37
- ❯ transformWithEsbuild ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:6086:55
- ❯ TransformPluginContext.transform ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:6172:20
- ❯ EnvironmentPluginContainer.transform ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:28877:14
- ❯ loadAndTransform ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:22746:26
+ FAIL  tests/panel.test.ts > the panel > snapshots canonical defaults before the first update instead of maintaining a second schema
+AssertionError: expected '380px' to be '404px' // Object.is equality
 
-Caused by: Error: Cannot find module './.wxt/tsconfig.json'
-Require stack:
-- /tmp/fleet-panel-defaults-counterexample-cgwdl344/extensions/collections/toolkit/gemini-toolkit/tsconfig.json
- ❯ resolveExtends ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:5800:16
- ❯ parseExtends ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:5775:71
- ❯ parse$13 ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:5677:23
- ❯ loadTsconfigJsonForFile ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:6302:37
- ❯ transformWithEsbuild ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:6086:55
- ❯ TransformPluginContext.transform ../../../../../../home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:6172:20
+Expected: "404px"
+Received: "380px"
+
+ ❯ tests/panel.test.ts:154:66
+    152|       // A harmless change to the canonical default is inherited, but …
+    153|       // changes to that shared object cannot mutate an existing panel.
+    154|       expect(panel.element.style.getPropertyValue('--gt-width')).toBe(…
+       |                                                                  ^
+    155|     } finally {
+    156|       panel.destroy();
 
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
 

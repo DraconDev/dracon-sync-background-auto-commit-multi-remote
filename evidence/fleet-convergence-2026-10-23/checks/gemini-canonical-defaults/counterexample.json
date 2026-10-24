@@ -1,0 +1,27 @@
+{
+  "revision": "f4e67f9ad1af0b8fbdf4bd0f88b2d7ed4d7d31f6",
+  "fixture": "/tmp/fleet-panel-defaults-counterexample-8eblq_ge",
+  "command": [
+    "npm",
+    "--workspaces=false",
+    "run",
+    "test",
+    "--",
+    "tests/panel.test.ts",
+    "-t",
+    "snapshots canonical defaults"
+  ],
+  "results": [
+    {
+      "mode": "canonical",
+      "exit_code": 0
+    },
+    {
+      "mode": "duplicated-legacy-defaults",
+      "exit_code": 1
+    }
+  ],
+  "scope": "private tracked source and WXT outputs; linked existing dependencies and private Vite cache; focused counterexample only",
+  "live_source_not_modified": true,
+  "qualification_substitute": false
+}
