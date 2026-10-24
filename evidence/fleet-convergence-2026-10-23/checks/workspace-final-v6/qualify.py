@@ -3,7 +3,7 @@ from pathlib import Path
 OUT=Path(__file__).resolve().parent
 SOURCE=json.loads((OUT/'source.json').read_text());assert SOURCE['status']=='passed'
 ROOT=Path(SOURCE['frozen_root'])
-ENV={**os.environ,'CARGO_BUILD_JOBS':'2','RUST_TEST_THREADS':'1','CARGO_TARGET_DIR':str(ROOT/'target')}
+ENV={**os.environ,'CARGO_BUILD_JOBS':'2','RUST_TEST_THREADS':'1','CARGO_TARGET_DIR':SOURCE['target_directory']}
 
 def snapshot():
     repos={};inputs={}
@@ -52,7 +52,7 @@ try:
         row.update(exit_code=code,status='passed' if code==0 else 'failed',finished=time.time());save()
     manifest['after']=snapshot()
     manifest['compiled_input_scope_unchanged']=manifest['before']['rust_tests_manifest_inputs']==manifest['after']['rust_tests_manifest_inputs']
-    binary=ROOT/'target/release/dracon-sync';manifest['binary_path']=str(binary);manifest['binary_sha256']=hashlib.sha256(binary.read_bytes()).hexdigest()
+    binary=Path(ENV['CARGO_TARGET_DIR'])/'release/dracon-sync';manifest['binary_path']=str(binary);manifest['binary_sha256']=hashlib.sha256(binary.read_bytes()).hexdigest()
     manifest['status']='passed' if manifest['compiled_input_scope_unchanged'] and all(row['exit_code']==0 for row in manifest['commands']) else 'failed'
 except BaseException as error:
     if manifest['status']!='cancelled':manifest['status']='failed'
