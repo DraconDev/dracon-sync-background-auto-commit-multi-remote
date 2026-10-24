@@ -197,3 +197,9 @@
    Compiling curve25519-dalek v4.1.3
    Compiling intl-memoizer v0.5.3
    Compiling zbus_names v4.3.4
+   Compiling async-lock v3.4.2
+   Compiling fluent-syntax v0.11.1
+   Compiling fluent-langneg v0.13.1
+   Compiling intl_pluralrules v7.0.2
+   Compiling piper v0.2.5
+   Compiling num-traits v0.2.19
