@@ -1,0 +1,175 @@
+{
+  "observed_at": "2026-10-24T03:14:37.508280+00:00",
+  "repositories": [
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
+      "head": "71b5dee72b9e3ba2494354d73b2579463a33d3f9",
+      "hooksPath": "/home/dracon/.config/git/hooks",
+      "hooks": {
+        "pre-commit": {
+          "path": "/home/dracon/.config/git/hooks/pre-commit",
+          "exists": true,
+          "resolved": "/home/dracon/.config/git/hooks/pre-commit"
+        },
+        "pre-push": {
+          "path": "/home/dracon/.config/git/hooks/pre-push",
+          "exists": true,
+          "resolved": "/home/dracon/.config/git/hooks/pre-push"
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/browser-extensions-shared",
+      "head": "a973060f6991b42261edf5e144273b3dc85ea455",
+      "hooksPath": "/home/dracon/Dev/browser-extensions-shared/scripts/git-hooks",
+      "hooks": {
+        "pre-commit": {
+          "path": "/home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/pre-commit",
+          "exists": false,
+          "resolved": "/home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/pre-commit"
+        },
+        "pre-push": {
+          "path": "/home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/pre-push",
+          "exists": true,
+          "resolved": "/home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/pre-push"
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy",
+      "head": "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
+      "hooksPath": "/home/dracon/.config/git/hooks",
+      "hooks": {
+        "pre-commit": {
+          "path": "/home/dracon/.config/git/hooks/pre-commit",
+          "exists": true,
+          "resolved": "/home/dracon/.config/git/hooks/pre-commit"
+        },
+        "pre-push": {
+          "path": "/home/dracon/.config/git/hooks/pre-push",
+          "exists": true,
+          "resolved": "/home/dracon/.config/git/hooks/pre-push"
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "head": "cd9b76bd873f803bf0e3d6a415c112a921e3037d",
+      "hooksPath": "/home/dracon/.config/git/hooks",
+      "hooks": {
+        "pre-commit": {
+          "path": "/home/dracon/.config/git/hooks/pre-commit",
+          "exists": true,
+          "resolved": "/home/dracon/.config/git/hooks/pre-commit"
+        },
+        "pre-push": {
+          "path": "/home/dracon/.config/git/hooks/pre-push",
+          "exists": true,
+          "resolved": "/home/dracon/.config/git/hooks/pre-push"
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
+      "head": "5cf99e67a52a204726c205de8b2c5c557867564a",
+      "hooksPath": "/home/dracon/.config/git/hooks",
+      "hooks": {
+        "pre-commit": {
+          "path": "/home/dracon/.config/git/hooks/pre-commit",
+          "exists": true,
+          "resolved": "/home/dracon/.config/git/hooks/pre-commit"
+        },
+        "pre-push": {
+          "path": "/home/dracon/.config/git/hooks/pre-push",
+          "exists": true,
+          "resolved": "/home/dracon/.config/git/hooks/pre-push"
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
+      "head": "d56a83a6288f1c92be843b13760432e68bf07ab9",
+      "hooksPath": ".githooks",
+      "hooks": {
+        "pre-commit": {
+          "path": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td/.githooks/pre-commit",
+          "exists": true,
+          "resolved": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td/.githooks/pre-commit"
+        },
+        "pre-push": {
+          "path": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td/.githooks/pre-push",
+          "exists": true,
+          "resolved": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td/.githooks/pre-push"
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
+      "head": "0ddc7c43ab05794cee85b61298d50a6176075369",
+      "hooksPath": "/home/dracon/.config/git/hooks",
+      "hooks": {
+        "pre-commit": {
+          "path": "/home/dracon/.config/git/hooks/pre-commit",
+          "exists": true,
+          "resolved": "/home/dracon/.config/git/hooks/pre-commit"
+        },
+        "pre-push": {
+          "path": "/home/dracon/.config/git/hooks/pre-push",
+          "exists": true,
+          "resolved": "/home/dracon/.config/git/hooks/pre-push"
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
+      "head": "4ff1cc6be799e2f151169c4795cbef2d7fa027ef",
+      "hooksPath": ".githooks",
+      "hooks": {
+        "pre-commit": {
+          "path": "/home/dracon/Dev/dracon-platform/web/games/wip/polis/.githooks/pre-commit",
+          "exists": true,
+          "resolved": "/home/dracon/Dev/dracon-platform/web/games/wip/polis/.githooks/pre-commit"
+        },
+        "pre-push": {
+          "path": "/home/dracon/Dev/dracon-platform/web/games/wip/polis/.githooks/pre-push",
+          "exists": true,
+          "resolved": "/home/dracon/Dev/dracon-platform/web/games/wip/polis/.githooks/pre-push"
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform",
+      "head": "300396264d33325c3a3ffd830882529478df7d05",
+      "hooksPath": ".githooks",
+      "hooks": {
+        "pre-commit": {
+          "path": "/home/dracon/Dev/dracon-platform/.githooks/pre-commit",
+          "exists": true,
+          "resolved": "/home/dracon/Dev/dracon-platform/.githooks/pre-commit"
+        },
+        "pre-push": {
+          "path": "/home/dracon/Dev/dracon-platform/.githooks/pre-push",
+          "exists": true,
+          "resolved": "/home/dracon/Dev/dracon-platform/.githooks/pre-push"
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+      "head": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
+      "hooksPath": ".githooks",
+      "hooks": {
+        "pre-commit": {
+          "path": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun/.githooks/pre-commit",
+          "exists": true,
+          "resolved": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun/.githooks/pre-commit"
+        },
+        "pre-push": {
+          "path": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun/.githooks/pre-push",
+          "exists": true,
+          "resolved": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun/.githooks/pre-push"
+        }
+      }
+    }
+  ]
+}
