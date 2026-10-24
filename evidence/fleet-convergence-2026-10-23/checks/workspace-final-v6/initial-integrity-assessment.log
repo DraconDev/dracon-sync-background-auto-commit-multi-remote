@@ -1,0 +1,8 @@
+⚠️ warden: ignoring recipient file /tmp/fleet-workspace-frozen-isf27qum/source/.dracon/data/keys/micro2_libs_key.pub (expected exactly one valid age recipient)
+⚠️ dracon-warden: malformed or undecryptable secret tag at byte 1111701 left as-is — the clean filter may have been bypassed
+⚠️ dracon-warden: malformed or undecryptable secret tag at byte 1327390 left as-is — the clean filter may have been bypassed
+Traceback (most recent call last):
+  File "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-convergence-2026-10-23/checks/workspace-final-v6/stage-and-receipt.py", line 16, in <module>
+    assert clean.returncode==0,'tracked frozen inputs changed during qualification'
+           ^^^^^^^^^^^^^^^^^^^
+AssertionError: tracked frozen inputs changed during qualification
