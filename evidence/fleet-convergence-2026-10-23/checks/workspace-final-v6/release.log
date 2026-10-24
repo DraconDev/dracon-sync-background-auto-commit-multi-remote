@@ -117,3 +117,5 @@
    Compiling core_detect v1.0.0
    Compiling either v1.18.0
    Compiling rayon v1.12.0
+   Compiling toml_edit v0.22.27
+   Compiling clap_builder v4.6.7
