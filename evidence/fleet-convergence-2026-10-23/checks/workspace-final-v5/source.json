@@ -1,0 +1,54 @@
+{
+  "started": 1792836936.220365,
+  "state_root": "/tmp/fleet-workspace-frozen-2ajly5n9",
+  "frozen_root": "/tmp/fleet-workspace-frozen-2ajly5n9/source",
+  "repositories": {
+    ".": {
+      "source": "/home/dracon/Dev/dracon-utilities",
+      "ref": "db71c4e8eb1bb4d900845efa276ef7c067e6684d",
+      "private_checkout": "/tmp/fleet-workspace-frozen-2ajly5n9/source",
+      "copied_existing_filter_keys": [
+        "filter.dracon.required",
+        "filter.dracon.process"
+      ],
+      "private_origin": "/tmp/fleet-workspace-frozen-2ajly5n9/bare/parent.git",
+      "canonical_objects_read_only": "/home/dracon/Dev/dracon-utilities/.git/objects"
+    },
+    "dracon-sync": {
+      "source": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+      "ref": "c2222692900c9b4822dca04742d5477d7851be75",
+      "private_checkout": "/tmp/fleet-workspace-frozen-2ajly5n9/source/dracon-sync",
+      "copied_existing_filter_keys": [
+        "filter.dracon.required",
+        "filter.dracon.process"
+      ],
+      "private_origin": "/tmp/fleet-workspace-frozen-2ajly5n9/bare/dracon-sync.git",
+      "canonical_objects_read_only": "/home/dracon/Dev/dracon-utilities/dracon-sync/.git/objects"
+    },
+    "dracon-system": {
+      "source": "/home/dracon/Dev/dracon-utilities/dracon-system",
+      "ref": "83c929c864560969bed30ce6f33456df4c8870b9",
+      "private_checkout": "/tmp/fleet-workspace-frozen-2ajly5n9/source/dracon-system",
+      "copied_existing_filter_keys": [
+        "filter.dracon.required",
+        "filter.dracon.process"
+      ],
+      "private_origin": "/tmp/fleet-workspace-frozen-2ajly5n9/bare/dracon-system.git",
+      "canonical_objects_read_only": "/home/dracon/Dev/dracon-utilities/dracon-system/.git/objects"
+    },
+    "dracon-warden": {
+      "source": "/home/dracon/Dev/dracon-utilities/dracon-warden",
+      "ref": "9c8bc8a7020efde9de62f7a7395801440a30e103",
+      "private_checkout": "/tmp/fleet-workspace-frozen-2ajly5n9/source/dracon-warden",
+      "copied_existing_filter_keys": [
+        "filter.dracon.required",
+        "filter.dracon.process"
+      ],
+      "private_origin": "/tmp/fleet-workspace-frozen-2ajly5n9/bare/dracon-warden.git",
+      "canonical_objects_read_only": "/home/dracon/Dev/dracon-utilities/dracon-warden/.git/objects"
+    }
+  },
+  "status": "passed",
+  "operations": "read canonical objects/config; private bare refs and private checkouts only; no real-repository add/commit/push/config mutation",
+  "finished": 1792836944.125098
+}
