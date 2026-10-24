@@ -59,3 +59,11 @@
    Compiling piper v0.2.5
    Compiling num-traits v0.2.19
    Compiling multiversion-macros v0.9.0
+   Compiling encoding_rs v0.8.41
+   Compiling aho-corasick v1.1.5
+   Compiling sync_wrapper v1.0.2
+   Compiling proc-macro-error-attr v1.0.4
+   Compiling colorchoice v1.0.5
+   Compiling syn v1.0.109
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling anstyle v1.0.14
