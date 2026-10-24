@@ -1,2 +1,4 @@
    Compiling openssl v0.10.81
    Compiling async-io v2.6.0
+   Compiling libssh2-sys v0.3.3
+   Compiling hyper v1.11.1
