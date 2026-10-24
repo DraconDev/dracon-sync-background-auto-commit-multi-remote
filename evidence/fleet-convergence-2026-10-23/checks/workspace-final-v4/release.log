@@ -273,3 +273,12 @@
    Compiling fluent v0.16.1
    Compiling crossterm v0.29.0
    Compiling tower-http v0.6.11
+   Compiling rust-embed v8.12.0
+   Compiling poly1305 v0.8.0
+   Compiling chacha20 v0.9.1
+   Compiling arc-swap v1.9.2
+   Compiling bstr v1.13.1
+   Compiling lazy_static v1.5.0
+   Compiling iana-time-zone v0.1.65
+   Compiling unicode-segmentation v1.13.3
+   Compiling hashbrown v0.14.5
