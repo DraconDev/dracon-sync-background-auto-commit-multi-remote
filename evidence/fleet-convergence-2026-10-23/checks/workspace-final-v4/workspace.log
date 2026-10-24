@@ -850,3 +850,27 @@ test storage_core::transfer::tests::required_copies_use_retained_bytes_and_resta
 test storage_core::worker::tests::captured_version_is_prepared_copied_and_retry_keeps_identity ... ok
 test storage_core::worker::tests::missing_warden_and_forbidden_class_do_not_prepare_or_upload ... ok
 test storage_core::worker::tests::encrypted_preparation_copies_only_approved_representation ... ok
+test storage_core::backend::tests::streamed_large_payload_has_bounded_read_requests_and_survives_cold_reopen ... ok
+test storage_core::s3::tests::streaming_payload_above_git_limit_uses_bounded_reads ... ok
+
+failures:
+
+---- storage_core::metadata::tests::cold_import_preserves_ciphertext_versions_and_existing_preparations stdout ----
+
+thread 'storage_core::metadata::tests::cold_import_preserves_ciphertext_versions_and_existing_preparations' (712360) panicked at dracon-sync/src/storage_core/metadata.rs:1262:14:
+called `Result::unwrap()` on an `Err` value: journal lease is busy or unavailable
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- storage_core::security::tests::oversized_stdout_and_unapproved_orphan_do_not_escape_capacity stdout ----
+
+thread 'storage_core::security::tests::oversized_stdout_and_unapproved_orphan_do_not_escape_capacity' (714253) panicked at dracon-sync/src/storage_core/security.rs:304:14:
+called `Result::unwrap()` on an `Err` value: journal lease is busy or unavailable
+
+
+failures:
+    storage_core::metadata::tests::cold_import_preserves_ciphertext_versions_and_existing_preparations
+    storage_core::security::tests::oversized_stdout_and_unapproved_orphan_do_not_escape_capacity
+
+test result: FAILED. 142 passed; 2 failed; 13 ignored; 0 measured; 0 filtered out; finished in 19.06s
+
+error: test failed, to rerun pass `-p dracon-sync --lib`
