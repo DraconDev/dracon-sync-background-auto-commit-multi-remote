@@ -39,7 +39,8 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
+      "commit_event_budget_secs": 60
     },
     {
       "repo": "/home/dracon/Dev/browser-extensions-shared",
@@ -77,7 +78,8 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
+      "commit_event_budget_secs": 60
     },
     {
       "repo": "/home/dracon/Dev/dracon-strategy",
@@ -115,7 +117,8 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
+      "commit_event_budget_secs": 60
     },
     {
       "repo": "/home/dracon/.dracon",
@@ -153,7 +156,8 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
+      "commit_event_budget_secs": 60
     },
     {
       "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
@@ -189,7 +193,8 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
+      "commit_event_budget_secs": 60
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
@@ -227,7 +232,8 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
+      "commit_event_budget_secs": 60
     },
     {
       "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
@@ -265,7 +271,8 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
+      "commit_event_budget_secs": 60
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
@@ -303,7 +310,8 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
+      "commit_event_budget_secs": 60
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform",
@@ -339,7 +347,8 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
+      "commit_event_budget_secs": 60
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
@@ -377,7 +386,9 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
+      "commit_event_budget_secs": 60
     }
-  ]
+  ],
+  "commit_event_budget_evidence": "commit-event-correlation-budget.json"
 }
