@@ -1,16 +1,16 @@
 {
-  "recorded_at": 1792812528.2776139,
-  "expected_loaded_sha256": "8be3718f27c1bc6edee5bb38a27d3911fdb1154715848e148dc13009cb5891cb",
-  "before_snapshot": "refs-final-loaded-before-work.json",
+  "recorded_at": 1792839596.093185,
+  "expected_loaded_sha256": "59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc",
+  "before_snapshot": "refs-final-v6-before-work.json",
   "repositories": [
     {
       "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "692a56d136a25aaed4269da8b3c84eb6767a5f94",
-      "content_sha256": "01bf618e6b88c57e0d535b4ddc8d53b11f6bb4c293d568c6bb4c0ef638e5a5d6",
-      "file_mtime": 1792812508.0558653,
-      "before_head": "4de4be3c1ed233d1d4cc041dee3e91d661a8a1b6",
-      "before_observed_at": 1792812414.1218166,
+      "eligible_blob": "2f79eaccbee11907b2818a6ca7f33a33d7881ae0",
+      "content_sha256": "c054096d38d030611d39060ffdbe06df28e2696d7e615dbc89313fcf6efd2f46",
+      "file_mtime": 1792839596.0398421,
+      "before_head": "b12ebcc6c61530c0449438e44d7593dbafa55226",
+      "before_observed_at": 1792839596.0387056,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -44,11 +44,11 @@
     {
       "repo": "/home/dracon/Dev/browser-extensions-shared",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "d5d8e1213d5ce40d198c3c9567542967913cee94",
-      "content_sha256": "13adc8ab0a30bad368b4b7f2662fb4838f00b558f93e20c52101551aba422247",
-      "file_mtime": 1792812508.051865,
-      "before_head": "1baa6095e5bc5b54430cb4e304d7831a05d83c9d",
-      "before_observed_at": 1792812414.045855,
+      "eligible_blob": "feb04b68ef3b6a9d30f522e088a86f206ec25854",
+      "content_sha256": "235cfced60939a1f5a54fceaf7e9d3319ecba856d463b544a774054c9fa727ac",
+      "file_mtime": 1792839596.0448422,
+      "before_head": "8dcc665daa21cf419b4c41d6634906dab8490086",
+      "before_observed_at": 1792839596.043745,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -82,11 +82,11 @@
     {
       "repo": "/home/dracon/Dev/dracon-strategy",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "fcd7cac43fecddc36636a2b5ddb1cd5f3fc6e4a3",
-      "content_sha256": "5a0b8603362d76c0ec5d19a5fd1d1ab841a302401fa891b608b0b5da81790d6b",
-      "file_mtime": 1792812508.0558653,
-      "before_head": "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
-      "before_observed_at": 1792812413.7772188,
+      "eligible_blob": "9acf21b3b0dde10f7c76b9d266bbb3628969ef58",
+      "content_sha256": "a5df98d3a8425e1a44d5cf8b8471251f70cb59fb13f2aa431e767bb5ef567968",
+      "file_mtime": 1792839596.0488422,
+      "before_head": "39a3cd8e5ed49be9320882d0bf85585198125ff3",
+      "before_observed_at": 1792839596.0484312,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -120,17 +120,18 @@
     {
       "repo": "/home/dracon/.dracon",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "0aa670263a5b5d1a64cd0c30a066cbd808f2d816",
-      "content_sha256": "86c7bb1ac8657d645eaed12cf916b85b48ea87d36b7c8a0414d43f9e3dee62ac",
-      "file_mtime": 1792812508.051865,
-      "before_head": "178d87dc441f87a91929d4a358148cd9e3a31da2",
-      "before_observed_at": 1792812412.609583,
+      "eligible_blob": "6795df2d2c2b1379ed589e69d37cf5c1b289f8e4",
+      "content_sha256": "8c840fa2b2e97e7f91a72567033da1895fd7781de86be01f39d0eaf2eb178404",
+      "file_mtime": 1792839596.0548425,
+      "before_head": "3c3cc57b7e96ada166a7d5fc2dc75d2b68bcd651",
+      "before_observed_at": 1792839596.0541406,
       "intended_destinations": [
         {
           "logical": "origin",
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-home",
           "aliases": [
+            "github",
             "origin"
           ]
         },
@@ -139,6 +140,7 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-home",
           "aliases": [
+            "github",
             "origin"
           ]
         },
@@ -156,18 +158,17 @@
     {
       "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "c662ca2eb171a58f996933c764f50ab1253179e0",
-      "content_sha256": "60f3a09a2c985693e1a232a0ae6c10d4800aab0771935a02245afda553865cb3",
-      "file_mtime": 1792812508.0628653,
-      "before_head": "91e997693796e715e805fc7b8414c9b72e0a80f6",
-      "before_observed_at": 1792812414.0424693,
+      "eligible_blob": "cf31398f8194db230739f524952ca25bbce7b58a",
+      "content_sha256": "b6c32bfaf6f397900b32bd9cf4a54ce51689ee97c6b696667464ecaeb0e06c4d",
+      "file_mtime": 1792839596.0598423,
+      "before_head": "203abe828e150b1684e86a2e1ed9c2812a5b1f1d",
+      "before_observed_at": 1792839596.05899,
       "intended_destinations": [
         {
           "logical": "origin",
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/ai-auto-video",
           "aliases": [
-            "github",
             "origin"
           ]
         },
@@ -176,7 +177,6 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/ai-auto-video",
           "aliases": [
-            "github",
             "origin"
           ]
         },
@@ -194,11 +194,11 @@
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "12710ed92c36232b5ac00b142ee487faac6e2428",
-      "content_sha256": "a5d1c2a53cd05cd10d10df2d395f38230cdd59890be7dec877a877b8d6dea145",
-      "file_mtime": 1792812508.0578654,
-      "before_head": "d56a83a6288f1c92be843b13760432e68bf07ab9",
-      "before_observed_at": 1792812413.963973,
+      "eligible_blob": "01290285854c1bc5aafa93f1eda4679b98658a18",
+      "content_sha256": "115414184c566e2f434f069c99f73c8f74534d33270bf26c739d061fe1a02371",
+      "file_mtime": 1792839596.0678425,
+      "before_head": "c730282408a7fc253345cdf7e8710c690e37da5e",
+      "before_observed_at": 1792839596.0672717,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -232,11 +232,11 @@
     {
       "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "46ae22b8d5dbee1f918354b5bea8ff87654bbbc2",
-      "content_sha256": "f666a20deede5b8ddaaac61121f3dc2e3a146080b56939c48b4a963e50de2887",
-      "file_mtime": 1792812508.0618653,
-      "before_head": "0ddc7c43ab05794cee85b61298d50a6176075369",
-      "before_observed_at": 1792812416.0043921,
+      "eligible_blob": "bd586c2ea456f04ae1ed782016d8cd03963957c3",
+      "content_sha256": "d41b432d6611fbfc9bf8c3ec79dbb091f6cc188d6ea46e1175fad6bcdf526032",
+      "file_mtime": 1792839596.0718427,
+      "before_head": "69910cefa8083c04f486e33ef0567c0e7272c945",
+      "before_observed_at": 1792839596.07168,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -269,12 +269,12 @@
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
-      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "a727340872b4a1a4049e5308e29180319aa1d05f",
-      "content_sha256": "edeed8840c8ff0e9c9256e3abbdd550a8d2e1491894681c59dda05ffd150a102",
-      "file_mtime": 1792812508.0618653,
-      "before_head": "128d017d881fd66fde777b9229410b43c2883844",
-      "before_observed_at": 1792812418.1993332,
+      "eligible_path": "AUDIT-SYNC-CONVERGENCE-2026-10-24.md",
+      "eligible_blob": "78f8df45b2f1fd5171265adba7836077eead66e9",
+      "content_sha256": "caa1b30d3b4c326a844d979c1d8c0e8b7d7af163c0d1cec5318f6aecd15860f3",
+      "file_mtime": 1792839596.0768428,
+      "before_head": "5b1b03612cce52dd300b2749a8f84535628d8c15",
+      "before_observed_at": 1792839596.076624,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -308,18 +308,17 @@
     {
       "repo": "/home/dracon/Dev/dracon-platform",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "57afb53651cdeb5f8a06ce1019aad62664c9c774",
-      "content_sha256": "e776440519922f59436380638fa23d6b62fdefcf50258ed718130a5b06d7300c",
-      "file_mtime": 1792812508.0618653,
-      "before_head": "300396264d33325c3a3ffd830882529478df7d05",
-      "before_observed_at": 1792812417.6505835,
+      "eligible_blob": "82f4166cc916a1b5ffada17603364dbbde08a8a3",
+      "content_sha256": "f71866fd22248f17658e3825c6182d222d30c2d8783274f61af1922b7e5587c5",
+      "file_mtime": 1792839596.0818427,
+      "before_head": "6c5cfce86cb4bb3f4b3ca7a88249a78094c1fd6c",
+      "before_observed_at": 1792839596.0808394,
       "intended_destinations": [
         {
           "logical": "origin",
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-platform",
           "aliases": [
-            "github",
             "origin"
           ]
         },
@@ -328,7 +327,6 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-platform",
           "aliases": [
-            "github",
             "origin"
           ]
         },
@@ -346,11 +344,11 @@
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "b329255510d9e65c0dec0a1c50209ffe700ea76c",
-      "content_sha256": "e5501c8028f147d12815d9964281cd81c242f1955cec91e7088f64fc5f3afbf0",
-      "file_mtime": 1792812508.0638654,
-      "before_head": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
-      "before_observed_at": 1792812417.5854192,
+      "eligible_blob": "33042c1821e93d0e63eaf3543eede0b2fd05ee86",
+      "content_sha256": "59420dfc056bf94dc5f99aa8372ce92fdcac0eb54e0a62e797f8b80efdcc420d",
+      "file_mtime": 1792839596.0858428,
+      "before_head": "3cb436dac91b71f4b44fba7da6b5ea066acfaf1b",
+      "before_observed_at": 1792839596.0854137,
       "intended_destinations": [
         {
           "logical": "origin",
