@@ -36,7 +36,7 @@ assert old_pid > 0 and digest(f'/proc/{old_pid}/exe') == old_expected
 assert digest(target) == old_expected and target.is_file() and not target.is_symlink()
 fd = os.pidfd_open(old_pid)
 assert pid() == old_pid and digest(f'/proc/{old_pid}/exe') == old_expected
-backup = Path.home()/'.local/state/dracon/deployments'/datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ-final-v5-convergence')
+backup = Path.home()/'.local/state/dracon/deployments'/datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ-final-v6-convergence')
 backup.mkdir(parents=True, exist_ok=False)
 shutil.copy2(target, backup/'dracon-sync')
 assert digest(backup/'dracon-sync') == old_expected

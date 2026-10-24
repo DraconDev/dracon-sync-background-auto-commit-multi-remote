@@ -6,7 +6,7 @@ CHECKS=OUT.parent
 q=json.loads((OUT/'receipt.json').read_text());deploy=json.loads((OUT/'deployment.json').read_text())
 installed=json.loads((OUT/'installed-execution-receipt.json').read_text())
 assert q['status']=='passed' and installed['ok'] and installed['binary_sha256']==q['binary_sha256']==deploy['loaded_sha256']
-before=json.loads((CHECKS/'refs-final-v5-before-work.json').read_text())
+before=json.loads((CHECKS/'refs-final-v6-before-work.json').read_text())
 assert before['same_loaded_revision_throughout'] and before['daemon_after']['loaded_sha256']==q['binary_sha256']
 assert before['daemon_after']['pid']==deploy['new_pid']
 old=json.loads((CHECKS/'final-eligible-work-witnesses.json').read_text())
@@ -40,6 +40,6 @@ for previous in old['repositories']:
       'content_sha256':hashlib.sha256(content).hexdigest(),'file_mtime':current.st_mtime,'before_head':head,'before_observed_at':start,
       'intended_destinations':observations[str(repo)]['intended_destinations'],'daemon_owned_commit':'not yet established; no manual add/commit/push performed'}
  rows.append(row)
- result={'recorded_at':time.time(),'expected_loaded_sha256':q['binary_sha256'],'before_snapshot':'refs-final-v5-before-work.json','repositories':rows}
- (CHECKS/'final-v5-eligible-work-witnesses.json').write_text(json.dumps(result,indent=2)+'\n')
+ result={'recorded_at':time.time(),'expected_loaded_sha256':q['binary_sha256'],'before_snapshot':'refs-final-v6-before-work.json','repositories':rows}
+ (CHECKS/'final-v6-eligible-work-witnesses.json').write_text(json.dumps(result,indent=2)+'\n')
 print('appended eligible runtime evidence in',len(rows),'repositories; no Git mutation command issued')

@@ -15,6 +15,9 @@ before=identity();assert before['sha256']=='8be3718f27c1bc6edee5bb38a27d3911fdb1
 original=Path(q['binary_path']);assert digest(original)==q['binary_sha256']
 candidate=state/'qualified-bin/dracon-sync';candidate.parent.mkdir(mode=0o700)
 assert not candidate.exists();shutil.copy2(original,candidate);candidate.chmod(0o755);assert digest(candidate)==q['binary_sha256']
+dependencies=subprocess.run(['ldd',str(candidate)],capture_output=True,text=True,timeout=20)
+(OUT/'runtime-dependencies.log').write_text(dependencies.stdout+dependencies.stderr)
+assert '/tmp/fleet-workspace-frozen-' not in dependencies.stdout,'runtime must not depend on disposable build libraries'
 execution=state/'candidate-execution';assert not execution.exists()
 # The receipt owns finite per-operation waits and a finally block that joins
 # its daemon family. Do not SIGKILL that owner with an outer run() timeout.
