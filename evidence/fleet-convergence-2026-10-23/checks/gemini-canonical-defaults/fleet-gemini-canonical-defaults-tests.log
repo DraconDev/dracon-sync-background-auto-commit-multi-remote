@@ -1,0 +1,13 @@
+
+> gemini-toolkit@0.7.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/collections/toolkit/gemini-toolkit
+
+
+ Test Files  25 passed (25)
+      Tests  502 passed (502)
+   Start at  16:55:43
+   Duration  40.94s (transform 6.17s, setup 934ms, import 7.94s, tests 8.06s, environment 41.05s)
+
