@@ -1,0 +1,14 @@
+[
+  {
+    "path": "extensions/collections/toolkit/gemini-toolkit/lib/panel.ts",
+    "introducing_commit": "9054abe0f4c642ef68d36b35e108ad89563654b5"
+  },
+  {
+    "path": "extensions/collections/toolkit/gemini-toolkit/entrypoints/gemini.content.ts",
+    "introducing_commit": "105b34a1a84f6b2a66593d95f81cbc1d38ce3231"
+  },
+  {
+    "path": "extensions/collections/toolkit/gemini-toolkit/tests/panel.test.ts",
+    "introducing_commit": "8c49793a52762fef28767f15b80be08fed0fa62b"
+  }
+]

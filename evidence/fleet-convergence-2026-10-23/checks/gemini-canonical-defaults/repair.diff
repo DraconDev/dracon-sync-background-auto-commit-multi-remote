@@ -1,0 +1,121 @@
+diff --git a/extensions/collections/toolkit/gemini-toolkit/lib/panel.ts b/extensions/collections/toolkit/gemini-toolkit/lib/panel.ts
+index 1be6188b86..dac270b1bd 100644
+--- a/extensions/collections/toolkit/gemini-toolkit/lib/panel.ts
++++ b/extensions/collections/toolkit/gemini-toolkit/lib/panel.ts
+@@ -21,6 +21,7 @@
+  */
+ 
+ import { DONATE_URL, GEMINI_ORIGIN } from './constants';
++import { DEFAULT_SETTINGS } from './settings';
+ import { searchChats } from './search';
+ import { searchBookmarks } from './bookmarks';
+ import type {
+@@ -402,38 +403,8 @@ export function createPanel(
+     modelOptions: [],
+     thinkingOptions: [],
+     settings: {
+-      version: 1,
+-      enabled: true,
+-      features: {
+-        folders: true,
+-        search: true,
+-        export: true,
+-        prompts: true,
+-        chains: true,
+-        actions: true,
+-        bookmarks: true,
+-        queue: true,
+-        counter: true,
+-        timestamps: true,
+-        audioDownload: true,
+-        wideChat: false,
+-        scrollButtons: true,
+-        declutter: false,
+-        compactSidebar: false,
+-        openInTab: true,
+-        referenceChat: true,
+-        foldPinned: false,
+-      },
+-      theme: 'auto',
+-      autoIndex: true,
+-      indexOnOpen: true,
+-      searchLimit: 50,
+-      panelWidth: 380,
+-      donationDismissed: false,
+-      welcomeSeen: false,
+-      keyboardShortcuts: true,
+-      defaultModel: null,
+-      defaultThinking: null,
++      ...DEFAULT_SETTINGS,
++      features: { ...DEFAULT_SETTINGS.features },
+     },
+     activeChatId: null,
+     chainRun: null,
+
+diff --git a/extensions/collections/toolkit/gemini-toolkit/entrypoints/gemini.content.ts b/extensions/collections/toolkit/gemini-toolkit/entrypoints/gemini.content.ts
+index 8e7f49e007..5ed44bee0b 100644
+--- a/extensions/collections/toolkit/gemini-toolkit/entrypoints/gemini.content.ts
++++ b/extensions/collections/toolkit/gemini-toolkit/entrypoints/gemini.content.ts
+@@ -361,7 +361,7 @@ async function onDeletePrompt(id: string) {
+ async function onInsertPrompt(id: string) {
+   const prompt = prompts.find((entry) => entry.id === id);
+   if (!prompt) return;
+-  usePrompt(prompt.body, prompt.autoSend);
++  insertSavedPrompt(prompt.body, prompt.autoSend);
+ }
+ 
+ async function onEnqueue(text: string) {
+@@ -579,7 +579,7 @@ async function onDeleteQuickAction(id: string) {
+ function onInsertQuickAction(id: string) {
+   const action = quickActions.find((entry) => entry.id === id);
+   if (!action) return;
+-  usePrompt(action.prompt, action.autoSend);
++  insertSavedPrompt(action.prompt, action.autoSend);
+ }
+ 
+ /**
+@@ -593,7 +593,7 @@ function onInsertQuickAction(id: string) {
+  * after the box changes, and clicking one that is not there yet would
+  * silently do nothing - so the toolkit waits for the button instead.
+  */
+-function usePrompt(text: string, autoSend: boolean | undefined): void {
++function insertSavedPrompt(text: string, autoSend: boolean | undefined): void {
+   if (!insertText(document, text)) return;
+   if (!autoSend) return;
+   void sendWhenReady();
+
+diff --git a/extensions/collections/toolkit/gemini-toolkit/tests/panel.test.ts b/extensions/collections/toolkit/gemini-toolkit/tests/panel.test.ts
+index 7e9746ab11..7ed4dc6268 100644
+--- a/extensions/collections/toolkit/gemini-toolkit/tests/panel.test.ts
++++ b/extensions/collections/toolkit/gemini-toolkit/tests/panel.test.ts
+@@ -133,6 +133,30 @@ describe('the panel', () => {
+     document.body.innerHTML = '';
+   });
+ 
++  it('snapshots canonical defaults before the first update instead of maintaining a second schema', () => {
++    const host = document.createElement('div');
++    document.body.append(host);
++    const shadow = host.attachShadow({ mode: 'open' });
++    const originalWidth = DEFAULT_SETTINGS.panelWidth;
++    const alternateWidth = originalWidth + 24;
++    const panel = (() => {
++      try {
++        DEFAULT_SETTINGS.panelWidth = alternateWidth;
++        return createPanel(shadow, makeHandlers());
++      } finally {
++        DEFAULT_SETTINGS.panelWidth = originalWidth;
++      }
++    })();
++    try {
++      panel.open();
++      // A harmless change to the canonical default is inherited, but later
++      // changes to that shared object cannot mutate an existing panel.
++      expect(panel.element.style.getPropertyValue('--gt-width')).toBe(`${alternateWidth}px`);
++    } finally {
++      panel.destroy();
++    }
++  });
++
+   it('opens on the folders tab', () => {
+     const { shadow } = mount(makeState());
+     const selected = shadow.querySelector('[role="tab"][aria-selected="true"]');
