@@ -204,6 +204,17 @@ qualified source plus absent operator/repo overrides. No production timeout was
 increased. Tests still reject events outside that finite budget or from another
 PID. Details: `checks/commit-event-correlation-budget.json`.
 
+Contract rehearsal exposed two proof-generator gaps, not a false current row.
+Generation now requires exact nonempty, distinct repository-set equality with
+the independent initial inventory across witnesses and both snapshots. Logical
+destination identities must remain stable; each alias must resolve to its claimed
+normalized identity. Prior advertised commits are matched by destination, not
+alias spelling. Empty/omitted/duplicate inputs and alias retargets fail closed;
+transport spelling and extra-alias renames remain harmless. Eight contract tests,
+five observer tests and eight historical-witness tests pass. The refreshed actual
+same-runtime snapshot/journal still proves nine-of-ten, not browser success.
+Evidence: `checks/ledger-contract-review/`.
+
 Older pinned browser attempts correctly retained failures from subsequently
 changed features: a missing Gemini welcome initializer (already repaired by its
 owner), two typed DOM queries in a new chain fixture (minimal correction here;
