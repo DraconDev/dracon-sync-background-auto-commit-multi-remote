@@ -1,0 +1,57 @@
+[
+  {
+    "path": "audit-evidence/ninja-runner-regen-2026-10-23/shield/VERDICT.md",
+    "exit": 0,
+    "matching_rule": ".gitignore:314:!audit-evidence/ninja-runner-regen-2026-10-23/shield/VERDICT.md\taudit-evidence/ninja-runner-regen-2026-10-23/shield/VERDICT.md"
+  },
+  {
+    "path": "audit-evidence/ninja-runner-regen-2026-10-23/shield/ab-narrow-viewport-probe.log",
+    "exit": 0,
+    "matching_rule": ".gitignore:315:!audit-evidence/ninja-runner-regen-2026-10-23/shield/ab-narrow-viewport-probe.log\taudit-evidence/ninja-runner-regen-2026-10-23/shield/ab-narrow-viewport-probe.log"
+  },
+  {
+    "path": "audit-evidence/ninja-runner-regen-2026-10-23/shield/ab-narrow-viewport.mjs",
+    "exit": 0,
+    "matching_rule": ".gitignore:316:!audit-evidence/ninja-runner-regen-2026-10-23/shield/ab-narrow-viewport.mjs\taudit-evidence/ninja-runner-regen-2026-10-23/shield/ab-narrow-viewport.mjs"
+  },
+  {
+    "path": "audit-evidence/ninja-runner-regen-2026-10-23/shield/adjudicate.mjs",
+    "exit": 0,
+    "matching_rule": ".gitignore:317:!audit-evidence/ninja-runner-regen-2026-10-23/shield/adjudicate.mjs\taudit-evidence/ninja-runner-regen-2026-10-23/shield/adjudicate.mjs"
+  },
+  {
+    "path": "audit-evidence/ninja-runner-regen-2026-10-23/shield/base-lane-clean-measurement.log",
+    "exit": 0,
+    "matching_rule": ".gitignore:318:!audit-evidence/ninja-runner-regen-2026-10-23/shield/base-lane-clean-measurement.log\taudit-evidence/ninja-runner-regen-2026-10-23/shield/base-lane-clean-measurement.log"
+  },
+  {
+    "path": "audit-evidence/ninja-runner-regen-2026-10-23/shield/base-lane-measure.mjs",
+    "exit": 0,
+    "matching_rule": ".gitignore:319:!audit-evidence/ninja-runner-regen-2026-10-23/shield/base-lane-measure.mjs\taudit-evidence/ninja-runner-regen-2026-10-23/shield/base-lane-measure.mjs"
+  },
+  {
+    "path": "audit-evidence/ninja-runner-regen-2026-10-23/shield/base-tree-survival-check.mjs",
+    "exit": 0,
+    "matching_rule": ".gitignore:320:!audit-evidence/ninja-runner-regen-2026-10-23/shield/base-tree-survival-check.mjs\taudit-evidence/ninja-runner-regen-2026-10-23/shield/base-tree-survival-check.mjs"
+  },
+  {
+    "path": "audit-evidence/ninja-runner-regen-2026-10-23/shield/differential.mjs",
+    "exit": 0,
+    "matching_rule": ".gitignore:321:!audit-evidence/ninja-runner-regen-2026-10-23/shield/differential.mjs\taudit-evidence/ninja-runner-regen-2026-10-23/shield/differential.mjs"
+  },
+  {
+    "path": "audit-evidence/ninja-runner-regen-2026-10-23/shield/env-control.mjs",
+    "exit": 0,
+    "matching_rule": ".gitignore:322:!audit-evidence/ninja-runner-regen-2026-10-23/shield/env-control.mjs\taudit-evidence/ninja-runner-regen-2026-10-23/shield/env-control.mjs"
+  },
+  {
+    "path": "audit-evidence/ninja-runner-regen-2026-10-23/shield/isolation-adjudication.log",
+    "exit": 0,
+    "matching_rule": ".gitignore:323:!audit-evidence/ninja-runner-regen-2026-10-23/shield/isolation-adjudication.log\taudit-evidence/ninja-runner-regen-2026-10-23/shield/isolation-adjudication.log"
+  },
+  {
+    "path": "audit-evidence/ninja-runner-regen-2026-10-23/shield/worktree-survival-probe.log",
+    "exit": 0,
+    "matching_rule": ".gitignore:324:!audit-evidence/ninja-runner-regen-2026-10-23/shield/worktree-survival-probe.log\taudit-evidence/ninja-runner-regen-2026-10-23/shield/worktree-survival-probe.log"
+  }
+]

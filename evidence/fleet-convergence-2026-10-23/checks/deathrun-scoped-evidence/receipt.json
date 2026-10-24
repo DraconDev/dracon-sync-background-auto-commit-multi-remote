@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-24T03:02:02.615140+00:00",
+  "command": "timeout --signal=TERM --kill-after=15s 240 .githooks/pre-commit",
+  "cwd": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+  "exit_code": 0,
+  "head": "38ba5a0ca39c3aa457358ce16badf35b9a734b62",
+  "scope": "live staged content with eleven explicit curated evidence inclusions; does not assert a coherent final commit or publication",
+  "mutations": "only documented .gitignore inclusions; no index edits, content deletion, manual commit or push"
+}
