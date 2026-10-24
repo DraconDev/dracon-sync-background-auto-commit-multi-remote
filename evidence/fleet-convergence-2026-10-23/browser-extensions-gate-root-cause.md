@@ -65,17 +65,21 @@ So the snapshot is not broken and the lockfile is not stale: build order alone
 decides the outcome. The same command succeeds as soon as `extension-core` is
 built first.
 
-## Scope decision and honest status
+## Scope correction and current execution
 
-This is a defect in `browser-extensions-shared`'s own push gate (workspace
-script ordering), discovered in a repository this goal was not authorized to
-modify: the objective scopes product remediation to failures established in the
-initial diagnosis and to regressions caused by this work. Repairing it means
-changing that repository's `run-push-gates.mjs` (build dependency packages
-before dependents' postinstall) and adding a regression — follow-up work, not a
-silent waiver here.
+The earlier scope decision was incorrect: the confirmed objective explicitly
+includes repairing demonstrated hook-integration and product-gate failures in
+this initially affected repository, and prohibits deferring fixable backlogs.
+This local lifecycle-order defect is in scope, not an external blocker.
 
-Therefore `browser-extensions-shared` is reported as **gated by its own
-product gate — not converged, not healthy, and not an external/network
-blocker**. Its backlog stays committed and retried by the daemon; nothing was
-bypassed, and no assertion was weakened to make it pass.
+The current runner already includes a two-phase frozen install: provision
+without scripts, build dist-entry workspace libraries, then perform the normal
+scripted install before all original product gates. The added real-Bun fixture
+requires a dependent postinstall to resolve its built workspace library. On
+2026-10-24 the installed runner and pre-push integration suites passed all 14
+tests with zero failures (`node --test scripts/git-hooks/run-push-gates.test.mjs
+scripts/git-hooks/pre-push.test.mjs`). A bounded real pre-push invocation on the
+coherent revision recorded in `/tmp/fleet-browser-qualified/revision.json` is
+running; this is gate execution only, not a manual push. Autonomous publication
+remains unproven until that gate passes, targeted retries are re-enabled and
+remote evidence is collected. No assertion or lifecycle hook was bypassed.
