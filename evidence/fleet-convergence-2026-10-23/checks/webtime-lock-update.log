@@ -1,0 +1,7 @@
+[0.54ms] ".env"
+bun install v1.3.14 (0d9b296a)
+Resolving dependencies
+Resolved, downloaded and extracted [89]
+Saved lockfile
+
+Saved bun.lock (1295 packages) [974.00ms]

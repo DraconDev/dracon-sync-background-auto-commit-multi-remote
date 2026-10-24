@@ -1,0 +1,42 @@
+✖ nested Bun scripts use the exact selected pin rather than inherited Bun (4958.452605ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5007.184881
+
+✖ failing tests:
+
+test at ../browser-extensions-shared/scripts/git-hooks/run-push-gates.test.mjs:169:1
+✖ nested Bun scripts use the exact selected pin rather than inherited Bun (4958.452605ms)
+  AssertionError [ERR_ASSERTION]: 🧾 Pre-push attempt logs: /tmp/pinned-gate-fixture-B5reO7/attempts/dracon-pre-push.5xovI4
+  🔍 Pre-push: 2 affected workspace(s) at 321ce21946f5fb445f2089450837865071e258b0 — running 4-gate.
+    ▸ extensions/standalones/fixture TEST (321ce21946f5)
+    - extensions/standalones/fixture/TEST exited 91 (see /tmp/pinned-gate-fixture-B5reO7/attempts/dracon-pre-push.5xovI4/extensions_standalones_fixture-TEST.log)
+  
+  > fixture-consumer@1.0.0 test
+  > bun -e "if (Bun.version !== '1.3.14') throw new Error('wrong nested Bun');console.log('pinned nested Bun')"
+  
+  wrong inherited Bun
+  
+  Gate exited with status 91
+  
+  ❌ Pre-push: 4-gate FAILED
+  
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/run-push-gates.test.mjs:184:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
