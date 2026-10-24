@@ -19,7 +19,7 @@ def snapshot():
             if selected:inputs[str(path.relative_to(ROOT))]=hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
     return {'refs':repos,'rust_tests_manifest_inputs':inputs}
 
-manifest={'started':time.time(),'commands':[],'status':'running','before':snapshot(),'environment':{k:ENV[k] for k in ['CARGO_BUILD_JOBS','RUST_TEST_THREADS']}}
+manifest={'started':time.time(),'qualifier_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'commands':[],'status':'running','before':snapshot(),'environment':{k:ENV[k] for k in ['CARGO_BUILD_JOBS','RUST_TEST_THREADS']}}
 active=None
 
 def save():
