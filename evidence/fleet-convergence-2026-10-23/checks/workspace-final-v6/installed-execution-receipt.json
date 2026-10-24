@@ -1,0 +1,67 @@
+{
+  "binary": "/home/dracon/.local/bin/dracon-sync",
+  "binary_version": "dracon-sync 0.113.95",
+  "binary_sha256": "59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc",
+  "fixture_root": "/tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture",
+  "real_service_untouched": true,
+  "baseline_heads": {
+    "a": "bc9a5fea090868057c3b2a6da1d8f4b834c757bc",
+    "b": "7e4f723a9c7b015c74fc7cf6286a658bd807b45f",
+    "c": "98bfdab82d60b950b11092bb6caa0e80309f793b"
+  },
+  "isolation": {
+    "policy": "/tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/home/.dracon/dracon-sync.toml",
+    "state_dir": "/tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/state",
+    "watch_root": "/tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch",
+    "home": "/tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/home",
+    "remotes": "filesystem bare repositories only"
+  },
+  "a_pinned_during_block": "5589223346e55878c54e5d7fca34ddfc7ef3dab1",
+  "a_remote_before_release": "",
+  "b_tip": "b796a0431f5b2c3a9de249e40e947839f10d5607",
+  "b_remote_tip": "b796a0431f5b2c3a9de249e40e947839f10d5607",
+  "a_still_blocked_while_b_published": true,
+  "a_second_commit": "41d0a05d6ae8bd881729ab7a75c0e7698c6fda7d",
+  "a_newest_tip": "41d0a05d6ae8bd881729ab7a75c0e7698c6fda7d",
+  "a_remote_tip": "41d0a05d6ae8bd881729ab7a75c0e7698c6fda7d",
+  "a_published_object": "commit",
+  "b_precommit_hook_ran": true,
+  "service_environment": {
+    "bun": {
+      "path": "/tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/home/.bun/bin/bun",
+      "version": "1.3.3"
+    },
+    "pnpm": {
+      "path": "/tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/home/.npm-global/bin/pnpm",
+      "version": "11.5.1"
+    }
+  },
+  "inherited_path_lacked_toolchains": true,
+  "b_lifecycle_hooks": [
+    "prepare-commit-msg",
+    "commit-msg",
+    "post-commit"
+  ],
+  "b_lifecycle_cycles": 1,
+  "c_commit_hook_refusal_reported": true,
+  "c_precommit_hook_ran": true,
+  "c_head": "98bfdab82d60b950b11092bb6caa0e80309f793b",
+  "c_remote_refs": "",
+  "c_work_preserved": true,
+  "c_recovered_tip": "d4fe1c0894dbf6cc8a21fffb183825c7403a5e77",
+  "c_recovered_object": "commit",
+  "a_owning_leases": [
+    "dracon-sync.operation-lease",
+    "dracon-sync.publication-lease"
+  ],
+  "b_owning_leases": [
+    "dracon-sync.operation-lease",
+    "dracon-sync.publication-lease"
+  ],
+  "concurrent_publication_observed": true,
+  "ok": true,
+  "shutdown": "joined after SIGTERM",
+  "daemon_log_tail": "\ud83d\udd04 dracon-sync daemon started\n\ud83e\uddf9 startup: running cleanup...\n\ud83d\udd27 /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-c configured publish upstream for main on origin\n\ud83d\udd27 /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-b configured publish upstream for main on origin\n\ud83d\udd27 /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-a configured publish upstream for main on origin\n\ud83d\udd04 trailing-drain: 3 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f warden auto-harden failed for /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-c (staging proceeds unhardened): Error: policy not found\n\u26a0\ufe0f warden auto-harden failed for /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-a (staging proceeds unhardened): Error: policy not found\n\ud83d\udcdd committed 1 file(s) in /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-a\n\u26a0\ufe0f sync failed (late) for /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-c: git commit-staged failed in /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f warden auto-harden failed for /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-b (staging proceeds unhardened): Error: policy not found\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f sync failed (late) for /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-c: git commit-staged failed in /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\n\ud83d\udcdd committed 1 file(s) in /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-b\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-b\n\ud83d\udcdd committed 1 file(s) in /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-a\n\u23f3 /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-a committed; publication owned by another worker (this pass did not push)\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-a\n\ud83d\udd04 trailing-drain: 2 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f sync failed (late) for /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-c: git commit-staged failed in /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\ud83d\udcdd committed 1 file(s) in /tmp/fleet-workspace-frozen-isf27qum/installed-execution/fixture/watch/repo-c\nbranch 'main' set up to track 'origin/main'.\n",
+  "shutdown_unclean_lines": [],
+  "orphan_pids_after_shutdown": []
+}
