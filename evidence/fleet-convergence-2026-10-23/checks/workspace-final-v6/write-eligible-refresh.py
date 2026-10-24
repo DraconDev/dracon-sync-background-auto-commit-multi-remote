@@ -1,5 +1,5 @@
 """Append useful runtime evidence; let the daemon alone commit/publish it."""
-import datetime,hashlib,json,os,stat,subprocess,time
+import datetime,hashlib,json,os,re,stat,subprocess,time,tomllib
 from pathlib import Path
 OUT=Path(__file__).resolve().parent
 CHECKS=OUT.parent
@@ -11,6 +11,26 @@ assert before['same_loaded_revision_throughout'] and before['daemon_after']['loa
 assert before['daemon_after']['pid']==deploy['new_pid']
 old=json.loads((CHECKS/'final-eligible-work-witnesses.json').read_text())
 assert len(old['repositories'])==10
+source=json.loads((OUT/'source.json').read_text())
+policy=Path(source['repositories']['dracon-sync']['private_checkout'])/'src/policy.rs'
+code=policy.read_bytes()
+assert hashlib.sha256(code).hexdigest()==q['before']['rust_tests_manifest_inputs']['dracon-sync/src/policy.rs']
+commit_budget=int(re.search(rb'fn default_stage_op_timeout_secs\(\) -> u64\s*\{\s*(\d+)',code).group(1))
+def overrides(path):
+ if not path.exists():return []
+ found=[]
+ def visit(value):
+  if isinstance(value,dict):
+   for key,item in value.items():
+    if key=='stage_op_timeout_secs':found.append(item)
+    visit(item)
+  elif isinstance(value,list):
+   for item in value:visit(item)
+ visit(tomllib.loads(path.read_text()));return found
+assert not overrides(Path.home()/'.dracon/utilities/sync/dracon-sync.toml'),'resolve operator stage override before recording a bound'
+for previous in old['repositories']:
+ assert not overrides(Path(previous['repo'])/'.dracon/dracon-sync.toml'),'resolve repo stage override before recording a bound'
+(CHECKS/'commit-event-correlation-budget.json').write_text(json.dumps({'observed_at':time.time(),'loaded_binary_sha256':q['binary_sha256'],'default_source_ref':source['repositories']['dracon-sync']['ref'],'default_source_function':'default_stage_op_timeout_secs','source_verified_against_qualified_input_hash':True,'effective_stage_op_timeout_secs':commit_budget,'operator_and_repo_overrides_absent':True},indent=2)+'\n')
 observations={row['repo']:row for row in before['repositories']}
 rows=[]
 def git(repo,*args,input=None):
@@ -37,9 +57,9 @@ for previous in old['repositories']:
  current=path.stat();assert current.st_dev==identity.st_dev and current.st_ino==identity.st_ino
  content=path.read_bytes();assert content.endswith(section.encode()),'concurrent note edit observed; do not overwrite it'
  row={'repo':str(repo),'eligible_path':str(path.relative_to(repo)),'eligible_blob':git(repo,'hash-object','--stdin',input=content).decode().strip(),
-      'content_sha256':hashlib.sha256(content).hexdigest(),'file_mtime':current.st_mtime,'before_head':head,'before_observed_at':start,
+      'content_sha256':hashlib.sha256(content).hexdigest(),'commit_event_budget_secs':commit_budget,'file_mtime':current.st_mtime,'before_head':head,'before_observed_at':start,
       'intended_destinations':observations[str(repo)]['intended_destinations'],'daemon_owned_commit':'not yet established; no manual add/commit/push performed'}
  rows.append(row)
- result={'recorded_at':time.time(),'expected_loaded_sha256':q['binary_sha256'],'before_snapshot':'refs-final-v6-before-work.json','repositories':rows}
+ result={'recorded_at':time.time(),'expected_loaded_sha256':q['binary_sha256'],'before_snapshot':'refs-final-v6-before-work.json','commit_event_budget_evidence':'commit-event-correlation-budget.json','repositories':rows}
  (CHECKS/'final-v6-eligible-work-witnesses.json').write_text(json.dumps(result,indent=2)+'\n')
 print('appended eligible runtime evidence in',len(rows),'repositories; no Git mutation command issued')
