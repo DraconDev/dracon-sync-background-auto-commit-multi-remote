@@ -279,3 +279,4 @@
    Compiling async-task v4.7.1
    Compiling clap_builder v4.6.7
    Compiling clap_derive v4.6.7
+   Compiling toml_edit v0.22.27
