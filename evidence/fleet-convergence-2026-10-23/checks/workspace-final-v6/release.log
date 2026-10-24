@@ -109,3 +109,11 @@
    Compiling winnow v0.7.15
    Compiling hex v0.4.3
    Compiling clap_lex v1.1.1
+   Compiling heck v0.5.0
+   Compiling ryu v1.0.23
+   Compiling simdutf8 v0.1.5
+   Compiling strsim v0.11.1
+   Compiling toml_write v0.1.2
+   Compiling core_detect v1.0.0
+   Compiling either v1.18.0
+   Compiling rayon v1.12.0
