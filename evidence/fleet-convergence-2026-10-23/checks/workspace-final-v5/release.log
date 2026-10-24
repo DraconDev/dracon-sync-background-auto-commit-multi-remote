@@ -165,3 +165,6 @@
    Compiling serde_json v1.0.151
    Compiling anyhow v1.0.104
    Compiling rustls v0.23.46
+   Compiling type-map v0.5.1
+   Compiling rustc_version v0.4.1
+   Compiling zvariant v5.15.0

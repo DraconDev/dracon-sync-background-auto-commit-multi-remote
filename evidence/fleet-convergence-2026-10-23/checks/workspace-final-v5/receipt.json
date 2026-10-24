@@ -47,7 +47,7 @@
       "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-convergence-2026-10-23/checks/workspace-final-v5/release.log"
     }
   ],
-  "status": "running",
+  "status": "cancelled",
   "before": {
     "refs": {
       ".": "db71c4e8eb1bb4d900845efa276ef7c067e6684d",
@@ -290,5 +290,7 @@
     "RUST_TEST_THREADS": "1",
     "CARGO_TARGET_DIR": "/tmp/fleet-workspace-frozen-2ajly5n9/source/target"
   },
-  "source_model": "private ordinary checkouts at captured refs, existing required smudge filters copied unchanged; private target; serial test-case harness with unchanged in-test concurrency/assertions"
+  "source_model": "private ordinary checkouts at captured refs, existing required smudge filters copied unchanged; private target; serial test-case harness with unchanged in-test concurrency/assertions",
+  "error": "143",
+  "finished": 1792837950.5020008
 }
