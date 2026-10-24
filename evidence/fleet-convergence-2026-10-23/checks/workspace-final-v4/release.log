@@ -160,3 +160,13 @@
    Compiling anyhow v1.0.104
    Compiling rustc-hash v2.1.3
    Compiling native-tls v0.2.18
+   Compiling serde_json v1.0.151
+   Compiling rustls v0.23.46
+   Compiling crossbeam-deque v0.8.8
+   Compiling endi v1.1.1
+   Compiling zerocopy v0.8.57
+   Compiling zvariant v5.15.0
+   Compiling type-map v0.5.1
+   Compiling rustc_version v0.4.1
+   Compiling hyper v1.11.1
+   Compiling uuid v1.26.1
