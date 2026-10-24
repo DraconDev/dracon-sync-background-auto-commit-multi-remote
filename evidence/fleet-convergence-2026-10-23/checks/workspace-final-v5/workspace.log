@@ -253,3 +253,11 @@
    Compiling is_terminal_polyfill v1.70.2
    Compiling colorchoice v1.0.5
    Compiling anstyle v1.0.14
+   Compiling try-lock v0.2.5
+   Compiling anstyle-query v1.1.5
+   Compiling tower-service v0.3.3
+   Compiling litrs v1.0.0
+   Compiling document-features v0.2.12
+   Compiling anstream v1.0.0
+   Compiling want v0.3.1
+   Compiling foreign-types v0.3.2
