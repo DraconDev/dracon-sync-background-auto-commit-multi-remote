@@ -111,6 +111,14 @@ preparation, overlapping product gates, cancellation during preparation and leas
 reacquisition. Cold-start test setup is separated from an explicit10second
 post-SIGTERM join bound. Rejected timeout/startup qualifications remain retained.
 Independent review found no issue; live multi-mirror validation remains pending.
+The old476c295a cycle completed147gates with a dead-export failure already corrected
+in newer source. A remaining mirror was still repeating that same immutable pin.
+Only its isolated Git family was retired using pidfds after validating the failed
+SHA, commands, UID, start identities, CWDs, cgroup and separation from the daemon.
+No live family member remained; its manifest is cancelled, not passed. The daemon
+and unrelated workloads were not signalled. Only this repository's stale retry
+entry was then cleared; no executor push or ref/index/worktree mutation occurred.
+Proof: checks/provisioning-lease/stale-operation-cancellation.json.
 
 ### Storage preparation and narrowly scoped hygiene
 
