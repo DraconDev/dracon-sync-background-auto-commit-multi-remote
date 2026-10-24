@@ -8,6 +8,13 @@ def select_witness(repo, witness, journal, daemon_pid, git, ancestor):
         'matching_loaded_daemon_commit_events': [],
         'candidate_commits_considered': [],
     }
+    # Git timestamps precede commit hooks; correlate through the recorded
+    # effective finite commit-operation budget, not an incidental 30-second
+    # assumption. Older receipts retain their original 30-second bound.
+    budget = witness.get('commit_event_budget_secs', 30)
+    if isinstance(budget, bool) or not isinstance(budget, int) or budget <= 0:
+        return result
+    result['commit_event_budget_secs'] = budget
     history = git(repo, 'log', '--format=%H', 'HEAD', '--', witness['eligible_path'])
     if history.returncode:
         return result
@@ -50,7 +57,7 @@ def select_witness(repo, witness, journal, daemon_pid, git, ancestor):
                     and isinstance(message, str)
                     and message.startswith('📝 committed ')
                     and message.endswith(' in ' + repo)
-                    and timestamp <= stamp <= timestamp + 30):
+                    and timestamp <= stamp <= timestamp + budget):
                 events.append({'timestamp_us': event['__REALTIME_TIMESTAMP'],
                                'pid': event['_PID'], 'message': message})
         if not events:

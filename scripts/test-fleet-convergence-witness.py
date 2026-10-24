@@ -65,6 +65,17 @@ class HistoricalWitnessTests(unittest.TestCase):
         self.witness['before_observed_at'] = 1011
         self.assertEqual(self.select()['witness_commit'], '')
 
+    def test_slow_hook_uses_recorded_finite_operation_budget(self):
+        self.events[0]['__REALTIME_TIMESTAMP'] = '1041613204'
+        self.assertEqual(self.select()['witness_commit'], '')
+        self.witness['commit_event_budget_secs'] = 60
+        self.assertEqual(self.select()['witness_commit'], self.created)
+
+    def test_event_after_effective_budget_is_still_refused(self):
+        self.witness['commit_event_budget_secs'] = 60
+        self.events[0]['__REALTIME_TIMESTAMP'] = '1071000000'
+        self.assertEqual(self.select()['witness_commit'], '')
+
     def test_a_different_daemon_pid_does_not_attest_the_commit(self):
         self.events[0]['_PID'] = '41'
         self.assertEqual(self.select()['witness_commit'], '')
