@@ -1,5 +1,6 @@
 import datetime, hashlib, json, subprocess
 from pathlib import Path
+from fleet_convergence_witness import select_witness
 root=Path('/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-convergence-2026-10-23/checks')
 w=json.loads((root/'final-eligible-work-witnesses.json').read_text())
 before=json.loads((root/'refs-final-loaded-before-work.json').read_text())
@@ -17,21 +18,12 @@ def ancestor(repo,a,b):
 rows=[]
 for witness in w['repositories']:
  repo=witness['repo'];observed=by_repo[repo]
- q=git(repo,'log','-1','--format=%H','HEAD','--',witness['eligible_path'])
- commit=q.stdout.strip() if q.returncode==0 else ''
- row={'repo':repo,'eligible_path':witness['eligible_path'],'expected_blob':witness['eligible_blob'],'before_head':witness['before_head'],'witness_commit':commit,'destinations':[],'state':'nonhealthy-unproven','external_blocker':None}
+ row={'repo':repo,'eligible_path':witness['eligible_path'],'expected_blob':witness['eligible_blob'],'before_head':witness['before_head'],'destinations':[],'state':'nonhealthy-unproven','external_blocker':None}
+ row.update(select_witness(repo,witness,journal,deploy['new_pid'],git,ancestor))
+ commit=row['witness_commit']
  if not commit:
-  row['reason']='eligible note not yet observed in a daemon-owned commit';rows.append(row);continue
- blob=git(repo,'rev-parse',commit+':'+witness['eligible_path']).stdout.strip()
- meta=git(repo,'show','-s','--format=%H%n%P%n%ct%n%an%n%ae',commit).stdout.strip().splitlines()
- ct=int(meta[2]); events=[]
- for event in journal:
-  message=event.get('MESSAGE','')
-  stamp=int(event.get('__REALTIME_TIMESTAMP',0))/1_000_000
-  if str(event.get('_PID'))==str(deploy['new_pid']) and message.startswith('📝 committed ') and message.endswith(' in '+repo) and ct<=stamp<=ct+30:
-   events.append({'timestamp_us':event['__REALTIME_TIMESTAMP'],'pid':event['_PID'],'message':message})
- object_ok=(blob==witness['eligible_blob'] and git(repo,'cat-file','-t',commit).stdout.strip()=='commit' and commit!=witness['before_head'] and ancestor(repo,witness['before_head'],commit) and ct>=int(witness['before_observed_at']) and ct+1>=witness['file_mtime'])
- row.update(actual_blob=blob,commit_metadata=meta,object_and_advancement_verified=object_ok,matching_loaded_daemon_commit_events=events)
+  row['reason']='No historical eligible-blob commit satisfying the loaded-daemon checks was found';rows.append(row);continue
+ object_ok=row['object_and_advancement_verified'];events=row['matching_loaded_daemon_commit_events']
  all_destinations=True
  for target in observed['intended_destinations']:
   dest={**target,'observations':[],'contains_witness':False,'advanced_from_before':False}
