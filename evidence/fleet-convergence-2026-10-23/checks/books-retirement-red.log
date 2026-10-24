@@ -1,0 +1,23 @@
+bun test v1.3.14 (0d9b296a)
+
+web/scripts/bucket-strategy-forward-only.test.mjs:
+251 |       writeFileSync(join(f.repo, path), 'identical retained sample\n');
+252 |     }
+253 |     git(f.repo, ['add', '--', ...paths]);
+254 |     git(f.repo, ['commit', '-qm', 'published legacy sample and its canonical copy']);
+255 |     stageDeletion(f.repo, sample.retired_candidate);
+256 |     expect(run(f).ok).toBe(true);
+                            ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/home/dracon/Dev/dracon-platform/web/scripts/bucket-strategy-forward-only.test.mjs:256:23)
+(fail) forward-only asset protection > recorded obsolete book duplicates retire without exposing canonical or sibling assets [199.56ms]
+
+ 0 pass
+ 18 filtered out
+ 1 fail
+ 4 expect() calls
+Ran 1 test across 1 file. [530.00ms]

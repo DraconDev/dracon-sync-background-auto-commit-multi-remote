@@ -1,0 +1,27 @@
+bun test v1.3.14 (0d9b296a)
+
+../../../../tmp/fleet-books-retirement-qual-05lm22ba/web/scripts/bucket-strategy-forward-only.test.mjs:
+(pass) pushing a new ref > a new branch is not blocked by history already published elsewhere [682.31ms]
+(pass) pushing a new ref > an UNPUBLISHED retirement is still refused on a new branch [648.79ms]
+(pass) pushing a new ref > new-ref exclusion trusts local remote-tracking refs (known limitation) [576.92ms]
+(pass) forward-only asset protection > a clean tree passes [77.30ms]
+(pass) forward-only asset protection > deleting a protected published asset is refused [93.02ms]
+(pass) forward-only asset protection > renaming a protected published asset away is refused [81.93ms]
+(pass) forward-only asset protection > deleting scratch the inventory does not claim is allowed [73.09ms]
+(pass) forward-only asset protection > deleting a ref is still refused [71.05ms]
+(pass) forward-only asset protection > retired legacy sample namespace preserves canonical and other-format assets [176.28ms]
+(pass) forward-only asset protection > sanctioned retirement > a retired asset can be deleted [99.95ms]
+(pass) forward-only asset protection > sanctioned retirement > a retired asset can be renamed away [78.52ms]
+(pass) forward-only asset protection > sanctioned retirement > retirement exempts only the named path, not its protected siblings [126.98ms]
+(pass) forward-only asset protection > sanctioned retirement > an exact-file retirement list exempts each named sprite, never live siblings [165.24ms]
+(pass) forward-only asset protection > sanctioned retirement > a retired directory covers every asset beneath it [101.86ms]
+(pass) forward-only asset protection > sanctioned retirement > retirement cannot be used to exempt a path outside the repository [147.47ms]
+(pass) forward-only asset protection > sanctioned retirement > a partial-component glob retires by extension, not by whole directory [73.83ms]
+(pass) forward-only asset protection > sanctioned retirement > whole-component globs keep their existing semantics [70.36ms]
+(pass) forward-only asset protection > an inventory is required — the check fails closed without one [81.87ms]
+(pass) the real inventory must not claim scratch directories > the games record does not claim web/games/tmp [1.86ms]
+
+ 19 pass
+ 0 fail
+ 75 expect() calls
+Ran 19 tests across 1 file. [3.73s]
