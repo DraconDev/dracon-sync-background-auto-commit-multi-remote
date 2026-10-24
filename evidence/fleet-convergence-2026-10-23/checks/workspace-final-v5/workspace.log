@@ -276,3 +276,5 @@
    Compiling async-task v4.7.1
    Compiling native-tls v0.2.18
    Compiling winnow v0.7.15
+   Compiling clap_lex v1.1.1
+   Compiling clap_builder v4.6.7
