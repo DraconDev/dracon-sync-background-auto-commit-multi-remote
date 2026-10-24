@@ -1,0 +1,13 @@
+{
+  "candidate": "/tmp/fleet-workspace-frozen-isf27qum/qualified-bin/dracon-sync",
+  "binary_sha256": "59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc",
+  "real_service_before": {
+    "pid": 3393180,
+    "sha256": "8be3718f27c1bc6edee5bb38a27d3911fdb1154715848e148dc13009cb5891cb"
+  },
+  "real_service_after": {
+    "pid": 3393180,
+    "sha256": "8be3718f27c1bc6edee5bb38a27d3911fdb1154715848e148dc13009cb5891cb"
+  },
+  "fixture_root_outside_watch_roots": "/tmp/fleet-workspace-frozen-isf27qum/candidate-execution"
+}
