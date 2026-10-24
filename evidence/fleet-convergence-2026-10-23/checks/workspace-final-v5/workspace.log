@@ -292,3 +292,6 @@
    Compiling unicode-segmentation v1.13.3
    Compiling ipnet v2.12.2
    Compiling openssl-probe v0.2.1
+   Compiling zbus_names v4.3.4
+   Compiling hyper-util v0.1.20
+   Compiling comfy-table v7.2.2
