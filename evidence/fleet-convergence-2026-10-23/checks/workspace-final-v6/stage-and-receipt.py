@@ -8,13 +8,24 @@ assert all(row['exit_code']==0 for row in q['commands'])
 source=json.loads((OUT/'source.json').read_text());state=Path(source['state_root'])
 assert state.parent==Path('/tmp') and state.name.startswith('fleet-workspace-frozen-')
 def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
-for metadata in source['repositories'].values():
+filtered_equivalents=[]
+for name,metadata in source['repositories'].items():
  checkout=metadata['private_checkout']
  ref=subprocess.check_output(['git','-C',checkout,'rev-parse','HEAD'],text=True,timeout=30).strip()
  assert ref==metadata['ref'],'frozen source ref changed during qualification'
- clean=subprocess.run(['git','-C',checkout,'diff','--quiet','HEAD','--'],timeout=120)
- assert clean.returncode==0,'tracked frozen inputs changed during qualification'
-(OUT/'frozen-input-integrity.json').write_text(json.dumps({'refs_unchanged':True,'all_tracked_worktree_inputs_unchanged':True,'repositories':source['repositories']},indent=2)+'\n')
+ differences=subprocess.run(['git','-C',checkout,'diff','--name-only','-z','HEAD','--'],capture_output=True,timeout=180)
+ assert differences.returncode==0
+ for encoded in differences.stdout.split(b'\0'):
+  if not encoded:continue
+  path=os.fsdecode(encoded);file=Path(checkout)/path
+  assert file.is_file() and not file.is_symlink(),'changed input type requires assessment'
+  # Required clean filters may re-encrypt an equivalent smudged fixture.
+  # Verify exact ordinary-checkout bytes from the frozen object instead of
+  # disabling filters or accepting a different plaintext/source value.
+  expected=subprocess.run(['git','-C',checkout,'cat-file','--filters','--path='+path,'HEAD:'+path],capture_output=True,timeout=180)
+  assert expected.returncode==0 and file.read_bytes()==expected.stdout,'frozen input differs after required smudge'
+  filtered_equivalents.append({'repo':name,'path':path,'required_smudge_byte_equivalence':True})
+(OUT/'frozen-input-integrity.json').write_text(json.dumps({'refs_unchanged':True,'tracked_inputs_match_frozen_objects_through_required_filters':True,'filtered_equivalents':filtered_equivalents},indent=2)+'\n')
 def identity():
  pid=int(subprocess.check_output(['systemctl','show','dracon-sync-operator.service','-p','MainPID','--value'],text=True,timeout=10))
  return {'pid':pid,'sha256':digest(f'/proc/{pid}/exe')}
