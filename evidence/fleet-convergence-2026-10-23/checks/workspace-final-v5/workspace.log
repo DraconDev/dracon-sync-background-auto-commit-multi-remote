@@ -150,3 +150,5 @@
    Compiling poly1305 v0.8.0
    Compiling chacha20 v0.9.1
    Compiling rand_chacha v0.3.1
+   Compiling hashbrown v0.14.5
+   Compiling bytes v1.12.1
