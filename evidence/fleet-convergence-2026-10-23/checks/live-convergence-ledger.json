@@ -1,0 +1,942 @@
+{
+  "generated_at": "2026-10-24T03:34:05.338990+00:00",
+  "loaded_sha256": "8be3718f27c1bc6edee5bb38a27d3911fdb1154715848e148dc13009cb5891cb",
+  "loaded_pid": 3393180,
+  "before_snapshot": "refs-final-loaded-before-work.json",
+  "after_snapshot": "refs-final-loaded-after-work.json",
+  "journal": "final-loaded-commit-publication-journal.jsonl",
+  "provenance_limit": "Read-only Git objects and actual advertised refs plus service-PID/time-correlated commit events; not a cryptographic author attestation. Executor made no real-repository add/commit/push calls.",
+  "all_initial_repositories_proven": false,
+  "repositories": [
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
+      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
+      "expected_blob": "692a56d136a25aaed4269da8b3c84eb6767a5f94",
+      "before_head": "4de4be3c1ed233d1d4cc041dee3e91d661a8a1b6",
+      "witness_commit": "26677d5d47aa6714d4682936b2c22c63ee930ec2",
+      "destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/ai-auto-writer",
+          "aliases": [
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "origin",
+              "before_ref": "4de4be3c1ed233d1d4cc041dee3e91d661a8a1b6",
+              "after_ref": "769c5c87a1d7443fa39fd702364743c3c7aa9c35",
+              "query_succeeded": true,
+              "confirmed_at": 1792812760.489801,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/ai-auto-writer",
+          "aliases": [
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "origin",
+              "before_ref": "4de4be3c1ed233d1d4cc041dee3e91d661a8a1b6",
+              "after_ref": "769c5c87a1d7443fa39fd702364743c3c7aa9c35",
+              "query_succeeded": true,
+              "confirmed_at": 1792812760.489801,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/ai-auto-writer",
+          "aliases": [
+            "gitlab"
+          ],
+          "observations": [
+            {
+              "alias": "gitlab",
+              "before_ref": "4de4be3c1ed233d1d4cc041dee3e91d661a8a1b6",
+              "after_ref": "769c5c87a1d7443fa39fd702364743c3c7aa9c35",
+              "query_succeeded": true,
+              "confirmed_at": 1792812759.3991127,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        }
+      ],
+      "state": "witnessed-autonomous-publication",
+      "external_blocker": null,
+      "actual_blob": "692a56d136a25aaed4269da8b3c84eb6767a5f94",
+      "commit_metadata": [
+        "26677d5d47aa6714d4682936b2c22c63ee930ec2",
+        "4de4be3c1ed233d1d4cc041dee3e91d661a8a1b6",
+        "1792812552",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "object_and_advancement_verified": true,
+      "matching_loaded_daemon_commit_events": [
+        {
+          "timestamp_us": "1792812552243110",
+          "pid": "3393180",
+          "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-strategy/ai-auto-writer"
+        }
+      ],
+      "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
+    },
+    {
+      "repo": "/home/dracon/Dev/browser-extensions-shared",
+      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
+      "expected_blob": "d5d8e1213d5ce40d198c3c9567542967913cee94",
+      "before_head": "1baa6095e5bc5b54430cb4e304d7831a05d83c9d",
+      "witness_commit": "df48be4af7c2626a7e979827d0ce6dade934d3a6",
+      "destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/browser-extensions-shared",
+          "aliases": [
+            "github",
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "github",
+              "before_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+              "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+              "query_succeeded": true,
+              "confirmed_at": 1792812759.0379846,
+              "contains_witness": false,
+              "fast_forward_from_before": false
+            },
+            {
+              "alias": "origin",
+              "before_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+              "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+              "query_succeeded": true,
+              "confirmed_at": 1792812761.7317562,
+              "contains_witness": false,
+              "fast_forward_from_before": false
+            }
+          ],
+          "contains_witness": false,
+          "advanced_from_before": false
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/browser-extensions-shared",
+          "aliases": [
+            "github",
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "github",
+              "before_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+              "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+              "query_succeeded": true,
+              "confirmed_at": 1792812759.0379846,
+              "contains_witness": false,
+              "fast_forward_from_before": false
+            },
+            {
+              "alias": "origin",
+              "before_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+              "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+              "query_succeeded": true,
+              "confirmed_at": 1792812761.7317562,
+              "contains_witness": false,
+              "fast_forward_from_before": false
+            }
+          ],
+          "contains_witness": false,
+          "advanced_from_before": false
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/browser-extensions-shared",
+          "aliases": [
+            "gitlab"
+          ],
+          "observations": [
+            {
+              "alias": "gitlab",
+              "before_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+              "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+              "query_succeeded": true,
+              "confirmed_at": 1792812760.717199,
+              "contains_witness": false,
+              "fast_forward_from_before": false
+            }
+          ],
+          "contains_witness": false,
+          "advanced_from_before": false
+        }
+      ],
+      "state": "nonhealthy-unproven",
+      "external_blocker": null,
+      "actual_blob": "d5d8e1213d5ce40d198c3c9567542967913cee94",
+      "commit_metadata": [
+        "df48be4af7c2626a7e979827d0ce6dade934d3a6",
+        "043fb82987af8cbd310016972d55a82baca1b2a9",
+        "1792812517",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "object_and_advancement_verified": true,
+      "matching_loaded_daemon_commit_events": [
+        {
+          "timestamp_us": "1792812517239627",
+          "pid": "3393180",
+          "message": "📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared"
+        }
+      ],
+      "reason": "Missing object, loaded-daemon commit correlation, or intended-destination advancement; not classified healthy or external."
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy",
+      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
+      "expected_blob": "fcd7cac43fecddc36636a2b5ddb1cd5f3fc6e4a3",
+      "before_head": "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
+      "witness_commit": "1580cdc934a1c26840ddfeef1b1e0c0c59c7ac87",
+      "destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/dracon-strategy",
+          "aliases": [
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "origin",
+              "before_ref": "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
+              "after_ref": "1580cdc934a1c26840ddfeef1b1e0c0c59c7ac87",
+              "query_succeeded": true,
+              "confirmed_at": 1792812760.3590052,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/dracon-strategy",
+          "aliases": [
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "origin",
+              "before_ref": "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
+              "after_ref": "1580cdc934a1c26840ddfeef1b1e0c0c59c7ac87",
+              "query_succeeded": true,
+              "confirmed_at": 1792812760.3590052,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/dracon-strategy",
+          "aliases": [
+            "gitlab"
+          ],
+          "observations": [
+            {
+              "alias": "gitlab",
+              "before_ref": "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
+              "after_ref": "1580cdc934a1c26840ddfeef1b1e0c0c59c7ac87",
+              "query_succeeded": true,
+              "confirmed_at": 1792812759.3262017,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        }
+      ],
+      "state": "witnessed-autonomous-publication",
+      "external_blocker": null,
+      "actual_blob": "fcd7cac43fecddc36636a2b5ddb1cd5f3fc6e4a3",
+      "commit_metadata": [
+        "1580cdc934a1c26840ddfeef1b1e0c0c59c7ac87",
+        "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
+        "1792812518",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "object_and_advancement_verified": true,
+      "matching_loaded_daemon_commit_events": [
+        {
+          "timestamp_us": "1792812518903288",
+          "pid": "3393180",
+          "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-strategy"
+        }
+      ],
+      "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
+      "expected_blob": "0aa670263a5b5d1a64cd0c30a066cbd808f2d816",
+      "before_head": "178d87dc441f87a91929d4a358148cd9e3a31da2",
+      "witness_commit": "e3e1dec2d02dd9851f92834f22032384080b644a",
+      "destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/dracon-home",
+          "aliases": [
+            "github",
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "github",
+              "before_ref": null,
+              "after_ref": "fe728778f0e70762903ad319bd1fe7169f7f5fde",
+              "query_succeeded": true,
+              "confirmed_at": 1792812758.950418,
+              "contains_witness": true,
+              "fast_forward_from_before": false
+            },
+            {
+              "alias": "origin",
+              "before_ref": "178d87dc441f87a91929d4a358148cd9e3a31da2",
+              "after_ref": "fe728778f0e70762903ad319bd1fe7169f7f5fde",
+              "query_succeeded": true,
+              "confirmed_at": 1792812761.3417993,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/dracon-home",
+          "aliases": [
+            "github",
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "github",
+              "before_ref": null,
+              "after_ref": "fe728778f0e70762903ad319bd1fe7169f7f5fde",
+              "query_succeeded": true,
+              "confirmed_at": 1792812758.950418,
+              "contains_witness": true,
+              "fast_forward_from_before": false
+            },
+            {
+              "alias": "origin",
+              "before_ref": "178d87dc441f87a91929d4a358148cd9e3a31da2",
+              "after_ref": "fe728778f0e70762903ad319bd1fe7169f7f5fde",
+              "query_succeeded": true,
+              "confirmed_at": 1792812761.3417993,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/dracon-home",
+          "aliases": [
+            "gitlab"
+          ],
+          "observations": [
+            {
+              "alias": "gitlab",
+              "before_ref": "178d87dc441f87a91929d4a358148cd9e3a31da2",
+              "after_ref": "fe728778f0e70762903ad319bd1fe7169f7f5fde",
+              "query_succeeded": true,
+              "confirmed_at": 1792812760.3251944,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        }
+      ],
+      "state": "witnessed-autonomous-publication",
+      "external_blocker": null,
+      "actual_blob": "0aa670263a5b5d1a64cd0c30a066cbd808f2d816",
+      "commit_metadata": [
+        "e3e1dec2d02dd9851f92834f22032384080b644a",
+        "83a628e8f58fde775592ecc6c0e1dd5e58844555",
+        "1792812513",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "object_and_advancement_verified": true,
+      "matching_loaded_daemon_commit_events": [
+        {
+          "timestamp_us": "1792812513521288",
+          "pid": "3393180",
+          "message": "📝 committed 3 file(s) in /home/dracon/.dracon"
+        }
+      ],
+      "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
+      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
+      "expected_blob": "c662ca2eb171a58f996933c764f50ab1253179e0",
+      "before_head": "91e997693796e715e805fc7b8414c9b72e0a80f6",
+      "witness_commit": "316ad2f7cfede273865128103d75e4b321b7f25d",
+      "destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/ai-auto-video",
+          "aliases": [
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "origin",
+              "before_ref": "91e997693796e715e805fc7b8414c9b72e0a80f6",
+              "after_ref": "316ad2f7cfede273865128103d75e4b321b7f25d",
+              "query_succeeded": true,
+              "confirmed_at": 1792812760.594086,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/ai-auto-video",
+          "aliases": [
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "origin",
+              "before_ref": "91e997693796e715e805fc7b8414c9b72e0a80f6",
+              "after_ref": "316ad2f7cfede273865128103d75e4b321b7f25d",
+              "query_succeeded": true,
+              "confirmed_at": 1792812760.594086,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/ai-auto-video",
+          "aliases": [
+            "gitlab"
+          ],
+          "observations": [
+            {
+              "alias": "gitlab",
+              "before_ref": "91e997693796e715e805fc7b8414c9b72e0a80f6",
+              "after_ref": "316ad2f7cfede273865128103d75e4b321b7f25d",
+              "query_succeeded": true,
+              "confirmed_at": 1792812759.588843,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        }
+      ],
+      "state": "witnessed-autonomous-publication",
+      "external_blocker": null,
+      "actual_blob": "c662ca2eb171a58f996933c764f50ab1253179e0",
+      "commit_metadata": [
+        "316ad2f7cfede273865128103d75e4b321b7f25d",
+        "91e997693796e715e805fc7b8414c9b72e0a80f6",
+        "1792812527",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "object_and_advancement_verified": true,
+      "matching_loaded_daemon_commit_events": [
+        {
+          "timestamp_us": "1792812528064588",
+          "pid": "3393180",
+          "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-strategy/ai-auto-video"
+        }
+      ],
+      "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
+      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
+      "expected_blob": "12710ed92c36232b5ac00b142ee487faac6e2428",
+      "before_head": "d56a83a6288f1c92be843b13760432e68bf07ab9",
+      "witness_commit": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
+      "destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/web-games-endless-td",
+          "aliases": [
+            "github",
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "github",
+              "before_ref": "d56a83a6288f1c92be843b13760432e68bf07ab9",
+              "after_ref": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
+              "query_succeeded": true,
+              "confirmed_at": 1792812758.9687915,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
+            {
+              "alias": "origin",
+              "before_ref": "d56a83a6288f1c92be843b13760432e68bf07ab9",
+              "after_ref": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
+              "query_succeeded": true,
+              "confirmed_at": 1792812761.5104723,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/web-games-endless-td",
+          "aliases": [
+            "github",
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "github",
+              "before_ref": "d56a83a6288f1c92be843b13760432e68bf07ab9",
+              "after_ref": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
+              "query_succeeded": true,
+              "confirmed_at": 1792812758.9687915,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
+            {
+              "alias": "origin",
+              "before_ref": "d56a83a6288f1c92be843b13760432e68bf07ab9",
+              "after_ref": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
+              "query_succeeded": true,
+              "confirmed_at": 1792812761.5104723,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/web-games-endless-td",
+          "aliases": [
+            "gitlab"
+          ],
+          "observations": [
+            {
+              "alias": "gitlab",
+              "before_ref": "d56a83a6288f1c92be843b13760432e68bf07ab9",
+              "after_ref": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
+              "query_succeeded": true,
+              "confirmed_at": 1792812760.5167484,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        }
+      ],
+      "state": "witnessed-autonomous-publication",
+      "external_blocker": null,
+      "actual_blob": "12710ed92c36232b5ac00b142ee487faac6e2428",
+      "commit_metadata": [
+        "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
+        "d56a83a6288f1c92be843b13760432e68bf07ab9",
+        "1792812519",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "object_and_advancement_verified": true,
+      "matching_loaded_daemon_commit_events": [
+        {
+          "timestamp_us": "1792812537165971",
+          "pid": "3393180",
+          "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td"
+        }
+      ],
+      "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
+      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
+      "expected_blob": "46ae22b8d5dbee1f918354b5bea8ff87654bbbc2",
+      "before_head": "0ddc7c43ab05794cee85b61298d50a6176075369",
+      "witness_commit": "8ddf537aa4e9fde1fc49737c3f12d55ddabfc3a2",
+      "destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/pi-goal-list-loop-audit",
+          "aliases": [
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "origin",
+              "before_ref": "0ddc7c43ab05794cee85b61298d50a6176075369",
+              "after_ref": "8ddf537aa4e9fde1fc49737c3f12d55ddabfc3a2",
+              "query_succeeded": true,
+              "confirmed_at": 1792812762.064772,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/pi-goal-list-loop-audit",
+          "aliases": [
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "origin",
+              "before_ref": "0ddc7c43ab05794cee85b61298d50a6176075369",
+              "after_ref": "8ddf537aa4e9fde1fc49737c3f12d55ddabfc3a2",
+              "query_succeeded": true,
+              "confirmed_at": 1792812762.064772,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/pi-goal-list-loop-audit",
+          "aliases": [
+            "gitlab"
+          ],
+          "observations": [
+            {
+              "alias": "gitlab",
+              "before_ref": "0ddc7c43ab05794cee85b61298d50a6176075369",
+              "after_ref": "8ddf537aa4e9fde1fc49737c3f12d55ddabfc3a2",
+              "query_succeeded": true,
+              "confirmed_at": 1792812761.708934,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        }
+      ],
+      "state": "witnessed-autonomous-publication",
+      "external_blocker": null,
+      "actual_blob": "46ae22b8d5dbee1f918354b5bea8ff87654bbbc2",
+      "commit_metadata": [
+        "8ddf537aa4e9fde1fc49737c3f12d55ddabfc3a2",
+        "0ddc7c43ab05794cee85b61298d50a6176075369",
+        "1792812517",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "object_and_advancement_verified": true,
+      "matching_loaded_daemon_commit_events": [
+        {
+          "timestamp_us": "1792812517642155",
+          "pid": "3393180",
+          "message": "📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit"
+        }
+      ],
+      "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
+      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
+      "expected_blob": "a727340872b4a1a4049e5308e29180319aa1d05f",
+      "before_head": "128d017d881fd66fde777b9229410b43c2883844",
+      "witness_commit": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+      "destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/web-games-polis",
+          "aliases": [
+            "gitlab",
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "gitlab",
+              "before_ref": "128d017d881fd66fde777b9229410b43c2883844",
+              "after_ref": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+              "query_succeeded": true,
+              "confirmed_at": 1792812763.0175722,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
+            {
+              "alias": "origin",
+              "before_ref": "128d017d881fd66fde777b9229410b43c2883844",
+              "after_ref": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+              "query_succeeded": true,
+              "confirmed_at": 1792812764.661217,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/web-games-polis",
+          "aliases": [
+            "github"
+          ],
+          "observations": [
+            {
+              "alias": "github",
+              "before_ref": "128d017d881fd66fde777b9229410b43c2883844",
+              "after_ref": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+              "query_succeeded": true,
+              "confirmed_at": 1792812761.5388277,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/web-games-polis",
+          "aliases": [
+            "gitlab",
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "gitlab",
+              "before_ref": "128d017d881fd66fde777b9229410b43c2883844",
+              "after_ref": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+              "query_succeeded": true,
+              "confirmed_at": 1792812763.0175722,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
+            {
+              "alias": "origin",
+              "before_ref": "128d017d881fd66fde777b9229410b43c2883844",
+              "after_ref": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+              "query_succeeded": true,
+              "confirmed_at": 1792812764.661217,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        }
+      ],
+      "state": "witnessed-autonomous-publication",
+      "external_blocker": null,
+      "actual_blob": "a727340872b4a1a4049e5308e29180319aa1d05f",
+      "commit_metadata": [
+        "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+        "0aa929ea1436e7c6fd28f73bba116136528e8d16",
+        "1792812520",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "object_and_advancement_verified": true,
+      "matching_loaded_daemon_commit_events": [
+        {
+          "timestamp_us": "1792812527933438",
+          "pid": "3393180",
+          "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/polis"
+        }
+      ],
+      "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform",
+      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
+      "expected_blob": "57afb53651cdeb5f8a06ce1019aad62664c9c774",
+      "before_head": "300396264d33325c3a3ffd830882529478df7d05",
+      "witness_commit": "",
+      "destinations": [],
+      "state": "nonhealthy-unproven",
+      "external_blocker": null,
+      "reason": "eligible note not yet observed in a daemon-owned commit"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
+      "expected_blob": "b329255510d9e65c0dec0a1c50209ffe700ea76c",
+      "before_head": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
+      "witness_commit": "33a5beba235245eed14224e22a20b99be3cfd504",
+      "destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/web-games-deathrun",
+          "aliases": [
+            "github",
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "github",
+              "before_ref": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
+              "after_ref": "33a5beba235245eed14224e22a20b99be3cfd504",
+              "query_succeeded": true,
+              "confirmed_at": 1792812762.461731,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
+            {
+              "alias": "origin",
+              "before_ref": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
+              "after_ref": "33a5beba235245eed14224e22a20b99be3cfd504",
+              "query_succeeded": true,
+              "confirmed_at": 1792812764.9206812,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/web-games-deathrun",
+          "aliases": [
+            "github",
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "github",
+              "before_ref": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
+              "after_ref": "33a5beba235245eed14224e22a20b99be3cfd504",
+              "query_succeeded": true,
+              "confirmed_at": 1792812762.461731,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
+            {
+              "alias": "origin",
+              "before_ref": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
+              "after_ref": "33a5beba235245eed14224e22a20b99be3cfd504",
+              "query_succeeded": true,
+              "confirmed_at": 1792812764.9206812,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/web-games-deathrun",
+          "aliases": [
+            "gitlab"
+          ],
+          "observations": [
+            {
+              "alias": "gitlab",
+              "before_ref": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
+              "after_ref": "33a5beba235245eed14224e22a20b99be3cfd504",
+              "query_succeeded": true,
+              "confirmed_at": 1792812763.857648,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        }
+      ],
+      "state": "witnessed-autonomous-publication",
+      "external_blocker": null,
+      "actual_blob": "b329255510d9e65c0dec0a1c50209ffe700ea76c",
+      "commit_metadata": [
+        "33a5beba235245eed14224e22a20b99be3cfd504",
+        "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
+        "1792812519",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "object_and_advancement_verified": true,
+      "matching_loaded_daemon_commit_events": [
+        {
+          "timestamp_us": "1792812525958658",
+          "pid": "3393180",
+          "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun"
+        }
+      ],
+      "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
+    }
+  ]
+}
