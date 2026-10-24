@@ -1,0 +1,208 @@
+{
+  "observed_at": 1792857940.3222218,
+  "active_manifest": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.Dy32YA/manifest.json",
+  "signals": [
+    {
+      "pid": 355366,
+      "starttime": "256271004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 355374,
+      "starttime": "256271012",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 355762,
+      "starttime": "256271121",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1439920,
+      "starttime": "256559936",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1440256,
+      "starttime": "256560062",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 358436,
+      "starttime": "256272004",
+      "signal": "SIGKILL"
+    }
+  ],
+  "failed_revision": "73e4deae3cc3e9bdf89f6285868ebdb9fca4847b",
+  "group": 355366,
+  "daemon_pid": 3046262,
+  "initial_members": [
+    {
+      "pid": 355366,
+      "state": "S",
+      "ppid": 3046262,
+      "group": 355366,
+      "starttime": "256271004",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "git"
+    },
+    {
+      "pid": 355374,
+      "state": "S",
+      "ppid": 355366,
+      "group": 355366,
+      "starttime": "256271012",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "ssh"
+    },
+    {
+      "pid": 355762,
+      "state": "S",
+      "ppid": 355366,
+      "group": 355366,
+      "starttime": "256271121",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "pre-push"
+    },
+    {
+      "pid": 358436,
+      "state": "S",
+      "ppid": 355762,
+      "group": 355366,
+      "starttime": "256272004",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "MainThread"
+    },
+    {
+      "pid": 1439920,
+      "state": "S",
+      "ppid": 358436,
+      "group": 355366,
+      "starttime": "256559936",
+      "uid": 1000,
+      "cwd": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.Dy32YA/snapshot-73e4deae3cc3e9bdf89f6285868ebdb9fca4847b/extensions/standalones/full-page-screenshot",
+      "unit": true,
+      "name": "npm run lint"
+    },
+    {
+      "pid": 1440256,
+      "state": "S",
+      "ppid": 1439920,
+      "group": 355366,
+      "starttime": "256560062",
+      "uid": 1000,
+      "cwd": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.Dy32YA/snapshot-73e4deae3cc3e9bdf89f6285868ebdb9fca4847b/extensions/standalones/full-page-screenshot",
+      "unit": true,
+      "name": "MainThread"
+    }
+  ],
+  "applied": true,
+  "corrected_test_anchor": "5d8e0ac02d374edeb17aa60dffb63f7c754dba05",
+  "result": "no live members remain",
+  "remaining": [],
+  "manifest_after": "cancelled",
+  "finished_at": 1792857946.3422027
+}
