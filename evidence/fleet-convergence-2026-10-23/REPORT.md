@@ -75,7 +75,11 @@ PrivateTmp. Separate attempts retain distinct output and real exit codes.
 Demonstrated product corrections include:
 
 - Gemini toolkit: equivalent explicit C0 filtering instead of an illegal literal
-  control-byte regex, with control/Unicode/fallback assertions retained.
+  control-byte regex, with control/Unicode/fallback assertions retained. Repeated
+  required-setting additions exposed a second, duplicated panel initializer;
+  initialization now snapshots canonical defaults and clones its feature map.
+  A private imperative prompt-insertion function was renamed rather than disabling
+  React hook lint or changing its behavior.
 - Clean Web: track only the exact historical public HN regression fixture with
   provenance; use existing representative tracked inputs for the leak probe.
   Today's different page failed the unchanged threshold and was rejected.
@@ -225,9 +229,17 @@ refreshed to claim those older snapshots passed. The next normal attempt must
 validate corrected coherent source. Browser's refreshed eligible marker anchors
 the provisioning repair, not merely an earlier source tip.
 
-At2026-10-24T15:18UTC the daemon started ordinary attemptDy32YA on newer
-73e4deae3cc3e9bdf89f6285868ebdb9fca4847b; the stuck list was empty. This is
-an in-progress observation, not a gate pass or a remote acknowledgment.
+Ordinary attemptDy32YA on73e4dea subsequently caught new Gemini required-setting
+and hook-name lint failures from later feature work. The canonical-defaults repair
+above passes current package typecheck,502tests,lint and build. A prepared private
+counterexample accepts an alternate canonical default and rejects the duplicated
+initializer; no live source is modified by that experiment. Initial missing-WXT
+setup runs remain rejected evidence. Independent narrow review found no issue.
+Only the identity-revalidated, already-failed73e publication family was cancelled
+so normal publication can select repaired source; it was never relabelled passed.
+The refreshed browser eligible marker follows the actual repair anchor.
+Evidence: `checks/gemini-canonical-defaults/`. Original full gates and remote
+acknowledgments for the replacement source remain required.
 
 **Still required:** terminal success of the original browser whole gates and
 observed final-runtime eligible-tip advancement on all its intended remotes.
