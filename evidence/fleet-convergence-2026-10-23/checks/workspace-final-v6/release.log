@@ -147,3 +147,9 @@
    Compiling dashmap v5.5.3
    Compiling reqwest v0.12.28
    Compiling chrono v0.4.45
+   Compiling comfy-table v7.2.2
+   Compiling globset v0.4.20
+   Compiling chacha20poly1305 v0.10.1
+   Compiling tempfile v3.27.0
+   Compiling rand v0.8.8
+   Compiling notify-rust v4.18.0
