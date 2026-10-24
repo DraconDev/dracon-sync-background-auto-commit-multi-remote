@@ -193,3 +193,8 @@
    Compiling ed25519-dalek v2.2.0
    Compiling tokio-macros v2.7.2
    Compiling socket2 v0.6.5
+   Compiling mio v1.2.3
+   Compiling bech32 v0.11.1
+   Compiling tokio v1.53.3
+   Compiling openssl-sys v0.9.117
+   Compiling dracon-security v0.4.0 (/tmp/fleet-workspace-frozen-2ajly5n9/source/dracon-warden/src/security)
