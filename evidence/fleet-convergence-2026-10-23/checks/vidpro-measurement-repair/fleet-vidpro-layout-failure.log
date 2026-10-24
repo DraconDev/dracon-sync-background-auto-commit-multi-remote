@@ -1,0 +1,38 @@
+
+> vidpro-extension@1.16.0 test
+> vitest run --passWithNoTests test/components.test.ts -t keeps the category helper
+
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension
+
+18:09:34 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:592:8 Visible, non-interactive element `<label>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+18:09:34 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:592:8 Non-interactive element `<label>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+18:09:34 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:672:8 Visible, non-interactive element `<label>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+18:09:34 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:672:8 Non-interactive element `<label>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+ ❯ test/components.test.ts (64 tests | 1 failed | 63 skipped) 78ms
+     × keeps the category helper outside the two-column row and top-aligns the kids control 76ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/components.test.ts > PublishingDefaultsSettings component > keeps the category helper outside the two-column row and top-aligns the kids control
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ test/components.test.ts:394:32
+    392|     expect(help.id).toBe("category-help");
+    393|     expect(category.closest(".grid")?.contains(help)).toBe(false);
+    394|     expect(kidsRow?.className).toContain("justify-start");
+       |                                ^
+    395|     expect(kidsRow?.className).not.toContain("justify-end");
+    396|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 63 skipped (64)
+   Start at  18:09:31
+   Duration  3.47s (transform 1.77s, setup 1.67s, import 880ms, tests 78ms, environment 591ms)
+

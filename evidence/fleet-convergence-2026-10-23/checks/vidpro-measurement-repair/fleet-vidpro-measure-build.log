@@ -1,0 +1,109 @@
+
+> vidpro-extension@1.16.0 prebuild
+> node scripts/ensure-wxt.mjs
+
+
+> vidpro-extension@1.16.0 build
+> tsc --noEmit && wxt build && node scripts/clean-duplicate-css.js
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+- Preparing...
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+18:11:38 [vite-plugin-svelte] entrypoints/dashboard/components/ToastItem.svelte:18:22 This reference only captures the initial value of `toast`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+16:   // it (audit 2026-09-13). Success/warning auto-dismiss, pausable below.
+17:   const AUTO_DISMISS_MS = 5000;
+18:   const autoDismiss = toast.type !== "error";
+                               ^
+19:   let deadline = 0;
+20:   let remainingMs = AUTO_DISMISS_MS;
+18:11:38 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:592:8 Visible, non-interactive element `<label>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+590:              The hint follows the switch instead of standing still: a fixed
+591:              "off by default" next to a switch reading "On" was a lie. -->
+592:         <label
+                   ^
+593:           class="block cursor-pointer"
+594:           onclick={(e) => {
+18:11:38 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:592:8 Non-interactive element `<label>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+590:              The hint follows the switch instead of standing still: a fixed
+591:              "off by default" next to a switch reading "On" was a lie. -->
+592:         <label
+                   ^
+593:           class="block cursor-pointer"
+594:           onclick={(e) => {
+18:11:38 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:672:8 Visible, non-interactive element `<label>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+670:           <p class="mt-1.5 text-[11px] text-vidpro-text-muted">Pick Yes only for real AI or synthetic content.</p>
+671:         </div>
+672:         <label
+                   ^
+673:           class="block cursor-pointer"
+674:           onclick={(e) => {
+18:11:38 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:672:8 Non-interactive element `<label>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+670:           <p class="mt-1.5 text-[11px] text-vidpro-text-muted">Pick Yes only for real AI or synthetic content.</p>
+671:         </div>
+672:         <label
+                   ^
+673:           class="block cursor-pointer"
+674:           onclick={(e) => {
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+[1G✔ Built extension in 7.131 s
+  ├─ .output/chrome-mv3/manifest.json                                  1.27 kB  
+  ├─ .output/chrome-mv3/dashboard.html                                 687 B    
+  ├─ .output/chrome-mv3/popup.html                                     695 B    
+  ├─ .output/chrome-mv3/welcome.html                                   2.62 kB  
+  ├─ .output/chrome-mv3/background.js                                  68.38 kB 
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-html-plugins-DPbbfBKe.js   779 B    
+  ├─ .output/chrome-mv3/chunks/ApiSettings-BEClI4LQ.js                 19.91 kB 
+  ├─ .output/chrome-mv3/chunks/ChannelInsightsSettings-BwgxSsHs.js     19.6 kB  
+  ├─ .output/chrome-mv3/chunks/dashboard-DXZVygdI.js                   59.83 kB 
+  ├─ .output/chrome-mv3/chunks/HelpTooltip-x_Wa5KW4.js                 1.8 kB   
+  ├─ .output/chrome-mv3/chunks/Input-CcJWZx0c.js                       2.69 kB  
+  ├─ .output/chrome-mv3/chunks/popup-I3fOAQJO.js                       4.35 kB  
+  ├─ .output/chrome-mv3/chunks/ProfileSettings-qSSD7K81.js             7.17 kB  
+  ├─ .output/chrome-mv3/chunks/PublishingDefaultsSettings-DbDMwhuV.js  41.58 kB 
+  ├─ .output/chrome-mv3/chunks/SettingsTab-lpfPX-yy.js                 8.83 kB  
+  ├─ .output/chrome-mv3/chunks/style-C5wQeiri.js                       46.17 kB 
+  ├─ .output/chrome-mv3/chunks/welcome-JSEpM3uv.js                     1.41 kB  
+  ├─ .output/chrome-mv3/content-scripts/channel.js                     110.24 kB
+  ├─ .output/chrome-mv3/content-scripts/studio.js                      122.43 kB
+  ├─ .output/chrome-mv3/content-scripts/watch.js                       80.25 kB 
+  ├─ .output/chrome-mv3/assets/dashboard-CTqVjQcP.css                  1.28 kB  
+  ├─ .output/chrome-mv3/assets/popup-CA46ENda.css                      207 B    
+  ├─ .output/chrome-mv3/assets/style-159JNcAy.css                      36.39 kB 
+  ├─ .output/chrome-mv3/assets/style.css                               36.39 kB 
+  ├─ .output/chrome-mv3/assets/welcome-BJetjVnv.css                    6.19 kB  
+  ├─ .output/chrome-mv3/_locales/en/messages.json                      8.77 kB  
+  ├─ .output/chrome-mv3/icon/128.png                                   5.2 kB   
+  ├─ .output/chrome-mv3/icon/16.png                                    757 B    
+  ├─ .output/chrome-mv3/icon/32.png                                    705 B    
+  ├─ .output/chrome-mv3/icon/48.png                                    1.93 kB  
+  └─ .output/chrome-mv3/icon/96.png                                    2.05 kB  
+Σ Total size: 700.55 kB                                              
+✔ Finished in 8.383 s
+Removed duplicate CSS: style.css (identical to style-159JNcAy.css)
+CSS cleanup complete.

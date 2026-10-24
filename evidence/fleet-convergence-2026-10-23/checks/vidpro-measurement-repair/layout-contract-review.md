@@ -1,0 +1,9 @@
+## Review
+- Correct: The intended contract is label-above-control alignment, not a flex-column card. `components/PublishingDefaultsSettings.svelte:585–591` explicitly explains the previous centre/bottom-edge mismatch; `:638–642` reinforces shared label baselines and control top edges. `docs/POLISH_CHECKLIST_2026-10-11.md:35` independently specifies labels above controls.
+- Finding: **P1 — stale structural assertion**, `test/components.test.ts:389–395`. The failure log confirms the helper assertions pass before the obsolete `div.flex.flex-col` lookup yields undefined. Requiring `justify-start` preserves an abandoned implementation, not the current alignment contract.
+- Smallest correction: retain the helper ID, `aria-describedby`, and outside-row assertions. Locate Kids through its accessible checkbox/associated label; assert Category and Kids occupy distinct cells of the same row, with each label line preceding its control box. Replace the old flex-class assertions with these structural prerequisites; rename the test accordingly rather than claiming measured alignment.
+- Meaningful exact alignment coverage requires browser geometry: compare Category-select and Kids-control-box top edges at a two-column viewport. Happy-dom structure alone cannot establish pixel alignment. Negative controls should move the helper inside the row, break its association, and offset/bottom-align the Kids box; the geometry check must reject the last mutation.
+- Limitation: no committed-history artifact supplied; `watchdog_diff` cannot inspect pinned commit `428ea20`. Current source comments, documented layout guidance, and the consumer (`entrypoints/dashboard/tabs/SettingsTab.svelte:211–216`) establish intent without reverting newer UI. No tests run or files changed.
+- Merge verdict: **BLOCK** pending the narrow stale-test correction and verification; no overall-goal approval.
+
+BLOCKERS
