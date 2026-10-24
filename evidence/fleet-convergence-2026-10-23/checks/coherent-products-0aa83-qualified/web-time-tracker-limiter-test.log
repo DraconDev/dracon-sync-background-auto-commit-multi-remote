@@ -1,0 +1,17 @@
+
+> web-time-tracker-limiter@0.1.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v4.1.9 /tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/web-time-tracker-limiter
+
+
+Rebuilding...
+
+Done in 351ms.
+
+ Test Files  9 passed (9)
+      Tests  119 passed (119)
+   Start at  05:42:10
+   Duration  3.50s (transform 310ms, setup 133ms, import 1.02s, tests 2.72s, environment 1.91s)
+

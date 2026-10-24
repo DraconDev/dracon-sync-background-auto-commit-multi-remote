@@ -1,0 +1,8 @@
+
+> tabmon@1.1.0 lint
+> eslint .
+
+(node:2364064) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/fleet-browser-products-i2t2re4x/snapshot/eslint.config.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /tmp/fleet-browser-products-i2t2re4x/snapshot/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,0 +1,340 @@
+{
+  "started": 1792816832.0277574,
+  "generator_sha256": "bf609c64c18fb3ab79b24eeb0f0ff7666c14d7c6ec191a7c75f3ca63668a3962",
+  "scope": "coherent source product diagnostics, not a manual push or a whole-hook pass",
+  "commands": [
+    {
+      "command": [
+        "/tmp/fleet-browser-products-i2t2re4x/toolchain/bin/bun",
+        "install",
+        "--frozen-lockfile",
+        "--backend=copyfile",
+        "--concurrent-scripts=1",
+        "--network-concurrency=8",
+        "--ignore-scripts"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot",
+      "started": 1792816887.6322598,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/install-base.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816895.4887865
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-i2t2re4x/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/affiliate-deals",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot",
+      "started": 1792816895.5337036,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/dependency-0.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816898.8342948
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-i2t2re4x/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/brand-icon",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot",
+      "started": 1792816898.8345628,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/dependency-1.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816899.7008812
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-i2t2re4x/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/extension-core",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot",
+      "started": 1792816899.701247,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/dependency-2.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816901.0685968
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-i2t2re4x/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/extension-forms",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot",
+      "started": 1792816901.0691414,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/dependency-3.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816902.3391192
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-i2t2re4x/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/extension-react",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot",
+      "started": 1792816902.3394566,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/dependency-4.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816903.0562024
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-i2t2re4x/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/extension-svelte",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot",
+      "started": 1792816903.0566244,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/dependency-5.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816903.7284079
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-i2t2re4x/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/new-tab-core",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot",
+      "started": 1792816903.7287514,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/dependency-6.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816905.2458644
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-i2t2re4x/toolchain/bin/bun",
+        "install",
+        "--frozen-lockfile",
+        "--backend=copyfile",
+        "--concurrent-scripts=1",
+        "--network-concurrency=8"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot",
+      "started": 1792816905.2462182,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/install-scripted.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816919.9643621
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "typecheck"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/web-time-tracker-limiter",
+      "started": 1792816923.9985573,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/web-time-tracker-limiter-typecheck.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816927.4830098
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/web-time-tracker-limiter",
+      "started": 1792816927.4833548,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/web-time-tracker-limiter-build.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816930.4118264
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "test"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/web-time-tracker-limiter",
+      "started": 1792816930.412245,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/web-time-tracker-limiter-test.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816934.5044858
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "lint"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/web-time-tracker-limiter",
+      "started": 1792816934.5049288,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/web-time-tracker-limiter-lint.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816937.2290113
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "typecheck"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/tabmon",
+      "started": 1792816937.2293737,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/tabmon-typecheck.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816939.550371
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/tabmon",
+      "started": 1792816939.5506885,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/tabmon-build.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816942.6224802
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "test"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/tabmon",
+      "started": 1792816942.622912,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/tabmon-test.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816983.0608277
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "lint"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/tabmon",
+      "started": 1792816983.0619047,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/tabmon-lint.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816987.493291
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "typecheck"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/vidpro-extension",
+      "started": 1792816987.493921,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/vidpro-extension-typecheck.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816990.9680433
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/vidpro-extension",
+      "started": 1792816990.968404,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/vidpro-extension-build.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816999.5733008
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "test"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/vidpro-extension",
+      "started": 1792816999.573801,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/vidpro-extension-test.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792817038.6091912
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "lint"
+      ],
+      "cwd": "/tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/vidpro-extension",
+      "started": 1792817038.6096005,
+      "log": "/tmp/fleet-browser-products-i2t2re4x/vidpro-extension-lint.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792817041.8375764
+    }
+  ],
+  "status": "passed",
+  "revision": "0aa83f83f8c24c5c2cbe62cae14bae4a9a2c1ace",
+  "required_source_blobs": {
+    "bun.lock": "9d797c57db238570fd2846f8bfee2cfddf51e00478c2b67dcbcb939fcaaf8943",
+    ".gitignore": "a905834112066b583cfcfc036eb1ab4cb8c79cb0e744d5433538422b598e5ba0",
+    "packages/nightfall/src/components/Card.svelte.d.ts": "d8c6596a3c1edef8bb238bd145bbfcba9aba4d5afaa8fffd17c7aa8fc0aba350",
+    "packages/nightfall/src/components/StatusHero.svelte.d.ts": "796132d2b8c2a9b5bfa8be1f33191dca93da7c2eebe3d73eacb73db9070837e2",
+    "extensions/standalones/web-time-tracker-limiter/tailwind.config.mjs": "25164ecee899e13bce28772ccddc53f417d0ba30cab4d282089e32cd8ac42dbb",
+    "extensions/standalones/web-time-tracker-limiter/tests/nightfall-types.test.ts": "55ce85e08bc7b38492d18d1e4a6f8babaede75a98b0cd55ccf47176ef614082a",
+    "extensions/standalones/web-time-tracker-limiter/tests/tailwind.test.ts": "1b72540179cec5c3ea0150756793af1227534352c7f15ce62fe3a8d681f75e6b",
+    "extensions/standalones/web-time-tracker-limiter/entrypoints/dashboard/components/NavIcon.svelte": "4c6a31b3b091840e14ab3a66c895b538d840cf6bfed63b9b1f02023872052a14",
+    "extensions/standalones/tabmon/tools/music_provenance.py": "12d70d688f7b5ead0233795c0573de1fa86ee50fe313c409c254f91a358b5ccf",
+    "extensions/standalones/tabmon/tools/test_music_provenance.py": "323e8e254154a823886a7a2d4506582b2210371737f6dfe8c65064af5ab1e242",
+    "extensions/standalones/tabmon/tools/fetch-sfx-mmx.py": "1187dd39552f38e11a7a8bea5444a18a1ea53f1c27ad4d5482fbe329c7bbc5c7",
+    "extensions/standalones/tabmon/tools/fetch-missing.py": "66a95bad71ec51e61749ba937f165af382c055b6d5be1e2a0de4cdd2bc65fee1",
+    "extensions/standalones/tabmon/tools/merge-music-receipt.py": "301b3259339e7892034bf636e01843af4d1994e86f76df12f6173d7fe387a9ca",
+    "extensions/standalones/tabmon/scripts/framework-lint.mjs": "3ea4537919f28f965a1916ff25031327d5235cd804d4429ac2c0a594e3374d34",
+    "extensions/standalones/tabmon/scripts/framework-lint.check.mjs": "ec780ad609d9995e41bd5dcc5163e06c853071ee28964ae317efb92e40c06443",
+    "extensions/standalones/tabmon/eslint.config.js": "3b5e5e8c1ebb73a023df9de7a0d39026885c234c319d7417d5f0d17b4e2923d8",
+    "extensions/standalones/tabmon/package.json": "3e9d8bff885ee96369ab2d8bd576abca9dd85b4931fe24b107f392dfb928d315",
+    "extensions/standalones/web-time-tracker-limiter/package.json": "49d924fb588c07843d57794e02de1fd74ab3f886395d1b6156054283ac5541f9",
+    "extensions/standalones/web-time-tracker-limiter/tests/dashboard.test.ts": "8e2ab7b0b1e7e14c5cfdc136b829778c066c3ca7984ee85eb9e83c0e36c68480",
+    "scripts/git-hooks/run-push-gates.mjs": "1878074a4c37623c9067ff8ddf1397c5b975b3b5b117d57aa2552d3bb69df34d"
+  },
+  "bun_sha256": "9fd36f87e4b90b07632b987a2e4ec81ca15a62c81bf983190cea6d715be2ad74",
+  "bun_version": "1.3.14",
+  "finished": 1792817041.838088
+}

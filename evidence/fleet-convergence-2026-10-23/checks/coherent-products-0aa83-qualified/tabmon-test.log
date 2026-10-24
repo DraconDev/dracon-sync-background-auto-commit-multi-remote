@@ -1,0 +1,35 @@
+
+> tabmon@1.1.0 test
+> node --test scripts/framework-lint.check.mjs && python3 -m unittest discover -s tools -p test_music_provenance.py && vitest run --passWithNoTests
+
+(node:2340227) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/fleet-browser-products-i2t2re4x/snapshot/eslint.config.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /tmp/fleet-browser-products-i2t2re4x/snapshot/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ ambient SvelteKit must not turn native WXT HTML into a Kit route (230.316167ms)
+✔ a declared SvelteKit app keeps its unresolved navigation guard (14.42104ms)
+✔ XSS and keyed-rendering guards still reject real regressions in WXT (29.663792ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1429.245728
+................
+----------------------------------------------------------------------
+Ran 16 tests in 0.034s
+
+OK
+
+ RUN  v4.1.9 /tmp/fleet-browser-products-i2t2re4x/snapshot/extensions/standalones/tabmon
+
+05:42:26 [vite-plugin-svelte] /tmp/fleet-browser-products-i2t2re4x/snapshot/packages/nightfall/src/components/Card.svelte:48:14 This reference only captures the initial value of `dense`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+
+ Test Files  66 passed (66)
+      Tests  998 passed (998)
+   Start at  05:42:24
+   Duration  38.01s (transform 1.68s, setup 492ms, import 3.67s, tests 53.64s, environment 11.56s)
+
