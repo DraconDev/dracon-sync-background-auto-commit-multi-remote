@@ -1,0 +1,30 @@
+
+> vidpro-extension@1.16.0 pretypecheck
+> node scripts/ensure-wxt.mjs
+
+
+> vidpro-extension@1.16.0 typecheck
+> tsc --noEmit
+
+entrypoints/watch.content.ts(134,7): error TS2353: Object literal may only specify known properties, and 'revenue' does not exist in type 'WatchChannelFacts'.
+entrypoints/watch.content.ts(153,7): error TS2353: Object literal may only specify known properties, and 'revenue' does not exist in type 'WatchChannelFacts'.
+entrypoints/watch.content.ts(169,5): error TS2353: Object literal may only specify known properties, and 'revenue' does not exist in type 'WatchChannelFacts'.
+test/watchCardReach.test.ts(21,3): error TS2322: Type '{ videoId: string; title: string | null; channel: string | null; channelHandle: string | null; channelSubsText: string | null; channelHref: string | null; collaborators?: globalThis.WatchCollaborator[] | undefined; ... 7 more ...; description: string | null; }' is not assignable to type 'WatchInfo'.
+  Types of property 'collaborators' are incompatible.
+    Type 'WatchCollaborator[] | undefined' is not assignable to type 'WatchCollaborator[]'.
+      Type 'undefined' is not assignable to type 'WatchCollaborator[]'.
+test/watchChannelFacts.test.ts(134,3): error TS2322: Type '{ videoId: string; title: string | null; channel: string | null; channelHandle: string | null; channelSubsText: string | null; channelHref: string | null; collaborators?: globalThis.WatchCollaborator[] | undefined; ... 7 more ...; description: string | null; }' is not assignable to type 'WatchInfo'.
+  Types of property 'collaborators' are incompatible.
+    Type 'WatchCollaborator[] | undefined' is not assignable to type 'WatchCollaborator[]'.
+      Type 'undefined' is not assignable to type 'WatchCollaborator[]'.
+test/watchChannelFacts.test.ts(161,3): error TS2353: Object literal may only specify known properties, and 'revenue' does not exist in type 'WatchChannelFacts'.
+test/watchChannelFacts.test.ts(255,7): error TS2353: Object literal may only specify known properties, and 'revenue' does not exist in type 'WatchChannelFacts'.
+test/watchReader.test.ts(12,3): error TS2322: Type '{ videoId: string; title: string | null; channel: string | null; channelHandle: string | null; channelSubsText: string | null; channelHref: string | null; collaborators?: globalThis.WatchCollaborator[] | undefined; ... 7 more ...; description: string | null; }' is not assignable to type 'WatchInfo'.
+  Types of property 'collaborators' are incompatible.
+    Type 'WatchCollaborator[] | undefined' is not assignable to type 'WatchCollaborator[]'.
+      Type 'undefined' is not assignable to type 'WatchCollaborator[]'.
+utils/watchCollaborators.ts(196,41): error TS2339: Property 'browseEndpoint' does not exist on type '{}'.
+utils/watchCollaborators.ts(247,41): error TS2339: Property 'showDialogCommand' does not exist on type '{}'.
+utils/watchReader.ts(1317,18): error TS2339: Property 'revenue' does not exist on type 'WatchChannelFacts'.
+
+Gate exited with status 2

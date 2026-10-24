@@ -1,0 +1,64 @@
+
+> tabmon@1.1.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v4.1.9 /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.q5qKQk/snapshot-11c41fb766adaf6ae679e99a51e018a969b5c521/extensions/standalones/tabmon
+
+04:43:29 [vite-plugin-svelte] /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.q5qKQk/snapshot-11c41fb766adaf6ae679e99a51e018a969b5c521/packages/nightfall/src/components/Card.svelte:48:14 This reference only captures the initial value of `dense`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+ ❯ tests/sfx.test.ts (50 tests | 3 failed) 38528ms
+     × ships a provenance receipt that matches the recipe, take by take 23ms
+     × keeps every collection theme on its own pulse 126ms
+     × flags a theme that is not on its own pulse (the tempo check is not vacuous) 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sfx.test.ts > packaged sfx > ships a provenance receipt that matches the recipe, take by take
+AssertionError: cue's prompt must be the prompt the recipe carries: expected 'cute chiptune game sound effect, a sh…' to be 'orchestral game sound effect, a short…' // Object.is equality
+
+Expected: "orchestral game sound effect, a short alert sweep, rising bowed string swell ending on a soft bell, calm and inviting, instrumental, no vocals, no choir"
+Received: "cute chiptune game sound effect, a short alert sweep, rising square-wave whoosh ending on a bright ping, attention grabbing and playful, clean retro 8-bit video game sound, no vocals, no drums"
+
+ ❯ tests/sfx.test.ts:825:9
+    823|         row!.prompt,
+    824|         `${name}'s prompt must be the prompt the recipe carries`,
+    825|       ).toBe(prompts.get(name)?.prompt);
+       |         ^
+    826|     }
+    827|     // The receipt's shipped path is the file that ships, and it is
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/sfx.test.ts > packaged sfx > keeps every collection theme on its own pulse
+ReferenceError: themePulseTargets is not defined
+ ❯ tests/sfx.test.ts:1262:21
+    1260|       'the packaging tool must gate on the same tempo tolerance the su…
+    1261|     ).toContain(`TEMPO_TOLERANCE_BPM = ${TEMPO_TOLERANCE_BPM.toFixed(1…
+    1262|     const targets = themePulseTargets();
+       |                     ^
+    1263|     expect(
+    1264|       Object.keys(targets).length,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/sfx.test.ts > packaged sfx > flags a theme that is not on its own pulse (the tempo check is not vacuous)
+ReferenceError: themePulseTargets is not defined
+ ❯ tests/sfx.test.ts:1290:20
+    1288|     if (!(await hasFfmpeg()) || !(await hasPython())) return;
+    1289|     const theme = path.join(root, 'public', themeFor(DEFAULT_THEME_ID)…
+    1290|     const target = themePulseTargets()[DEFAULT_THEME_ID] ?? TARGET_BPM;
+       |                    ^
+    1291|
+    1292|     const bpm = await measureTempoBpm(theme);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed | 65 passed (66)
+      Tests  3 failed | 995 passed (998)
+   Start at  04:43:24
+   Duration  86.95s (transform 8.00s, setup 1.70s, import 24.07s, tests 76.61s, environment 50.22s)
+
+
+Gate exited with status 1

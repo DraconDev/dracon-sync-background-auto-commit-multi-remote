@@ -1,0 +1,39 @@
+
+> web-time-tracker-limiter@0.1.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v4.1.9 /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.q5qKQk/snapshot-11c41fb766adaf6ae679e99a51e018a969b5c521/extensions/standalones/web-time-tracker-limiter
+
+ ❯ tests/dashboard.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/dashboard.test.ts [ tests/dashboard.test.ts ]
+Error: Failed to resolve import "vite" from "tests/dashboard.test.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.q5qKQk/snapshot-11c41fb766adaf6ae679e99a51e018a969b5c521/extensions/standalones/web-time-tracker-limiter/tests/dashboard.test.ts:38:0
+  13 |  const __vi_import_0__ = await import("node:fs");
+  14 |  const __vi_import_1__ = await import("node:path");
+  15 |  const __vi_import_2__ = await import("vite");
+     |                                       ^
+  16 |  const __vi_import_3__ = await import("@sveltejs/vite-plugin-svelte");
+  17 |  const __vi_import_4__ = await import("../lib/aggregate");
+ ❯ TransformPluginContext._formatLog ../../../node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:29079:43
+ ❯ TransformPluginContext.error ../../../node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:29076:14
+ ❯ normalizeUrl ../../../node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:27199:18
+ ❯ ../../../node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:27257:32
+ ❯ TransformPluginContext.transform ../../../node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:27225:4
+ ❯ EnvironmentPluginContainer.transform ../../../node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:28877:14
+ ❯ loadAndTransform ../../../node_modules/.bun/vite@7.3.6+fbf0c453b5a2a0cb/node_modules/vite/dist/node/chunks/config.js:22746:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 6 passed (7)
+      Tests  104 passed (104)
+   Start at  04:49:52
+   Duration  3.93s (transform 907ms, setup 173ms, import 2.45s, tests 127ms, environment 3.05s)
+
+
+Gate exited with status 1

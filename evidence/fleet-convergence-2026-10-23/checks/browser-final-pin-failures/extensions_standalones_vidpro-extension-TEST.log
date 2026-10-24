@@ -1,0 +1,101 @@
+
+> vidpro-extension@1.16.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v4.1.9 /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.q5qKQk/snapshot-11c41fb766adaf6ae679e99a51e018a969b5c521/extensions/standalones/vidpro-extension
+
+04:45:35 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:585:10 Visible, non-interactive element `<label>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+04:45:35 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:585:10 Non-interactive element `<label>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+ ❯ test/watchReader.test.ts (37 tests | 2 failed) 117ms
+     × does not read a script's whole text to take its first 200 kB 19ms
+     × does not re-read an inline script that has not changed 4ms
+ ❯ test/watchChannelFacts.test.ts (18 tests | 2 failed) 141ms
+     × carries the channel's yardstick and this video against it 5ms
+     × carries the channel's facts as rows of the table 19ms
+04:46:45 [vite-plugin-svelte] entrypoints/dashboard/components/ToastItem.svelte:18:22 This reference only captures the initial value of `toast`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+OPTIONS https://www.youtube.com/@mkbhd/videos 405 (Method Not Allowed)
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at "https://www.youtube.com/@mkbhd/videos".
+OPTIONS https://www.youtube.com/@veritasium/videos 405 (Method Not Allowed)
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at "https://www.youtube.com/@veritasium/videos".
+OPTIONS https://www.youtube.com/@3blue1brown/videos 405 (Method Not Allowed)
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at "https://www.youtube.com/@3blue1brown/videos".
+OPTIONS https://www.youtube.com/@marquesbrownlee/videos 405 (Method Not Allowed)
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at "https://www.youtube.com/@marquesbrownlee/videos".
+OPTIONS https://www.youtube.com/@Vsauce/videos 405 (Method Not Allowed)
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at "https://www.youtube.com/@Vsauce/videos".
+OPTIONS https://www.youtube.com/@jacksepticeye/videos 405 (Method Not Allowed)
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at "https://www.youtube.com/@jacksepticeye/videos".
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/watchChannelFacts.test.ts > the watch card's channel rows > carries the channel's yardstick and this video against it
+AssertionError: expected undefined to be '$42–$337' // Object.is equality
+
+- Expected:
+"$42–$337"
+
++ Received:
+undefined
+
+ ❯ test/watchChannelFacts.test.ts:191:37
+    189|     expect(row("Upload cadence")).toBe("0.9 uploads a week");
+    190|     expect(row("Reach")).toBe("3.1x this channel's subscribers");
+    191|     expect(row("Revenue estimate")).toBe("$42–$337");
+       |                                     ^
+    192|   });
+    193|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  test/watchChannelFacts.test.ts > the watch card as a whole > carries the channel's facts as rows of the table
+AssertionError: expected '<div style="font-weight:700;margin-bo…' to contain '$42–$337'
+
+Expected: "$42–$337"
+Received: "<div style="font-weight:700;margin-bottom:2px;">A video</div><div style="opacity:0.75;margin-bottom:6px;">Fixture Channel · @FixtureChannel</div><ul style="margin:0 0 6px;padding:0;"><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#eab308;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Title</span><span style="flex:1;opacity:0.75;text-align:right;">7 characters</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#9ca3af;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Description</span><span style="flex:1;opacity:0.75;text-align:right;">not on page</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#22c55e;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Views</span><span style="flex:1;opacity:0.75;text-align:right;">167,642 views</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#9ca3af;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Published</span><span style="flex:1;opacity:0.75;text-align:right;">not shown on this page</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#9ca3af;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Category</span><span style="flex:1;opacity:0.75;text-align:right;">not shown on this page</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#22c55e;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Likes</span><span style="flex:1;opacity:0.75;text-align:right;">4,079 likes</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#9ca3af;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Comments</span><span style="flex:1;opacity:0.75;text-align:right;">not shown on this page</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#9ca3af;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Length</span><span style="flex:1;opacity:0.75;text-align:right;">not shown on this page</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#9ca3af;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Tags</span><span style="flex:1;opacity:0.75;text-align:right;">not shown on this page</span></li></ul><div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--vidpro-border,#3f3f3f);"><div style="font-size:12px;opacity:0.7;margin-bottom:2px;">Channel</div><ul style="margin:0 0 6px;padding:0;"><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#22c55e;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Size</span><span style="flex:1;opacity:0.75;text-align:right;">54,912 subscribers</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#22c55e;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Reach</span><span style="flex:1;opacity:0.75;text-align:right;color:#fbbf24;font-weight:600;">3.1x this channel's subscribers</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#22c55e;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Typical upload</span><span style="flex:1;opacity:0.75;text-align:right;">37,000 views (median of 29 uploads)</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#22c55e;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Against typical</span><span style="flex:1;opacity:0.75;text-align:right;color:#fb923c;font-weight:600;">4.6x that channel's typical upload</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#22c55e;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Upload cadence</span><span style="flex:1;opacity:0.75;text-align:right;">0.9 uploads a week</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#9ca3af;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Posting pattern</span><span style="flex:1;opacity:0.75;text-align:right;">not enough uploads to tell</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#9ca3af;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Uploads over time</span><span style="flex:1;opacity:0.75;text-align:right;">not shown on this page</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#9ca3af;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Upload range</span><span style="flex:1;opacity:0.75;text-align:right;">not shown on this page</span></li><li style="display:flex;gap:8px;align-items:baseline;list-style:none;margin:2px 0;"><span aria-hidden="true" style="color:#9ca3af;font-weight:700;">●</span><span style="flex:0 0 auto;white-space:nowrap;">Viewership trend</span><span style="flex:1;opacity:0.75;text-align:right;">not enough uploads to tell</span></li></ul></div><div style="opacity:0.6;font-size:11px;margin-top:6px;">From this page and one read of the channel's own page. The revenue figure is an estimate.</div>"
+
+ ❯ test/watchChannelFacts.test.ts:239:18
+    237|     expect(html).toContain("4.6x that channel's typical upload");
+    238|     expect(html).toContain("0.9 uploads a week");
+    239|     expect(html).toContain("$42–$337");
+       |                  ^
+    240|   });
+    241|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  test/watchReader.test.ts > the inline-script read is bounded and cached > does not read a script's whole text to take its first 200 kB
+AssertionError: expected 204160 to be less than or equal to 200064
+ ❯ test/watchReader.test.ts:66:23
+     64|     // The 200 kB the reader wants, plus the two 32-character head and…
+     65|     // reads its change-detection signature is made of.
+     66|     expect(requested).toBeLessThanOrEqual(200_000 + 64);
+       |                       ^
+     67|   });
+     68|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  test/watchReader.test.ts > the inline-script read is bounded and cached > does not re-read an inline script that has not changed
+AssertionError: expected 4160 to be less than or equal to 64
+ ❯ test/watchReader.test.ts:91:39
+     89|     // characters again only for the change-detection signature — a fe…
+     90|     // not the whole blob.
+     91|     expect(characters() - afterFirst).toBeLessThanOrEqual(64);
+       |                                       ^
+     92|   });
+     93| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  2 failed | 112 passed (114)
+      Tests  4 failed | 1337 passed (1341)
+   Start at  04:45:31
+   Duration  134.83s (transform 11.48s, setup 85.28s, import 22.04s, tests 34.77s, environment 81.87s)
+
+
+Gate exited with status 1

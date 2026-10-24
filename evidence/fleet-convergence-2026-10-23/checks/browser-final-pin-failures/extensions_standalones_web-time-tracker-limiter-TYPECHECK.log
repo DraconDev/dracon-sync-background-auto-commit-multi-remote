@@ -1,0 +1,23 @@
+
+> web-time-tracker-limiter@0.1.0 typecheck
+> svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.q5qKQk/snapshot-11c41fb766adaf6ae679e99a51e018a969b5c521/extensions/standalones/web-time-tracker-limiter
+Getting Svelte diagnostics...
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.q5qKQk/snapshot-11c41fb766adaf6ae679e99a51e018a969b5c521/extensions/standalones/web-time-tracker-limiter/entrypoints/dashboard/components/DashboardView.svelte:14:20
+Error: Cannot find module '@dracon/nightfall/components/Card' or its corresponding type declarations. (ts)
+   */
+  import Card from '@dracon/nightfall/components/Card';
+  import { formatDuration, type DashboardData, type Rule } from '../../../lib/types';
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.q5qKQk/snapshot-11c41fb766adaf6ae679e99a51e018a969b5c521/extensions/standalones/web-time-tracker-limiter/tests/dashboard.test.ts:38:69
+Error: Cannot find module 'vite' or its corresponding type declarations. 
+import { resolve as resolvePath } from 'node:path';
+import { createServer, type InlineConfig, type ViteDevServer } from 'vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+
+====================================
+svelte-check found 2 errors and 0 warnings in 2 files
+
+Gate exited with status 1
