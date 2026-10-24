@@ -327,3 +327,6 @@
    Compiling urlencoding v2.1.3
    Compiling dracon-security v0.4.0 (/home/dracon/Dev/dracon-utilities/dracon-warden/src/security)
    Compiling dracon-system-lib v94.2.7
+   Compiling hostname v0.4.2
+   Compiling fs2 v0.4.3
+   Compiling dracon-system v0.112.45 (/home/dracon/Dev/dracon-utilities/dracon-system)
