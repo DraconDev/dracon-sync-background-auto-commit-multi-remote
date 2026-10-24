@@ -229,3 +229,6 @@
    Compiling ppv-lite86 v0.2.21
    Compiling tokio-rustls v0.26.5
    Compiling zbus_macros v5.19.0
+   Compiling i18n-embed-impl v0.8.4
+   Compiling tokio-native-tls v0.3.1
+   Compiling dirs v6.0.0
