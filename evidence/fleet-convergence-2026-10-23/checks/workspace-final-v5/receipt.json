@@ -11,8 +11,26 @@
         "--locked"
       ],
       "started": 1792836944.4251118,
+      "status": "failed",
+      "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-convergence-2026-10-23/checks/workspace-final-v5/workspace.log",
+      "exit_code": 101,
+      "finished": 1792837739.026999
+    },
+    {
+      "gate": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--locked",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "started": 1792837739.0333643,
       "status": "running",
-      "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-convergence-2026-10-23/checks/workspace-final-v5/workspace.log"
+      "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-convergence-2026-10-23/checks/workspace-final-v5/clippy.log"
     }
   ],
   "status": "running",
