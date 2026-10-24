@@ -1,0 +1,30 @@
+
+> web-time-tracker-limiter@0.1.0 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+10:34:12 [vite-plugin-svelte] /tmp/fleet-browser-products-fa0hva51/snapshot/packages/nightfall/src/components/Card.svelte:48:14 This reference only captures the initial value of `dense`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+46:     2: 'tm-e2',
+47:   };
+48:   const PAD = dense ? 'p-tm-dense' : 'p-tm-card';
+                       ^
+49: </script>
+50: 
+[1G✔ Built extension in 1.749 s
+  ├─ .output/chrome-mv3/manifest.json                  947 B    
+  ├─ .output/chrome-mv3/dashboard.html                 432 B    
+  ├─ .output/chrome-mv3/background.js                  35.22 kB 
+  ├─ .output/chrome-mv3/chunks/dashboard-DS7aZhmo.js   153.12 kB
+  ├─ .output/chrome-mv3/content-scripts/content.js     26.39 kB 
+  ├─ .output/chrome-mv3/assets/dashboard-BkZJzaO4.css  48.95 kB 
+  ├─ .output/chrome-mv3/icon/128.png                   6.92 kB  
+  ├─ .output/chrome-mv3/icon/16.png                    704 B    
+  ├─ .output/chrome-mv3/icon/32.png                    1.58 kB  
+  ├─ .output/chrome-mv3/icon/48.png                    2.34 kB  
+  └─ .output/chrome-mv3/icon/96.png                    5.05 kB  
+Σ Total size: 281.64 kB                              
+✔ Finished in 2.076 s
