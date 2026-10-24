@@ -146,3 +146,5 @@
    Compiling foreign-types v0.3.2
    Compiling h2 v0.4.19
    Compiling want v0.3.1
+   Compiling idna v1.1.0
+   Compiling rust-embed-utils v8.12.0
