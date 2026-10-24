@@ -89,3 +89,10 @@
    Compiling hybrid-array v0.4.15
    Compiling regex-syntax v0.8.11
    Compiling ppv-lite86 v0.2.21
+   Compiling crossbeam-epoch v0.9.21
+   Compiling rustc-hash v2.1.3
+   Compiling type-map v0.5.1
+   Compiling cipher v0.4.4
+   Compiling futures v0.3.34
+   Compiling aho-corasick v1.1.5
+   Compiling crossbeam-deque v0.8.8
