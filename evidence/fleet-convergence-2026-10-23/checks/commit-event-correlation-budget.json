@@ -66,5 +66,9 @@
       "effective_stage_op_timeout_secs": 60
     }
   ],
-  "reason": "Git commit timestamp precedes hooks; actual root note journal event arrived31.613s later, within the unchanged60s operation deadline. No production deadline enlarged. Correlation remains noncryptographic."
+  "reason": "Git commit timestamp precedes hooks; actual root note journal event arrived31.613s later, within the unchanged60s operation deadline. No production deadline enlarged. Correlation remains noncryptographic.",
+  "service_policy_environment": {
+    "HOME": "/home/dracon",
+    "DRACON_SYNC_POLICY": "/home/dracon/.dracon/utilities/sync/dracon-sync.toml"
+  }
 }

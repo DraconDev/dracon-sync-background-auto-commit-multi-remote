@@ -1,0 +1,49 @@
+diff --git a/scripts/fleet_convergence_witness.py b/scripts/fleet_convergence_witness.py
+index eed7c83..c0d5ff6 100644
+--- a/scripts/fleet_convergence_witness.py
++++ b/scripts/fleet_convergence_witness.py
+@@ -8,6 +8,13 @@ def select_witness(repo, witness, journal, daemon_pid, git, ancestor):
+         'matching_loaded_daemon_commit_events': [],
+         'candidate_commits_considered': [],
+     }
++    # Git timestamps precede commit hooks; correlate through the recorded
++    # effective finite commit-operation budget, not an incidental 30-second
++    # assumption. Older receipts retain their original 30-second bound.
++    budget = witness.get('commit_event_budget_secs', 30)
++    if isinstance(budget, bool) or not isinstance(budget, int) or budget <= 0:
++        return result
++    result['commit_event_budget_secs'] = budget
+     history = git(repo, 'log', '--format=%H', 'HEAD', '--', witness['eligible_path'])
+     if history.returncode:
+         return result
+@@ -50,7 +57,7 @@ def select_witness(repo, witness, journal, daemon_pid, git, ancestor):
+                     and isinstance(message, str)
+                     and message.startswith('📝 committed ')
+                     and message.endswith(' in ' + repo)
+-                    and timestamp <= stamp <= timestamp + 30):
++                    and timestamp <= stamp <= timestamp + budget):
+                 events.append({'timestamp_us': event['__REALTIME_TIMESTAMP'],
+                                'pid': event['_PID'], 'message': message})
+         if not events:
+diff --git a/scripts/test-fleet-convergence-witness.py b/scripts/test-fleet-convergence-witness.py
+index ac22f4a..473e4ab 100644
+--- a/scripts/test-fleet-convergence-witness.py
++++ b/scripts/test-fleet-convergence-witness.py
+@@ -65,6 +65,17 @@ class HistoricalWitnessTests(unittest.TestCase):
+         self.witness['before_observed_at'] = 1011
+         self.assertEqual(self.select()['witness_commit'], '')
+ 
++    def test_slow_hook_uses_recorded_finite_operation_budget(self):
++        self.events[0]['__REALTIME_TIMESTAMP'] = '1041613204'
++        self.assertEqual(self.select()['witness_commit'], '')
++        self.witness['commit_event_budget_secs'] = 60
++        self.assertEqual(self.select()['witness_commit'], self.created)
++
++    def test_event_after_effective_budget_is_still_refused(self):
++        self.witness['commit_event_budget_secs'] = 60
++        self.events[0]['__REALTIME_TIMESTAMP'] = '1071000000'
++        self.assertEqual(self.select()['witness_commit'], '')
++
+     def test_a_different_daemon_pid_does_not_attest_the_commit(self):
+         self.events[0]['_PID'] = '41'
+         self.assertEqual(self.select()['witness_commit'], '')
