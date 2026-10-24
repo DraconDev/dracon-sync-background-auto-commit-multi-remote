@@ -189,3 +189,6 @@
     Checking hashbrown v0.17.1
     Checking indexmap v2.14.2
     Checking cfb-mode v0.8.2
+   Compiling winnow v1.0.4
+    Checking writeable v0.6.4
+    Checking litemap v0.8.3
