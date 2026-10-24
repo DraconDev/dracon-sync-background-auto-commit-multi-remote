@@ -32,3 +32,10 @@
    Compiling memchr v2.8.3
    Compiling zeroize_derive v1.5.0
    Compiling zerovec v0.11.8
+   Compiling zeroize v1.9.0
+   Compiling crypto-common v0.1.7
+   Compiling scopeguard v1.2.0
+   Compiling subtle v2.6.1
+   Compiling futures-io v0.3.34
+   Compiling tinystr v0.8.4
+   Compiling slab v0.4.12
