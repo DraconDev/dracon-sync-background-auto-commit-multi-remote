@@ -827,6 +827,12 @@ pub(crate) fn is_transient_network_outage(err_msg: &str) -> bool {
 /// real secret/branch rule as transient would retry a doomed push forever.
 pub(crate) fn is_transient_forge_outage(err_msg: &str) -> bool {
     let lower = err_msg.to_lowercase();
+    // Native hook pools can report local EAGAIN using the same phrase as a
+    // forge outage. An explicit local worker-spawn failure is not evidence
+    // that a forge is unavailable, and must not waive the stuck budget.
+    if is_local_hook_rejection(err_msg) && lower.contains("os can't spawn worker thread") {
+        return false;
+    }
     lower.contains("gitaly")
         || lower.contains("is not available at this time")
         || lower.contains("internal server error")
@@ -1778,6 +1784,9 @@ mod tests {
         assert!(!class.contains("fix the policy"));
         assert!(!is_transient_forge_outage(message));
         assert!(!is_transient_network_outage(message));
+        assert!(is_transient_forge_outage(
+            "remote: Gitaly is temporarily unavailable: OS can't spawn worker thread"
+        ));
     }
 
     #[test]
