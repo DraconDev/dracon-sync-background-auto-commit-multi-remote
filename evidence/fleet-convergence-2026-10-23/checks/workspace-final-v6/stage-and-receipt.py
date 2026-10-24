@@ -8,6 +8,13 @@ assert all(row['exit_code']==0 for row in q['commands'])
 source=json.loads((OUT/'source.json').read_text());state=Path(source['state_root'])
 assert state.parent==Path('/tmp') and state.name.startswith('fleet-workspace-frozen-')
 def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+for metadata in source['repositories'].values():
+ checkout=metadata['private_checkout']
+ ref=subprocess.check_output(['git','-C',checkout,'rev-parse','HEAD'],text=True,timeout=30).strip()
+ assert ref==metadata['ref'],'frozen source ref changed during qualification'
+ clean=subprocess.run(['git','-C',checkout,'diff','--quiet','HEAD','--'],timeout=120)
+ assert clean.returncode==0,'tracked frozen inputs changed during qualification'
+(OUT/'frozen-input-integrity.json').write_text(json.dumps({'refs_unchanged':True,'all_tracked_worktree_inputs_unchanged':True,'repositories':source['repositories']},indent=2)+'\n')
 def identity():
  pid=int(subprocess.check_output(['systemctl','show','dracon-sync-operator.service','-p','MainPID','--value'],text=True,timeout=10))
  return {'pid':pid,'sha256':digest(f'/proc/{pid}/exe')}
