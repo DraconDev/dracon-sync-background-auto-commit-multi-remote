@@ -198,3 +198,26 @@
    Compiling tokio v1.53.3
    Compiling openssl-sys v0.9.117
    Compiling dracon-security v0.4.0 (/tmp/fleet-workspace-frozen-2ajly5n9/source/dracon-warden/src/security)
+   Compiling winnow v1.0.4
+   Compiling parking v2.2.1
+   Compiling cfb-mode v0.8.2
+   Compiling writeable v0.6.4
+   Compiling litemap v0.8.3
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling icu_locale_core v2.3.0
+   Compiling potential_utf v0.1.6
+   Compiling zerotrie v0.2.5
+   Compiling atomic-waker v1.1.2
+   Compiling icu_normalizer_data v2.3.0
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling utf8_iter v1.0.4
+   Compiling icu_properties_data v2.3.0
+   Compiling percent-encoding v2.3.2
+   Compiling icu_collections v2.3.0
+   Compiling toml_edit v0.25.15+spec-1.1.0
+   Compiling icu_provider v2.3.1
+   Compiling libz-sys v1.1.29
+   Compiling http v1.5.0
+   Compiling tracing-core v0.1.36
+   Compiling tracing-attributes v0.1.31
+   Compiling tracing v0.1.44
