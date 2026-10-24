@@ -123,3 +123,5 @@
    Compiling basic-toml v0.1.10
    Compiling toml v0.5.11
    Compiling hashbrown v0.17.1
+   Compiling equivalent v1.0.2
+   Compiling indexmap v2.14.2
