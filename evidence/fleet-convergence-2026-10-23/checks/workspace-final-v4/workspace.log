@@ -326,3 +326,8 @@
    Compiling simdutf8 v0.1.5
    Compiling hex v0.4.3
    Compiling zbus v5.19.0
+   Compiling serde_urlencoded v0.7.1
+   Compiling hyper-tls v0.6.0
+   Compiling hyper-rustls v0.27.9
+   Compiling tower-http v0.6.11
+   Compiling reqwest v0.12.28
