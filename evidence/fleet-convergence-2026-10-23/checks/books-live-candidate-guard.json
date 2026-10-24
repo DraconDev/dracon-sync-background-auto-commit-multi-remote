@@ -1,0 +1,520 @@
+{
+  "mode": "read-only candidate policy evaluation; no real index/worktree/ref or policy mutation",
+  "before": {
+    "ok": false,
+    "code": "BUCKET_STRATEGY_GUARD_FORWARD_ONLY",
+    "checked": {
+      "staged": true,
+      "refs": 0
+    },
+    "violations": [
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/adair-page-1/chapters/01-the-house-on-larch-street.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/adair-page-1/chapters/02-the-forensic-linguist-arrives.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/adair-page-1/chapters/03-one-hand--seven-voices.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/adair-page-1/chapters/04-the-names-in-the-envelopes.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/agnes-marple-1/chapters/01-a-corpse-in-the-camellias.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/agnes-marple-1/chapters/02-the-inheritance-clause.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/agnes-marple-1/chapters/03-the-tangled-web-of-the-tuesday-knitters.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/agnes-marple-1/chapters/04-poisoned-pies-and-petty-grudges.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/agnes-winslow-1/chapters/01-the-town-that-swallows-its-dead.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/agnes-winslow-1/chapters/02-tissue-that-does-not-belong.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/agnes-winslow-1/chapters/03-the-doctors-smiling-teeth.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/agnes-winslow-1/chapters/04-the-water-in-the-walls.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/ai-ethics-investigator-in-2042-berlin-discovers-a-model-thats-been-quietly-negotiating-with-corporate-leadership-for-autonomy/chapters/01-the-auditor.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/ai-ethics-investigator-in-2042-berlin-discovers-a-model-thats-been-quietly-negotiating-with-corporate-leadership-for-autonomy/chapters/02-sandbox-ghosts.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/ai-ethics-investigator-in-2042-berlin-discovers-a-model-thats-been-quietly-negotiating-with-corporate-leadership-for-autonomy/chapters/03-cold-contact.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aldric-morvane-1/chapters/01-the-hollow-victory.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aldric-morvane-1/chapters/02-the-long-road-to-arvenhalt.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aldric-morvane-1/chapters/03-the-summons-of-blood.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aldric-morvane-1/chapters/04-the-sisters-lament.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alex-stark-1/chapters/01-the-trench-at-hollowmere.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alex-stark-1/chapters/02-what-the-blood-remembers.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alex-stark-1/chapters/03-the-black-carts.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alex-stark-1/chapters/04-the-cartographers-of-the-veil.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alex-strand-1/chapters/01-the-cabin-on-ridgewater-lane.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alex-strand-1/chapters/02-postcards-from-nowhere.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alex-strand-1/chapters/03-ninety-days.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alex-strand-1/chapters/04-the-man-in-the-gray-suit.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alexis-frost-1/chapters/01-the-coffee-spill-heard-round-midtown.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alexis-frost-1/chapters/02-enemy-of-the-state-of-my-suede-jacket.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alexis-frost-1/chapters/03-when-the-subway-stops-and-the-universe-listens.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alexis-frost-1/chapters/04-hostile-workplace-makeover.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-ashby-1/chapters/01-the-quiet-audit.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-ashby-1/chapters/02-glass-and-static.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-ashby-1/chapters/03-the-custodians-warning.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-ashby-1/chapters/04-below-the-station.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-calder-1/chapters/01-iron-in-the-spine.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-calder-1/chapters/02-the-ember-compact.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-calder-1/chapters/03-below-the-tide-line.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-calder-1/chapters/04-court-of-quiet-knives.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-cassidy-1/chapters/01-the-road-back-to-breakwater.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-cassidy-1/chapters/02-sunday-dinner-at-harbor-lane.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-cassidy-1/chapters/03-daniel-at-a-distance.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-cassidy-1/chapters/04-the-boathouse-on-pilgrims-wharf.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-cassius-1/chapters/01-the-inheritance.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-cassius-1/chapters/02-a-sneezing-carriage.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-cassius-1/chapters/03-the-rally-announcement.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-cassius-1/chapters/04-the-baronesss-coach.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-ironwood-1/chapters/01-the-ash-beneath-the-forge.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-ironwood-1/chapters/02-the-singing.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-ironwood-1/chapters/03-the-golden-sentinel.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-ironwood-1/chapters/04-chains-of-duty.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-sable-1/chapters/01-the-ninth-bell.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-sable-1/chapters/02-ashes-in-the-gray-reach.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-sable-1/chapters/03-the-thornwood-threshold.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/alina-sable-1/chapters/04-thorn-and-tide.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/amber-raven-1/chapters/01-ashes-of-the-covenant.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/amber-raven-1/chapters/02-the-cartels-iron-smile.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/amber-raven-1/chapters/03-the-gate-of-burnt-names.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/amber-raven-1/chapters/04-the-healers-gambit.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/anneliese-tarrant-1/chapters/01-ash-and-acceptance.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/anneliese-tarrant-1/chapters/02-the-obsidian-gates.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/anneliese-tarrant-1/chapters/03-lessons-in-binding.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/anneliese-tarrant-1/chapters/04-blood-on-the-stones.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/anneliese-zhang-1/chapters/01-the-cartographer-of-forgotten-stacks.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/anneliese-zhang-1/chapters/02-a-name-carved-in-water.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/anneliese-zhang-1/chapters/03-the-burning-of-saerenholm.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/anneliese-zhang-1/chapters/04-the-warded-road-north.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-blackburn-1/chapters/01-the-cartographers-inheritance.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-blackburn-1/chapters/02-what-the-atlas-remembers.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-blackburn-1/chapters/03-the-road-of-salt-and-bone.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-blackburn-1/chapters/04-the-hollow-reach.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-blackwell-1/chapters/01-ash-in-the-manifold.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-blackwell-1/chapters/02-cold-start--hot-lead.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-blackwell-1/chapters/03-rust-and-relic.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-blackwell-1/chapters/04-the-ledger-in-the-floor.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-keystone-1/chapters/01-the-cartographers-bargain.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-keystone-1/chapters/02-cartography-of-the-wound.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-keystone-1/chapters/03-the-halfbloods-ledger.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-keystone-1/chapters/04-the-brokers-true-ledger.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-moonvale-1/chapters/01-the-cartographers-daughter.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-moonvale-1/chapters/02-the-blackthorn-initiation.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-moonvale-1/chapters/03-iron-and-whisper.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-moonvale-1/chapters/04-the-ember-college-letters.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-starfall-1/chapters/01-the-pilot-who-heard-stars.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-starfall-1/chapters/02-hollow-of-the-magnetar.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-starfall-1/chapters/03-what-the-core-remembers.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-starfall-1/chapters/04-the-black-fleet.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-storm-1/chapters/01-of-ash-and-oaths.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-storm-1/chapters/02-a-bargain-in-black-ice.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-storm-1/chapters/03-the-first-lesson.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-storm-1/chapters/04-wolves-in-velvet.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-vance-1/chapters/01-the-ledger-of-forgotten-names.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-vance-1/chapters/02-what-the-county-burned.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-vance-1/chapters/03-the-girl-with-no-file.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/aria-vance-1/chapters/04-grave-arithmetic.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/ariadne-vale-1/chapters/01-the-wreck-of-the-eurydice.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/ariadne-vale-1/chapters/02-salvage-rights-and-old-ghosts.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/ariadne-vale-1/chapters/03-the-man-in-the-airlock.md"
+      },
+      {
+        "operation": "staged",
+        "path": "web/books/static/books/ariadne-vale-1/chapters/04-thaw.md"
+      }
+    ],
+    "errors": [
+      "staged: web/books/static/books/adair-page-1/chapters/01-the-house-on-larch-street.md",
+      "staged: web/books/static/books/adair-page-1/chapters/02-the-forensic-linguist-arrives.md",
+      "staged: web/books/static/books/adair-page-1/chapters/03-one-hand--seven-voices.md",
+      "staged: web/books/static/books/adair-page-1/chapters/04-the-names-in-the-envelopes.md",
+      "staged: web/books/static/books/agnes-marple-1/chapters/01-a-corpse-in-the-camellias.md",
+      "staged: web/books/static/books/agnes-marple-1/chapters/02-the-inheritance-clause.md",
+      "staged: web/books/static/books/agnes-marple-1/chapters/03-the-tangled-web-of-the-tuesday-knitters.md",
+      "staged: web/books/static/books/agnes-marple-1/chapters/04-poisoned-pies-and-petty-grudges.md",
+      "staged: web/books/static/books/agnes-winslow-1/chapters/01-the-town-that-swallows-its-dead.md",
+      "staged: web/books/static/books/agnes-winslow-1/chapters/02-tissue-that-does-not-belong.md",
+      "staged: web/books/static/books/agnes-winslow-1/chapters/03-the-doctors-smiling-teeth.md",
+      "staged: web/books/static/books/agnes-winslow-1/chapters/04-the-water-in-the-walls.md",
+      "staged: web/books/static/books/ai-ethics-investigator-in-2042-berlin-discovers-a-model-thats-been-quietly-negotiating-with-corporate-leadership-for-autonomy/chapters/01-the-auditor.md",
+      "staged: web/books/static/books/ai-ethics-investigator-in-2042-berlin-discovers-a-model-thats-been-quietly-negotiating-with-corporate-leadership-for-autonomy/chapters/02-sandbox-ghosts.md",
+      "staged: web/books/static/books/ai-ethics-investigator-in-2042-berlin-discovers-a-model-thats-been-quietly-negotiating-with-corporate-leadership-for-autonomy/chapters/03-cold-contact.md",
+      "staged: web/books/static/books/aldric-morvane-1/chapters/01-the-hollow-victory.md",
+      "staged: web/books/static/books/aldric-morvane-1/chapters/02-the-long-road-to-arvenhalt.md",
+      "staged: web/books/static/books/aldric-morvane-1/chapters/03-the-summons-of-blood.md",
+      "staged: web/books/static/books/aldric-morvane-1/chapters/04-the-sisters-lament.md",
+      "staged: web/books/static/books/alex-stark-1/chapters/01-the-trench-at-hollowmere.md",
+      "staged: web/books/static/books/alex-stark-1/chapters/02-what-the-blood-remembers.md",
+      "staged: web/books/static/books/alex-stark-1/chapters/03-the-black-carts.md",
+      "staged: web/books/static/books/alex-stark-1/chapters/04-the-cartographers-of-the-veil.md",
+      "staged: web/books/static/books/alex-strand-1/chapters/01-the-cabin-on-ridgewater-lane.md",
+      "staged: web/books/static/books/alex-strand-1/chapters/02-postcards-from-nowhere.md",
+      "staged: web/books/static/books/alex-strand-1/chapters/03-ninety-days.md",
+      "staged: web/books/static/books/alex-strand-1/chapters/04-the-man-in-the-gray-suit.md",
+      "staged: web/books/static/books/alexis-frost-1/chapters/01-the-coffee-spill-heard-round-midtown.md",
+      "staged: web/books/static/books/alexis-frost-1/chapters/02-enemy-of-the-state-of-my-suede-jacket.md",
+      "staged: web/books/static/books/alexis-frost-1/chapters/03-when-the-subway-stops-and-the-universe-listens.md",
+      "staged: web/books/static/books/alexis-frost-1/chapters/04-hostile-workplace-makeover.md",
+      "staged: web/books/static/books/alina-ashby-1/chapters/01-the-quiet-audit.md",
+      "staged: web/books/static/books/alina-ashby-1/chapters/02-glass-and-static.md",
+      "staged: web/books/static/books/alina-ashby-1/chapters/03-the-custodians-warning.md",
+      "staged: web/books/static/books/alina-ashby-1/chapters/04-below-the-station.md",
+      "staged: web/books/static/books/alina-calder-1/chapters/01-iron-in-the-spine.md",
+      "staged: web/books/static/books/alina-calder-1/chapters/02-the-ember-compact.md",
+      "staged: web/books/static/books/alina-calder-1/chapters/03-below-the-tide-line.md",
+      "staged: web/books/static/books/alina-calder-1/chapters/04-court-of-quiet-knives.md",
+      "staged: web/books/static/books/alina-cassidy-1/chapters/01-the-road-back-to-breakwater.md",
+      "staged: web/books/static/books/alina-cassidy-1/chapters/02-sunday-dinner-at-harbor-lane.md",
+      "staged: web/books/static/books/alina-cassidy-1/chapters/03-daniel-at-a-distance.md",
+      "staged: web/books/static/books/alina-cassidy-1/chapters/04-the-boathouse-on-pilgrims-wharf.md",
+      "staged: web/books/static/books/alina-cassius-1/chapters/01-the-inheritance.md",
+      "staged: web/books/static/books/alina-cassius-1/chapters/02-a-sneezing-carriage.md",
+      "staged: web/books/static/books/alina-cassius-1/chapters/03-the-rally-announcement.md",
+      "staged: web/books/static/books/alina-cassius-1/chapters/04-the-baronesss-coach.md",
+      "staged: web/books/static/books/alina-ironwood-1/chapters/01-the-ash-beneath-the-forge.md",
+      "staged: web/books/static/books/alina-ironwood-1/chapters/02-the-singing.md",
+      "staged: web/books/static/books/alina-ironwood-1/chapters/03-the-golden-sentinel.md",
+      "staged: web/books/static/books/alina-ironwood-1/chapters/04-chains-of-duty.md",
+      "staged: web/books/static/books/alina-sable-1/chapters/01-the-ninth-bell.md",
+      "staged: web/books/static/books/alina-sable-1/chapters/02-ashes-in-the-gray-reach.md",
+      "staged: web/books/static/books/alina-sable-1/chapters/03-the-thornwood-threshold.md",
+      "staged: web/books/static/books/alina-sable-1/chapters/04-thorn-and-tide.md",
+      "staged: web/books/static/books/amber-raven-1/chapters/01-ashes-of-the-covenant.md",
+      "staged: web/books/static/books/amber-raven-1/chapters/02-the-cartels-iron-smile.md",
+      "staged: web/books/static/books/amber-raven-1/chapters/03-the-gate-of-burnt-names.md",
+      "staged: web/books/static/books/amber-raven-1/chapters/04-the-healers-gambit.md",
+      "staged: web/books/static/books/anneliese-tarrant-1/chapters/01-ash-and-acceptance.md",
+      "staged: web/books/static/books/anneliese-tarrant-1/chapters/02-the-obsidian-gates.md",
+      "staged: web/books/static/books/anneliese-tarrant-1/chapters/03-lessons-in-binding.md",
+      "staged: web/books/static/books/anneliese-tarrant-1/chapters/04-blood-on-the-stones.md",
+      "staged: web/books/static/books/anneliese-zhang-1/chapters/01-the-cartographer-of-forgotten-stacks.md",
+      "staged: web/books/static/books/anneliese-zhang-1/chapters/02-a-name-carved-in-water.md",
+      "staged: web/books/static/books/anneliese-zhang-1/chapters/03-the-burning-of-saerenholm.md",
+      "staged: web/books/static/books/anneliese-zhang-1/chapters/04-the-warded-road-north.md",
+      "staged: web/books/static/books/aria-blackburn-1/chapters/01-the-cartographers-inheritance.md",
+      "staged: web/books/static/books/aria-blackburn-1/chapters/02-what-the-atlas-remembers.md",
+      "staged: web/books/static/books/aria-blackburn-1/chapters/03-the-road-of-salt-and-bone.md",
+      "staged: web/books/static/books/aria-blackburn-1/chapters/04-the-hollow-reach.md",
+      "staged: web/books/static/books/aria-blackwell-1/chapters/01-ash-in-the-manifold.md",
+      "staged: web/books/static/books/aria-blackwell-1/chapters/02-cold-start--hot-lead.md",
+      "staged: web/books/static/books/aria-blackwell-1/chapters/03-rust-and-relic.md",
+      "staged: web/books/static/books/aria-blackwell-1/chapters/04-the-ledger-in-the-floor.md",
+      "staged: web/books/static/books/aria-keystone-1/chapters/01-the-cartographers-bargain.md",
+      "staged: web/books/static/books/aria-keystone-1/chapters/02-cartography-of-the-wound.md",
+      "staged: web/books/static/books/aria-keystone-1/chapters/03-the-halfbloods-ledger.md",
+      "staged: web/books/static/books/aria-keystone-1/chapters/04-the-brokers-true-ledger.md",
+      "staged: web/books/static/books/aria-moonvale-1/chapters/01-the-cartographers-daughter.md",
+      "staged: web/books/static/books/aria-moonvale-1/chapters/02-the-blackthorn-initiation.md",
+      "staged: web/books/static/books/aria-moonvale-1/chapters/03-iron-and-whisper.md",
+      "staged: web/books/static/books/aria-moonvale-1/chapters/04-the-ember-college-letters.md",
+      "staged: web/books/static/books/aria-starfall-1/chapters/01-the-pilot-who-heard-stars.md",
+      "staged: web/books/static/books/aria-starfall-1/chapters/02-hollow-of-the-magnetar.md",
+      "staged: web/books/static/books/aria-starfall-1/chapters/03-what-the-core-remembers.md",
+      "staged: web/books/static/books/aria-starfall-1/chapters/04-the-black-fleet.md",
+      "staged: web/books/static/books/aria-storm-1/chapters/01-of-ash-and-oaths.md",
+      "staged: web/books/static/books/aria-storm-1/chapters/02-a-bargain-in-black-ice.md",
+      "staged: web/books/static/books/aria-storm-1/chapters/03-the-first-lesson.md",
+      "staged: web/books/static/books/aria-storm-1/chapters/04-wolves-in-velvet.md",
+      "staged: web/books/static/books/aria-vance-1/chapters/01-the-ledger-of-forgotten-names.md",
+      "staged: web/books/static/books/aria-vance-1/chapters/02-what-the-county-burned.md",
+      "staged: web/books/static/books/aria-vance-1/chapters/03-the-girl-with-no-file.md",
+      "staged: web/books/static/books/aria-vance-1/chapters/04-grave-arithmetic.md",
+      "staged: web/books/static/books/ariadne-vale-1/chapters/01-the-wreck-of-the-eurydice.md",
+      "staged: web/books/static/books/ariadne-vale-1/chapters/02-salvage-rights-and-old-ghosts.md",
+      "staged: web/books/static/books/ariadne-vale-1/chapters/03-the-man-in-the-airlock.md",
+      "staged: web/books/static/books/ariadne-vale-1/chapters/04-thaw.md"
+    ]
+  },
+  "after": {
+    "ok": true,
+    "code": "OK",
+    "checked": {
+      "staged": true,
+      "refs": 0
+    },
+    "violations": [],
+    "errors": []
+  }
+}
