@@ -1,6 +1,7 @@
 import datetime, hashlib, json, subprocess
 from pathlib import Path
 from fleet_convergence_witness import select_witness
+from fleet_convergence_contract import validate_fleet, prior_observations
 root=Path('/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-convergence-2026-10-23/checks')
 w=json.loads((root/'final-eligible-work-witnesses.json').read_text())
 before=json.loads((root/'refs-final-loaded-before-work.json').read_text())
@@ -10,7 +11,10 @@ journal=[json.loads(line) for line in (root/'final-loaded-commit-publication-jou
 expected=w['expected_loaded_sha256']
 assert expected==deploy['loaded_sha256']
 assert all(s['same_loaded_revision_throughout'] and s['daemon_before']['loaded_sha256']==expected and s['daemon_after']['loaded_sha256']==expected for s in [before,after])
+initial=json.loads((root.parent/'baseline.json').read_text())['initial_repositories']
+validate_fleet(initial, w['repositories'], before['repositories'], after['repositories'])
 by_repo={r['repo']:r for r in after['repositories']}
+before_by_repo={r['repo']:r for r in before['repositories']}
 def git(repo,*args):
  return subprocess.run(['git','-C',repo,*args],capture_output=True,text=True,timeout=30)
 def ancestor(repo,a,b):
@@ -30,10 +34,12 @@ for witness in w['repositories']:
   if target['resolution']=='configured-destination':
    for alias in target['aliases']:
     remote=observed['remotes'][alias]
-    prior=next(r for r in before['repositories'] if r['repo']==repo)['remotes'].get(alias,{})
+    priors=prior_observations(before_by_repo[repo],target['destination'])
     tip=remote.get('branch_ref');contains=remote['query_succeeded'] and remote.get('object_type')=='commit' and ancestor(repo,commit,tip)
-    advanced=contains and bool(prior.get('branch_ref')) and prior['branch_ref']!=tip and ancestor(repo,prior['branch_ref'],tip)
-    dest['observations'].append({'alias':alias,'before_ref':prior.get('branch_ref'),'after_ref':tip,'query_succeeded':remote['query_succeeded'],'confirmed_at':remote['confirmed_at'],'contains_witness':contains,'fast_forward_from_before':advanced})
+    advancing=[(name,info) for name,info in priors if contains and info['branch_ref']!=tip and ancestor(repo,info['branch_ref'],tip)]
+    advanced=bool(advancing)
+    selected=(advancing or priors or [(None,{})])[0]
+    dest['observations'].append({'alias':alias,'before_alias':selected[0],'before_ref':selected[1].get('branch_ref'),'before_destination':target['destination'],'after_ref':tip,'query_succeeded':remote['query_succeeded'],'confirmed_at':remote['confirmed_at'],'contains_witness':contains,'fast_forward_from_before':advanced})
    dest['contains_witness']=any(x['contains_witness'] for x in dest['observations'])
    dest['advanced_from_before']=any(x['fast_forward_from_before'] for x in dest['observations'])
   all_destinations &= dest['contains_witness'] and dest['advanced_from_before']

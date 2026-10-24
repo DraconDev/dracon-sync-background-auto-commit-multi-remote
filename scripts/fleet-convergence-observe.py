@@ -13,7 +13,7 @@ import signal
 import subprocess
 import sys
 import time
-from urllib.parse import urlsplit
+from fleet_convergence_contract import destination, safe_url
 
 
 def digest(path):
@@ -52,18 +52,6 @@ def text(repo, *args):
     return out.strip()
 
 
-def safe_url(value):
-    if '://' in value:
-        p = urlsplit(value)
-        host = p.hostname or ''
-        if ':' in host:
-            host = f'[{host}]'
-        if p.port is not None:
-            host += f':{p.port}'
-        return f'{p.scheme}://{host}{p.path}'
-    return value.split('@')[-1].split('?')[0].split('#')[0]
-
-
 def identity():
     code, out, _ = run(['systemctl', 'show', 'dracon-sync-operator.service',
                         '-p', 'MainPID', '--value'], timeout=10)
@@ -77,24 +65,6 @@ def required_remotes(initial):
     # repos --json lists mirror targets, not the primary origin. In this
     # initial fleet origin is an operator GitHub/GitLab destination too.
     return list(dict.fromkeys(['origin', *initial['push_to_remotes']]))
-
-
-def destination(value):
-    """Compare forge destinations, not spelling/transport aliases."""
-    value = safe_url(value)
-    if '://' in value:
-        parsed = urlsplit(value)
-        host, path = parsed.hostname or '', parsed.path
-        if parsed.port is not None:
-            host += f':{parsed.port}'
-    else:
-        host, _, path = value.partition(':')
-    host, path = host.lower(), path.strip('/').removesuffix('.git')
-    # GitHub repository paths are case-insensitive; do not assume that for
-    # arbitrary self-hosted Git services.
-    if host == 'github.com':
-        path = path.lower()
-    return f'{host}/{path}'
 
 
 def intended_destinations(required, remotes):
