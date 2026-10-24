@@ -40,10 +40,22 @@ class ObservationTests(unittest.TestCase):
             code, _, _ = observer.run([sys.executable, '-c', script], timeout=1)
             self.assertEqual(code, 124)
             self.assertTrue(marker.exists(), 'the owned descendant must actually start')
-            self.assertLess(time.monotonic() - started, 5)
             stat = Path('/proc') / marker.read_text() / 'stat'
-            if stat.exists():
-                self.assertEqual(stat.read_text().rsplit(') ', 1)[1].split()[0], 'Z')
+            # SIGKILL delivery is asynchronous: the parent can be reaped and
+            # pipes closed before the child has been scheduled to exit. Keep
+            # the original five-second cleanup budget, not an instantaneous
+            # process-state assertion that races a healthy kernel.
+            state = None
+            while time.monotonic() - started < 5:
+                try:
+                    state = stat.read_text().rsplit(') ', 1)[1].split()[0]
+                except FileNotFoundError:
+                    state = None
+                if state in (None, 'Z'):
+                    break
+                time.sleep(0.01)
+            self.assertIn(state, (None, 'Z'), 'owned descendant survived cleanup')
+            self.assertLess(time.monotonic() - started, 5)
 
 
 if __name__ == '__main__':
