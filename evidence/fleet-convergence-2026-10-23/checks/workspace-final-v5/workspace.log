@@ -279,3 +279,14 @@
    Compiling clap_lex v1.1.1
    Compiling clap_builder v4.6.7
    Compiling toml_edit v0.22.27
+   Compiling clap_derive v4.6.7
+   Compiling console v0.16.6
+   Compiling hyper v1.11.1
+   Compiling ansi-str v0.9.0
+   Compiling url v2.5.8
+   Compiling rustls-webpki v0.103.16
+   Compiling crossterm v0.29.0
+   Compiling zvariant v5.15.0
+   Compiling async-channel v2.5.0
+   Compiling iana-time-zone v0.1.65
+   Compiling unicode-segmentation v1.13.3
