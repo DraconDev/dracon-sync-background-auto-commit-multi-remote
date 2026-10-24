@@ -1,0 +1,6 @@
+{
+  "scope": "controlled OS-lease fork inheritance reproduction, not an assertion about the exact earlier failing PID",
+  "close_on_exec": true,
+  "parent_closed_but_preexec_child_still_holds_lease": true,
+  "acquired_after_child_exit": true
+}
