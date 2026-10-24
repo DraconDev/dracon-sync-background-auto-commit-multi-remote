@@ -6,7 +6,10 @@ ROOT=Path('/home/dracon/Dev/dracon-utilities')
 OUT=Path(__file__).resolve().parent
 STATE=Path(tempfile.mkdtemp(prefix='fleet-workspace-frozen-'))
 TREE=STATE/'source'
-manifest={'started':time.time(),'state_root':str(STATE),'frozen_root':str(TREE),'repositories':{},'status':'running',
+previous=json.loads((OUT.parent/'workspace-final-v5/source.json').read_text())
+CACHE=Path(previous['frozen_root'])/'target'
+assert CACHE.is_relative_to(Path('/tmp')) and CACHE.is_dir()
+manifest={'started':time.time(),'state_root':str(STATE),'frozen_root':str(TREE),'target_directory':str(CACHE),'repositories':{},'status':'running',
           'operations':'read canonical objects/config; private bare refs and private checkouts only; no real-repository add/commit/push/config mutation'}
 def save(): (OUT/'source.json').write_text(json.dumps(manifest,indent=2)+'\n')
 def git(repo,*args):
@@ -17,7 +20,10 @@ try:
     for relative in ['.','dracon-sync','dracon-system','dracon-warden']:
         source=ROOT/relative
         ref=git(source,'rev-parse','HEAD').decode().strip()
-        if relative=='dracon-sync':assert b'local pre-push hook failed (inspect retained hook output' in git(source,'show',ref+':src/git/push.rs')
+        if relative=='dracon-sync':
+            code=git(source,'show',ref+':src/git/push.rs')
+            assert b'local pre-push hook failed (inspect retained hook output' in code
+            assert b'if is_local_hook_rejection(err_msg) && lower.contains("os can\'t spawn worker thread")' in code
         if relative=='dracon-system':assert b'sizes.sort_by_key(|b| std::cmp::Reverse(b.1));' in git(source,'show',ref+':src/main.rs')
         algorithm=git(source,'rev-parse','--show-object-format').decode().strip()
         objects=git(source,'rev-parse','--path-format=absolute','--git-path','objects').decode().strip()
@@ -47,6 +53,14 @@ try:
         for name in directories+files:
             path=Path(base)/name
             if path.is_symlink() and not path.resolve().is_relative_to(TREE):raise RuntimeError('source symlink escapes frozen assembly')
+    runner=TREE/'dracon-sync/scripts/bucket-runner'
+    lock=runner/'package-lock.json'
+    manifest['node_dependency_lock_sha256']=hashlib.sha256(lock.read_bytes()).hexdigest();save()
+    with open(OUT/'node-dependencies.log','wb') as log:
+        install=subprocess.run(['npm','ci','--no-audit','--no-fund'],cwd=runner,stdout=log,stderr=subprocess.STDOUT,timeout=300,env={**os.environ,'GOMAXPROCS':'2'})
+    manifest['node_dependency_command']=['npm','ci','--no-audit','--no-fund'];manifest['node_dependency_exit']=install.returncode
+    if install.returncode:raise RuntimeError('normal locked bucket-runner dependency provisioning failed')
+    assert hashlib.sha256(lock.read_bytes()).hexdigest()==manifest['node_dependency_lock_sha256']
     manifest['status']='passed'
 except BaseException as error:
     manifest['status']='failed';manifest['error']=str(error);raise
