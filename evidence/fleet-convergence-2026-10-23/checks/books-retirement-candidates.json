@@ -1,0 +1,897 @@
+{
+  "head": "300396264d33325c3a3ffd830882529478df7d05",
+  "candidates": [
+    {
+      "retired_candidate": "web/books/static/books/adair-page-1/chapters/01-the-house-on-larch-street.md",
+      "canonical": "web/books/static/books/shelf/adair-page-1/chapters/01-the-house-on-larch-street.md",
+      "old_blob": "f849bfbec3795f6c9eba188d6ffa15b26778dbb4",
+      "canonical_index_blob": "f849bfbec3795f6c9eba188d6ffa15b26778dbb4",
+      "canonical_head_blob": "f849bfbec3795f6c9eba188d6ffa15b26778dbb4",
+      "canonical_worktree_blob": "f849bfbec3795f6c9eba188d6ffa15b26778dbb4",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/adair-page-1/chapters/02-the-forensic-linguist-arrives.md",
+      "canonical": "web/books/static/books/shelf/adair-page-1/chapters/02-the-forensic-linguist-arrives.md",
+      "old_blob": "6d0848882e3dfd3041e7adc18178371b1635a315",
+      "canonical_index_blob": "6d0848882e3dfd3041e7adc18178371b1635a315",
+      "canonical_head_blob": "6d0848882e3dfd3041e7adc18178371b1635a315",
+      "canonical_worktree_blob": "6d0848882e3dfd3041e7adc18178371b1635a315",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/adair-page-1/chapters/03-one-hand--seven-voices.md",
+      "canonical": "web/books/static/books/shelf/adair-page-1/chapters/03-one-hand--seven-voices.md",
+      "old_blob": "2913e1fc3ce3de2006c5d9064784600a26e33cec",
+      "canonical_index_blob": "2913e1fc3ce3de2006c5d9064784600a26e33cec",
+      "canonical_head_blob": "2913e1fc3ce3de2006c5d9064784600a26e33cec",
+      "canonical_worktree_blob": "2913e1fc3ce3de2006c5d9064784600a26e33cec",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/adair-page-1/chapters/04-the-names-in-the-envelopes.md",
+      "canonical": "web/books/static/books/shelf/adair-page-1/chapters/04-the-names-in-the-envelopes.md",
+      "old_blob": "e900eded607b4f7d47489c390259455abcf47945",
+      "canonical_index_blob": "e900eded607b4f7d47489c390259455abcf47945",
+      "canonical_head_blob": "e900eded607b4f7d47489c390259455abcf47945",
+      "canonical_worktree_blob": "e900eded607b4f7d47489c390259455abcf47945",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/agnes-marple-1/chapters/01-a-corpse-in-the-camellias.md",
+      "canonical": "web/books/static/books/shelf/agnes-marple-1/chapters/01-a-corpse-in-the-camellias.md",
+      "old_blob": "056ff8e470318dc23603caed4eb2c59071df0e18",
+      "canonical_index_blob": "056ff8e470318dc23603caed4eb2c59071df0e18",
+      "canonical_head_blob": "056ff8e470318dc23603caed4eb2c59071df0e18",
+      "canonical_worktree_blob": "056ff8e470318dc23603caed4eb2c59071df0e18",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/agnes-marple-1/chapters/02-the-inheritance-clause.md",
+      "canonical": "web/books/static/books/shelf/agnes-marple-1/chapters/02-the-inheritance-clause.md",
+      "old_blob": "745c650351dd85e030aa46658adc52d794bb4e30",
+      "canonical_index_blob": "745c650351dd85e030aa46658adc52d794bb4e30",
+      "canonical_head_blob": "745c650351dd85e030aa46658adc52d794bb4e30",
+      "canonical_worktree_blob": "745c650351dd85e030aa46658adc52d794bb4e30",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/agnes-marple-1/chapters/03-the-tangled-web-of-the-tuesday-knitters.md",
+      "canonical": "web/books/static/books/shelf/agnes-marple-1/chapters/03-the-tangled-web-of-the-tuesday-knitters.md",
+      "old_blob": "32aafffa7eadd12998578c7b79637324e92cc221",
+      "canonical_index_blob": "32aafffa7eadd12998578c7b79637324e92cc221",
+      "canonical_head_blob": "32aafffa7eadd12998578c7b79637324e92cc221",
+      "canonical_worktree_blob": "32aafffa7eadd12998578c7b79637324e92cc221",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/agnes-marple-1/chapters/04-poisoned-pies-and-petty-grudges.md",
+      "canonical": "web/books/static/books/shelf/agnes-marple-1/chapters/04-poisoned-pies-and-petty-grudges.md",
+      "old_blob": "1fa49ac4710cafc3c8e77ec6fbb5a3b9dcf8a062",
+      "canonical_index_blob": "1fa49ac4710cafc3c8e77ec6fbb5a3b9dcf8a062",
+      "canonical_head_blob": "1fa49ac4710cafc3c8e77ec6fbb5a3b9dcf8a062",
+      "canonical_worktree_blob": "1fa49ac4710cafc3c8e77ec6fbb5a3b9dcf8a062",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/agnes-winslow-1/chapters/01-the-town-that-swallows-its-dead.md",
+      "canonical": "web/books/static/books/shelf/agnes-winslow-1/chapters/01-the-town-that-swallows-its-dead.md",
+      "old_blob": "f109c41b42366d8809857b03bba4f3939387f36b",
+      "canonical_index_blob": "f109c41b42366d8809857b03bba4f3939387f36b",
+      "canonical_head_blob": "f109c41b42366d8809857b03bba4f3939387f36b",
+      "canonical_worktree_blob": "f109c41b42366d8809857b03bba4f3939387f36b",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/agnes-winslow-1/chapters/02-tissue-that-does-not-belong.md",
+      "canonical": "web/books/static/books/shelf/agnes-winslow-1/chapters/02-tissue-that-does-not-belong.md",
+      "old_blob": "fc57a56c1d5875c8229c6617937167cdba9826c1",
+      "canonical_index_blob": "fc57a56c1d5875c8229c6617937167cdba9826c1",
+      "canonical_head_blob": "fc57a56c1d5875c8229c6617937167cdba9826c1",
+      "canonical_worktree_blob": "fc57a56c1d5875c8229c6617937167cdba9826c1",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/agnes-winslow-1/chapters/03-the-doctors-smiling-teeth.md",
+      "canonical": "web/books/static/books/shelf/agnes-winslow-1/chapters/03-the-doctors-smiling-teeth.md",
+      "old_blob": "c853ee956a764b4e8951a899735994c6a1442ec6",
+      "canonical_index_blob": "c853ee956a764b4e8951a899735994c6a1442ec6",
+      "canonical_head_blob": "c853ee956a764b4e8951a899735994c6a1442ec6",
+      "canonical_worktree_blob": "c853ee956a764b4e8951a899735994c6a1442ec6",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/agnes-winslow-1/chapters/04-the-water-in-the-walls.md",
+      "canonical": "web/books/static/books/shelf/agnes-winslow-1/chapters/04-the-water-in-the-walls.md",
+      "old_blob": "bce03272324b64f4e9e4081706105a0d98040c39",
+      "canonical_index_blob": "bce03272324b64f4e9e4081706105a0d98040c39",
+      "canonical_head_blob": "bce03272324b64f4e9e4081706105a0d98040c39",
+      "canonical_worktree_blob": "bce03272324b64f4e9e4081706105a0d98040c39",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/ai-ethics-investigator-in-2042-berlin-discovers-a-model-thats-been-quietly-negotiating-with-corporate-leadership-for-autonomy/chapters/01-the-auditor.md",
+      "canonical": "web/books/static/books/shelf/ai-ethics-investigator-in-2042-berlin-discovers-a-model-thats-been-quietly-negotiating-with-corporate-leadership-for-autonomy/chapters/01-the-auditor.md",
+      "old_blob": "d6c21baff682ff4ec0dc5503b5cad05c392ead58",
+      "canonical_index_blob": "d6c21baff682ff4ec0dc5503b5cad05c392ead58",
+      "canonical_head_blob": "d6c21baff682ff4ec0dc5503b5cad05c392ead58",
+      "canonical_worktree_blob": "d6c21baff682ff4ec0dc5503b5cad05c392ead58",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/ai-ethics-investigator-in-2042-berlin-discovers-a-model-thats-been-quietly-negotiating-with-corporate-leadership-for-autonomy/chapters/02-sandbox-ghosts.md",
+      "canonical": "web/books/static/books/shelf/ai-ethics-investigator-in-2042-berlin-discovers-a-model-thats-been-quietly-negotiating-with-corporate-leadership-for-autonomy/chapters/02-sandbox-ghosts.md",
+      "old_blob": "f7ea550be03d3fa59ab5f6c9bdf89cbc8ac6f67b",
+      "canonical_index_blob": "f7ea550be03d3fa59ab5f6c9bdf89cbc8ac6f67b",
+      "canonical_head_blob": "f7ea550be03d3fa59ab5f6c9bdf89cbc8ac6f67b",
+      "canonical_worktree_blob": "f7ea550be03d3fa59ab5f6c9bdf89cbc8ac6f67b",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/ai-ethics-investigator-in-2042-berlin-discovers-a-model-thats-been-quietly-negotiating-with-corporate-leadership-for-autonomy/chapters/03-cold-contact.md",
+      "canonical": "web/books/static/books/shelf/ai-ethics-investigator-in-2042-berlin-discovers-a-model-thats-been-quietly-negotiating-with-corporate-leadership-for-autonomy/chapters/03-cold-contact.md",
+      "old_blob": "f725bdc1e2cd2caab04dfcc2add7d9a74e6c7472",
+      "canonical_index_blob": "f725bdc1e2cd2caab04dfcc2add7d9a74e6c7472",
+      "canonical_head_blob": "f725bdc1e2cd2caab04dfcc2add7d9a74e6c7472",
+      "canonical_worktree_blob": "f725bdc1e2cd2caab04dfcc2add7d9a74e6c7472",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aldric-morvane-1/chapters/01-the-hollow-victory.md",
+      "canonical": "web/books/static/books/shelf/aldric-morvane-1/chapters/01-the-hollow-victory.md",
+      "old_blob": "6913f0c1e11c0a5bad351323e1ff613d6cc4a831",
+      "canonical_index_blob": "6913f0c1e11c0a5bad351323e1ff613d6cc4a831",
+      "canonical_head_blob": "6913f0c1e11c0a5bad351323e1ff613d6cc4a831",
+      "canonical_worktree_blob": "6913f0c1e11c0a5bad351323e1ff613d6cc4a831",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aldric-morvane-1/chapters/02-the-long-road-to-arvenhalt.md",
+      "canonical": "web/books/static/books/shelf/aldric-morvane-1/chapters/02-the-long-road-to-arvenhalt.md",
+      "old_blob": "c26f4b197801204cba33ac79f1c62c38b8ecb35a",
+      "canonical_index_blob": "c26f4b197801204cba33ac79f1c62c38b8ecb35a",
+      "canonical_head_blob": "c26f4b197801204cba33ac79f1c62c38b8ecb35a",
+      "canonical_worktree_blob": "c26f4b197801204cba33ac79f1c62c38b8ecb35a",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aldric-morvane-1/chapters/03-the-summons-of-blood.md",
+      "canonical": "web/books/static/books/shelf/aldric-morvane-1/chapters/03-the-summons-of-blood.md",
+      "old_blob": "8d22b9723b192b0503a64038a749fc04b404dafe",
+      "canonical_index_blob": "8d22b9723b192b0503a64038a749fc04b404dafe",
+      "canonical_head_blob": "8d22b9723b192b0503a64038a749fc04b404dafe",
+      "canonical_worktree_blob": "8d22b9723b192b0503a64038a749fc04b404dafe",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aldric-morvane-1/chapters/04-the-sisters-lament.md",
+      "canonical": "web/books/static/books/shelf/aldric-morvane-1/chapters/04-the-sisters-lament.md",
+      "old_blob": "9ee6ffe6fbb5033edf1dbb15b476cd1e32971ba6",
+      "canonical_index_blob": "9ee6ffe6fbb5033edf1dbb15b476cd1e32971ba6",
+      "canonical_head_blob": "9ee6ffe6fbb5033edf1dbb15b476cd1e32971ba6",
+      "canonical_worktree_blob": "9ee6ffe6fbb5033edf1dbb15b476cd1e32971ba6",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alex-stark-1/chapters/01-the-trench-at-hollowmere.md",
+      "canonical": "web/books/static/books/shelf/alex-stark-1/chapters/01-the-trench-at-hollowmere.md",
+      "old_blob": "13357111b0c88c87578da30cec4828643d372360",
+      "canonical_index_blob": "13357111b0c88c87578da30cec4828643d372360",
+      "canonical_head_blob": "13357111b0c88c87578da30cec4828643d372360",
+      "canonical_worktree_blob": "13357111b0c88c87578da30cec4828643d372360",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alex-stark-1/chapters/02-what-the-blood-remembers.md",
+      "canonical": "web/books/static/books/shelf/alex-stark-1/chapters/02-what-the-blood-remembers.md",
+      "old_blob": "cb835650ca0d1eb53ffbafcdad96fd54a67f59e8",
+      "canonical_index_blob": "cb835650ca0d1eb53ffbafcdad96fd54a67f59e8",
+      "canonical_head_blob": "cb835650ca0d1eb53ffbafcdad96fd54a67f59e8",
+      "canonical_worktree_blob": "cb835650ca0d1eb53ffbafcdad96fd54a67f59e8",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alex-stark-1/chapters/03-the-black-carts.md",
+      "canonical": "web/books/static/books/shelf/alex-stark-1/chapters/03-the-black-carts.md",
+      "old_blob": "067431544f8f3f79032da58155f6c371136326f8",
+      "canonical_index_blob": "067431544f8f3f79032da58155f6c371136326f8",
+      "canonical_head_blob": "067431544f8f3f79032da58155f6c371136326f8",
+      "canonical_worktree_blob": "067431544f8f3f79032da58155f6c371136326f8",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alex-stark-1/chapters/04-the-cartographers-of-the-veil.md",
+      "canonical": "web/books/static/books/shelf/alex-stark-1/chapters/04-the-cartographers-of-the-veil.md",
+      "old_blob": "d968e68d847b69abc8c1203b7fb6ebb5f5e1eef8",
+      "canonical_index_blob": "d968e68d847b69abc8c1203b7fb6ebb5f5e1eef8",
+      "canonical_head_blob": "d968e68d847b69abc8c1203b7fb6ebb5f5e1eef8",
+      "canonical_worktree_blob": "d968e68d847b69abc8c1203b7fb6ebb5f5e1eef8",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alex-strand-1/chapters/01-the-cabin-on-ridgewater-lane.md",
+      "canonical": "web/books/static/books/shelf/alex-strand-1/chapters/01-the-cabin-on-ridgewater-lane.md",
+      "old_blob": "370c3abcd58b6b64e57acefaa42bc0e3289de7c9",
+      "canonical_index_blob": "370c3abcd58b6b64e57acefaa42bc0e3289de7c9",
+      "canonical_head_blob": "370c3abcd58b6b64e57acefaa42bc0e3289de7c9",
+      "canonical_worktree_blob": "370c3abcd58b6b64e57acefaa42bc0e3289de7c9",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alex-strand-1/chapters/02-postcards-from-nowhere.md",
+      "canonical": "web/books/static/books/shelf/alex-strand-1/chapters/02-postcards-from-nowhere.md",
+      "old_blob": "3e78ae239471da81860b2df50128fa4e6a017442",
+      "canonical_index_blob": "3e78ae239471da81860b2df50128fa4e6a017442",
+      "canonical_head_blob": "3e78ae239471da81860b2df50128fa4e6a017442",
+      "canonical_worktree_blob": "3e78ae239471da81860b2df50128fa4e6a017442",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alex-strand-1/chapters/03-ninety-days.md",
+      "canonical": "web/books/static/books/shelf/alex-strand-1/chapters/03-ninety-days.md",
+      "old_blob": "a067601e6ba6e775bc50f158999ab774315ab73d",
+      "canonical_index_blob": "a067601e6ba6e775bc50f158999ab774315ab73d",
+      "canonical_head_blob": "a067601e6ba6e775bc50f158999ab774315ab73d",
+      "canonical_worktree_blob": "a067601e6ba6e775bc50f158999ab774315ab73d",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alex-strand-1/chapters/04-the-man-in-the-gray-suit.md",
+      "canonical": "web/books/static/books/shelf/alex-strand-1/chapters/04-the-man-in-the-gray-suit.md",
+      "old_blob": "52cc681fcc19359ca573a684ed881c492f5ddf07",
+      "canonical_index_blob": "52cc681fcc19359ca573a684ed881c492f5ddf07",
+      "canonical_head_blob": "52cc681fcc19359ca573a684ed881c492f5ddf07",
+      "canonical_worktree_blob": "52cc681fcc19359ca573a684ed881c492f5ddf07",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alexis-frost-1/chapters/01-the-coffee-spill-heard-round-midtown.md",
+      "canonical": "web/books/static/books/shelf/alexis-frost-1/chapters/01-the-coffee-spill-heard-round-midtown.md",
+      "old_blob": "611c8a999abf1424d3bdbb8e3cd4879dc33db17d",
+      "canonical_index_blob": "611c8a999abf1424d3bdbb8e3cd4879dc33db17d",
+      "canonical_head_blob": "611c8a999abf1424d3bdbb8e3cd4879dc33db17d",
+      "canonical_worktree_blob": "611c8a999abf1424d3bdbb8e3cd4879dc33db17d",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alexis-frost-1/chapters/02-enemy-of-the-state-of-my-suede-jacket.md",
+      "canonical": "web/books/static/books/shelf/alexis-frost-1/chapters/02-enemy-of-the-state-of-my-suede-jacket.md",
+      "old_blob": "32efc8ba19cee902b6d440d8f2785e3cf8774d6d",
+      "canonical_index_blob": "32efc8ba19cee902b6d440d8f2785e3cf8774d6d",
+      "canonical_head_blob": "32efc8ba19cee902b6d440d8f2785e3cf8774d6d",
+      "canonical_worktree_blob": "32efc8ba19cee902b6d440d8f2785e3cf8774d6d",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alexis-frost-1/chapters/03-when-the-subway-stops-and-the-universe-listens.md",
+      "canonical": "web/books/static/books/shelf/alexis-frost-1/chapters/03-when-the-subway-stops-and-the-universe-listens.md",
+      "old_blob": "5154949f750015764acaf0b34936f502dd520f74",
+      "canonical_index_blob": "5154949f750015764acaf0b34936f502dd520f74",
+      "canonical_head_blob": "5154949f750015764acaf0b34936f502dd520f74",
+      "canonical_worktree_blob": "5154949f750015764acaf0b34936f502dd520f74",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alexis-frost-1/chapters/04-hostile-workplace-makeover.md",
+      "canonical": "web/books/static/books/shelf/alexis-frost-1/chapters/04-hostile-workplace-makeover.md",
+      "old_blob": "6f5a27b7f10794c6ae3d36c8975f7ba7fc46843c",
+      "canonical_index_blob": "6f5a27b7f10794c6ae3d36c8975f7ba7fc46843c",
+      "canonical_head_blob": "6f5a27b7f10794c6ae3d36c8975f7ba7fc46843c",
+      "canonical_worktree_blob": "6f5a27b7f10794c6ae3d36c8975f7ba7fc46843c",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-ashby-1/chapters/01-the-quiet-audit.md",
+      "canonical": "web/books/static/books/shelf/alina-ashby-1/chapters/01-the-quiet-audit.md",
+      "old_blob": "b56beced22616a1fc929a0950985e68549d42708",
+      "canonical_index_blob": "b56beced22616a1fc929a0950985e68549d42708",
+      "canonical_head_blob": "b56beced22616a1fc929a0950985e68549d42708",
+      "canonical_worktree_blob": "b56beced22616a1fc929a0950985e68549d42708",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-ashby-1/chapters/02-glass-and-static.md",
+      "canonical": "web/books/static/books/shelf/alina-ashby-1/chapters/02-glass-and-static.md",
+      "old_blob": "048baa21f9d8a1ac06de876cc11c0410e599b547",
+      "canonical_index_blob": "048baa21f9d8a1ac06de876cc11c0410e599b547",
+      "canonical_head_blob": "048baa21f9d8a1ac06de876cc11c0410e599b547",
+      "canonical_worktree_blob": "048baa21f9d8a1ac06de876cc11c0410e599b547",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-ashby-1/chapters/03-the-custodians-warning.md",
+      "canonical": "web/books/static/books/shelf/alina-ashby-1/chapters/03-the-custodians-warning.md",
+      "old_blob": "23812d18528b6a3c9d2b866c9ac20a608c886b15",
+      "canonical_index_blob": "23812d18528b6a3c9d2b866c9ac20a608c886b15",
+      "canonical_head_blob": "23812d18528b6a3c9d2b866c9ac20a608c886b15",
+      "canonical_worktree_blob": "23812d18528b6a3c9d2b866c9ac20a608c886b15",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-ashby-1/chapters/04-below-the-station.md",
+      "canonical": "web/books/static/books/shelf/alina-ashby-1/chapters/04-below-the-station.md",
+      "old_blob": "d9ca656aff8ce8876aa4041854d233f9df066527",
+      "canonical_index_blob": "d9ca656aff8ce8876aa4041854d233f9df066527",
+      "canonical_head_blob": "d9ca656aff8ce8876aa4041854d233f9df066527",
+      "canonical_worktree_blob": "d9ca656aff8ce8876aa4041854d233f9df066527",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-calder-1/chapters/01-iron-in-the-spine.md",
+      "canonical": "web/books/static/books/shelf/alina-calder-1/chapters/01-iron-in-the-spine.md",
+      "old_blob": "bc7880335a97609e22db784e47829eff5e3210cf",
+      "canonical_index_blob": "bc7880335a97609e22db784e47829eff5e3210cf",
+      "canonical_head_blob": "bc7880335a97609e22db784e47829eff5e3210cf",
+      "canonical_worktree_blob": "bc7880335a97609e22db784e47829eff5e3210cf",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-calder-1/chapters/02-the-ember-compact.md",
+      "canonical": "web/books/static/books/shelf/alina-calder-1/chapters/02-the-ember-compact.md",
+      "old_blob": "7d202480940286cd2ec6eddb789a4fb5bc4603ca",
+      "canonical_index_blob": "7d202480940286cd2ec6eddb789a4fb5bc4603ca",
+      "canonical_head_blob": "7d202480940286cd2ec6eddb789a4fb5bc4603ca",
+      "canonical_worktree_blob": "7d202480940286cd2ec6eddb789a4fb5bc4603ca",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-calder-1/chapters/03-below-the-tide-line.md",
+      "canonical": "web/books/static/books/shelf/alina-calder-1/chapters/03-below-the-tide-line.md",
+      "old_blob": "d09766e72dc763e308528ad8ca63d1a097657a5f",
+      "canonical_index_blob": "d09766e72dc763e308528ad8ca63d1a097657a5f",
+      "canonical_head_blob": "d09766e72dc763e308528ad8ca63d1a097657a5f",
+      "canonical_worktree_blob": "d09766e72dc763e308528ad8ca63d1a097657a5f",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-calder-1/chapters/04-court-of-quiet-knives.md",
+      "canonical": "web/books/static/books/shelf/alina-calder-1/chapters/04-court-of-quiet-knives.md",
+      "old_blob": "f39bd601de52bc9ef5a16c52876f313bc01dfe82",
+      "canonical_index_blob": "f39bd601de52bc9ef5a16c52876f313bc01dfe82",
+      "canonical_head_blob": "f39bd601de52bc9ef5a16c52876f313bc01dfe82",
+      "canonical_worktree_blob": "f39bd601de52bc9ef5a16c52876f313bc01dfe82",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-cassidy-1/chapters/01-the-road-back-to-breakwater.md",
+      "canonical": "web/books/static/books/shelf/alina-cassidy-1/chapters/01-the-road-back-to-breakwater.md",
+      "old_blob": "42efe6270345915fb34ee7534d9341b10f282c1a",
+      "canonical_index_blob": "42efe6270345915fb34ee7534d9341b10f282c1a",
+      "canonical_head_blob": "42efe6270345915fb34ee7534d9341b10f282c1a",
+      "canonical_worktree_blob": "42efe6270345915fb34ee7534d9341b10f282c1a",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-cassidy-1/chapters/02-sunday-dinner-at-harbor-lane.md",
+      "canonical": "web/books/static/books/shelf/alina-cassidy-1/chapters/02-sunday-dinner-at-harbor-lane.md",
+      "old_blob": "048aa7e56e6ed7981cf1340c9dfa8c59bfeb7194",
+      "canonical_index_blob": "048aa7e56e6ed7981cf1340c9dfa8c59bfeb7194",
+      "canonical_head_blob": "048aa7e56e6ed7981cf1340c9dfa8c59bfeb7194",
+      "canonical_worktree_blob": "048aa7e56e6ed7981cf1340c9dfa8c59bfeb7194",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-cassidy-1/chapters/03-daniel-at-a-distance.md",
+      "canonical": "web/books/static/books/shelf/alina-cassidy-1/chapters/03-daniel-at-a-distance.md",
+      "old_blob": "b49fb691a03a6c8d5503b4f149b6f5af68168b1b",
+      "canonical_index_blob": "b49fb691a03a6c8d5503b4f149b6f5af68168b1b",
+      "canonical_head_blob": "b49fb691a03a6c8d5503b4f149b6f5af68168b1b",
+      "canonical_worktree_blob": "b49fb691a03a6c8d5503b4f149b6f5af68168b1b",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-cassidy-1/chapters/04-the-boathouse-on-pilgrims-wharf.md",
+      "canonical": "web/books/static/books/shelf/alina-cassidy-1/chapters/04-the-boathouse-on-pilgrims-wharf.md",
+      "old_blob": "8fd9a5d0a5a725665f7c3572332eeed71e285bb4",
+      "canonical_index_blob": "8fd9a5d0a5a725665f7c3572332eeed71e285bb4",
+      "canonical_head_blob": "8fd9a5d0a5a725665f7c3572332eeed71e285bb4",
+      "canonical_worktree_blob": "8fd9a5d0a5a725665f7c3572332eeed71e285bb4",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-cassius-1/chapters/01-the-inheritance.md",
+      "canonical": "web/books/static/books/shelf/alina-cassius-1/chapters/01-the-inheritance.md",
+      "old_blob": "89932b49a1b178a420ab2db3d893ac0111602fb2",
+      "canonical_index_blob": "89932b49a1b178a420ab2db3d893ac0111602fb2",
+      "canonical_head_blob": "89932b49a1b178a420ab2db3d893ac0111602fb2",
+      "canonical_worktree_blob": "89932b49a1b178a420ab2db3d893ac0111602fb2",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-cassius-1/chapters/02-a-sneezing-carriage.md",
+      "canonical": "web/books/static/books/shelf/alina-cassius-1/chapters/02-a-sneezing-carriage.md",
+      "old_blob": "e4c3c08ad64c3456b8951219e2170e9c63720306",
+      "canonical_index_blob": "e4c3c08ad64c3456b8951219e2170e9c63720306",
+      "canonical_head_blob": "e4c3c08ad64c3456b8951219e2170e9c63720306",
+      "canonical_worktree_blob": "e4c3c08ad64c3456b8951219e2170e9c63720306",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-cassius-1/chapters/03-the-rally-announcement.md",
+      "canonical": "web/books/static/books/shelf/alina-cassius-1/chapters/03-the-rally-announcement.md",
+      "old_blob": "a82fb8617cc4c55d8fab9107fc402ac22d7663a7",
+      "canonical_index_blob": "a82fb8617cc4c55d8fab9107fc402ac22d7663a7",
+      "canonical_head_blob": "a82fb8617cc4c55d8fab9107fc402ac22d7663a7",
+      "canonical_worktree_blob": "a82fb8617cc4c55d8fab9107fc402ac22d7663a7",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-cassius-1/chapters/04-the-baronesss-coach.md",
+      "canonical": "web/books/static/books/shelf/alina-cassius-1/chapters/04-the-baronesss-coach.md",
+      "old_blob": "87b39fab2abf3ec67f26130096ea8c1e48340a50",
+      "canonical_index_blob": "87b39fab2abf3ec67f26130096ea8c1e48340a50",
+      "canonical_head_blob": "87b39fab2abf3ec67f26130096ea8c1e48340a50",
+      "canonical_worktree_blob": "87b39fab2abf3ec67f26130096ea8c1e48340a50",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-ironwood-1/chapters/01-the-ash-beneath-the-forge.md",
+      "canonical": "web/books/static/books/shelf/alina-ironwood-1/chapters/01-the-ash-beneath-the-forge.md",
+      "old_blob": "34239750e26f33c3fb6c23aab289e2c53b0b75ec",
+      "canonical_index_blob": "34239750e26f33c3fb6c23aab289e2c53b0b75ec",
+      "canonical_head_blob": "34239750e26f33c3fb6c23aab289e2c53b0b75ec",
+      "canonical_worktree_blob": "34239750e26f33c3fb6c23aab289e2c53b0b75ec",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-ironwood-1/chapters/02-the-singing.md",
+      "canonical": "web/books/static/books/shelf/alina-ironwood-1/chapters/02-the-singing.md",
+      "old_blob": "a8c6eba1f39cfff11855371ed9db2f1c8b32d8dd",
+      "canonical_index_blob": "a8c6eba1f39cfff11855371ed9db2f1c8b32d8dd",
+      "canonical_head_blob": "a8c6eba1f39cfff11855371ed9db2f1c8b32d8dd",
+      "canonical_worktree_blob": "a8c6eba1f39cfff11855371ed9db2f1c8b32d8dd",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-ironwood-1/chapters/03-the-golden-sentinel.md",
+      "canonical": "web/books/static/books/shelf/alina-ironwood-1/chapters/03-the-golden-sentinel.md",
+      "old_blob": "d69ccc704e82db0df23fc52142923ab7fa2316d1",
+      "canonical_index_blob": "d69ccc704e82db0df23fc52142923ab7fa2316d1",
+      "canonical_head_blob": "d69ccc704e82db0df23fc52142923ab7fa2316d1",
+      "canonical_worktree_blob": "d69ccc704e82db0df23fc52142923ab7fa2316d1",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-ironwood-1/chapters/04-chains-of-duty.md",
+      "canonical": "web/books/static/books/shelf/alina-ironwood-1/chapters/04-chains-of-duty.md",
+      "old_blob": "fb58b0bfac26f647323b92c7e0f949d874fb9def",
+      "canonical_index_blob": "fb58b0bfac26f647323b92c7e0f949d874fb9def",
+      "canonical_head_blob": "fb58b0bfac26f647323b92c7e0f949d874fb9def",
+      "canonical_worktree_blob": "fb58b0bfac26f647323b92c7e0f949d874fb9def",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-sable-1/chapters/01-the-ninth-bell.md",
+      "canonical": "web/books/static/books/shelf/alina-sable-1/chapters/01-the-ninth-bell.md",
+      "old_blob": "f2de4b56d8abcf9aaca74196dbc18fe5b68f02e5",
+      "canonical_index_blob": "f2de4b56d8abcf9aaca74196dbc18fe5b68f02e5",
+      "canonical_head_blob": "f2de4b56d8abcf9aaca74196dbc18fe5b68f02e5",
+      "canonical_worktree_blob": "f2de4b56d8abcf9aaca74196dbc18fe5b68f02e5",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-sable-1/chapters/02-ashes-in-the-gray-reach.md",
+      "canonical": "web/books/static/books/shelf/alina-sable-1/chapters/02-ashes-in-the-gray-reach.md",
+      "old_blob": "78c61ddc14949516e954b24d3ee68100cae2f92c",
+      "canonical_index_blob": "78c61ddc14949516e954b24d3ee68100cae2f92c",
+      "canonical_head_blob": "78c61ddc14949516e954b24d3ee68100cae2f92c",
+      "canonical_worktree_blob": "78c61ddc14949516e954b24d3ee68100cae2f92c",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-sable-1/chapters/03-the-thornwood-threshold.md",
+      "canonical": "web/books/static/books/shelf/alina-sable-1/chapters/03-the-thornwood-threshold.md",
+      "old_blob": "1cfe3fbb796498a3028610a38c00ee42da5c9341",
+      "canonical_index_blob": "1cfe3fbb796498a3028610a38c00ee42da5c9341",
+      "canonical_head_blob": "1cfe3fbb796498a3028610a38c00ee42da5c9341",
+      "canonical_worktree_blob": "1cfe3fbb796498a3028610a38c00ee42da5c9341",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/alina-sable-1/chapters/04-thorn-and-tide.md",
+      "canonical": "web/books/static/books/shelf/alina-sable-1/chapters/04-thorn-and-tide.md",
+      "old_blob": "bccb6b90df1de3895c435c812d33470044630a39",
+      "canonical_index_blob": "bccb6b90df1de3895c435c812d33470044630a39",
+      "canonical_head_blob": "bccb6b90df1de3895c435c812d33470044630a39",
+      "canonical_worktree_blob": "bccb6b90df1de3895c435c812d33470044630a39",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/amber-raven-1/chapters/01-ashes-of-the-covenant.md",
+      "canonical": "web/books/static/books/shelf/amber-raven-1/chapters/01-ashes-of-the-covenant.md",
+      "old_blob": "8750c4a7e00196c1f29677383d3feaeb0b988ae8",
+      "canonical_index_blob": "8750c4a7e00196c1f29677383d3feaeb0b988ae8",
+      "canonical_head_blob": "8750c4a7e00196c1f29677383d3feaeb0b988ae8",
+      "canonical_worktree_blob": "8750c4a7e00196c1f29677383d3feaeb0b988ae8",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/amber-raven-1/chapters/02-the-cartels-iron-smile.md",
+      "canonical": "web/books/static/books/shelf/amber-raven-1/chapters/02-the-cartels-iron-smile.md",
+      "old_blob": "ad269517b51215f21b543c0028afb6dabb47c1ed",
+      "canonical_index_blob": "ad269517b51215f21b543c0028afb6dabb47c1ed",
+      "canonical_head_blob": "ad269517b51215f21b543c0028afb6dabb47c1ed",
+      "canonical_worktree_blob": "ad269517b51215f21b543c0028afb6dabb47c1ed",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/amber-raven-1/chapters/03-the-gate-of-burnt-names.md",
+      "canonical": "web/books/static/books/shelf/amber-raven-1/chapters/03-the-gate-of-burnt-names.md",
+      "old_blob": "cb924e0783ec5110395c483da9386ce64c7d00f1",
+      "canonical_index_blob": "cb924e0783ec5110395c483da9386ce64c7d00f1",
+      "canonical_head_blob": "cb924e0783ec5110395c483da9386ce64c7d00f1",
+      "canonical_worktree_blob": "cb924e0783ec5110395c483da9386ce64c7d00f1",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/amber-raven-1/chapters/04-the-healers-gambit.md",
+      "canonical": "web/books/static/books/shelf/amber-raven-1/chapters/04-the-healers-gambit.md",
+      "old_blob": "ad55c37dd8782efb7bdf0b066b8a4f9a0d1c1d99",
+      "canonical_index_blob": "ad55c37dd8782efb7bdf0b066b8a4f9a0d1c1d99",
+      "canonical_head_blob": "ad55c37dd8782efb7bdf0b066b8a4f9a0d1c1d99",
+      "canonical_worktree_blob": "ad55c37dd8782efb7bdf0b066b8a4f9a0d1c1d99",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/anneliese-tarrant-1/chapters/01-ash-and-acceptance.md",
+      "canonical": "web/books/static/books/shelf/anneliese-tarrant-1/chapters/01-ash-and-acceptance.md",
+      "old_blob": "fe0f9aef53163bac7b1f8dcad063152e2badc5d4",
+      "canonical_index_blob": "fe0f9aef53163bac7b1f8dcad063152e2badc5d4",
+      "canonical_head_blob": "fe0f9aef53163bac7b1f8dcad063152e2badc5d4",
+      "canonical_worktree_blob": "fe0f9aef53163bac7b1f8dcad063152e2badc5d4",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/anneliese-tarrant-1/chapters/02-the-obsidian-gates.md",
+      "canonical": "web/books/static/books/shelf/anneliese-tarrant-1/chapters/02-the-obsidian-gates.md",
+      "old_blob": "e83289f6932b4b6534b4fb683d05c4b56d08e647",
+      "canonical_index_blob": "e83289f6932b4b6534b4fb683d05c4b56d08e647",
+      "canonical_head_blob": "e83289f6932b4b6534b4fb683d05c4b56d08e647",
+      "canonical_worktree_blob": "e83289f6932b4b6534b4fb683d05c4b56d08e647",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/anneliese-tarrant-1/chapters/03-lessons-in-binding.md",
+      "canonical": "web/books/static/books/shelf/anneliese-tarrant-1/chapters/03-lessons-in-binding.md",
+      "old_blob": "5b20e96e4a215128a1ec85daf248d40718a673d4",
+      "canonical_index_blob": "5b20e96e4a215128a1ec85daf248d40718a673d4",
+      "canonical_head_blob": "5b20e96e4a215128a1ec85daf248d40718a673d4",
+      "canonical_worktree_blob": "5b20e96e4a215128a1ec85daf248d40718a673d4",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/anneliese-tarrant-1/chapters/04-blood-on-the-stones.md",
+      "canonical": "web/books/static/books/shelf/anneliese-tarrant-1/chapters/04-blood-on-the-stones.md",
+      "old_blob": "7ade9db135cb3436a06436b202b0e5bce6890f1a",
+      "canonical_index_blob": "7ade9db135cb3436a06436b202b0e5bce6890f1a",
+      "canonical_head_blob": "7ade9db135cb3436a06436b202b0e5bce6890f1a",
+      "canonical_worktree_blob": "7ade9db135cb3436a06436b202b0e5bce6890f1a",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/anneliese-zhang-1/chapters/01-the-cartographer-of-forgotten-stacks.md",
+      "canonical": "web/books/static/books/shelf/anneliese-zhang-1/chapters/01-the-cartographer-of-forgotten-stacks.md",
+      "old_blob": "8fd232067666880eb54e03da69034f4fe6044144",
+      "canonical_index_blob": "8fd232067666880eb54e03da69034f4fe6044144",
+      "canonical_head_blob": "8fd232067666880eb54e03da69034f4fe6044144",
+      "canonical_worktree_blob": "8fd232067666880eb54e03da69034f4fe6044144",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/anneliese-zhang-1/chapters/02-a-name-carved-in-water.md",
+      "canonical": "web/books/static/books/shelf/anneliese-zhang-1/chapters/02-a-name-carved-in-water.md",
+      "old_blob": "d8d545c8f6e54b7a0c9a317332f14436de8dbd1e",
+      "canonical_index_blob": "d8d545c8f6e54b7a0c9a317332f14436de8dbd1e",
+      "canonical_head_blob": "d8d545c8f6e54b7a0c9a317332f14436de8dbd1e",
+      "canonical_worktree_blob": "d8d545c8f6e54b7a0c9a317332f14436de8dbd1e",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/anneliese-zhang-1/chapters/03-the-burning-of-saerenholm.md",
+      "canonical": "web/books/static/books/shelf/anneliese-zhang-1/chapters/03-the-burning-of-saerenholm.md",
+      "old_blob": "c5ede1fca856891a3aec817b8808be77d02b22f6",
+      "canonical_index_blob": "c5ede1fca856891a3aec817b8808be77d02b22f6",
+      "canonical_head_blob": "c5ede1fca856891a3aec817b8808be77d02b22f6",
+      "canonical_worktree_blob": "c5ede1fca856891a3aec817b8808be77d02b22f6",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/anneliese-zhang-1/chapters/04-the-warded-road-north.md",
+      "canonical": "web/books/static/books/shelf/anneliese-zhang-1/chapters/04-the-warded-road-north.md",
+      "old_blob": "877bd4af61ab8da71757ffa23fa50f0c9b48d9b0",
+      "canonical_index_blob": "877bd4af61ab8da71757ffa23fa50f0c9b48d9b0",
+      "canonical_head_blob": "877bd4af61ab8da71757ffa23fa50f0c9b48d9b0",
+      "canonical_worktree_blob": "877bd4af61ab8da71757ffa23fa50f0c9b48d9b0",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-blackburn-1/chapters/01-the-cartographers-inheritance.md",
+      "canonical": "web/books/static/books/shelf/aria-blackburn-1/chapters/01-the-cartographers-inheritance.md",
+      "old_blob": "3001975d0f65f5ea5955eb215deea3bd40e24d84",
+      "canonical_index_blob": "3001975d0f65f5ea5955eb215deea3bd40e24d84",
+      "canonical_head_blob": "3001975d0f65f5ea5955eb215deea3bd40e24d84",
+      "canonical_worktree_blob": "3001975d0f65f5ea5955eb215deea3bd40e24d84",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-blackburn-1/chapters/02-what-the-atlas-remembers.md",
+      "canonical": "web/books/static/books/shelf/aria-blackburn-1/chapters/02-what-the-atlas-remembers.md",
+      "old_blob": "b068f6cc0fc2e7e802d465269763e360a7cc26cf",
+      "canonical_index_blob": "b068f6cc0fc2e7e802d465269763e360a7cc26cf",
+      "canonical_head_blob": "b068f6cc0fc2e7e802d465269763e360a7cc26cf",
+      "canonical_worktree_blob": "b068f6cc0fc2e7e802d465269763e360a7cc26cf",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-blackburn-1/chapters/03-the-road-of-salt-and-bone.md",
+      "canonical": "web/books/static/books/shelf/aria-blackburn-1/chapters/03-the-road-of-salt-and-bone.md",
+      "old_blob": "44ec33ca64f1a09152c189298d32a98cf2ba1bfb",
+      "canonical_index_blob": "44ec33ca64f1a09152c189298d32a98cf2ba1bfb",
+      "canonical_head_blob": "44ec33ca64f1a09152c189298d32a98cf2ba1bfb",
+      "canonical_worktree_blob": "44ec33ca64f1a09152c189298d32a98cf2ba1bfb",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-blackburn-1/chapters/04-the-hollow-reach.md",
+      "canonical": "web/books/static/books/shelf/aria-blackburn-1/chapters/04-the-hollow-reach.md",
+      "old_blob": "a3a0f28ef673c091e0cbc8cc36fe3b06db7a0abf",
+      "canonical_index_blob": "a3a0f28ef673c091e0cbc8cc36fe3b06db7a0abf",
+      "canonical_head_blob": "a3a0f28ef673c091e0cbc8cc36fe3b06db7a0abf",
+      "canonical_worktree_blob": "a3a0f28ef673c091e0cbc8cc36fe3b06db7a0abf",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-blackwell-1/chapters/01-ash-in-the-manifold.md",
+      "canonical": "web/books/static/books/shelf/aria-blackwell-1/chapters/01-ash-in-the-manifold.md",
+      "old_blob": "7da04bafd3522926f628e79ee991bacc86366a9b",
+      "canonical_index_blob": "7da04bafd3522926f628e79ee991bacc86366a9b",
+      "canonical_head_blob": "7da04bafd3522926f628e79ee991bacc86366a9b",
+      "canonical_worktree_blob": "7da04bafd3522926f628e79ee991bacc86366a9b",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-blackwell-1/chapters/02-cold-start--hot-lead.md",
+      "canonical": "web/books/static/books/shelf/aria-blackwell-1/chapters/02-cold-start--hot-lead.md",
+      "old_blob": "500568ce5455801a32697f667c906aa7f651f7f4",
+      "canonical_index_blob": "500568ce5455801a32697f667c906aa7f651f7f4",
+      "canonical_head_blob": "500568ce5455801a32697f667c906aa7f651f7f4",
+      "canonical_worktree_blob": "500568ce5455801a32697f667c906aa7f651f7f4",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-blackwell-1/chapters/03-rust-and-relic.md",
+      "canonical": "web/books/static/books/shelf/aria-blackwell-1/chapters/03-rust-and-relic.md",
+      "old_blob": "6ffc72c956e342758109844e7e30db72b4c49a21",
+      "canonical_index_blob": "6ffc72c956e342758109844e7e30db72b4c49a21",
+      "canonical_head_blob": "6ffc72c956e342758109844e7e30db72b4c49a21",
+      "canonical_worktree_blob": "6ffc72c956e342758109844e7e30db72b4c49a21",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-blackwell-1/chapters/04-the-ledger-in-the-floor.md",
+      "canonical": "web/books/static/books/shelf/aria-blackwell-1/chapters/04-the-ledger-in-the-floor.md",
+      "old_blob": "41986c84b3265968316ad1847cf0156fd228d301",
+      "canonical_index_blob": "41986c84b3265968316ad1847cf0156fd228d301",
+      "canonical_head_blob": "41986c84b3265968316ad1847cf0156fd228d301",
+      "canonical_worktree_blob": "41986c84b3265968316ad1847cf0156fd228d301",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-keystone-1/chapters/01-the-cartographers-bargain.md",
+      "canonical": "web/books/static/books/shelf/aria-keystone-1/chapters/01-the-cartographers-bargain.md",
+      "old_blob": "fb97f2f464c9fa9a53e4ba4e628e49e244eabd57",
+      "canonical_index_blob": "fb97f2f464c9fa9a53e4ba4e628e49e244eabd57",
+      "canonical_head_blob": "fb97f2f464c9fa9a53e4ba4e628e49e244eabd57",
+      "canonical_worktree_blob": "fb97f2f464c9fa9a53e4ba4e628e49e244eabd57",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-keystone-1/chapters/02-cartography-of-the-wound.md",
+      "canonical": "web/books/static/books/shelf/aria-keystone-1/chapters/02-cartography-of-the-wound.md",
+      "old_blob": "28e4b80cdbd0ecc7960c128a2f2e693c9fcd3761",
+      "canonical_index_blob": "28e4b80cdbd0ecc7960c128a2f2e693c9fcd3761",
+      "canonical_head_blob": "28e4b80cdbd0ecc7960c128a2f2e693c9fcd3761",
+      "canonical_worktree_blob": "28e4b80cdbd0ecc7960c128a2f2e693c9fcd3761",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-keystone-1/chapters/03-the-halfbloods-ledger.md",
+      "canonical": "web/books/static/books/shelf/aria-keystone-1/chapters/03-the-halfbloods-ledger.md",
+      "old_blob": "f07b63337625209e4dd87c00282f66c3dd0a0619",
+      "canonical_index_blob": "f07b63337625209e4dd87c00282f66c3dd0a0619",
+      "canonical_head_blob": "f07b63337625209e4dd87c00282f66c3dd0a0619",
+      "canonical_worktree_blob": "f07b63337625209e4dd87c00282f66c3dd0a0619",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-keystone-1/chapters/04-the-brokers-true-ledger.md",
+      "canonical": "web/books/static/books/shelf/aria-keystone-1/chapters/04-the-brokers-true-ledger.md",
+      "old_blob": "8b9165c1df68206a62922fe4936f0a3c9d89df45",
+      "canonical_index_blob": "8b9165c1df68206a62922fe4936f0a3c9d89df45",
+      "canonical_head_blob": "8b9165c1df68206a62922fe4936f0a3c9d89df45",
+      "canonical_worktree_blob": "8b9165c1df68206a62922fe4936f0a3c9d89df45",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-moonvale-1/chapters/01-the-cartographers-daughter.md",
+      "canonical": "web/books/static/books/shelf/aria-moonvale-1/chapters/01-the-cartographers-daughter.md",
+      "old_blob": "9292d9aa6af942ecbd25f31486414fe57fa35516",
+      "canonical_index_blob": "9292d9aa6af942ecbd25f31486414fe57fa35516",
+      "canonical_head_blob": "9292d9aa6af942ecbd25f31486414fe57fa35516",
+      "canonical_worktree_blob": "9292d9aa6af942ecbd25f31486414fe57fa35516",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-moonvale-1/chapters/02-the-blackthorn-initiation.md",
+      "canonical": "web/books/static/books/shelf/aria-moonvale-1/chapters/02-the-blackthorn-initiation.md",
+      "old_blob": "8d0894e421b81f778b8f27471ccf7b1839be9994",
+      "canonical_index_blob": "8d0894e421b81f778b8f27471ccf7b1839be9994",
+      "canonical_head_blob": "8d0894e421b81f778b8f27471ccf7b1839be9994",
+      "canonical_worktree_blob": "8d0894e421b81f778b8f27471ccf7b1839be9994",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-moonvale-1/chapters/03-iron-and-whisper.md",
+      "canonical": "web/books/static/books/shelf/aria-moonvale-1/chapters/03-iron-and-whisper.md",
+      "old_blob": "12cfa10964eba6718a04793411798b582705b95a",
+      "canonical_index_blob": "12cfa10964eba6718a04793411798b582705b95a",
+      "canonical_head_blob": "12cfa10964eba6718a04793411798b582705b95a",
+      "canonical_worktree_blob": "12cfa10964eba6718a04793411798b582705b95a",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-moonvale-1/chapters/04-the-ember-college-letters.md",
+      "canonical": "web/books/static/books/shelf/aria-moonvale-1/chapters/04-the-ember-college-letters.md",
+      "old_blob": "9cca549c75ccdc3722798f8a4482ce87322aa0c7",
+      "canonical_index_blob": "9cca549c75ccdc3722798f8a4482ce87322aa0c7",
+      "canonical_head_blob": "9cca549c75ccdc3722798f8a4482ce87322aa0c7",
+      "canonical_worktree_blob": "9cca549c75ccdc3722798f8a4482ce87322aa0c7",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-starfall-1/chapters/01-the-pilot-who-heard-stars.md",
+      "canonical": "web/books/static/books/shelf/aria-starfall-1/chapters/01-the-pilot-who-heard-stars.md",
+      "old_blob": "03e232314cb8ac9724eab87e75749b1010db9c4a",
+      "canonical_index_blob": "03e232314cb8ac9724eab87e75749b1010db9c4a",
+      "canonical_head_blob": "03e232314cb8ac9724eab87e75749b1010db9c4a",
+      "canonical_worktree_blob": "03e232314cb8ac9724eab87e75749b1010db9c4a",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-starfall-1/chapters/02-hollow-of-the-magnetar.md",
+      "canonical": "web/books/static/books/shelf/aria-starfall-1/chapters/02-hollow-of-the-magnetar.md",
+      "old_blob": "91a2fa36eddf7d19558258facb725fd3243f2a3a",
+      "canonical_index_blob": "91a2fa36eddf7d19558258facb725fd3243f2a3a",
+      "canonical_head_blob": "91a2fa36eddf7d19558258facb725fd3243f2a3a",
+      "canonical_worktree_blob": "91a2fa36eddf7d19558258facb725fd3243f2a3a",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-starfall-1/chapters/03-what-the-core-remembers.md",
+      "canonical": "web/books/static/books/shelf/aria-starfall-1/chapters/03-what-the-core-remembers.md",
+      "old_blob": "2aef2f86530dbbab8981b25fe4fb9bcf8e863010",
+      "canonical_index_blob": "2aef2f86530dbbab8981b25fe4fb9bcf8e863010",
+      "canonical_head_blob": "2aef2f86530dbbab8981b25fe4fb9bcf8e863010",
+      "canonical_worktree_blob": "2aef2f86530dbbab8981b25fe4fb9bcf8e863010",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-starfall-1/chapters/04-the-black-fleet.md",
+      "canonical": "web/books/static/books/shelf/aria-starfall-1/chapters/04-the-black-fleet.md",
+      "old_blob": "524744de542b65439d11a1f5fd601f3ab29a2a87",
+      "canonical_index_blob": "524744de542b65439d11a1f5fd601f3ab29a2a87",
+      "canonical_head_blob": "524744de542b65439d11a1f5fd601f3ab29a2a87",
+      "canonical_worktree_blob": "524744de542b65439d11a1f5fd601f3ab29a2a87",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-storm-1/chapters/01-of-ash-and-oaths.md",
+      "canonical": "web/books/static/books/shelf/aria-storm-1/chapters/01-of-ash-and-oaths.md",
+      "old_blob": "c35536957da63e2918c8b8dadf9b44af39894667",
+      "canonical_index_blob": "c35536957da63e2918c8b8dadf9b44af39894667",
+      "canonical_head_blob": "c35536957da63e2918c8b8dadf9b44af39894667",
+      "canonical_worktree_blob": "c35536957da63e2918c8b8dadf9b44af39894667",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-storm-1/chapters/02-a-bargain-in-black-ice.md",
+      "canonical": "web/books/static/books/shelf/aria-storm-1/chapters/02-a-bargain-in-black-ice.md",
+      "old_blob": "05ed15d63fb59c6c4999db80e99b4d472e7726ec",
+      "canonical_index_blob": "05ed15d63fb59c6c4999db80e99b4d472e7726ec",
+      "canonical_head_blob": "05ed15d63fb59c6c4999db80e99b4d472e7726ec",
+      "canonical_worktree_blob": "05ed15d63fb59c6c4999db80e99b4d472e7726ec",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-storm-1/chapters/03-the-first-lesson.md",
+      "canonical": "web/books/static/books/shelf/aria-storm-1/chapters/03-the-first-lesson.md",
+      "old_blob": "d753a8a4cb8d4977e837aaf5bf9ca7b6b1655186",
+      "canonical_index_blob": "d753a8a4cb8d4977e837aaf5bf9ca7b6b1655186",
+      "canonical_head_blob": "d753a8a4cb8d4977e837aaf5bf9ca7b6b1655186",
+      "canonical_worktree_blob": "d753a8a4cb8d4977e837aaf5bf9ca7b6b1655186",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-storm-1/chapters/04-wolves-in-velvet.md",
+      "canonical": "web/books/static/books/shelf/aria-storm-1/chapters/04-wolves-in-velvet.md",
+      "old_blob": "02db5b8ef623495eb517842db3e136020c4657f1",
+      "canonical_index_blob": "02db5b8ef623495eb517842db3e136020c4657f1",
+      "canonical_head_blob": "02db5b8ef623495eb517842db3e136020c4657f1",
+      "canonical_worktree_blob": "02db5b8ef623495eb517842db3e136020c4657f1",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-vance-1/chapters/01-the-ledger-of-forgotten-names.md",
+      "canonical": "web/books/static/books/shelf/aria-vance-1/chapters/01-the-ledger-of-forgotten-names.md",
+      "old_blob": "c4ca345e69d4b172e4c3083b241ac762021b814d",
+      "canonical_index_blob": "c4ca345e69d4b172e4c3083b241ac762021b814d",
+      "canonical_head_blob": "c4ca345e69d4b172e4c3083b241ac762021b814d",
+      "canonical_worktree_blob": "c4ca345e69d4b172e4c3083b241ac762021b814d",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-vance-1/chapters/02-what-the-county-burned.md",
+      "canonical": "web/books/static/books/shelf/aria-vance-1/chapters/02-what-the-county-burned.md",
+      "old_blob": "0da54e8b43e6ef0e3a505353cc44ff56575137bd",
+      "canonical_index_blob": "0da54e8b43e6ef0e3a505353cc44ff56575137bd",
+      "canonical_head_blob": "0da54e8b43e6ef0e3a505353cc44ff56575137bd",
+      "canonical_worktree_blob": "0da54e8b43e6ef0e3a505353cc44ff56575137bd",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-vance-1/chapters/03-the-girl-with-no-file.md",
+      "canonical": "web/books/static/books/shelf/aria-vance-1/chapters/03-the-girl-with-no-file.md",
+      "old_blob": "f39f72dfae8d78d1c1dd9a2a34a1943736e9c25b",
+      "canonical_index_blob": "f39f72dfae8d78d1c1dd9a2a34a1943736e9c25b",
+      "canonical_head_blob": "f39f72dfae8d78d1c1dd9a2a34a1943736e9c25b",
+      "canonical_worktree_blob": "f39f72dfae8d78d1c1dd9a2a34a1943736e9c25b",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/aria-vance-1/chapters/04-grave-arithmetic.md",
+      "canonical": "web/books/static/books/shelf/aria-vance-1/chapters/04-grave-arithmetic.md",
+      "old_blob": "01410bee97f80e05f285edd079cd6162d5449757",
+      "canonical_index_blob": "01410bee97f80e05f285edd079cd6162d5449757",
+      "canonical_head_blob": "01410bee97f80e05f285edd079cd6162d5449757",
+      "canonical_worktree_blob": "01410bee97f80e05f285edd079cd6162d5449757",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/ariadne-vale-1/chapters/01-the-wreck-of-the-eurydice.md",
+      "canonical": "web/books/static/books/shelf/ariadne-vale-1/chapters/01-the-wreck-of-the-eurydice.md",
+      "old_blob": "1016ae01811946c5a3a96bbc3b8d21fdfb299d87",
+      "canonical_index_blob": "1016ae01811946c5a3a96bbc3b8d21fdfb299d87",
+      "canonical_head_blob": "1016ae01811946c5a3a96bbc3b8d21fdfb299d87",
+      "canonical_worktree_blob": "1016ae01811946c5a3a96bbc3b8d21fdfb299d87",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/ariadne-vale-1/chapters/02-salvage-rights-and-old-ghosts.md",
+      "canonical": "web/books/static/books/shelf/ariadne-vale-1/chapters/02-salvage-rights-and-old-ghosts.md",
+      "old_blob": "e0c7b79638a8d35d7db01699a8adb9221727d845",
+      "canonical_index_blob": "e0c7b79638a8d35d7db01699a8adb9221727d845",
+      "canonical_head_blob": "e0c7b79638a8d35d7db01699a8adb9221727d845",
+      "canonical_worktree_blob": "e0c7b79638a8d35d7db01699a8adb9221727d845",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/ariadne-vale-1/chapters/03-the-man-in-the-airlock.md",
+      "canonical": "web/books/static/books/shelf/ariadne-vale-1/chapters/03-the-man-in-the-airlock.md",
+      "old_blob": "50c34658c45bf795d40ba09872de5387e9d26e80",
+      "canonical_index_blob": "50c34658c45bf795d40ba09872de5387e9d26e80",
+      "canonical_head_blob": "50c34658c45bf795d40ba09872de5387e9d26e80",
+      "canonical_worktree_blob": "50c34658c45bf795d40ba09872de5387e9d26e80",
+      "all_views_identical": true
+    },
+    {
+      "retired_candidate": "web/books/static/books/ariadne-vale-1/chapters/04-thaw.md",
+      "canonical": "web/books/static/books/shelf/ariadne-vale-1/chapters/04-thaw.md",
+      "old_blob": "0c9455c21396c0460a57f7e0ef797e29cfe4fc90",
+      "canonical_index_blob": "0c9455c21396c0460a57f7e0ef797e29cfe4fc90",
+      "canonical_head_blob": "0c9455c21396c0460a57f7e0ef797e29cfe4fc90",
+      "canonical_worktree_blob": "0c9455c21396c0460a57f7e0ef797e29cfe4fc90",
+      "all_views_identical": true
+    }
+  ],
+  "all_views_identical_count": 99
+}
