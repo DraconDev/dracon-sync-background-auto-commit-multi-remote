@@ -42,6 +42,11 @@ try:
         manifest['repositories'][relative]={'source':str(source),'ref':ref,'private_checkout':str(destination),'copied_existing_filter_keys':keys,
                                            'private_origin':str(bare),'canonical_objects_read_only':objects}
         save()
+    for base,directories,files in os.walk(TREE,followlinks=False):
+        directories[:]=[name for name in directories if name!='.git']
+        for name in directories+files:
+            path=Path(base)/name
+            if path.is_symlink() and not path.resolve().is_relative_to(TREE):raise RuntimeError('source symlink escapes frozen assembly')
     manifest['status']='passed'
 except BaseException as error:
     manifest['status']='failed';manifest['error']=str(error);raise
