@@ -1,0 +1,16 @@
+⏸️  Sync paused for maintenance (freeze marker: /home/dracon/.dracon/dracon-sync.freeze)
+Traceback (most recent call last):
+  File "/tmp/fleet-deploy-qualified-daemon.py", line 42, in <module>
+    if digest(f'/proc/{new_pid}/exe') == expected:
+       ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/fleet-deploy-qualified-daemon.py", line 10, in digest
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+                          ~~~~~~~~~~~~~~~~~~^^
+  File "/nix/store/vm6nxpp97fxgczw00bwkxdqdm2an3n95-python3-3.13.12/lib/python3.13/pathlib/_abc.py", line 625, in read_bytes
+    with self.open(mode='rb') as f:
+         ~~~~~~~~~^^^^^^^^^^^
+  File "/nix/store/vm6nxpp97fxgczw00bwkxdqdm2an3n95-python3-3.13.12/lib/python3.13/pathlib/_local.py", line 537, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/proc/3377040/exe'
+▶️  Sync resumed (freeze marker removed)
