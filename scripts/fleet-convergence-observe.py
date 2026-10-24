@@ -74,6 +74,44 @@ def required_remotes(initial):
     return list(dict.fromkeys(['origin', *initial['push_to_remotes']]))
 
 
+def destination(value):
+    """Compare forge destinations, not spelling/transport aliases."""
+    value = safe_url(value)
+    if '://' in value:
+        parsed = urlsplit(value)
+        host, path = parsed.hostname or '', parsed.path
+    else:
+        host, _, path = value.partition(':')
+    host, path = host.lower(), path.strip('/').removesuffix('.git')
+    # GitHub repository paths are case-insensitive; do not assume that for
+    # arbitrary self-hosted Git services.
+    if host == 'github.com':
+        path = path.lower()
+    return f'{host}/{path}'
+
+
+def intended_destinations(required, remotes):
+    result = []
+    providers = {'github': 'github.com', 'gitlab': 'gitlab.com'}
+    for logical in required:
+        if logical in remotes:
+            candidates = {destination(remotes[logical]['url_without_credentials'])}
+        else:
+            host = providers.get(logical)
+            candidates = {destination(info['url_without_credentials'])
+                          for info in remotes.values()
+                          if host and destination(info['url_without_credentials']).split('/')[0] == host}
+        if len(candidates) != 1:
+            result.append({'logical': logical, 'resolution': 'unresolved', 'aliases': []})
+            continue
+        target = candidates.pop()
+        aliases = [name for name, info in remotes.items()
+                   if destination(info['url_without_credentials']) == target]
+        result.append({'logical': logical, 'resolution': 'configured-destination',
+                       'destination': target, 'aliases': aliases})
+    return result
+
+
 def advertised_tip(code, output, branch):
     if code or not output.strip():
         return None
@@ -112,6 +150,7 @@ def observe(initial):
                 'branch_ref': tip, 'object_type': kind,
                 'equals_observed_head': bool(tip) and tip == head,
                 'confirmed_at': time.time()}
+        row['intended_destinations'] = intended_destinations(required_remotes(initial), row['remotes'])
         row['head_after_queries'] = text(repo, 'rev-parse', 'HEAD')
     except Exception as error:
         row['error'] = f'{type(error).__name__}: {error}'

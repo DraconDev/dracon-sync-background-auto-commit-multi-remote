@@ -16,6 +16,23 @@ class ObservationTests(unittest.TestCase):
         self.assertEqual(observer.required_remotes({'push_to_remotes': []}), ['origin'])
         self.assertEqual(observer.required_remotes({'push_to_remotes': ['origin', 'gitlab']}), ['origin', 'gitlab'])
 
+    def test_intended_destinations_resolve_transport_aliases_but_not_ambiguity(self):
+        remotes = {
+            'origin': {'url_without_credentials': 'https://github.com/DraconDev/project.git'},
+            'gitlab': {'url_without_credentials': 'gitlab.com:DraconDev/project.git'},
+        }
+        mapped = observer.intended_destinations(['origin', 'github', 'gitlab'], remotes)
+        self.assertEqual(mapped[0]['destination'], mapped[1]['destination'])
+        self.assertEqual(mapped[1]['aliases'], ['origin'])
+        # Adding an equivalent transport alias is harmless, but a distinct
+        # GitHub destination must not be guessed to satisfy a missing mirror.
+        remotes['backup'] = {'url_without_credentials': 'github.com:dracondev/PROJECT.git'}
+        self.assertEqual(observer.intended_destinations(['github'], remotes)[0]['aliases'], ['origin', 'backup'])
+        remotes['foreign'] = {'url_without_credentials': 'github.com:another/project.git'}
+        self.assertEqual(observer.intended_destinations(['github'], remotes)[0]['resolution'], 'unresolved')
+        self.assertEqual(observer.intended_destinations(['missing'], remotes)[0]['resolution'], 'unresolved')
+        self.assertEqual(observer.intended_destinations(['codeberg'], remotes)[0]['resolution'], 'unresolved')
+
     def test_ref_errors_missing_refs_and_malformed_output_are_not_tips(self):
         for width in (40, 64):
             oid = 'a' * width
