@@ -1,0 +1,29 @@
+{
+  ".": {
+    "paths": [
+      "codex-session-01a0fc9c-3af7-7683-a42b-d80587b9a5fd.md",
+      "conversation-2026-10-02-123425.txt",
+      "docs/archive/release-notes/dracon-sync/release-notes-v0.112.5.md",
+      "docs/archive/release-notes/dracon-sync/release-notes-v0.112.6.md",
+      "docs/design/source-encryption-incident-2026-06-15.md"
+    ],
+    "exit": 0
+  },
+  "dracon-sync": {
+    "paths": [],
+    "exit": 0
+  },
+  "dracon-system": {
+    "paths": [
+      "conversation-2026-09-27-124138.txt",
+      "pi-session-2026-09-27T12-41-50-432Z_01a0e2e2-d060-718e-b988-38dcb0ff6fe7.html"
+    ],
+    "exit": 0
+  },
+  "dracon-warden": {
+    "paths": [
+      "src/security/tests/redos_stress_test.rs"
+    ],
+    "exit": 0
+  }
+}
