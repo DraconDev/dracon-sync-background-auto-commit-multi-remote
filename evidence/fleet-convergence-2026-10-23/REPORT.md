@@ -101,6 +101,17 @@ A service-shaped private qualification passed both installs,7library builds and
 12selected product gates on a5b450c29f836eac045a51f14a828e4edf3e16c8. This is
 supporting diagnosis, not a substitute for the pending original whole hook.
 
+Subsequent simultaneous mirror installs still exposed an aggregate task-budget
+failure (Node startup uv_thread_create/SIGABRT). A repository-common-directory
+OS lease now serializes ONLY dependency preparation, with a private validated
+no-follow inode and finite300second acquisition. It releases before product
+gates; no successful checks are cached/skipped, and other repositories, commits,
+transfers and product gates remain independent. The21test suite proves exclusive
+preparation, overlapping product gates, cancellation during preparation and lease
+reacquisition. Cold-start test setup is separated from an explicit10second
+post-SIGTERM join bound. Rejected timeout/startup qualifications remain retained.
+Independent review found no issue; live multi-mirror validation remains pending.
+
 ### Storage preparation and narrowly scoped hygiene
 
 Existing-enrollment-only preparation avoids a reachable-history measurement
@@ -147,7 +158,7 @@ plaintext content or plaintext hashes. No filter is disabled to clear this check
 - Locked all-target strict Clippy:passed.
 - Locked release build:passed.
 - cargo-deny:passed without an advisory exception.
-- Shared browser hook regressions:19passed; observer regressions and historical
+- Shared browser hook regressions:21passed; observer regressions and historical
   witness tests retain negative cleanup/alias/PID/object/budget counterexamples.
 
 Earlier live-source and private-setup failures are retained, not reported as
@@ -184,6 +195,16 @@ record the observed effective60second stage-operation budget, verified against
 qualified source plus absent operator/repo overrides. No production timeout was
 increased. Tests still reject events outside that finite budget or from another
 PID. Details: `checks/commit-event-correlation-budget.json`.
+
+Older pinned browser attempts correctly retained failures from subsequently
+changed features: a missing Gemini welcome initializer (already repaired by its
+owner), two typed DOM queries in a new chain fixture (minimal correction here;
+current typecheck,458tests and lint pass), a centralized Auto Form Filler watcher
+predicate and TabMon encounter-route/dead-export updates (already repaired in
+newer source; current targeted16/58tests pass). Assertions were not disabled or
+refreshed to claim those older snapshots passed. The next normal attempt must
+validate corrected coherent source. Browser's refreshed eligible marker anchors
+the provisioning repair, not merely an earlier source tip.
 
 **Still required:** terminal success of the original browser whole gates and
 observed final-runtime eligible-tip advancement on all its intended remotes.

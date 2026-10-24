@@ -1,0 +1,17 @@
+
+> auto-form-filler@2.4.0 pretest
+> node scripts/ensure-wxt.mjs
+
+
+> auto-form-filler@2.4.0 test
+> vitest run --passWithNoTests tests/siteWatcherSource.test.ts
+
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/auto-form-filler
+
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  15:59:07
+   Duration  2.51s (transform 873ms, setup 901ms, import 350ms, tests 54ms, environment 1ms)
+
