@@ -1,0 +1,22 @@
+   Compiling dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.86s
+     Running unittests src/main.rs (target/debug/deps/dracon_warden-295213678567516a)
+
+running 1 test
+test tests::tests::pre_commit_hygiene_does_not_grant_blanket_or_nested_machine_local_exemptions ... FAILED
+
+failures:
+
+---- tests::tests::pre_commit_hygiene_does_not_grant_blanket_or_nested_machine_local_exemptions stdout ----
+
+thread 'tests::tests::pre_commit_hygiene_does_not_grant_blanket_or_nested_machine_local_exemptions' (2658667) panicked at dracon-warden/src/tests.rs:5163:13:
+blanket_file_glob must remain blocked: 
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::tests::pre_commit_hygiene_does_not_grant_blanket_or_nested_machine_local_exemptions
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 229 filtered out; finished in 0.50s
+
+error: test failed, to rerun pass `-p dracon-warden --bin dracon-warden`
