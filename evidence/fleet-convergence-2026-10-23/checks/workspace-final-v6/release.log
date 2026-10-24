@@ -195,3 +195,4 @@
    Compiling dracon-git v94.7.2
    Compiling dracon-sync v0.113.95 (/tmp/fleet-workspace-frozen-isf27qum/source/dracon-sync)
    Compiling dracon-warden v0.113.16 (/tmp/fleet-workspace-frozen-isf27qum/source/dracon-warden)
+    Finished `release` profile [optimized] target(s) in 6m 09s
