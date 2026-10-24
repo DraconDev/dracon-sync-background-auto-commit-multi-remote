@@ -107,3 +107,6 @@
     Checking either v1.18.0
     Checking rayon v1.12.0
     Checking globset v0.4.20
+   Compiling type-map v0.5.1
+   Compiling rust-embed-impl v8.12.0
+    Checking regex v1.13.1
