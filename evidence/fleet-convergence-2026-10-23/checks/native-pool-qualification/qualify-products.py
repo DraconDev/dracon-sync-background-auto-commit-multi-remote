@@ -8,6 +8,13 @@ env=dict(os.environ)
 for key in ['GIT_DIR','GIT_WORK_TREE','GIT_COMMON_DIR','GIT_INDEX_FILE','GIT_OBJECT_DIRECTORY','GIT_ALTERNATE_OBJECT_DIRECTORIES','GIT_PREFIX']:
     env.pop(key,None)
 manifest={'started':time.time(),'generator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'scope':'coherent source product diagnostics, not a manual push or a whole-hook pass','commands':[],'status':'running'}
+limits={key:env.get(key) for key in ['TOKIO_WORKER_THREADS','RAYON_NUM_THREADS','ROLLDOWN_WORKER_THREADS','ROLLDOWN_MAX_BLOCKING_THREADS','GOMAXPROCS']}
+cgroup=next(line.split(':',2)[2] for line in Path('/proc/self/cgroup').read_text().splitlines() if line.startswith('0::'))
+control=Path('/sys/fs/cgroup')/cgroup.lstrip('/')
+manifest['resource_environment']=limits
+manifest['cgroup_budget']={'path':cgroup,'pids_max':(control/'pids.max').read_text().strip(),'cpu_max':(control/'cpu.max').read_text().strip()}
+assert manifest['cgroup_budget']['pids_max']=='512'
+quota,period=manifest['cgroup_budget']['cpu_max'].split();assert int(quota)/int(period)==2
 active=None
 def cancelled(number, frame):
     if active is not None and active.poll() is None:
@@ -54,7 +61,7 @@ try:
       'extensions/standalones/tabmon/package.json',
       'extensions/standalones/web-time-tracker-limiter/package.json',
       'extensions/standalones/web-time-tracker-limiter/tests/dashboard.test.ts',
-      'scripts/git-hooks/run-push-gates.mjs']
+      'scripts/git-hooks/run-push-gates.mjs', 'scripts/git-hooks/run-push-gates.test.mjs']
     manifest['required_source_blobs']={}
     for path in required:
         committed=subprocess.check_output(['git','show',sha+':'+path],cwd=REPO,env=env,timeout=30)
