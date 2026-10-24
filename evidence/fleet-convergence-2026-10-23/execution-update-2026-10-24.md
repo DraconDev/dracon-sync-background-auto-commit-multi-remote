@@ -112,8 +112,10 @@ full historical logged-out page and its metadata, only that exact original
 public page is promoted to a tracked fixture with provenance; no other live
 capture is committed. The memory probe uses the existing tracked representative
 HTML fixtures rather than iterating an empty machine-local corpus in exports.
-No assertions, scoring rules or privacy ignore policy are weakened. Full product
-tests are being rerun with the original regression input.
+No assertions, scoring rules or privacy ignore policy are weakened. With the
+original regression input, all 66 Clean Web test files / 1027 tests pass locally
+(exit 0). This local diagnostic result is not substituted for the pending full
+revision-isolated gate; raw outcomes include the rejected fresh-page attempt.
 
 Deathrun subsequently committed the evidence and published autonomously on the
 first qualified daemon: observed HEAD `a789aa70db2...`, clean, zero upstream
@@ -134,6 +136,39 @@ checkout deletion/rewiring, hook bypass, secret/trust/ownership policy change or
 blanket staging exception was performed in this continuation. Existing Warden
 precision deployments and their exact receipts are retained in `checks/`;
 installation is not substituted for product execution or final fleet proof.
+
+## Continuation execution pointers (2026-10-24T03:24Z)
+
+- `/tmp/fleet-final-qualification/`: initial workspace exit 101 from concurrent
+  system source; `workspace-final-source.exit` is 0 after that repair and the
+  actor deadline regression. Clippy/release/deny exit 0. This run predates the
+  final fixed-suffix Warden tightening.
+- `/tmp/fleet-final-qualification-v2/`: final Warden/source full workspace,
+  Clippy, release and deny batch running, each command bounded. Launcher PID
+  2710781. Do not submit completion from a partial log.
+- `/tmp/fleet-final-candidate-receipt/`: isolated runtime receipt in progress
+  for frozen `/tmp/fleet-daemon-final-candidate` (SHA256
+  `8be3718f27c1bc6edee5bb38a27d3911fdb1154715848e148dc13009cb5891cb`).
+  Launcher log `/tmp/fleet-final-candidate-receipt-launch.log`, exit marker
+  `/tmp/fleet-final-candidate-receipt.exit`. Not yet installed by this continuation.
+- `/tmp/fleet-browser-qualified/`: diagnostic pre-push, original pin
+  `5281de2176a4cb0cb4a48ebd0f34edf88a4e3df9`, bounded 1800 seconds, launcher
+  2031417. It has already demonstrated the two product failures repaired above;
+  its eventual nonzero exit is expected. Logs live in attempt `tG2OS0` under
+  `/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/`.
+- `/tmp/fleet-browser-final/`: fresh full real pre-push at repaired coherent
+  source `11c41fb766adaf6ae679e99a51e018a969b5c521`, bounded 3600 seconds,
+  launcher PID 3084342, attempt `q5qKQk`. The revision record verifies all five
+  repaired source blobs equal the captured commit. Source exports / outputs are
+  isolated; other workers' later local edits are not this snapshot's input.
+- Warden still loaded on disk at prior `99058e48...` release; its latest
+  fixed-suffix renderer needs final qualification, atomic install and hook
+  refresh. Preserve foreign chaining and verify unchanged pre-push/pre-rebase
+  bytes; do not invoke generic concern repair or change security policy.
+- The fresh read-only predeployment refs are already retained in
+  `checks/refs-before-final-qualified-deploy.json`. New observer output also
+  contains destination/alias reconciliation. All review children are settled;
+  the retained narrow hygiene review is not the final whole-contract rehearsal.
 
 ## Remaining concrete work
 
