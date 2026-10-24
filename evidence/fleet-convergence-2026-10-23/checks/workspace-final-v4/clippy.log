@@ -24,3 +24,16 @@
    Compiling zerovec-derive v0.11.6
     Checking memchr v2.8.3
    Compiling zeroize_derive v1.5.0
+    Checking zerovec v0.11.8
+    Checking zeroize v1.9.0
+    Checking generic-array v0.14.7
+    Checking rand_core v0.6.4
+    Checking scopeguard v1.2.0
+    Checking futures-io v0.3.34
+    Checking subtle v2.6.1
+    Checking bitflags v2.13.2
+    Checking tinystr v0.8.4
+    Checking slab v0.4.12
+    Checking lock_api v0.4.14
+    Checking crypto-common v0.1.7
+    Checking parking_lot_core v0.9.12
