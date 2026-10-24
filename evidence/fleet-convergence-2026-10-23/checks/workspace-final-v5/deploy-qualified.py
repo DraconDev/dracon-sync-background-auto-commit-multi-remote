@@ -1,11 +1,22 @@
 import datetime, hashlib, json, os, shutil, signal, subprocess, tempfile, time
 from pathlib import Path
 
-candidate = Path('/tmp/fleet-daemon-final-candidate')
+qualification_root = Path(__file__).resolve().parent
+qualified = json.loads((qualification_root/'receipt.json').read_text())
+assert qualified['status']=='passed' and qualified['compiled_input_scope_unchanged']
+assert all(row['exit_code']==0 for row in qualified['commands'])
+source = json.loads((qualification_root/'source.json').read_text())
+state = Path(source['state_root'])
+assert state.parent==Path('/tmp') and state.name.startswith('fleet-workspace-frozen-')
+candidate = state/'qualified-bin/dracon-sync'
 target = Path.home() / '.local/bin/dracon-sync'
-expected = '8be3718f27c1bc6edee5bb38a27d3911fdb1154715848e148dc13009cb5891cb'
-old_expected = 'f08e08a242057ceedb2bcf67e4670a1e18c130f2520a3c4f4aaa2928f2f8b6cb'
-receipt = Path('/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-convergence-2026-10-23/checks/final-daemon-deployment.json')
+expected = qualified['binary_sha256']
+old_expected = '8be3718f27c1bc6edee5bb38a27d3911fdb1154715848e148dc13009cb5891cb'
+executed = json.loads((qualification_root/'candidate-execution-receipt.json').read_text())
+assert executed['ok'] and executed['binary_sha256']==expected
+assert executed['concurrent_publication_observed'] and executed['a_still_blocked_while_b_published']
+assert executed['orphan_pids_after_shutdown']==[] and executed['shutdown']=='joined after SIGTERM'
+receipt = qualification_root/'deployment.json'
 def digest(p):
     return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def pid():
@@ -25,7 +36,7 @@ assert old_pid > 0 and digest(f'/proc/{old_pid}/exe') == old_expected
 assert digest(target) == old_expected and target.is_file() and not target.is_symlink()
 fd = os.pidfd_open(old_pid)
 assert pid() == old_pid and digest(f'/proc/{old_pid}/exe') == old_expected
-backup = Path.home()/'.local/state/dracon/deployments'/datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ-final-convergence')
+backup = Path.home()/'.local/state/dracon/deployments'/datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ-final-v5-convergence')
 backup.mkdir(parents=True, exist_ok=False)
 shutil.copy2(target, backup/'dracon-sync')
 assert digest(backup/'dracon-sync') == old_expected
@@ -53,8 +64,11 @@ except BaseException:
         try:
             if digest(f'/proc/{current}/exe') == expected:
                 rollback_fd = os.pidfd_open(current)
-                signal.pidfd_send_signal(rollback_fd, signal.SIGTERM)
-                os.close(rollback_fd)
+                try:
+                    if pid()==current and digest(f'/proc/{current}/exe')==expected:
+                        signal.pidfd_send_signal(rollback_fd, signal.SIGTERM)
+                finally:
+                    os.close(rollback_fd)
         except ProcessLookupError: pass
     raise
 finally:
