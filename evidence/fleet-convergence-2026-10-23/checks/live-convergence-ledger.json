@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-24T09:24:24.497316+00:00",
+  "generated_at": "2026-10-24T09:31:33.000799+00:00",
   "loaded_sha256": "8be3718f27c1bc6edee5bb38a27d3911fdb1154715848e148dc13009cb5891cb",
   "loaded_pid": 3393180,
   "before_snapshot": "refs-final-loaded-before-work.json",
@@ -13,7 +13,6 @@
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
       "expected_blob": "692a56d136a25aaed4269da8b3c84eb6767a5f94",
       "before_head": "4de4be3c1ed233d1d4cc041dee3e91d661a8a1b6",
-      "witness_commit": "26677d5d47aa6714d4682936b2c22c63ee930ec2",
       "destinations": [
         {
           "logical": "origin",
@@ -81,6 +80,7 @@
       ],
       "state": "witnessed-autonomous-publication",
       "external_blocker": null,
+      "witness_commit": "26677d5d47aa6714d4682936b2c22c63ee930ec2",
       "actual_blob": "692a56d136a25aaed4269da8b3c84eb6767a5f94",
       "commit_metadata": [
         "26677d5d47aa6714d4682936b2c22c63ee930ec2",
@@ -97,6 +97,9 @@
           "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-strategy/ai-auto-writer"
         }
       ],
+      "candidate_commits_considered": [
+        "26677d5d47aa6714d4682936b2c22c63ee930ec2"
+      ],
       "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
     },
     {
@@ -104,7 +107,6 @@
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
       "expected_blob": "d5d8e1213d5ce40d198c3c9567542967913cee94",
       "before_head": "1baa6095e5bc5b54430cb4e304d7831a05d83c9d",
-      "witness_commit": "df48be4af7c2626a7e979827d0ce6dade934d3a6",
       "destinations": [
         {
           "logical": "origin",
@@ -172,6 +174,7 @@
       ],
       "state": "nonhealthy-unproven",
       "external_blocker": null,
+      "witness_commit": "df48be4af7c2626a7e979827d0ce6dade934d3a6",
       "actual_blob": "d5d8e1213d5ce40d198c3c9567542967913cee94",
       "commit_metadata": [
         "df48be4af7c2626a7e979827d0ce6dade934d3a6",
@@ -188,6 +191,9 @@
           "message": "📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared"
         }
       ],
+      "candidate_commits_considered": [
+        "df48be4af7c2626a7e979827d0ce6dade934d3a6"
+      ],
       "reason": "Missing object, loaded-daemon commit correlation, or intended-destination advancement; not classified healthy or external."
     },
     {
@@ -195,7 +201,6 @@
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
       "expected_blob": "fcd7cac43fecddc36636a2b5ddb1cd5f3fc6e4a3",
       "before_head": "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
-      "witness_commit": "1580cdc934a1c26840ddfeef1b1e0c0c59c7ac87",
       "destinations": [
         {
           "logical": "origin",
@@ -283,6 +288,7 @@
       ],
       "state": "witnessed-autonomous-publication",
       "external_blocker": null,
+      "witness_commit": "1580cdc934a1c26840ddfeef1b1e0c0c59c7ac87",
       "actual_blob": "fcd7cac43fecddc36636a2b5ddb1cd5f3fc6e4a3",
       "commit_metadata": [
         "1580cdc934a1c26840ddfeef1b1e0c0c59c7ac87",
@@ -299,6 +305,9 @@
           "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-strategy"
         }
       ],
+      "candidate_commits_considered": [
+        "1580cdc934a1c26840ddfeef1b1e0c0c59c7ac87"
+      ],
       "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
     },
     {
@@ -306,7 +315,6 @@
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
       "expected_blob": "0aa670263a5b5d1a64cd0c30a066cbd808f2d816",
       "before_head": "178d87dc441f87a91929d4a358148cd9e3a31da2",
-      "witness_commit": "e3e1dec2d02dd9851f92834f22032384080b644a",
       "destinations": [
         {
           "logical": "origin",
@@ -394,6 +402,7 @@
       ],
       "state": "witnessed-autonomous-publication",
       "external_blocker": null,
+      "witness_commit": "e3e1dec2d02dd9851f92834f22032384080b644a",
       "actual_blob": "0aa670263a5b5d1a64cd0c30a066cbd808f2d816",
       "commit_metadata": [
         "e3e1dec2d02dd9851f92834f22032384080b644a",
@@ -410,6 +419,9 @@
           "message": "📝 committed 3 file(s) in /home/dracon/.dracon"
         }
       ],
+      "candidate_commits_considered": [
+        "e3e1dec2d02dd9851f92834f22032384080b644a"
+      ],
       "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
     },
     {
@@ -417,7 +429,6 @@
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
       "expected_blob": "c662ca2eb171a58f996933c764f50ab1253179e0",
       "before_head": "91e997693796e715e805fc7b8414c9b72e0a80f6",
-      "witness_commit": "316ad2f7cfede273865128103d75e4b321b7f25d",
       "destinations": [
         {
           "logical": "origin",
@@ -505,6 +516,7 @@
       ],
       "state": "witnessed-autonomous-publication",
       "external_blocker": null,
+      "witness_commit": "316ad2f7cfede273865128103d75e4b321b7f25d",
       "actual_blob": "c662ca2eb171a58f996933c764f50ab1253179e0",
       "commit_metadata": [
         "316ad2f7cfede273865128103d75e4b321b7f25d",
@@ -521,6 +533,9 @@
           "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-strategy/ai-auto-video"
         }
       ],
+      "candidate_commits_considered": [
+        "316ad2f7cfede273865128103d75e4b321b7f25d"
+      ],
       "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
     },
     {
@@ -528,7 +543,6 @@
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
       "expected_blob": "12710ed92c36232b5ac00b142ee487faac6e2428",
       "before_head": "d56a83a6288f1c92be843b13760432e68bf07ab9",
-      "witness_commit": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
       "destinations": [
         {
           "logical": "origin",
@@ -616,6 +630,7 @@
       ],
       "state": "witnessed-autonomous-publication",
       "external_blocker": null,
+      "witness_commit": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
       "actual_blob": "12710ed92c36232b5ac00b142ee487faac6e2428",
       "commit_metadata": [
         "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
@@ -632,6 +647,9 @@
           "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td"
         }
       ],
+      "candidate_commits_considered": [
+        "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee"
+      ],
       "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
     },
     {
@@ -639,7 +657,6 @@
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
       "expected_blob": "46ae22b8d5dbee1f918354b5bea8ff87654bbbc2",
       "before_head": "0ddc7c43ab05794cee85b61298d50a6176075369",
-      "witness_commit": "8ddf537aa4e9fde1fc49737c3f12d55ddabfc3a2",
       "destinations": [
         {
           "logical": "origin",
@@ -707,6 +724,7 @@
       ],
       "state": "witnessed-autonomous-publication",
       "external_blocker": null,
+      "witness_commit": "8ddf537aa4e9fde1fc49737c3f12d55ddabfc3a2",
       "actual_blob": "46ae22b8d5dbee1f918354b5bea8ff87654bbbc2",
       "commit_metadata": [
         "8ddf537aa4e9fde1fc49737c3f12d55ddabfc3a2",
@@ -723,6 +741,9 @@
           "message": "📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit"
         }
       ],
+      "candidate_commits_considered": [
+        "8ddf537aa4e9fde1fc49737c3f12d55ddabfc3a2"
+      ],
       "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
     },
     {
@@ -730,7 +751,6 @@
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
       "expected_blob": "a727340872b4a1a4049e5308e29180319aa1d05f",
       "before_head": "128d017d881fd66fde777b9229410b43c2883844",
-      "witness_commit": "d26245fa42cd54e739efc80346b2608027228e74",
       "destinations": [
         {
           "logical": "origin",
@@ -816,32 +836,36 @@
           "advanced_from_before": true
         }
       ],
-      "state": "nonhealthy-unproven",
+      "state": "witnessed-autonomous-publication",
       "external_blocker": null,
-      "actual_blob": "d26245fa42cd54e739efc80346b2608027228e74:SYNC-CONVERGENCE-2026-10-24.md",
+      "witness_commit": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+      "actual_blob": "a727340872b4a1a4049e5308e29180319aa1d05f",
       "commit_metadata": [
-        "d26245fa42cd54e739efc80346b2608027228e74",
         "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
-        "1792813502",
+        "0aa929ea1436e7c6fd28f73bba116136528e8d16",
+        "1792812520",
         "DraconDev",
         "dracsharp@gmail.com"
       ],
-      "object_and_advancement_verified": false,
+      "object_and_advancement_verified": true,
       "matching_loaded_daemon_commit_events": [
         {
-          "timestamp_us": "1792813510490784",
+          "timestamp_us": "1792812527933438",
           "pid": "3393180",
           "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/polis"
         }
       ],
-      "reason": "Missing object, loaded-daemon commit correlation, or intended-destination advancement; not classified healthy or external."
+      "candidate_commits_considered": [
+        "d26245fa42cd54e739efc80346b2608027228e74",
+        "ad23e4adf4ed75b6f1df545469a1c000cf573ab1"
+      ],
+      "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
       "expected_blob": "57afb53651cdeb5f8a06ce1019aad62664c9c774",
       "before_head": "300396264d33325c3a3ffd830882529478df7d05",
-      "witness_commit": "b804cfbda33c127e99360452907b1f05d760e439",
       "destinations": [
         {
           "logical": "origin",
@@ -929,6 +953,7 @@
       ],
       "state": "witnessed-autonomous-publication",
       "external_blocker": null,
+      "witness_commit": "b804cfbda33c127e99360452907b1f05d760e439",
       "actual_blob": "57afb53651cdeb5f8a06ce1019aad62664c9c774",
       "commit_metadata": [
         "b804cfbda33c127e99360452907b1f05d760e439",
@@ -945,6 +970,9 @@
           "message": "📝 committed 15 file(s) in /home/dracon/Dev/dracon-platform"
         }
       ],
+      "candidate_commits_considered": [
+        "b804cfbda33c127e99360452907b1f05d760e439"
+      ],
       "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
     },
     {
@@ -952,7 +980,6 @@
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
       "expected_blob": "b329255510d9e65c0dec0a1c50209ffe700ea76c",
       "before_head": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
-      "witness_commit": "33a5beba235245eed14224e22a20b99be3cfd504",
       "destinations": [
         {
           "logical": "origin",
@@ -1040,6 +1067,7 @@
       ],
       "state": "witnessed-autonomous-publication",
       "external_blocker": null,
+      "witness_commit": "33a5beba235245eed14224e22a20b99be3cfd504",
       "actual_blob": "b329255510d9e65c0dec0a1c50209ffe700ea76c",
       "commit_metadata": [
         "33a5beba235245eed14224e22a20b99be3cfd504",
@@ -1055,6 +1083,9 @@
           "pid": "3393180",
           "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun"
         }
+      ],
+      "candidate_commits_considered": [
+        "33a5beba235245eed14224e22a20b99be3cfd504"
       ],
       "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
     }
