@@ -46,6 +46,8 @@ class ObservationTests(unittest.TestCase):
     def test_url_receipts_do_not_copy_credentials_or_query_tokens(self):
         self.assertEqual(observer.safe_url('https://user:password@example.test/repo.git?token=value#fragment'), 'https://example.test/repo.git')
         self.assertEqual(observer.safe_url('git@example.test:repo.git'), 'example.test:repo.git')
+        self.assertEqual(observer.safe_url('https://user:password@example.test:8443/repo.git?token=value'), 'https://example.test:8443/repo.git')
+        self.assertNotEqual(observer.destination('https://example.test:8443/repo.git'), observer.destination('https://example.test/repo.git'))
 
     def test_timeout_cleans_owned_descendant_and_inherited_pipes(self):
         with tempfile.TemporaryDirectory() as root:

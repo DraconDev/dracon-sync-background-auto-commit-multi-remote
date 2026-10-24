@@ -55,7 +55,12 @@ def text(repo, *args):
 def safe_url(value):
     if '://' in value:
         p = urlsplit(value)
-        return f'{p.scheme}://{p.hostname or ""}{p.path}'
+        host = p.hostname or ''
+        if ':' in host:
+            host = f'[{host}]'
+        if p.port is not None:
+            host += f':{p.port}'
+        return f'{p.scheme}://{host}{p.path}'
     return value.split('@')[-1].split('?')[0].split('#')[0]
 
 
@@ -80,6 +85,8 @@ def destination(value):
     if '://' in value:
         parsed = urlsplit(value)
         host, path = parsed.hostname or '', parsed.path
+        if parsed.port is not None:
+            host += f':{parsed.port}'
     else:
         host, _, path = value.partition(':')
     host, path = host.lower(), path.strip('/').removesuffix('.git')
