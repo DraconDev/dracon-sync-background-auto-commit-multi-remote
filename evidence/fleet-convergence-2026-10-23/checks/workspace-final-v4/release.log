@@ -170,3 +170,5 @@
    Compiling rustc_version v0.4.1
    Compiling hyper v1.11.1
    Compiling uuid v1.26.1
+   Compiling rust-embed-impl v8.12.0
+   Compiling url v2.5.8
