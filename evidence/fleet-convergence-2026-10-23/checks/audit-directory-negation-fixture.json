@@ -1,0 +1,16 @@
+[
+  {
+    "path": "audit-evidence/run/bucket.png/payload.bin",
+    "exit": 1,
+    "nul_fields": [
+      ""
+    ]
+  },
+  {
+    "path": "audit-evidence/run/report.json/payload.bin",
+    "exit": 1,
+    "nul_fields": [
+      ""
+    ]
+  }
+]
