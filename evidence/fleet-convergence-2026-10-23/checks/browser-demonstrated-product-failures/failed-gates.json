@@ -1,0 +1,28 @@
+{
+  "revision": "5281de2176a4cb0cb4a48ebd0f34edf88a4e3df9",
+  "overall_attempt_status_at_capture": "running",
+  "failed_gates": [
+    {
+      "workspace": "extensions/collections/toolkit/gemini-toolkit",
+      "gate": "LINT",
+      "script": "lint",
+      "command": "eslint . --ext .ts,.tsx --max-warnings 0",
+      "log": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.tG2OS0/extensions_collections_toolkit_gemini-toolkit-LINT.log",
+      "started": "2026-10-24T03:08:56.892Z",
+      "status": "failed",
+      "exitCode": 1,
+      "finished": "2026-10-24T03:09:04.709Z"
+    },
+    {
+      "workspace": "extensions/standalones/clean-web",
+      "gate": "TEST",
+      "script": "test",
+      "command": "vitest run --passWithNoTests",
+      "log": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.tG2OS0/extensions_standalones_clean-web-TEST.log",
+      "started": "2026-10-24T03:15:41.667Z",
+      "status": "failed",
+      "exitCode": 1,
+      "finished": "2026-10-24T03:16:34.945Z"
+    }
+  ]
+}

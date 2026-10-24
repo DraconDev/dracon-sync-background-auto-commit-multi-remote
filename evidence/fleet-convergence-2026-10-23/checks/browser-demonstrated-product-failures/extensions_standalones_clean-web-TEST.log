@@ -1,0 +1,114 @@
+
+> clean-web@1.0.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v4.1.9 /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.tG2OS0/snapshot-5281de2176a4cb0cb4a48ebd0f34edf88a4e3df9/extensions/standalones/clean-web
+
+OPTIONS https://www.bbc.co.uk/news 405 (Method Not Allowed)
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at "https://www.bbc.co.uk/news".
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at "https://www.theguardian.com/uk".
+OPTIONS https://boards.4chan.org/g/ 405 (Method Not Allowed)
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at "https://boards.4chan.org/g/".
+OPTIONS https://news.ycombinator.com/ 405 (Not Allowed)
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at "https://news.ycombinator.com/".
+OPTIONS https://docs.python.org/3/library/threading.html 405 (Not Allowed)
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at "https://docs.python.org/3/library/threading.html".
+OPTIONS https://news.ycombinator.com/newest 405 (Not Allowed)
+Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at "https://news.ycombinator.com/newest".
+ ❯ test/heuristic-caps.test.ts (5 tests | 1 failed) 19ms
+     × leaves the real Hacker News page with nothing to clean 4ms
+
+
+  ── WRONG HAPPY-DOM ───────────────────────────────────────────────
+
+  The environment loaded, but it cannot survive this suite's own DOM
+  reset (`document.documentElement.innerHTML = ''`): the <body>
+  element is dropped, so `document.body` is null and every DOM test
+  dies on "Cannot set properties of null (setting 'innerHTML')".
+
+  This is happy-dom 15.x (or older). The project resolves 20.14.6,
+  which re-creates <head></head><body></body> on that reset.
+
+  The vitest VERSION is not the problem — both runners use 4.1.9. What
+  differs is which install of it is launched, and therefore which
+  happy-dom its peer symlink names:
+
+    use    bun run test       -> node_modules/.bin/vitest -> happy-dom 20.14.6
+    avoid  npx vitest run    -> npm-exec resolves a different vitest
+                                install -> happy-dom 15.11.7
+
+  No test in this suite is compatible with the broken document. Failures
+  under it are a runner artefact — re-run with `bun run test`.
+
+  ─────────────────────────────────────────────────────────────────
+
+
+
+  ── WRONG HAPPY-DOM ───────────────────────────────────────────────
+
+  The environment loaded, but it cannot survive this suite's own DOM
+  reset (`document.documentElement.innerHTML = ''`): the <body>
+  element is dropped, so `document.body` is null and every DOM test
+  dies on "Cannot set properties of null (setting 'innerHTML')".
+
+  This is happy-dom 15.x (or older). The project resolves 20.14.6,
+  which re-creates <head></head><body></body> on that reset.
+
+  The vitest VERSION is not the problem — both runners use 4.1.9. What
+  differs is which install of it is launched, and therefore which
+  happy-dom its peer symlink names:
+
+    use    bun run test       -> node_modules/.bin/vitest -> happy-dom 20.14.6
+    avoid  npx vitest run    -> npm-exec resolves a different vitest
+                                install -> happy-dom 15.11.7
+
+  No test in this suite is compatible with the broken document. Failures
+  under it are a runner artefact — re-run with `bun run test`.
+
+  ─────────────────────────────────────────────────────────────────
+
+stdout | test/zz-probe-leak.test.ts > probe > checks whether parsed documents are retained after the loop
+has window global: object
+total parsed element nodes: 0
+after loop + forced GC: heapUsed=   25.4MB (start 25.4) rss=102.4MB
+globalThis.document === parsed? n/a
+window keys with "doc": 
+
+ ❯ test/zz-probe-leak.test.ts (1 test | 1 failed) 7ms
+     × checks whether parsed documents are retained after the loop 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/heuristic-caps.test.ts > caps words > leaves the real Hacker News page with nothing to clean
+Error: ENOENT: no such file or directory, open 'plan/corpus/table-hn.snapshot.html'
+ ❯ test/heuristic-caps.test.ts:51:8
+     49|     // used to be 0.52 and every span above the bar was an acronym.
+     50|     const html = fs
+     51|       .readFileSync('plan/corpus/table-hn.snapshot.html', 'utf8')
+       |        ^
+     52|       .replace(/<link[^>]*rel=["']?stylesheet["']?[^>]*>/gi, '');
+     53|     const doc = new DOMParser().parseFromString(html, 'text/html');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/zz-probe-leak.test.ts > probe > checks whether parsed documents are retained after the loop
+AssertionError: expected 0 to be greater than 0
+ ❯ test/zz-probe-leak.test.ts:42:25
+     40|     console.log('window keys with "doc":', Object.keys(w).filter((k) =…
+     41|     // A tautology here would add a passing test without asserting any…
+     42|     expect(parsedNodes).toBeGreaterThan(0);
+       |                         ^
+     43|   });
+     44| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 64 passed (66)
+      Tests  2 failed | 1025 passed (1027)
+   Start at  04:15:46
+   Duration  48.17s (transform 9.88s, setup 2.07s, import 14.74s, tests 19.12s, environment 39.69s)
+
+
+Gate exited with status 1

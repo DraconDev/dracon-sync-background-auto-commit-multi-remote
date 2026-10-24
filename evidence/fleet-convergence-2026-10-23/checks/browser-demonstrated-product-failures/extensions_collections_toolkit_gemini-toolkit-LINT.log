@@ -1,0 +1,16 @@
+
+> gemini-toolkit@0.2.0 lint
+> eslint . --ext .ts,.tsx --max-warnings 0
+
+(node:2565030) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.tG2OS0/snapshot-5281de2176a4cb0cb4a48ebd0f34edf88a4e3df9/eslint.config.js?mtime=1792810646000 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.tG2OS0/snapshot-5281de2176a4cb0cb4a48ebd0f34edf88a4e3df9/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.tG2OS0/snapshot-5281de2176a4cb0cb4a48ebd0f34edf88a4e3df9/extensions/collections/toolkit/gemini-toolkit/lib/export.ts
+  174:14  error  Unexpected control character(s) in regular expression: \x00, \x1f  no-control-regex
+
+✖ 1 problem (1 error, 0 warnings)
+
+
+Gate exited with status 1
