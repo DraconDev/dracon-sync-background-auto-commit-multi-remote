@@ -1,0 +1,10 @@
+   Compiling dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 35.72s
+     Running unittests src/main.rs (target/debug/deps/dracon_warden-295213678567516a)
+
+running 2 tests
+test tests::tests::pre_commit_hygiene_does_not_grant_blanket_or_nested_machine_local_exemptions ... ok
+test tests::tests::pre_commit_hygiene_honors_scoped_sources_without_skipping_security ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 223 filtered out; finished in 44.85s
+

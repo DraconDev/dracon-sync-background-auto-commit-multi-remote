@@ -1,0 +1,15 @@
+{
+  "binary": "/home/dracon/.local/bin/dracon-warden",
+  "previous_sha256": "db0bd5e8affd13f1217450c12674ab23357b7779f0bf6e1b36f93c57106de94d",
+  "installed_sha256": "99058e48b684ae9b8e0931d2c711461ec2af88164fa499251e01b98851376d43",
+  "backup": "/home/dracon/.local/state/dracon-sync/deployments/20261024T005909Z-warden-detector-precision",
+  "hooks_rerendered": true,
+  "daemon_pid": 18115,
+  "daemon_sha256_unchanged": true,
+  "security_policy_changed": false,
+  "detector_changes": [
+    "quote-only template interpolation excluded",
+    "shell case-alternation source lines no longer treated as assignments",
+    "changed-line diff scan uses the same ciphertext canonicalisation as the blob scan"
+  ]
+}

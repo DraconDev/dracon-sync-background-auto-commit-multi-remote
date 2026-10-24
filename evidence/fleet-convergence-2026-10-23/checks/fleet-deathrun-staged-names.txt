@@ -1,0 +1,13 @@
+audit-evidence/ninja-runner-regen-2026-10-23/after/before-after-side-by-side.png
+audit-evidence/ninja-runner-regen-2026-10-23/after/play-after.png
+audit-evidence/ninja-runner-regen-2026-10-23/after/play-before.png
+audit-evidence/ninja-runner-regen-2026-10-23/before/runner-ai-dash.png
+audit-evidence/ninja-runner-regen-2026-10-23/before/runner-ai-fall.png
+audit-evidence/ninja-runner-regen-2026-10-23/before/runner-ai-idle.png
+audit-evidence/ninja-runner-regen-2026-10-23/before/runner-ai-jump.png
+audit-evidence/ninja-runner-regen-2026-10-23/before/runner-ai-run.webp
+audit-evidence/ninja-runner-regen-2026-10-23/before/runner-ai-slide.png
+audit-evidence/ninja-runner-regen-2026-10-23/generated/runner-fall-src.png
+audit-evidence/ninja-runner-regen-2026-10-23/generated/runner-idle-src.png
+audit-evidence/ninja-runner-regen-2026-10-23/generated/runner-jump-src.png
+audit-evidence/ninja-runner-regen-2026-10-23/generated/runner-run-sheet-src.png

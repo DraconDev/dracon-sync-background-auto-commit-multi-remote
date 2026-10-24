@@ -1,0 +1,12 @@
+{
+  "binary": "/home/dracon/.local/bin/dracon-warden",
+  "previous_sha256": "27a356cca1c9e594f2703f5b9fb0187ef1b359cb2966ef0a96f4439990b411db",
+  "installed_sha256": "db0bd5e8affd13f1217450c12674ab23357b7779f0bf6e1b36f93c57106de94d",
+  "backup": "/home/dracon/.local/state/dracon-sync/deployments/20261024T002622Z-warden-interpolation-precision",
+  "hooks_rendered_identical_to_live": {
+    "pre-commit": true,
+    "pre-push": true,
+    "pre-rebase": true
+  },
+  "security_policy_settings_changed": false
+}

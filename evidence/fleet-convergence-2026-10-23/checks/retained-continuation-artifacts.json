@@ -1,0 +1,80 @@
+[
+  {
+    "artifact": "fleet-hygiene-scoped-red.log",
+    "sha256": "66e68fe0f7726731fbf670e0aaff2fb406756692d6f2d2bf173375d4702fe012",
+    "bytes": 7695,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  },
+  {
+    "artifact": "fleet-hygiene-tests.log",
+    "sha256": "6a1ae03deb7d97ddadfb921c8d08b159125995220423ceeb2cd8003fa0106329",
+    "bytes": 559,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  },
+  {
+    "artifact": "fleet-deathrun-real-hook.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  },
+  {
+    "artifact": "fleet-deathrun-staged-names.txt",
+    "sha256": "225a08d375b8ae5988283b97fe5c86994af926eabc53ac04d92d240f6f5271ff",
+    "bytes": 945,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  },
+  {
+    "artifact": "fleet-ws-final2.log",
+    "sha256": "0822e6c81bab48baa0a0dcc6301116363b6461df115a4e33f0e5fcfd11264757",
+    "bytes": 219072,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  },
+  {
+    "artifact": "fleet-clippy5.log",
+    "sha256": "25caaef590ae60de4e2e6f4b9d03647dab38b505dba67c3db12e19536e292a78",
+    "bytes": 160,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  },
+  {
+    "artifact": "fleet-release4.log",
+    "sha256": "5528afd43ab2ce252217be2a3f7fc0153322514d212a544b33088e098e1b572e",
+    "bytes": 306,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  },
+  {
+    "artifact": "warden-all2.log",
+    "sha256": "223f6095c0c201efb09a3d715f29b864ba8e44490b664c232b58568fd8cba4dc",
+    "bytes": 20939,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  },
+  {
+    "artifact": "warden-install-final.json",
+    "sha256": "673d9e6aa8e427f8a26700c2ed97c72792bda801d5319e3e3a34a9043b348285",
+    "bytes": 708,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  },
+  {
+    "artifact": "fleet-warden-install2.json",
+    "sha256": "6e1967aa62b867893579a626d8dbe933f3f2415871510a7267d1fa52c978df3e",
+    "bytes": 551,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  },
+  {
+    "artifact": "fleet-warden-install3.json",
+    "sha256": "0c7fb2e62a471d241bf88765987109c38b03280362f1ba52e066a75c83743c26",
+    "bytes": 507,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  },
+  {
+    "artifact": "fleet-shared-stuck-hint.log",
+    "sha256": "90ef81630a3daecdf47073f8ef0f27aca9f028a17a1086b29c85b567b386e40a",
+    "bytes": 8108,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  },
+  {
+    "artifact": "browser-gate-tests.log",
+    "sha256": "40899fb8c2f351f8951703ed8414b68913d03ae5e29b14fea88f7d7015774b53",
+    "bytes": 1301,
+    "warning": "retained prior run; consult raw contents for command/result; empty log is not a passing exit receipt"
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "binary": "/home/dracon/.local/bin/dracon-warden",
+  "previous_sha256": "1e42b6f47b441459a3b1ec4733f29cb3f3f1cb14f3f027fab1ae3dcbe465527f",
+  "installed_sha256": "27a356cca1c9e594f2703f5b9fb0187ef1b359cb2966ef0a96f4439990b411db",
+  "backup": "/home/dracon/.local/state/dracon-sync/deployments/20261023T231704Z-warden-tag-assignment",
+  "hooks_changed_by_install": false,
+  "security_policy_settings_changed": false,
+  "detector_change": "paired/closing-quote assignment matching plus DRACON_SECRET ciphertext skip; JSON colon form now detected"
+}
