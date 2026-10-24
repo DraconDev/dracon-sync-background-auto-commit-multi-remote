@@ -29,8 +29,22 @@
         "warnings"
       ],
       "started": 1792835247.5047286,
+      "status": "failed",
+      "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-convergence-2026-10-23/checks/workspace-final-v4/clippy.log",
+      "exit_code": 101,
+      "finished": 1792835617.4294634
+    },
+    {
+      "gate": "release",
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked"
+      ],
+      "started": 1792835617.438466,
       "status": "running",
-      "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-convergence-2026-10-23/checks/workspace-final-v4/clippy.log"
+      "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-convergence-2026-10-23/checks/workspace-final-v4/release.log"
     }
   ],
   "status": "running",
