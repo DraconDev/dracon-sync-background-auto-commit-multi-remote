@@ -45,11 +45,11 @@
     {
       "repo": "/home/dracon/Dev/browser-extensions-shared",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "610c29635f2aff988c36fd9d8295a210098a9ab8",
-      "content_sha256": "8d0e4f8893f9c1e34d19164ba5f1ca40c611995279f8771f141730e8877fdbab",
-      "file_mtime": 1792854084.5762188,
-      "before_head": "1db948bf95e96612bf047ec73c5d6f7dd2652929",
-      "before_observed_at": 1792854084.5769246,
+      "eligible_blob": "a3a5ce1ae4b882de4f0d71ce933ae53836801233",
+      "content_sha256": "1c5266f415a39cfab81a41f9dd2e16c14073e3cfb58386411a4136bf0a3f48ff",
+      "file_mtime": 1792857836.8514025,
+      "before_head": "5d8e0ac02d374edeb17aa60dffb63f7c754dba05",
+      "before_observed_at": 1792857836.8466449,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -80,7 +80,7 @@
       ],
       "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
       "commit_event_budget_secs": 60,
-      "repair_anchor": "1db948bf95e96612bf047ec73c5d6f7dd2652929"
+      "repair_anchor": "5d8e0ac02d374edeb17aa60dffb63f7c754dba05"
     },
     {
       "repo": "/home/dracon/Dev/dracon-strategy",
