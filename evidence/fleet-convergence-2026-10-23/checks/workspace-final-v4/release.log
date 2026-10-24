@@ -232,3 +232,16 @@
    Compiling i18n-embed-impl v0.8.4
    Compiling tokio-native-tls v0.3.1
    Compiling dirs v6.0.0
+   Compiling ansitok v0.3.0
+   Compiling async-executor v1.14.0
+   Compiling webpki-roots v1.0.10
+   Compiling http-body-util v0.1.5
+   Compiling async-broadcast v0.7.2
+   Compiling toml_datetime v0.6.11
+   Compiling serde_spanned v0.6.9
+   Compiling libgit2-sys v0.18.8+1.9.7
+   Compiling aead v0.5.2
+   Compiling ordered-stream v0.2.0
+   Compiling proc-macro-error v1.0.4
+   Compiling async-recursion v1.1.1
+   Compiling curve25519-dalek-derive v0.1.1
