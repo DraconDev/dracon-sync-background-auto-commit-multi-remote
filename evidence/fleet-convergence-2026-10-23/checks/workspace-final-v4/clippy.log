@@ -110,3 +110,20 @@
    Compiling type-map v0.5.1
    Compiling rust-embed-impl v8.12.0
     Checking regex v1.13.1
+   Compiling toml v0.5.11
+   Compiling basic-toml v0.1.10
+   Compiling self_cell v1.3.0
+   Compiling self_cell v0.10.3
+   Compiling i18n-config v0.4.8
+   Compiling find-crate v0.6.3
+   Compiling intl-memoizer v0.5.3
+   Compiling fluent-syntax v0.11.1
+   Compiling intl_pluralrules v7.0.2
+   Compiling fluent-langneg v0.13.1
+    Checking errno v0.3.14
+   Compiling rustc-hash v1.1.0
+   Compiling fluent-bundle v0.15.3
+    Checking signal-hook-registry v1.4.8
+   Compiling i18n-embed-impl v0.8.4
+    Checking aead v0.5.2
+   Compiling curve25519-dalek-derive v0.1.1
