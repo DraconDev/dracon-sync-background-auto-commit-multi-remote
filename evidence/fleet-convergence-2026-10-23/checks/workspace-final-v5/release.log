@@ -144,3 +144,24 @@
    Compiling fnv v1.0.7
    Compiling base64 v0.22.1
    Compiling h2 v0.4.19
+   Compiling foreign-types v0.3.2
+   Compiling want v0.3.1
+   Compiling idna v1.1.0
+   Compiling rust-embed-utils v8.12.0
+   Compiling enumflags2 v0.7.12
+   Compiling hmac v0.12.1
+   Compiling polling v3.11.0
+   Compiling universal-hash v0.5.1
+   Compiling zcheapstr v1.1.0
+   Compiling openssl-macros v0.1.1
+   Compiling endi v1.1.1
+   Compiling async-task v4.7.1
+   Compiling opaque-debug v0.3.1
+   Compiling semver v1.0.28
+   Compiling rustc-hash v2.1.3
+   Compiling native-tls v0.2.18
+   Compiling crossbeam-deque v0.8.8
+   Compiling zerocopy v0.8.57
+   Compiling serde_json v1.0.151
+   Compiling anyhow v1.0.104
+   Compiling rustls v0.23.46
