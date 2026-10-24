@@ -61,7 +61,9 @@ try:
       'extensions/standalones/tabmon/package.json',
       'extensions/standalones/web-time-tracker-limiter/package.json',
       'extensions/standalones/web-time-tracker-limiter/tests/dashboard.test.ts',
-      'scripts/git-hooks/run-push-gates.mjs', 'scripts/git-hooks/run-push-gates.test.mjs']
+      'scripts/git-hooks/run-push-gates.mjs', 'scripts/git-hooks/run-push-gates.test.mjs',
+      'packages/extension-core/src/byok/catalogue.ts',
+      'packages/extension-core/tests/byok/catalogue-convergence.test.ts']
     manifest['required_source_blobs']={}
     for path in required:
         committed=subprocess.check_output(['git','show',sha+':'+path],cwd=REPO,env=env,timeout=30)
