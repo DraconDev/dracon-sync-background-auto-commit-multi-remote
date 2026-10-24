@@ -16,7 +16,9 @@ original=Path(q['binary_path']);assert digest(original)==q['binary_sha256']
 candidate=state/'qualified-bin/dracon-sync';candidate.parent.mkdir(mode=0o700)
 assert not candidate.exists();shutil.copy2(original,candidate);candidate.chmod(0o755);assert digest(candidate)==q['binary_sha256']
 execution=state/'candidate-execution';assert not execution.exists()
-result=subprocess.run(['python3',str(ROOT/'dracon-sync/scripts/isolated-publication-receipt.py'),str(candidate),str(execution)],timeout=300)
+# The receipt owns finite per-operation waits and a finally block that joins
+# its daemon family. Do not SIGKILL that owner with an outer run() timeout.
+result=subprocess.run(['python3',str(ROOT/'dracon-sync/scripts/isolated-publication-receipt.py'),str(candidate),str(execution)])
 assert result.returncode==0
 receipt=json.loads((execution/'receipt.json').read_text());assert receipt['ok'] and receipt['binary_sha256']==q['binary_sha256']
 after=identity();assert before==after,'real service identity must remain unchanged during candidate fixtures'
