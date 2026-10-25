@@ -4216,7 +4216,7 @@ async fn stage_commit_and_push(
         };
         let deadline = baseline.deadline();
         let prepared = tokio::time::timeout_at(deadline, async {
-            if !to_restore.is_empty() && load_repo_override(repo).revert_excluded_to_head == Some(true) {
+            if !dry_run && !to_restore.is_empty() && load_repo_override(repo).revert_excluded_to_head == Some(true) {
                 #[cfg(target_os = "linux")]
                 if !excluded_revert::restore(repo, to_restore, deadline).await? {
                     eprintln!("⏳ {} excluded restore deferred; uncertain content/index retained", repo.display());
