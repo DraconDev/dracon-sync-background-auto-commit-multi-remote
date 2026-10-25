@@ -4162,6 +4162,20 @@ fn cap_batch_union(
     )
 }
 
+// Index admission can defer NEW local work, not already committed history.
+// Keep the truthful local Blocked result after a successful/no-op upload; an
+// actual transport failure remains PushFailed and preserves its failure ledger.
+async fn publish_backlog_after_index_deferral(
+    svc: &GitService, ctx: &mut SyncContext<'_>,
+) -> Result<Option<SyncOutcome>> {
+    if !ctx.commit_only {
+        if let PushReport::Attempted { ok: false, .. } = handle_ahead_push(ctx, svc).await? {
+            return Ok(Some(SyncOutcome::PushFailed));
+        }
+    }
+    Ok(Some(SyncOutcome::Blocked))
+}
+
 async fn stage_commit_and_push(
     svc: &GitService,
     ctx: &mut SyncContext<'_>,
@@ -4393,7 +4407,7 @@ async fn stage_commit_and_push(
         .context("ordinary staging absolute deadline expired; candidate retained")??;
         match prepared {
             Some(epoch) => epoch,
-            None => return Ok(Some(SyncOutcome::Blocked)),
+            None => return publish_backlog_after_index_deferral(svc, ctx).await,
         }
     };
     let committed_entries = epoch.entries()?;
@@ -4482,7 +4496,7 @@ async fn stage_commit_and_push(
                     "⏳ {} captured commit deferred; concurrent intent retained: {error:#}",
                     repo.display()
                 );
-                return Ok(Some(SyncOutcome::Blocked));
+                return publish_backlog_after_index_deferral(svc, ctx).await;
             }
             Err(error) => return Err(error),
         };
@@ -11812,10 +11826,9 @@ auto_bump_versions = false
         );
     }
 
-    /// Regression: when all staged entries are filter-only (committed_entries
-    /// is empty) and `git reset HEAD` fails due to index.lock contention from
-    /// a concurrent process, sync_repo should return NothingToDo instead of
-    /// propagating the error. The staging area is cleaned up on the next cycle.
+    /// Historical fixture uses REAL dirty bytes and a foreign index lock, not
+    /// actual filter-only normalization. Preserve them and report a nonfailure
+    /// Blocked result; never call this clean or reset the other owner's index.
     #[tokio::test]
     async fn test_filter_only_reset_failure_is_non_fatal() {
         let tmp = tempfile::tempdir().unwrap();
@@ -11846,17 +11859,15 @@ auto_bump_versions = false
         "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
-        // sync_repo should NOT fail — the filter-only reset failure is non-fatal.
-        // Before the fix, this returned Err ("failed to reset HEAD after filter-only commit").
+        let index_before = std::fs::read(repo.join(".git/index")).unwrap();
+        let head_before = git_cmd(&repo, &["rev-parse", "HEAD"]).stdout;
         let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
-        assert!(
-            matches!(
-                result,
-                Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::Synced)
-            ),
-            "filter-only reset failure should be non-fatal, got {:?}",
-            result
-        );
+        assert!(matches!(result, Ok(SyncOutcome::Blocked)),
+            "real dirty bytes plus a foreign lock are Blocked, not healthy filter-only: {result:?}");
+        assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), index_before);
+        assert_eq!(git_cmd(&repo, &["rev-parse", "HEAD"]).stdout, head_before);
+        assert_eq!(std::fs::read(repo.join("debug.log")).unwrap(), b"v2");
+        assert_eq!(std::fs::read(repo.join(".git/index.lock")).unwrap(), b"concurrent");
 
         // Clean up the fake index.lock so the test teardown doesn't hang
         let _ = std::fs::remove_file(repo.join(".git").join("index.lock"));
@@ -11919,9 +11930,8 @@ auto_bump_versions = false
         git_cmd(&repo, &["commit", "--no-verify", "-am", "ahead one"]);
         std::fs::write(repo.join("file.txt"), "v3\n").unwrap();
         git_cmd(&repo, &["commit", "--no-verify", "-am", "ahead two"]);
-        // Dirty-but-empty-diff state: modify the tracked file, then a
-        // fake index.lock makes `git add` stage nothing (same mechanism
-        // as test_filter_only_reset_failure_is_non_fatal).
+        // Real local work is index-blocked, NOT filter-only. Its unrelated
+        // pre-existing immutable backlog must still publish through the daemon.
         std::fs::write(repo.join("file.txt"), "v4-dirty\n").unwrap();
         std::fs::write(repo.join(".git").join("index.lock"), "concurrent").unwrap();
 
@@ -11958,13 +11968,13 @@ trusted_authors = ["test"]
             "ahead must push even when the commit is skipped as filter-only"
         );
         assert!(
-            matches!(
-                result,
-                Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::Synced)
-            ),
-            "filter-only branch keeps its outcome contract, got {:?}",
+            matches!(result, Ok(SyncOutcome::Blocked)),
+            "dirty local work must remain visibly blocked AFTER publishing its existing backlog: {:?}",
             result
         );
+        assert_eq!(std::fs::read(repo.join("file.txt")).unwrap(), b"v4-dirty\n");
+        assert_eq!(git_cmd(&repo, &["show", ":file.txt"]).stdout, b"v3\n");
+        assert_eq!(std::fs::read(repo.join(".git/index.lock")).unwrap(), b"concurrent");
 
         let _ = std::fs::remove_file(repo.join(".git").join("index.lock"));
     }
