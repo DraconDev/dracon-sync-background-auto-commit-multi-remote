@@ -1130,19 +1130,10 @@ pub(crate) fn is_index_lock_failure(msg: &str) -> bool {
     msg.contains("Unable to create") && msg.contains("index.lock")
 }
 
-/// Staged paths that fall OUTSIDE this cycle's intent (`to_stage`).
-///
-/// ADDED 2026-10-03 (audit R4-SC-16): manual `git add`s landing
-/// between classification and commit (operator assembling a commit,
-/// a racing CLI) must not be swept into the mechanical auto-commit.
-/// A staged path is intended when it equals a `to_stage` path or
-/// sits under a `to_stage` directory (untracked-dir and gitlink
-/// entries stage whole trees); everything staged by the daemon
-/// mid-cycle (standard files pre-classification, resolutions,
-/// gitlink updates, deletions) derives from `to_stage`, so any
-/// extra is foreign. Rename entries compare by new path (both
-/// classifiers agree on it).
-#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
+/// Exact-path diagnostic only, NOT ownership/content authorization. A directory
+/// name never waives unknown descendants. Production uses captured identities
+/// and conditional private-index installation, tested at the real boundary.
+#[cfg(test)]
 pub(crate) fn staged_extra_paths(
     _repo: &Path,
     staged: &[(PathBuf, dracon_git::types::FileStatus)],
@@ -12318,13 +12309,15 @@ trusted_authors = ["test"]
             DiffFile::new(PathBuf::from("a.txt"), FileStatus::Modified),
             DiffFile::new(PathBuf::from("sub"), FileStatus::Added),
         ];
-        // Exact + under-dir + rename-new-path: no extras.
+        // Exact paths match, but an unknown child is NOT authorized by a
+        // directory spelling. Real boundary coverage also tests its bytes.
         let staged = vec![
             (PathBuf::from("a.txt"), FileStatus::Modified),
             (PathBuf::from("sub/b.txt"), FileStatus::Added),
             (PathBuf::from("sub"), FileStatus::Added),
         ];
-        assert!(staged_extra_paths(&repo, &staged, &to_stage).is_empty());
+        assert_eq!(staged_extra_paths(&repo, &staged, &to_stage),
+            vec![PathBuf::from("sub/b.txt")]);
         // Foreign path: extra.
         let staged = vec![
             (PathBuf::from("a.txt"), FileStatus::Modified),
