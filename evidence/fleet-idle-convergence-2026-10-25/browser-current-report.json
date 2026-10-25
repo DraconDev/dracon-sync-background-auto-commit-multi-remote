@@ -1,0 +1,15 @@
+  1. 📤 PUBLISHING  /home/dracon/Dev/browser-extensions-shared
+     branch:    main
+     publish:   origin/main
+     changes:   0 mod, 0 stg, 0 ut
+     ahead/behind: 163/0
+     push-to:   github,gitlab [excl:codeberg]
+     push:      ❌ FAIL 15m
+     git size:  3.26 GiB (local history; own+nested, +? unknown)
+     size key:  not bucket/worktree/download size; GitHub limit is per push
+     last:      e04deef6ce7… 1 file(s) in extensions/standalones/youtube-filter/NOTE.md DELTA:+1/-1 | EXT:md DOCSON…
+     upstream commit age: 2h
+     activity:  📤 PUBLISHING (163 ahead)
+     state:     📤 PUBLISHING (163 ahead)
+     hint:      run dracon-sync repair concerns --apply (push or rewrite); GitHub pack guard clear (cached 483630s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep
+
