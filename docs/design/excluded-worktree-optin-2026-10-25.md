@@ -114,13 +114,80 @@ pinned external DEBUG helper is unchanged. These are Rust assembly gates, NOT
 final behavioral/installed/deployment or fleet-idle evidence. No new ignores or
 security waivers were introduced. Earlier failures remain in their original logs.
 
+## Archive-safety v3f — current targeted gates; NOT deployment-ready
+
+Archival is not proof that a displaced inode can never receive another write.
+A pending open around exchange, or another retained descriptor, can write AFTER
+parent classification/move. Archives now retain an immutable observation seal:
+request identity, exact target inode/mode/owner/length/mtime AND ctime/link count.
+Each read-only concern probe checks those metadata identities without rehashing
+historical payloads. Same-length writes with restored mtime remain concerns.
+Source hashing also checks ctime and path/descriptor consistency across the read;
+classification cannot bind a hash of old bytes to a later metadata observation.
+Changed sealed records are NEVER resealed to manufacture healthy status. Missing
+older seals are admitted only by reclassifying every original recovery identity;
+unknown bodies remain blocked. A pending seal from a crash before directory move
+is accepted only if its complete existing observation is identical, not replaced.
+
+This adds O(retained target count) metadata work. Probes have a two-second checked
+budget and a 64-MiB seal read limit; expiration/inspection failure is not clean or
+idle proof. This is not a timing claim for stalled/uninterruptible filesystem
+syscalls or a cross-platform execution claim. Report/daemon admission sees changed
+archives even with raw Git clean and the restoration opt-in now disabled. Hints
+name both the pending Git-directory prefix and dracon-excluded-archive/.
+
+The first v3 guard run EXPOSED permissive tempfile directory defaults (both actual
+production creation and the old fixture). New recovery directories request0700
+BEFORE checkout/filter materialization, not after exposing bytes. Private staging
+also requests0700 at creation. Worker-only legacy permission repair pins an owned
+private archive container and opens owned child directories with descriptor-based
+O_NOFOLLOW; it only removes group/other directory access. Reports never chmod.
+An actual symlink negative proves no chmod/content change escapes to an unrelated
+owned directory. No trust guard or byte/content assertion was relaxed.
+
+Parent crash is now executed, not merely implemented: a disposable parent starts
+the matching pinned helper; an independent witness requires the helper's exact
+PID and target inode in an ACTIVE READ /proc/locks entry, checks real PPID, kills
+that owned parent, and observes helper death/zombie state within a finite bound.
+A nonblocking writer can then reopen and retain later canonical bytes. The crash
+may occur on either side of exchange; the test does not infer an exact instruction
+position merely from a lease observation. Retained targets must still classify.
+The existing actual-lease cancellation witness remains separate and passes.
+
+A final caller inspection found that returning a probe error BEFORE admission
+would strand legacy permission repair. Current v3f admits diagnostic worker work
+on inspection errors, retains an unresolved Blocked result on failed settlement,
+and still allows pre-existing backlog publication rather than burning a transport
+failure budget for local metadata uncertainty. The legacy control now invokes
+real sync_repo, requires successful repair, and keeps byte-exact index assertions.
+Its first extended fixture exposed ordinary libgit2 stat-cache refresh after the
+fixture's inode exchanges; that RED run is retained. The fixture now verifies
+cached HEAD equality and explicitly refreshes ONLY its owned, HEAD-equal stat
+cache BEFORE the byte-exact baseline. Neither the equality assertion nor any
+production/native status semantics was weakened.
+
+Current v3f targeted results: recovery10pass, restore9pass, original exclusion2pass,
+filter-only3pass, real JSON2pass; workspace all-target strict Clippy passes. The
+real archived-write JSON test uses a declared synthetic seal as a CONSUMER control,
+not helper/settlement provenance; actual settlement/late-descriptor preservation
+is exercised separately by the private worker controls. Source inventory and
+pinned DEBUG helper stayed unchanged across these current gates.
+
+The preceding v3d coherent assembly passed COMPLETE workspace tests (sync1466pass,
+0fail,3ignored; system616pass; warden233pass plus security/integration suites),
+release build, strict Clippy and cargo deny, with zero source drift. It is NOT the
+current v3f assembly: caller admission and its fixture changed afterward. Do NOT
+mix v3d full/release/deny with v3f targeted results as final four-gate proof.
+Raw failures/successes remain excluded-archive-v3*, v3b*, v3c*, v3d*, v3e*, v3f*;
+source-before/source-after JSONs bind the latter assembly gates and helper hashes.
+No installation, live configuration migration or qualified loaded-runtime/fleet
+observation was performed here.
+
 ## Work still required before deployment
 
-- Exercise new-writer/lease-break races, parent crash and cancellation precisely
-  around exchanges, including queued opens and displaced-writer behavior. Preserve
-  every displaced version and ensure archival cannot conceal uncertain future
-  writer activity. The existing actual-lease cancellation control is necessary,
-  not comprehensive proof of every race.
+- Qualify actual queued opens/new-writer lease breaks and precise exchange/crash
+  interleavings, beyond post-archive FD writes and observed-lease parent death.
+  The new archive concern probe must never be bypassed to claim idle.
 - Check non-Linux/unsupported-filesystem behavior explicitly. The current guarded
   path refuses where its required atomic/lease primitives are unavailable; do not
   substitute destructive writes or call these refusals successful restoration.
