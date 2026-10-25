@@ -8,4 +8,9 @@ test sync::excluded_revert_pipeline_tests::excluded_restore_only_excluded_work_n
 test sync::excluded_revert_tests::excluded_restore_deadline_kills_required_filter_descendants_without_mutation ... ok
 test sync::excluded_revert_tests::excluded_restore_defers_active_writer_without_relocating_its_future_bytes ... ok
 test sync::excluded_revert_tests::excluded_restore_foreign_lock_is_not_removed_or_used_as_hygiene_ownership ... ok
-test sync::excluded_revert_tests::excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untracked ... 
+test sync::excluded_revert_tests::excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untracked ... ok
+test sync::excluded_revert_tests::excluded_restore_preserves_foreign_staged_intent_exactly ... ok
+test sync::excluded_revert_tests::excluded_restore_required_smudge_refusal_and_later_writer_are_not_overwritten ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 1450 filtered out; finished in 29.34s
+
