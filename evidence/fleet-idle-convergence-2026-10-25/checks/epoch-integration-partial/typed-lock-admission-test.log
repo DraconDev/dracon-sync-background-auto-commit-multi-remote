@@ -1,1 +1,9 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 34.04s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 1 test
+test sync::staged_epoch::tests::lock_contention_is_deferred_but_filesystem_failure_is_not ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1442 filtered out; finished in 0.00s
+
