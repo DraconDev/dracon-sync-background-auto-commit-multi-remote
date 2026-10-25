@@ -4515,7 +4515,10 @@ async fn stage_commit_and_push(
         Ok(_) => {}
         Err(error) => {
             pending_local = true;
-            eprintln!("⚠️ {} committed, but follow-up ahead inspection failed: {error:#}", repo.display());
+            eprintln!(
+                "⚠️ {} committed, but follow-up ahead inspection failed: {error:#}",
+                repo.display()
+            );
         }
     }
 
@@ -11911,9 +11914,18 @@ trusted_authors = ["test"]
     #[test]
     fn committed_epoch_outcome_keeps_local_pending_and_transport_failure_distinct() {
         assert_eq!(committed_epoch_outcome(false, false), None);
-        assert_eq!(committed_epoch_outcome(false, true), Some(SyncOutcome::StagedPending));
-        assert_eq!(committed_epoch_outcome(true, false), Some(SyncOutcome::PushFailed));
-        assert_eq!(committed_epoch_outcome(true, true), Some(SyncOutcome::PushFailed));
+        assert_eq!(
+            committed_epoch_outcome(false, true),
+            Some(SyncOutcome::StagedPending)
+        );
+        assert_eq!(
+            committed_epoch_outcome(true, false),
+            Some(SyncOutcome::PushFailed)
+        );
+        assert_eq!(
+            committed_epoch_outcome(true, true),
+            Some(SyncOutcome::PushFailed)
+        );
     }
 
     #[test]
