@@ -1,2 +1,5 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
     Checking dracon-system v0.112.50 (/home/dracon/Dev/dracon-utilities/dracon-system)
+    Checking dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Checking dracon-security v0.4.0 (/home/dracon/Dev/dracon-utilities/dracon-warden/src/security)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2m 31s
