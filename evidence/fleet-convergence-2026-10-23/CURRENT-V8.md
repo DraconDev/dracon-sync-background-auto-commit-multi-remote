@@ -88,12 +88,24 @@ Review runa923c34b settled successfully; no active owned child remains.
 Evidence: checks/library-lifecycle-publication/; source-final.json records exact
 repair anchor4b955e45fd6ae7df9324486da99dcdf3c088e2ad and file fingerprints.
 
-Current normal attemptJWBEHh selects0926aa530698260f1397e28cc145998bf3314e57:
-that queued source predates the final repair (all fingerprint comparisons false).
-Do not cancel valid work merely because it is older or use it as repair proof.
-The daemon's next upload must select/contain the final repair, pass its applicable
-normal gates and advance every intended browser remote to contain that repair.
-All-ten witness row proof is present, but this additional repair remains open.
+## Cold-build follow-up —07:15UTC
+
+JWBEHh was older queued source, not final-repair proof. Subsequent normal4b955e45
+attempts CTqkJ3/rCGHQP/C24EJO/7slg7G failed at forms prebuild. TypeScript staging
+outDir removed the implicit dist-to-src remapping for its internal self-import;
+warm dist had hidden this. Direct source imports now repair the dependency.
+A mandatory forms test cold-compiles copied real source, accepts a harmless new
+module, rejects a deliberate dist self-import. Bounded forms build/typecheck/lint/
+tests pass; raw original failure and new regressions are retained. Only browser's
+stuck entry was cleared after those checks. No manual Git operations.
+Final filtered source anchor nowad856e90708ef4a83e1930d7b254c8db5c0a941a,
+with10fingerprinted source inputs in library-lifecycle-publication/source-final.json.
+The old4b source capture is retained as source-before-cold-fix.json.
+Fresh full-contract read-only reviewer cc1a3647-8ee3-4cc8-9d90-7990406d5640 is
+active; it is not approval or original-gate evidence. Its native wake is owned.
+Next normal upload must contain final repair, pass applicable gates and reach all
+intended browser remotes. All-ten eligible witness proof already exists, but the
+additional repair remains open.
 
 Next: inspect actual terminal/failure evidence for this candidate. Do not bypass,
 skip, weaken or replace the original whole gate with selected local diagnostics.
@@ -103,4 +115,4 @@ read-only all-ten observer, then run scripts/fleet-convergence-ledger.py. It now
 validates exact inventory equality and destination identity continuity; its
 contract/observer/witness regressions pass. Do not call complete_goal while any
 required gate, remote proof or committed task is unfinished. Product diagnosis
-milestone3 is now recorded; tasks4.1,5.2,5.3 and their parents remain open.
+milestone3 and live-witness5.2 are recorded; tasks4.1,5.3 and their parents remain open.
