@@ -622,4 +622,13 @@ test daemon::scheduler_evidence::tests::scheduler_evidence_distinguishes_admissi
 test daemon::scheduler_evidence::tests::scheduler_evidence_freshness_and_roundtrip_are_fail_closed ... ok
 test daemon::submodule_materialize_tests::materialize_pending_submodules_does_not_create_standalone_worktrees ... ok
 test daemon::submodule_materialize_tests::materialize_pending_submodules_leaves_existing_dirs_untouched ... ok
-test daemon::submodule_materialize_tests::test_sleep_responsive_respects_total ... 
+test daemon::submodule_materialize_tests::test_sleep_responsive_respects_total ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_wakes_early_on_notify ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_wakes_early_on_predicate ... ok
+test daemon::test_auto_skip_unowned_default_is_true ... ok
+test daemon::test_escalating_cooldown_matrix ... ok
+test daemon::test_min_commit_interval_default_is_5 ... ok
+test daemon::test_notify_state_round_trip_and_expiry ... ok
+test daemon::test_notify_throttled_escalating_streak_and_reset ... ok
+test daemon::test_notify_throttled_fires_then_suppresses_then_refires ... ok
+test daemon::test_oldest_dirty_change_secs_core_mtime_based ... 
