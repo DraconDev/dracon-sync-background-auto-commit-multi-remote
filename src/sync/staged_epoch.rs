@@ -178,6 +178,18 @@ impl Epoch {
             self.snapshot.changed.len() <= policy.stage_batch_limit(),
             "captured staged intent exceeds strict batch limit"
         );
+        let rejected = self.ineligible_paths(repo, policy, excluded).await?;
+        ensure!(rejected.is_empty(), "captured staged path is excluded or oversized: {:?}",
+            rejected.first().map(|path| path_from_git_bytes(path)));
+        Ok(())
+    }
+
+    // Inspection errors are never eligibility decisions. Only policy/size
+    // rejection may prune an OWNED ordinary candidate; captured user staging
+    // still goes through eligible() and is refused intact.
+    async fn ineligible_paths(
+        &self, repo: &Path, policy: &SyncPolicy, excluded: &BTreeSet<String>,
+    ) -> Result<Vec<Vec<u8>>> {
         let overrides = load_repo_override(repo);
         let excludes = crate::policy::effective_auto_commit_excludes(policy, &overrides);
         // Query captured object IDs, not worktree sizes or path-resolved live blobs.
@@ -225,9 +237,10 @@ impl Epoch {
             measured.insert(path, fields[2].parse::<u64>()?);
         }
         ensure!(records.next().is_none(), "extra cached size records");
+        let mut rejected = Vec::new();
         for ((raw, entry), path) in self.snapshot.changed.iter().zip(self.entries()?) {
             let size = measured.get(raw).copied().unwrap_or(0);
-            ensure!(
+            if !(
                 crate::exclude::should_stage_entry_with_blob_size(
                     repo,
                     &path,
@@ -236,24 +249,22 @@ impl Epoch {
                     &policy.exclude_file_patterns,
                     policy.max_stage_file_bytes,
                     &excludes
-                ),
-                "captured staged path is excluded or oversized: {}",
-                path.path.display()
-            );
+                )
+            ) {
+                rejected.push(raw.clone());
+                continue;
+            }
             // Preserve the existing untracked opt-outs, without interpreting a
             // worktree rewrite as the content of an already-staged blob.
             if matches!(self.snapshot.head, CapturedHead::Unborn { .. }) && entry.is_some() {
-                ensure!(
-                    !crate::exclude::matches_untracked_exclude(
-                        repo,
-                        &path.path,
-                        &policy.untracked_exclude_patterns
-                    ),
-                    "captured root path excluded by untracked policy"
-                );
+                if crate::exclude::matches_untracked_exclude(
+                    repo, &path.path, &policy.untracked_exclude_patterns,
+                ) {
+                    rejected.push(raw.clone());
+                }
             }
         }
-        Ok(())
+        Ok(rejected)
     }
 
     /// Returns true when index/worktree follow-up remains. One absolute deadline
@@ -712,8 +723,23 @@ impl Staging {
                 if !candidate.contains_key(path) { changed.insert(path.clone(), None); }
             }
             let expected = StagedIntentSnapshot { head: self.baseline.snapshot.head.clone(), entries: candidate, changed };
-            let epoch = Epoch { snapshot: expected, reference: self.baseline.reference.clone(), deadline, retained: Some(self.directory.clone()) };
+            let mut epoch = Epoch { snapshot: expected, reference: self.baseline.reference.clone(), deadline, retained: Some(self.directory.clone()) };
+            let rejected = epoch.ineligible_paths(repo, policy, excluded).await?;
+            for path in rejected {
+                // This view began without staged intent. Restore only our
+                // candidate to its baseline; never reset the actual index or
+                // touch the worktree. The original candidate pack is retained.
+                if let Some(original) = self.baseline.snapshot.entries.get(&path) {
+                    epoch.snapshot.entries.insert(path.clone(), original.clone());
+                } else {
+                    epoch.snapshot.entries.remove(&path);
+                }
+                epoch.snapshot.changed.remove(&path);
+            }
             epoch.eligible(repo, policy, excluded).await?;
+            let selected = epoch.snapshot.materialize_tree(repo, deadline).await?;
+            run_index_git(repo, &["read-tree", &selected], 3600,
+                "select eligible private candidate", Some(&self.index)).await?;
             let actual_index = git(repo, &["rev-parse", "--path-format=absolute", "--git-path", "index"], None).await?;
             let actual_index = PathBuf::from(std::str::from_utf8(&actual_index.stdout)?.trim_end_matches('\n'));
             let mut lock = acquire_epoch_lock(actual_index.with_extension("lock"))?;
