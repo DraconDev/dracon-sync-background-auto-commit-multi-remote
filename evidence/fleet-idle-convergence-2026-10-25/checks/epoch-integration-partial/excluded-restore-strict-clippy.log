@@ -84,3 +84,6 @@ help: the following other types implement trait `std::ops::Mul<Rhs>`
      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&f64` implements `std::ops::Mul`
      = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `dracon-system` (bin "dracon-system" test) due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
