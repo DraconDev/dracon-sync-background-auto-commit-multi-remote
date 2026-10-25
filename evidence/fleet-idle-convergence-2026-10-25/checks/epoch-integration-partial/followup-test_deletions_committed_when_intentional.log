@@ -3,3 +3,7 @@
 
 running 1 test
 test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) 1c89288] init
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1446 filtered out; finished in 4.58s
+
