@@ -929,11 +929,23 @@ mod tests {
         std::fs::write(repo.join("file"), b"foreign unstaged bytes\n").unwrap();
         let foreign_index = std::fs::read(repo.join(".git/index")).unwrap();
         std::fs::write(repo.join(".git/index.lock"), b"foreign lock owner").unwrap();
-        let epoch = staging.finish(repo, &policy, &BTreeSet::new(), false, false).await.unwrap();
+        let epoch = staging
+            .finish(repo, &policy, &BTreeSet::new(), false, false)
+            .await
+            .unwrap();
         assert!(!epoch.has_intent(), "foreign staging must not be absorbed");
-        assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), foreign_index);
-        assert_eq!(std::fs::read(repo.join(".git/index.lock")).unwrap(), b"foreign lock owner");
-        assert_eq!(std::fs::read(repo.join("file")).unwrap(), b"foreign unstaged bytes\n");
+        assert_eq!(
+            std::fs::read(repo.join(".git/index")).unwrap(),
+            foreign_index
+        );
+        assert_eq!(
+            std::fs::read(repo.join(".git/index.lock")).unwrap(),
+            b"foreign lock owner"
+        );
+        assert_eq!(
+            std::fs::read(repo.join("file")).unwrap(),
+            b"foreign unstaged bytes\n"
+        );
     }
 
     #[tokio::test]

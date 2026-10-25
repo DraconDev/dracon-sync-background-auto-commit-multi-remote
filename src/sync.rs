@@ -11655,13 +11655,20 @@ auto_bump_versions = false
         }
 
         let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
-        assert_eq!(git_cmd(&repo, &["show", "HEAD:file0.txt"]).stdout, b"modified",
-            "the original pass must commit the surviving file");
+        assert_eq!(
+            git_cmd(&repo, &["show", "HEAD:file0.txt"]).stdout,
+            b"modified",
+            "the original pass must commit the surviving file"
+        );
         // Check every original path, not a broad metadata-name waiver. Auto-
         // hardening may also add legitimate configuration/public-key files.
         for i in 1..7 {
-            assert!(!git_cmd(&repo, &["cat-file", "-e", &format!("HEAD:file{i}.txt")]).status.success(),
-                "the original pass must commit deletion of file{i}.txt");
+            assert!(
+                !git_cmd(&repo, &["cat-file", "-e", &format!("HEAD:file{i}.txt")])
+                    .status
+                    .success(),
+                "the original pass must commit deletion of file{i}.txt"
+            );
         }
         assert_synced_after_metadata_followup(&repo, &policy, result).await;
     }
@@ -12086,7 +12093,10 @@ trusted_authors = ["test"]
             "the first add must have hit the mocked contention"
         );
         let blob = git_cmd(&repo, &["show", "HEAD:pending.txt"]);
-        assert!(blob.status.success(), "retry must commit the intended file in THIS pass: {result:?}");
+        assert!(
+            blob.status.success(),
+            "retry must commit the intended file in THIS pass: {result:?}"
+        );
         assert_eq!(blob.stdout, b"pending work\n");
         assert_synced_after_metadata_followup(&repo, &policy, result).await;
     }
@@ -12316,8 +12326,10 @@ trusted_authors = ["test"]
             (PathBuf::from("sub/b.txt"), FileStatus::Added),
             (PathBuf::from("sub"), FileStatus::Added),
         ];
-        assert_eq!(staged_extra_paths(&repo, &staged, &to_stage),
-            vec![PathBuf::from("sub/b.txt")]);
+        assert_eq!(
+            staged_extra_paths(&repo, &staged, &to_stage),
+            vec![PathBuf::from("sub/b.txt")]
+        );
         // Foreign path: extra.
         let staged = vec![
             (PathBuf::from("a.txt"), FileStatus::Modified),
