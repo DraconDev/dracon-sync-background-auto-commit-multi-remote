@@ -28,7 +28,8 @@ pub(super) async fn git(
         .args(args)
         .current_dir(repo);
     let output =
-        crate::git::run_command_captured_output(command.into_tokio(), 3600, "staged epoch", input).await?;
+        crate::git::run_command_captured_output(command.into_tokio(), 3600, "staged epoch", input)
+            .await?;
     ensure!(
         output.status.success(),
         "staged epoch Git {:?} refused: {}",
@@ -284,17 +285,20 @@ impl Epoch {
                 format!("start\noption no-deref\nupdate HEAD {oid} {previous}\nprepare\ncommit\n")
             };
             git(repo, &["update-ref", "-m", "commit: captured staged epoch", "--stdin"], Some(transaction.as_bytes())).await?;
-            // Keep the real lock through post-commit. Never reset/restore/re-add
-            // the captured tree over later operator index or worktree content.
-            run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs).await
-                .context("post-commit failed AFTER epoch publication")?;
-            ensure!(lock.is_owned(), "index lock replaced AFTER epoch publication");
+            let lock_retained = !lock.is_owned();
+            drop(lock);
+            // Native post-commit runs after publication and does not control its
+            // success. A failing hook remains diagnostic and pending follow-up.
+            let post_failed = if let Err(error) = run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs).await {
+                eprintln!("⚠️ {} post-commit failed AFTER epoch publication: {error:#}", repo.display());
+                true
+            } else { false };
             let after = StagedIntentSnapshot::capture(repo, deadline).await?;
             let child = crate::git::spawn_git_command_cancellable_stdin(repo,
                 &["diff", "--quiet", "HEAD", "--"], "epoch follow-up")?;
             let (status, _, _) = crate::git::run_git_captured_output(child, repo, "epoch follow-up").await?;
             ensure!(status.success() || status.code() == Some(1), "cannot inspect post-publication work");
-            Ok(!after.changed.is_empty() || !status.success())
+            Ok(lock_retained || post_failed || !after.changed.is_empty() || !status.success())
         }).await.context("staged epoch deadline expired; publication may already have occurred, inspect HEAD")?
     }
 }
@@ -323,18 +327,26 @@ async fn verify_storage(repo: &Path, tree: &str, timeout_secs: u64) -> Result<()
         .args(["read-tree", tree])
         .env("GIT_INDEX_FILE", &index)
         .current_dir(repo);
-    let result =
-        crate::git::run_command_captured_output(command.into_tokio(), timeout_secs, "epoch private view", None)
-            .await?;
+    let result = crate::git::run_command_captured_output(
+        command.into_tokio(),
+        timeout_secs,
+        "epoch private view",
+        None,
+    )
+    .await?;
     ensure!(
         result.status.success(),
         "cannot construct private storage view"
     );
     let executable = std::env::current_exe()?;
     #[cfg(test)]
-    let executable = std::env::var_os("DRACON_EPOCH_TEST_HELPER")
-        .map(PathBuf::from)
-        .unwrap_or(executable);
+    let executable = {
+        let _ = executable;
+        PathBuf::from(
+            std::env::var_os("DRACON_EPOCH_TEST_HELPER")
+                .context("matching revision-qualified epoch test helper is required")?,
+        )
+    };
     ensure!(
         executable.is_absolute(),
         "epoch helper executable must be absolute"
@@ -373,4 +385,169 @@ async fn verify_storage(repo: &Path, tree: &str, timeout_secs: u64) -> Result<()
         "immutable storage verifier executable/source identity mismatch"
     );
     Ok(())
+}
+
+/// All Git mutations on this view are child-scoped. This runner never changes
+/// the daemon's environment or substitutes an alternate index globally.
+pub(super) async fn run_index_git(
+    repo: &Path,
+    args: &[&str],
+    timeout_secs: u64,
+    label: &str,
+    index: Option<&Path>,
+) -> Result<()> {
+    let mut command = crate::policy::tokio_git_command();
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(key);
+        }
+    }
+    command
+        .args(args)
+        .current_dir(repo)
+        .env("GIT_NO_LAZY_FETCH", "1");
+    if let Some(index) = index {
+        ensure!(index.is_absolute(), "private index must be absolute");
+        command.env("GIT_INDEX_FILE", index);
+    }
+    let output =
+        crate::git::run_command_captured_output(command.into_tokio(), timeout_secs, label, None)
+            .await?;
+    ensure!(
+        output.status.success(),
+        "{label} refused: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    Ok(())
+}
+
+/// A retained private staging view. Refusals keep its index and object pack for
+/// diagnosis; successful installation removes only this exclusively owned dir.
+pub(super) struct Staging {
+    baseline: Epoch,
+    directory: PathBuf,
+    index: PathBuf,
+}
+impl Staging {
+    pub(super) async fn new(repo: &Path, baseline: Epoch) -> Result<Self> {
+        ensure!(
+            !baseline.has_intent(),
+            "ordinary staging cannot replace staged intent"
+        );
+        let directory = git(repo, &["rev-parse", "--absolute-git-dir"], None).await?;
+        let directory =
+            PathBuf::from(std::str::from_utf8(&directory.stdout)?.trim_end_matches('\n'));
+        let directory = tempfile::Builder::new()
+            .prefix("dracon-staging-")
+            .tempdir_in(directory)?
+            .keep();
+        let index = directory.join("index");
+        let staging = Self {
+            baseline,
+            directory,
+            index,
+        };
+        let deadline = staging.baseline.deadline;
+        tokio::time::timeout_at(deadline, async {
+            let tree = staging
+                .baseline
+                .snapshot
+                .materialize_tree(repo, deadline)
+                .await?;
+            run_index_git(
+                repo,
+                &["read-tree", &tree],
+                3600,
+                "initialize private staging",
+                Some(&staging.index),
+            )
+            .await
+        })
+        .await
+        .context("private staging initialization deadline")??;
+        Ok(staging)
+    }
+    pub(super) fn index(&self) -> &Path {
+        &self.index
+    }
+
+    pub(super) async fn finish(
+        self,
+        repo: &Path,
+        policy: &SyncPolicy,
+        excluded: &BTreeSet<String>,
+        cleanup: bool,
+        dry_run: bool,
+    ) -> Result<Epoch> {
+        if dry_run {
+            return Ok(self.baseline);
+        }
+        let deadline = self.baseline.deadline;
+        let retained = self.directory.clone();
+        tokio::time::timeout_at(deadline, async {
+            // Cleanup routing is deliberately not guessed from filenames here:
+            // its .gitignore/worktree authority must be reconciled separately.
+            if cleanup && self.baseline.snapshot.entries.keys().any(|raw| {
+                path_from_git_bytes(raw).is_ok_and(|path| crate::exclude::is_excluded_change_path(&path, excluded))
+            }) {
+                anyhow::bail!("build-artifact cleanup requires isolated .gitignore reconciliation; private staging retained at {}", self.directory.display());
+            }
+            let mut command = crate::policy::tokio_git_command();
+            command.args(["write-tree"]).current_dir(repo).env("GIT_INDEX_FILE", &self.index);
+            let output = crate::git::run_command_captured_output(command.into_tokio(), 3600, "private staged tree", None).await?;
+            ensure!(output.status.success(), "cannot close private staging epoch");
+            let tree = std::str::from_utf8(&output.stdout)?.trim();
+            ensure!(crate::git::is_valid_object_id(tree), "invalid private staged tree");
+            // A durable pack preserves candidate payloads even if an external
+            // prune runs after refusal. This is not a ref/publication waiver.
+            let prefix = self.directory.join("retained");
+            git(repo, &["pack-objects", "--revs", "--window=0", "--depth=0", prefix.to_str().context("unsupported retention path")?], Some(format!("{tree}\n").as_bytes())).await?;
+            let entries = git(repo, &["ls-tree", "-r", "-z", "--full-tree", tree], None).await?;
+            let mut candidate = std::collections::BTreeMap::new();
+            for record in entries.stdout.split(|b| *b == 0).filter(|r| !r.is_empty()) {
+                let tab = record.iter().position(|b| *b == b'\t').context("invalid candidate path")?;
+                let fields: Vec<_> = std::str::from_utf8(&record[..tab])?.split(' ').collect();
+                ensure!(fields.len() == 3 && crate::git::is_valid_object_id(fields[2]), "invalid candidate identity");
+                candidate.insert(record[tab+1..].to_vec(), crate::git::staged_intent::CachedIdentity {
+                    mode: u32::from_str_radix(fields[0], 8)?, oid: fields[2].to_owned(),
+                });
+            }
+            let mut changed = std::collections::BTreeMap::new();
+            for (path, entry) in &candidate {
+                if self.baseline.snapshot.entries.get(path) != Some(entry) { changed.insert(path.clone(), Some(entry.clone())); }
+            }
+            for path in self.baseline.snapshot.entries.keys() {
+                if !candidate.contains_key(path) { changed.insert(path.clone(), None); }
+            }
+            let expected = StagedIntentSnapshot { head: self.baseline.snapshot.head.clone(), entries: candidate, changed };
+            let epoch = Epoch { snapshot: expected, reference: self.baseline.reference.clone(), deadline };
+            epoch.eligible(repo, policy, excluded).await?;
+            let actual_index = git(repo, &["rev-parse", "--path-format=absolute", "--git-path", "index"], None).await?;
+            let actual_index = PathBuf::from(std::str::from_utf8(&actual_index.stdout)?.trim_end_matches('\n'));
+            let mut lock = crate::git::IndexLock::acquire_path(actual_index.with_extension("lock"), repo).map_err(anyhow::Error::msg)?;
+            self.baseline.unchanged(repo, &lock).await?;
+            lock.install_index(&self.index, &actual_index)?;
+            drop(lock);
+            // Close staging BEFORE a fresh commit capture. Exact full identity
+            // equality refuses same-path payloads and directory-child extras.
+            let fresh = Epoch::capture(repo, policy.stage_op_timeout_secs).await?;
+            ensure!(fresh.snapshot == epoch.snapshot && fresh.reference == epoch.reference,
+                "staged epoch changed after install; actual intent and private view retained");
+            std::fs::remove_dir_all(&self.directory)?;
+            Ok(fresh)
+        }).await.context("private staging deadline expired")?
+            .with_context(|| format!("private staging retained at {}", retained.display()))
+    }
+}
+
+fn path_from_git_bytes(raw: &[u8]) -> Result<PathBuf> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::OsStringExt;
+        Ok(PathBuf::from(std::ffi::OsString::from_vec(raw.to_vec())))
+    }
+    #[cfg(not(unix))]
+    {
+        Ok(PathBuf::from(std::str::from_utf8(raw)?))
+    }
 }

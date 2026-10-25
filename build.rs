@@ -22,16 +22,29 @@ fn main() {
     let mut files = Vec::new();
     rust_sources(Path::new("src"), &mut files);
     files.extend([PathBuf::from("build.rs"), PathBuf::from("Cargo.toml")]);
-    // Cargo selects the enclosing workspace lock when built in the fleet checkout.
-    let lock = if Path::new("../Cargo.lock").is_file() && Path::new("../Cargo.toml").is_file() {
+    // Only the actual utilities workspace owns the enclosing lock; an
+    // unrelated parent Cargo.toml is not a dependency-resolution identity.
+    let parent_workspace = fs::read_to_string("../Cargo.toml")
+        .ok()
+        .is_some_and(|text| text.contains("[workspace]") && text.contains("\"dracon-sync\""));
+    let lock = if parent_workspace {
         PathBuf::from("../Cargo.lock")
     } else {
         PathBuf::from("Cargo.lock")
     };
-    files.push(lock);
+    println!("cargo:rerun-if-changed={}", lock.display());
+    let lock_missing = !lock.is_file();
+    if !lock_missing {
+        files.push(lock);
+    }
     files.sort();
     let mut hash = Sha256::new();
     hash.update(b"dracon-staged-epoch-v1\0");
+    hash.update(if lock_missing {
+        b"lock:absent".as_slice()
+    } else {
+        b"lock:present".as_slice()
+    });
     for path in files {
         println!("cargo:rerun-if-changed={}", path.display());
         let bytes = fs::read(&path).expect("source identity input");
