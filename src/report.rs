@@ -2787,7 +2787,7 @@ pub(crate) fn parse_relative_minutes(text: &str) -> Option<i64> {
 /// is updated to match: "no remote configured (cannot push)".
 pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
     if flags.iter().any(|f| f.starts_with("EXCLUDED_RECOVERY")) {
-        return "excluded-file recovery unresolved — inspect Git-directory dracon-excluded-recovery-* records; retain canonical and recovery bytes".to_owned();
+        return "excluded-file recovery unresolved — inspect Git-directory dracon-excluded-recovery-* records and dracon-excluded-archive/; retain canonical and recovery bytes".to_owned();
     }
     if flags.iter().any(|f| f == "INTENTIONAL_NO_UPSTREAM") {
         return "intentional legacy isolation, no upstream configured".to_string();

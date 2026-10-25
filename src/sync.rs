@@ -5512,7 +5512,7 @@ async fn sync_repo_local_with_ownership(
         let deadline =
             tokio::time::Instant::now() + Duration::from_secs(policy.stage_op_timeout_secs.max(1));
         if !excluded_revert::settle_pending(repo, deadline).await? {
-            eprintln!("⚠️ {} unresolved excluded recovery; preserved private and canonical bytes; inspect Git-directory dracon-excluded-recovery-* records", repo.display());
+            eprintln!("⚠️ {} unresolved excluded recovery; preserved private and canonical bytes; inspect Git-directory dracon-excluded-recovery-* records and dracon-excluded-archive/", repo.display());
             return Ok(publish_backlog_after_index_deferral(&svc, &mut ctx)
                 .await?
                 .unwrap_or(SyncOutcome::Blocked));
