@@ -7,9 +7,9 @@ race is repaired. V8 passed all four required Rust gates and candidate/installed
 execution receipts, including worker retirement and a new autonomous post-round
 commit/publication. Safe deployment loaded artifact
 `8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad`,
-PID3906273. The first fresh-runtime ledger proves seven of ten repositories;
-ai-auto-writer, browser extensions and dracon-platform remain explicitly
-nonhealthy/unproven pending ordinary remote advancement. The browser whole gate
+PID3906273. The refreshed fresh-runtime ledger proves nine of ten repositories;
+browser extensions remains explicitly nonhealthy/unproven pending ordinary
+whole-gate success and remote advancement. The browser whole gate
 is running, not passed. No final external blocker is accepted.
 
 V7 failed with a debug-stack overflow and an unrelated unused system field;
@@ -166,9 +166,22 @@ ownership policy relaxation was introduced.
 
 ## Qualification and actual execution
 
-The following v6 results predate the new completion/drain race correction.
-V7's four required gates, candidate/installed receipts, deployment and all-ten
-fresh-runtime witnesses remain open; do not reuse these counts as v7 success.
+Current V8 required workspace tests, strict all-target Clippy, release build and
+cargo-deny all passed on one captured private assembly with unchanged input
+fingerprints. Captured refs plus an explicit worktree compiled-input overlay are
+identified in `checks/workspace-final-v8/source.json`; no canonical commit was
+manufactured while the old runtime was wedged. Ordinary required filters and
+locked Node SDK provisioning remained active. No warning/advisory/stack exception
+was added. Candidate and installed-byte receipts passed with one local permit,
+including a completed worker's lease retirement followed by a new edit and
+publication, while retaining every earlier hook/independence/refusal/cleanup
+assertion. Loaded, installed and executed hashes agree. A vanished temporary
+target was reconstructed from unchanged source and required an exact hash match
+before durable storage or execution. No missing artifact was treated as proof.
+
+V7 was rejected (stack overflow and unused unrelated system timestamp); its
+interrupted release status is unknown, not a pass. The v6 results below are
+historical and must not be reused as V8 gate totals.
 
 `checks/workspace-final-v6/` contains exact private source refs, unchanged required
 smudge-filter configuration, normal locked Node SDK provisioning, raw commands
