@@ -1,0 +1,33 @@
+
+> dark-new-tab-page@0.1.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/collections/new-tab/dark-new-tab[39m
+
+ [32m✓[39m tests/ShortcutGrid.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1285[2mms[22m[39m
+     [33m[2m✓[22m[39m renders section category tabs and filters shortcuts when clicked [33m 305[2mms[22m[39m
+ [32m✓[39m tests/widgets.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 1272[2mms[22m[39m
+     [33m[2m✓[22m[39m prompts when nothing is saved for today [33m 337[2mms[22m[39m
+ [32m✓[39m tests/smoke.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 2155[2mms[22m[39m
+     [33m[2m✓[22m[39m renders brand, clock, greeting, grid and disclosure footer [33m 417[2mms[22m[39m
+     [33m[2m✓[22m[39m opens the settings drawer as ONE vertical panel (no tabs) with privacy policy visible [33m 1407[2mms[22m[39m
+ [32m✓[39m tests/ShortcutGrid.live.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 2125[2mms[22m[39m
+     [33m[2m✓[22m[39m with consentGiven=true, Amazon click opens with ?tag=dracondev-21 [33m 1011[2mms[22m[39m
+ [32m✓[39m tests/starter.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m tests/SettingsPanel.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1519[2mms[22m[39m
+     [33m[2m✓[22m[39m renders ONE vertical panel — every section at once, no tabs (Ultimate-converged) [33m 928[2mms[22m[39m
+     [33m[2m✓[22m[39m exposes only the shared compact and comfortable density tokens [33m 381[2mms[22m[39m
+ [32m✓[39m tests/sidebar.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 629[2mms[22m[39m
+     [33m[2m✓[22m[39m renders card sections inside the settings body (titles visible, rhythm from cards) [33m 473[2mms[22m[39m
+ [32m✓[39m tests/darkSearchHttp.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 86[2mms[22m[39m
+ [32m✓[39m tests/BrandIcon.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 43[2mms[22m[39m
+ [32m✓[39m tests/starterGuard.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/ShortcutModal.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 676[2mms[22m[39m
+     [33m[2m✓[22m[39m preserves the intentionally supported Custom Section category [33m 673[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m11 passed[39m[22m[90m (11)[39m
+[2m      Tests [22m [1m[32m70 passed[39m[22m[90m (70)[39m
+[2m   Start at [22m 02:58:43
+[2m   Duration [22m 21.49s[2m (transform 2.36s, setup 2.90s, import 4.89s, tests 9.81s, environment 20.16s)[22m
+

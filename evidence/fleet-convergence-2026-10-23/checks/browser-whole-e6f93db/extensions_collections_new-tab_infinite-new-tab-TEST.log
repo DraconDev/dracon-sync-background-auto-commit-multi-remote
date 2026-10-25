@@ -1,0 +1,23 @@
+
+> infinite-new-tab@0.1.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/collections/new-tab/infinite-new-tab[39m
+
+ [32m✓[39m tests/rotation.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+ [32m✓[39m tests/widgets.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 2063[2mms[22m[39m
+     [33m[2m✓[22m[39m saves a focus and persists it for today [33m 604[2mms[22m[39m
+     [33m[2m✓[22m[39m adds a note and persists it [33m 446[2mms[22m[39m
+     [33m[2m✓[22m[39m mounts focus prompt, desk and quote by default [33m 510[2mms[22m[39m
+ [32m✓[39m tests/sidebar.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1160[2mms[22m[39m
+     [33m[2m✓[22m[39m renders card sections with accessible titles once the drawer opens [33m 1012[2mms[22m[39m
+ [32m✓[39m tests/smoke.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 3374[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the clock over a wallpaper surface with a settings trigger [33m 594[2mms[22m[39m
+     [33m[2m✓[22m[39m opens the drawer, switches to manual, picks a wallpaper, persists it [33m 2628[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m4 passed[39m[22m[90m (4)[39m
+[2m      Tests [22m [1m[32m49 passed[39m[22m[90m (49)[39m
+[2m   Start at [22m 02:59:26
+[2m   Duration [22m 14.37s[2m (transform 3.38s, setup 1.87s, import 5.01s, tests 6.64s, environment 11.07s)[22m
+

@@ -1,0 +1,37 @@
+
+> minimalist-new-tab-page@0.1.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/collections/new-tab/minimalist-new-tab[39m
+
+ [32m✓[39m tests/widgets.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 8008[2mms[22m[39m
+     [33m[2m✓[22m[39m saves a focus and persists it for today [33m 4176[2mms[22m[39m
+     [33m[2m✓[22m[39m clears the saved focus [33m 812[2mms[22m[39m
+     [33m[2m✓[22m[39m refreshes the focus date after midnight without a settings change [33m 805[2mms[22m[39m
+     [33m[2m✓[22m[39m adds a note and persists it [33m 441[2mms[22m[39m
+     [33m[2m✓[22m[39m adds a to-do, toggles done, clears completed [33m 454[2mms[22m[39m
+     [33m[2m✓[22m[39m refuses more to-dos past the cap [33m 303[2mms[22m[39m
+ [32m✓[39m tests/smoke.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 8313[2mms[22m[39m
+     [33m[2m✓[22m[39m fresh profiles default to the shared-set picture, never a flat hex [33m 1336[2mms[22m[39m
+     [33m[2m✓[22m[39m pre-existing stored profiles keep their flat look (migration) [33m 470[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the clock and five link tiles plus an Add tile (editable via core) [33m 607[2mms[22m[39m
+     [33m[2m✓[22m[39m renders NOTHING beyond clock + links + settings trigger (absence assertions are the product) [32m 300[2mms[22m[39m
+     [33m[2m✓[22m[39m a link click opens the plain URL (no tagging path exists) [33m 3107[2mms[22m[39m
+     [33m[2m✓[22m[39m the settings drawer has NO dead "Default Search" setting (removed 2026-08-21) [33m 1423[2mms[22m[39m
+     [33m[2m✓[22m[39m traps focus, focuses the first control on open, and closes on Escape [33m 472[2mms[22m[39m
+ [32m✓[39m tests/sidebar.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1079[2mms[22m[39m
+     [33m[2m✓[22m[39m renders card sections with accessible titles once the drawer opens [33m 668[2mms[22m[39m
+     [33m[2m✓[22m[39m renders checkbox rows + sliders inside the drawer [33m 325[2mms[22m[39m
+ [32m✓[39m tests/httpLan.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 3367[2mms[22m[39m
+     [33m[2m✓[22m[39m an http:// LAN URL saves and opens on click [33m 2374[2mms[22m[39m
+     [33m[2m✓[22m[39m a javascript: URL stays blocked — Save disabled, nothing persisted [33m 986[2mms[22m[39m
+ [32m✓[39m tests/starterGuard.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/BrandIcon.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 198[2mms[22m[39m
+ [32m✓[39m tests/wxtConfig.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m7 passed[39m[22m[90m (7)[39m
+[2m      Tests [22m [1m[32m43 passed[39m[22m[90m (43)[39m
+[2m   Start at [22m 03:00:00
+[2m   Duration [22m 45.47s[2m (transform 11.75s, setup 7.21s, import 16.85s, tests 20.99s, environment 38.00s)[22m
+

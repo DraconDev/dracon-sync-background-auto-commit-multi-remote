@@ -1,0 +1,18 @@
+
+> cinematic-pages-cooler-presentations@2.1.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v3.2.6 /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/cinematic-pages-cooler-presentations
+
+ ✓ tests/contentInvariants.test.ts (13 tests) 9ms
+ ✓ tests/domConstruction.test.ts (5 tests) 5ms
+ ✓ tests/reviewAsk.test.ts (7 tests) 7ms
+ ✓ types/types.test.ts (12 tests) 15ms
+ ✓ utils/storage.test.ts (2 tests) 9ms
+
+ Test Files  5 passed (5)
+      Tests  39 passed (39)
+   Start at  03:20:26
+   Duration  7.74s (transform 537ms, setup 0ms, collect 572ms, tests 45ms, environment 3.64s, prepare 1.56s)
+

@@ -1,0 +1,32 @@
+
+> clean-web@1.0.0 compile
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G[clean-web] Fixed paths in popup.html
+✔ Built extension in 7.490 s
+  ├─ .output/chrome-mv3/manifest.json                   993 B    
+  ├─ .output/chrome-mv3/dashboard.html                  703 B    
+  ├─ .output/chrome-mv3/popup.html                      667 B    
+  ├─ .output/chrome-mv3/welcome.html                    620 B    
+  ├─ .output/chrome-mv3/background.js                   94.82 kB 
+  ├─ .output/chrome-mv3/chunks/dashboard-D8uH7N0u.js    46.84 kB 
+  ├─ .output/chrome-mv3/chunks/model-field-DnqIONhg.js  19.1 kB  
+  ├─ .output/chrome-mv3/chunks/popup-Ce-DONGw.js        11.88 kB 
+  ├─ .output/chrome-mv3/chunks/site-stats-jVhfE_0j.js   483 B    
+  ├─ .output/chrome-mv3/chunks/theme-CpIfOStr.js        234.61 kB
+  ├─ .output/chrome-mv3/chunks/welcome-RU3b0nJ0.js      11.72 kB 
+  ├─ .output/chrome-mv3/content-scripts/content.js      133.66 kB
+  ├─ .output/chrome-mv3/assets/theme-4w4_4sOq.css       19.7 kB  
+  ├─ .output/chrome-mv3/_locales/en/messages.json       377 B    
+  ├─ .output/chrome-mv3/_locales/README.md              1.87 kB  
+  ├─ .output/chrome-mv3/icon/128.png                    7.53 kB  
+  ├─ .output/chrome-mv3/icon/16.png                     670 B    
+  ├─ .output/chrome-mv3/icon/32.png                     1.51 kB  
+  ├─ .output/chrome-mv3/icon/48.png                     2.43 kB  
+  └─ .output/chrome-mv3/icon/96.png                     5.55 kB  
+Σ Total size: 595.72 kB                               
+✔ Finished in 7.983 s

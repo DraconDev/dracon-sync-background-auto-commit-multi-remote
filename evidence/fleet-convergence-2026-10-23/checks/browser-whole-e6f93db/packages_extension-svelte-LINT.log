@@ -1,0 +1,50 @@
+
+> @dracon/extension-svelte@1.0.0 lint
+> eslint src/
+
+(node:58694) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/eslint.config.js?mtime=1792896176000 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte/src/lib/components/ui/Alert.svelte
+  8:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  9:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte/src/lib/components/ui/Badge.svelte
+  7:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  8:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte/src/lib/components/ui/Button.svelte
+  16:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte/src/lib/components/ui/Card.svelte
+  10:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte/src/lib/components/ui/CardContent.svelte
+  7:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte/src/lib/components/ui/CardHeader.svelte
+  7:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte/src/lib/components/ui/CardTitle.svelte
+  4:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  5:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte/src/lib/components/ui/Input.svelte
+  13:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte/src/lib/components/ui/Modal.svelte
+  14:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte/src/lib/components/ui/Spinner.svelte
+  7:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte/src/lib/components/ui/Toggle.svelte
+  10:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte/src/types/modules.d.ts
+  11:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 15 problems (0 errors, 15 warnings)
+

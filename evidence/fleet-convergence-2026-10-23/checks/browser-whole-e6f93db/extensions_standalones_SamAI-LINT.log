@@ -1,0 +1,32 @@
+
+> sam-ai@49.3.2 lint
+> eslint .
+
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/SamAI/entrypoints/home/SettingsBlock.tsx
+  265:6  warning  React Hook useEffect has a missing dependency: 'persistSettings'. Either include it or remove the dependency array    react-hooks/exhaustive-deps
+  284:5  warning  React Hook useCallback has a missing dependency: 'persistSettings'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/SamAI/entrypoints/home/components/profiles/ProfileEditorPage.tsx
+  89:6  warning  React Hook useEffect has missing dependencies: 'isLoading' and 'profileId'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/SamAI/src/content/SearchPanel/components/ChatTab.tsx
+  147:6  warning  React Hook useEffect has a missing dependency: 'onMessagesChange'. Either include it or remove the dependency array. If 'onMessagesChange' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+  235:5  warning  React Hook useCallback has a missing dependency: 'hostname'. Either include it or remove the dependency array                                                                                                                                    react-hooks/exhaustive-deps
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/SamAI/src/content/SearchPanel/components/HomeTab.tsx
+  567:6  warning  React Hook useEffect has a missing dependency: 'item'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/SamAI/src/content/SearchPanel/components/SummaryTab.tsx
+  46:6  warning  React Hook useEffect has a missing dependency: 'onSummaryChange'. Either include it or remove the dependency array. If 'onSummaryChange' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+  63:6  warning  React Hook useEffect has missing dependencies: 'handleSummarize', 'isSummarizing', 'summary', 'summaryCachedUrl', and 'summaryError'. Either include them or remove the dependency array                                                       react-hooks/exhaustive-deps
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/SamAI/src/content/SearchPanel/components/TabNavigation.tsx
+  184:6  warning  React Hook React.useEffect has a missing dependency: 'isTabEnabled'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/SamAI/utils/formFiller/dom.ts
+  162:3  warning  Unused eslint-disable directive (no problems were reported from 'no-control-regex')
+
+✖ 10 problems (0 errors, 10 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

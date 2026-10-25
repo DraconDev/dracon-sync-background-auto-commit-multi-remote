@@ -1,0 +1,184 @@
+
+> @dracon/extension-core@1.0.0 test
+> vitest run --passWithNoTests
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-core[39m
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mrecovers onto the newest stable flash-lite when the tag 404s
+[22m[39m[BYOK Client] Attempt 1 failed: models/gemini-flash-lite-latest is not found
+
+[90mstdout[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mrecovers onto the newest stable flash-lite when the tag 404s
+[22m[39m[BYOK Client] Recovering onto gemini-3.5-flash-lite after gemini-flash-lite-latest was unavailable.
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mrecovers on a 503 too
+[22m[39m[BYOK Client] Attempt 1 failed: overloaded
+
+[90mstdout[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mrecovers on a 503 too
+[22m[39m[BYOK Client] Recovering onto gemini-3.5-flash-lite after gemini-flash-lite-latest was unavailable.
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mnever recovers onto a preview, image, tts or non-lite model
+[22m[39m[BYOK Client] Attempt 1 failed: not found
+
+[90mstdout[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mnever recovers onto a preview, image, tts or non-lite model
+[22m[39m[BYOK Client] Recovering onto gemini-3.5-flash-lite after gemini-flash-lite-latest was unavailable.
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2msurfaces the original 404 when discovery finds nothing usable
+[22m[39m[BYOK Client] Attempt 1 failed: models/gemini-flash-lite-latest is not found
+
+ [32m✓[39m tests/byok/catalogue.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2msurfaces the original error when discovery itself fails
+[22m[39m[BYOK Client] Attempt 1 failed: models/gemini-flash-lite-latest is not found
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mdoes NOT switch models on a bad key, quota or invalid argument
+[22m[39m[BYOK Client] Attempt 1 failed: HTTP 400
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mdoes NOT switch models on a bad key, quota or invalid argument
+[22m[39m[BYOK Client] Attempt 1 failed: HTTP 401
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mdoes NOT switch models on a bad key, quota or invalid argument
+[22m[39m[BYOK Client] Attempt 1 failed: HTTP 403
+
+[90mstdout[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mdoes NOT switch models on a bad key, quota or invalid argument
+[22m[39m[BYOK Client] Retry attempt 1 after 1500ms...
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mdoes NOT switch models on a bad key, quota or invalid argument
+[22m[39m[BYOK Client] Attempt 1 failed: HTTP 429
+
+ [32m✓[39m tests/auth-flow.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 49[2mms[22m[39m
+ [32m✓[39m tests/syncWrite.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mdoes NOT switch models on a bad key, quota or invalid argument
+[22m[39m[BYOK Client] Attempt 2 failed: HTTP 429
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mnever swaps a model the user typed themselves
+[22m[39m[BYOK Client] Attempt 1 failed: not found
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mcaches discovery for the page lifetime
+[22m[39m[BYOK Client] Attempt 1 failed: not found
+
+[90mstdout[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mcaches discovery for the page lifetime
+[22m[39m[BYOK Client] Recovering onto gemini-3.5-flash-lite after gemini-flash-lite-latest was unavailable.
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mcaches discovery for the page lifetime
+[22m[39m[BYOK Client] Attempt 1 failed: not found
+
+[90mstdout[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mrolling-tag recovery[2m > [22m[2mcaches discovery for the page lifetime
+[22m[39m[BYOK Client] Recovering onto gemini-3.5-flash-lite after gemini-flash-lite-latest was unavailable.
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mthrows the API error message on a non-OK response
+[22m[39m[BYOK Client] Attempt 1 failed: API key invalid
+
+[90mstdout[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mthrows on empty candidates
+[22m[39m[BYOK Client] Retry attempt 1 after 1500ms...
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mthrows on empty candidates
+[22m[39m[BYOK Client] Attempt 1 failed: Empty response from Google AI Studio
+
+ [32m✓[39m tests/reviewAsk.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32m✓[39m tests/cache-swr.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 88[2mms[22m[39m
+ [32m✓[39m tests/json.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+[90mstderr[2m | tests/byok/testConnection.test.ts[2m > [22m[2mbyok testConnection[2m > [22m[2msurfaces an error message on a non-ok response
+[22m[39m[BYOK Client] Attempt 1 failed: API key expired
+
+[90mstderr[2m | tests/byok/testConnection.test.ts[2m > [22m[2mbyok testConnection[2m > [22m[2msurfaces an error message on a non-ok response
+[22m[39m[BYOK Test] testConnection failed: Error: API key expired
+    at chatWithProvider [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-core/[39msrc/byok/client.ts:348:25[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at testConnection [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-core/[39msrc/byok/testConnection.ts:52:22[90m)[39m
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-core/[39mtests/byok/testConnection.test.ts:86:20
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20 {
+  status: [33m400[39m
+}
+
+[90mstdout[2m | tests/byok/testConnection.test.ts[2m > [22m[2mbyok testConnection[2m > [22m[2mpingModel never puts the API key in the URL query string (leak guard)
+[22m[39m[BYOK Test] Pinging model: gemini-3.1-flash-lite
+
+ [32m✓[39m tests/byok/testConnection.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 119[2mms[22m[39m
+ [32m✓[39m tests/exportsMap.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 59[2mms[22m[39m
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mthrows on empty candidates
+[22m[39m[BYOK Client] Attempt 2 failed: Empty response from Google AI Studio
+
+[90mstdout[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mretries on HTTP 429 then succeeds
+[22m[39m[BYOK Client] Retry attempt 1 after 1500ms...
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mretries on HTTP 429 then succeeds
+[22m[39m[BYOK Client] Attempt 1 failed: rate limited
+
+ [32m✓[39m tests/api-stream-headers.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 56[2mms[22m[39m
+ [32m✓[39m tests/byok/store.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+[90mstdout[2m | tests/byok/agnes.test.ts[2m > [22m[2magnes adapter[2m > [22m[2mthrows on empty content and surfaces API errors without retrying 4xx
+[22m[39m[Agnes] Retry attempt 1 after 1500ms...
+
+[90mstderr[2m | tests/byok/agnes.test.ts[2m > [22m[2magnes adapter[2m > [22m[2mthrows on empty content and surfaces API errors without retrying 4xx
+[22m[39m[Agnes] Attempt 1 failed: Agnes returned empty content
+
+[90mstdout[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mtreats a daily-quota 429 (RESOURCE_EXHAUSTED) as model-unavailable and recovers via discovery
+[22m[39m[BYOK Client] Retry attempt 1 after 1500ms...
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mtreats a daily-quota 429 (RESOURCE_EXHAUSTED) as model-unavailable and recovers via discovery
+[22m[39m[BYOK Client] Attempt 1 failed: Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash-lite
+
+[90mstderr[2m | tests/byok/agnes.test.ts[2m > [22m[2magnes adapter[2m > [22m[2mthrows on empty content and surfaces API errors without retrying 4xx
+[22m[39m[Agnes] Attempt 2 failed: Agnes returned empty content
+
+[90mstderr[2m | tests/byok/agnes.test.ts[2m > [22m[2magnes adapter[2m > [22m[2mthrows on empty content and surfaces API errors without retrying 4xx
+[22m[39m[Agnes] Attempt 1 failed: Invalid API key
+
+ [32m✓[39m tests/byok/agnes.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 1515[2mms[22m[39m
+     [33m[2m✓[22m[39m throws on empty content and surfaces API errors without retrying 4xx [33m 1510[2mms[22m[39m
+ [32m✓[39m tests/rate-limit-windows.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/messaging.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/quota.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+[90mstdout[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mstill retries a transient HTTP 429 (no quota marker in the body)
+[22m[39m[BYOK Client] Retry attempt 1 after 1500ms...
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mstill retries a transient HTTP 429 (no quota marker in the body)
+[22m[39m[BYOK Client] Attempt 1 failed: rate limited
+
+ [32m✓[39m tests/contextMenus.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+ [32m✓[39m tests/byok/models.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+[90mstderr[2m | tests/notifications.test.ts[2m > [22m[2mnotify[2m > [22m[2mnever rejects when create fails (permission revoked mid-flight)
+[22m[39m[extension-core/notifications] Failed to show notification: Error: Not allowed to use notifications
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-core/[39mtests/notifications.test.ts:42:30
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+
+ [32m✓[39m tests/notifications.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/rate-limit.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/net-fetchWithTimeout.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+ [32m✓[39m tests/byok/contract.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/cache-ttl.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m tests/byok/catalogue-convergence.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32m✓[39m tests/byok/prompts.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2msurfaces the upstream API error message on a 4xx response
+[22m[39m[BYOK Client] Attempt 1 failed: forbidden
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mdoes not retry on a fatal 4xx (e.g., 403)
+[22m[39m[BYOK Client] Attempt 1 failed: forbidden
+
+[90mstdout[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mretries on a 5xx server error then succeeds
+[22m[39m[BYOK Client] Retry attempt 1 after 1500ms...
+
+[90mstderr[2m | tests/byok/client.test.ts[2m > [22m[2mbyok client.chatWithProvider[2m > [22m[2mretries on a 5xx server error then succeeds
+[22m[39m[BYOK Client] Attempt 1 failed: internal error
+
+ [32m✓[39m tests/byok/client.test.ts [2m([22m[2m35 tests[22m[2m)[22m[33m 9101[2mms[22m[39m
+       [33m[2m✓[22m[39m does NOT switch models on a bad key, quota or invalid argument [33m 1508[2mms[22m[39m
+     [33m[2m✓[22m[39m throws on empty candidates [33m 1540[2mms[22m[39m
+     [33m[2m✓[22m[39m retries on HTTP 429 then succeeds [33m 1511[2mms[22m[39m
+     [33m[2m✓[22m[39m treats a daily-quota 429 (RESOURCE_EXHAUSTED) as model-unavailable and recovers via discovery [33m 1506[2mms[22m[39m
+     [33m[2m✓[22m[39m still retries a transient HTTP 429 (no quota marker in the body) [33m 1507[2mms[22m[39m
+     [33m[2m✓[22m[39m retries on a 5xx server error then succeeds [33m 1506[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m24 passed[39m[22m[90m (24)[39m
+[2m      Tests [22m [1m[32m229 passed[39m[22m[90m (229)[39m
+[2m   Start at [22m 03:49:43
+[2m   Duration [22m 9.36s[2m (transform 774ms, setup 0ms, import 1.20s, tests 11.20s, environment 1.02s)[22m
+

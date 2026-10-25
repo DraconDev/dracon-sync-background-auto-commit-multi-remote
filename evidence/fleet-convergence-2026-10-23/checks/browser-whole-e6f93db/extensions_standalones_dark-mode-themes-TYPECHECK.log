@@ -1,0 +1,35 @@
+
+> dark-mode-themes@1.0.1 compile
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G✔ Built extension in 23.1 s
+  ├─ .output/chrome-mv3/manifest.json                     1.2 kB   
+  ├─ .output/chrome-mv3/options.html                      673 B    
+  ├─ .output/chrome-mv3/popup.html                        616 B    
+  ├─ .output/chrome-mv3/welcome.html                      596 B    
+  ├─ .output/chrome-mv3/background.js                     14.64 kB 
+  ├─ .output/chrome-mv3/chunks/ErrorBoundary-DgC19fYm.js  216.38 kB
+  ├─ .output/chrome-mv3/chunks/index-BbeuRKyx.js          7.64 kB  
+  ├─ .output/chrome-mv3/chunks/options-ByTjwxjz.js        62.45 kB 
+  ├─ .output/chrome-mv3/chunks/popup-CZ1QTiq5.js          17.84 kB 
+  ├─ .output/chrome-mv3/chunks/sparkles-Zj4uVtAR.js       513 B    
+  ├─ .output/chrome-mv3/chunks/welcome-KYDBAVtz.js        2.84 kB  
+  ├─ .output/chrome-mv3/content-scripts/content.js        33.54 kB 
+  ├─ .output/chrome-mv3/assets/options-CwBZRn0w.css       37.11 kB 
+  ├─ .output/chrome-mv3/assets/popup-CKaoefGu.css         37.93 kB 
+  ├─ .output/chrome-mv3/assets/welcome-DTalwc16.css       36.53 kB 
+  ├─ .output/chrome-mv3/_locales/de/messages.json         257 B    
+  ├─ .output/chrome-mv3/_locales/en/messages.json         419 B    
+  ├─ .output/chrome-mv3/_locales/es/messages.json         265 B    
+  ├─ .output/chrome-mv3/_locales/pt_BR/messages.json      264 B    
+  ├─ .output/chrome-mv3/icon/128.png                      2.81 kB  
+  ├─ .output/chrome-mv3/icon/16.png                       254 B    
+  ├─ .output/chrome-mv3/icon/32.png                       459 B    
+  ├─ .output/chrome-mv3/icon/48.png                       752 B    
+  └─ .output/chrome-mv3/icon/96.png                       1.85 kB  
+Σ Total size: 477.82 kB                                 
+✔ Finished in 25.0 s

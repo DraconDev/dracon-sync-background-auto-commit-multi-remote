@@ -1,0 +1,35 @@
+
+> @dracon/full-page-screenshot@1.0.0 compile
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G[full-page-screenshot] Fixed paths in popup.html
+✔ Built extension in 6.834 s
+  ├─ .output/chrome-mv3/manifest.json                 1.38 kB  
+  ├─ .output/chrome-mv3/editor.html                   555 B    
+  ├─ .output/chrome-mv3/popup.html                    837 B    
+  ├─ .output/chrome-mv3/welcome.html                  1.12 kB  
+  ├─ .output/chrome-mv3/background.js                 2.46 kB  
+  ├─ .output/chrome-mv3/chunks/browser-BnURzfs5.js    875 B    
+  ├─ .output/chrome-mv3/chunks/editor-BQv55VFU.js     28.08 kB 
+  ├─ .output/chrome-mv3/chunks/popup-BqibLaXZ.js      14.16 kB 
+  ├─ .output/chrome-mv3/chunks/square-W5fbeXRD.js     193.47 kB
+  ├─ .output/chrome-mv3/chunks/welcome-D9EMKFQ8.js    410 B    
+  ├─ .output/chrome-mv3/content-scripts/content.js    10.18 kB 
+  ├─ .output/chrome-mv3/assets/editor-CDLTmHli.css    21.97 kB 
+  ├─ .output/chrome-mv3/assets/popup-BJB_nSbz.css     22.05 kB 
+  ├─ .output/chrome-mv3/assets/welcome-DV5u6rr_.css   1.92 kB  
+  ├─ .output/chrome-mv3/_locales/de/messages.json     329 B    
+  ├─ .output/chrome-mv3/_locales/en/messages.json     452 B    
+  ├─ .output/chrome-mv3/_locales/es/messages.json     294 B    
+  ├─ .output/chrome-mv3/_locales/pt_BR/messages.json  282 B    
+  ├─ .output/chrome-mv3/icon/128.png                  1.43 kB  
+  ├─ .output/chrome-mv3/icon/16.png                   226 B    
+  ├─ .output/chrome-mv3/icon/32.png                   379 B    
+  ├─ .output/chrome-mv3/icon/48.png                   559 B    
+  └─ .output/chrome-mv3/icon/96.png                   1.06 kB  
+Σ Total size: 304.47 kB                             
+✔ Finished in 8.378 s

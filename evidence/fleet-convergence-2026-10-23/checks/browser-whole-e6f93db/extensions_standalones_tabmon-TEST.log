@@ -1,0 +1,278 @@
+
+> tabmon@1.1.0 test
+> node --test scripts/framework-lint.check.mjs && python3 -m unittest discover -s tools -p test_music_provenance.py && vitest run --passWithNoTests
+
+(node:3859515) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/eslint.config.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ ambient SvelteKit must not turn native WXT HTML into a Kit route (571.752322ms)
+✔ a declared SvelteKit app keeps its unresolved navigation guard (186.601833ms)
+✔ XSS and keyed-rendering guards still reject real regressions in WXT (126.075177ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8255.939203
+................
+----------------------------------------------------------------------
+Ran 16 tests in 0.152s
+
+OK
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon[39m
+
+ [32m✓[39m tests/component-lifecycle.test.ts [2m([22m[2m90 tests[22m[2m)[22m[32m 296[2mms[22m[39m
+03:35:03 [vite-plugin-svelte] /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/nightfall/src/components/Card.svelte:48:14 This reference only captures the initial value of `dense`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+ [32m✓[39m tests/ui-redesign-states.test.ts [2m([22m[2m54 tests[22m[2m)[22m[33m 7890[2mms[22m[39m
+     [33m[2m✓[22m[39m cues-off — two-way toggle round-trips off to on and back [33m 401[2mms[22m[39m
+     [33m[2m✓[22m[39m paused / cues-off / quiet each render [33m 302[2mms[22m[39m
+     [33m[2m✓[22m[39m add-all fills the collection and clear empties it [33m 3181[2mms[22m[39m
+[90mstderr[2m | tests/sw-handlers.test.ts[2m > [22m[2mhandleAlarmTick[2m > [22m[2ma future-schema settings record suppresses the spawn but keeps the badge honest
+[22m[39m[tabmon] loadSettings failed (tick); suppressing new spawns Error: Unsupported settings version 9999 (this app reads v5)
+    at loadSettings [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mlib/settings.ts:173:11[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+
+[90mstderr[2m | tests/sw-handlers.test.ts[2m > [22m[2mhandleAlarmTick[2m > [22m[2ma sweep rejection does not abort the tick
+[22m[39m[tabmon] sweepStaleBattleSnapshots failed on tick; continuing Error: sweep storage boom
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mtests/sw-handlers.test.ts:303:36
+[90m    at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20
+
+[90mstderr[2m | tests/sw-handlers.test.ts[2m > [22m[2mhandleAlarmTick[2m > [22m[2ma spawn-state read rejection clears the badge instead of aborting the tick
+[22m[39m[tabmon] sweepStaleBattleSnapshots failed on tick; continuing Error: sweep read boom
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mtests/sw-handlers.test.ts:316:36
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+
+[90mstderr[2m | tests/sw-handlers.test.ts[2m > [22m[2mhandleAlarmTick[2m > [22m[2ma spawn-state read rejection clears the badge instead of aborting the tick
+[22m[39m[tabmon] spawn-state read failed (tick) Error: spawn read boom
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mtests/sw-handlers.test.ts:317:36
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+
+ [32m✓[39m tests/sw-handlers.test.ts [2m([22m[2m56 tests[22m[2m)[22m[32m 225[2mms[22m[39m
+ [32m✓[39m tests/user-flows.test.ts [2m([22m[2m38 tests[22m[2m)[22m[33m 11779[2mms[22m[39m
+     [33m[2m✓[22m[39m landing a jab shakes the wild, floats damage, and the mute toggle persists [33m 600[2mms[22m[39m
+     [33m[2m✓[22m[39m winning the battle banks XP on the fighter and names the gain [33m 421[2mms[22m[39m
+     [33m[2m✓[22m[39m a better-quality wild offers the swap and Swap in keeps what the pet earned [33m 419[2mms[22m[39m
+     [33m[2m✓[22m[39m Capture stays disabled at full wild HP and enables once the wild is hurt [33m 452[2mms[22m[39m
+     [33m[2m✓[22m[39m a stale roster cannot lose a catch: the capture re-reads and refuses [33m 520[2mms[22m[39m
+     [33m[2m✓[22m[39m the shell switch crosses to settings and back without losing the rail [33m 382[2mms[22m[39m
+     [33m[2m✓[22m[39m the shell switcher reads as the primary action with identical rhythm on both shells [33m 304[2mms[22m[39m
+     [33m[2m✓[22m[39m the battle page without a seed offers a prompt, never a null-seed battle [33m 336[2mms[22m[39m
+     [33m[2m✓[22m[39m the shortcut reveals the unlisted entries per shell with no query params, and toggles back off [33m 632[2mms[22m[39m
+     [33m[2m✓[22m[39m debug Dex lists every species from empty storage and Add persists the catch [33m 783[2mms[22m[39m
+     [33m[2m✓[22m[39m the shortcut does not fire while typing in a field [33m 395[2mms[22m[39m
+     [33m[2m✓[22m[39m plays the fight out in front of the player instead of resolving it off-screen [33m 1129[2mms[22m[39m
+     [33m[2m✓[22m[39m skip finishes the fight at once [33m 370[2mms[22m[39m
+     [33m[2m✓[22m[39m shows odds, resolves in one roll, and offers the manual capture [33m 507[2mms[22m[39m
+     [33m[2m✓[22m[39m mutes from the Sound settings section and persists it to the synced record [32m 300[2mms[22m[39m
+     [33m[2m✓[22m[39m mutes and levels the collection music independently of the effects [33m 399[2mms[22m[39m
+[90mstderr[2m | tests/collection-store.test.ts[2m > [22m[2ma collection this build cannot read[2m > [22m[2ma document from a newer build is not erased by the next catch
+[22m[39m[tabmon] collection document unreadable (unsupported version?) — keeping it as it is Error: Unsupported collection version 2 (this app reads v1)
+    at normalizeVersion [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mlib/game/storage.ts:108:11[90m)[39m
+    at deserializeCollection [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mlib/game/storage.ts:140:20[90m)[39m
+    at readStoredCollection [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mlib/collection-store.ts:73:12[90m)[39m
+    at loadSync [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mlib/collection-store.ts:133:10[90m)[39m
+    at async Promise.all (index 0)
+    at commitCaughtCreature [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mlib/collection-store.ts:262:36[90m)[39m
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mtests/collection-store.test.ts:288:5
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20
+
+[90mstderr[2m | tests/collection-store.test.ts[2m > [22m[2ma collection this build cannot read[2m > [22m[2mthe stored document keeps the version the newer build wrote
+[22m[39m[tabmon] collection document unreadable (unsupported version?) — keeping it as it is Error: Unsupported collection version 2 (this app reads v1)
+    at normalizeVersion [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mlib/game/storage.ts:108:11[90m)[39m
+    at deserializeCollection [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mlib/game/storage.ts:140:20[90m)[39m
+    at readStoredCollection [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mlib/collection-store.ts:73:12[90m)[39m
+    at loadSync [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mlib/collection-store.ts:133:10[90m)[39m
+    at async Promise.all (index 0)
+    at commitCaughtCreature [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mlib/collection-store.ts:262:36[90m)[39m
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/tabmon/[39mtests/collection-store.test.ts:306:5
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20
+
+ [32m✓[39m tests/collection-store.test.ts [2m([22m[2m35 tests[22m[2m)[22m[33m 2605[2mms[22m[39m
+     [33m[2m✓[22m[39m a fresh catch can no longer outgrow the sync item (the cap comes first) [33m 1162[2mms[22m[39m
+ [32m✓[39m tests/spawn-scheduler.test.ts [2m([22m[2m34 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+[90mstdout[2m | tests/battle.test.ts[2m > [22m[2mthe status move is a real option (audit §5)[2m > [22m[2mthe AI picks a status move instead of never using one
+[22m[39m  MEASURED: 2575/12800 = 20.1%  never used theirs: 0
+
+ [32m✓[39m tests/battle.test.ts [2m([22m[2m23 tests[22m[2m)[22m[33m 677[2mms[22m[39m
+     [33m[2m✓[22m[39m the AI picks a status move instead of never using one [33m 396[2mms[22m[39m
+ [32m✓[39m tests/collection-music.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 2573[2mms[22m[39m
+ [32m✓[39m tests/settings-sections.test.ts [2m([22m[2m25 tests[22m[2m)[22m[33m 4474[2mms[22m[39m
+ [32m✓[39m tests/game-moves.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 195[2mms[22m[39m
+ [32m✓[39m tests/end-to-end-loop.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 1480[2mms[22m[39m
+     [33m[2m✓[22m[39m carries one creature from the scheduler to the Dex [33m 1274[2mms[22m[39m
+ [32m✓[39m tests/context-menu.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+ [32m✓[39m tests/manifest-contract.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 113[2mms[22m[39m
+ [32m✓[39m tests/battle-snapshot.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+ [32m✓[39m tests/settings.test.ts [2m([22m[2m23 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/backup-section.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 1083[2mms[22m[39m
+ [32m✓[39m tests/training.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 1057[2mms[22m[39m
+ [32m✓[39m tests/catch-commit.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 905[2mms[22m[39m
+     [33m[2m✓[22m[39m falls back to local overflow and sets the nudge when the quota is exhausted [33m 533[2mms[22m[39m
+ [32m✓[39m tests/a11y-regressions.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 1297[2mms[22m[39m
+     [33m[2m✓[22m[39m a click inside the dialog does not close it [33m 404[2mms[22m[39m
+ [32m✓[39m tests/cue-controller.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 322[2mms[22m[39m
+ [32m✓[39m tests/spawn-policy.test.ts [2m([22m[2m38 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/encounter-view.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32m✓[39m tests/gameplay-retunes.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 86[2mms[22m[39m
+ [32m✓[39m tests/spawn-state.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/popup-app.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 2182[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps the switch reachable while the player is paused [33m 375[2mms[22m[39m
+     [33m[2m✓[22m[39m turns the cues off and on again through the synced record [33m 496[2mms[22m[39m
+ [32m✓[39m tests/roster-components.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 626[2mms[22m[39m
+ [32m✓[39m tests/portrait-motion.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 123[2mms[22m[39m
+ [32m✓[39m tests/pilot-artifacts.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 194[2mms[22m[39m
+ [32m✓[39m tests/species.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 66[2mms[22m[39m
+ [32m✓[39m tests/overflow-nudge.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 972[2mms[22m[39m
+ [32m✓[39m tests/sound.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 218[2mms[22m[39m
+ [32m✓[39m tests/spawn-bridge.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+ [32m✓[39m tests/storage.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m tests/sw-resilience.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+ [32m✓[39m tests/popup.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/auto-resolve.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32m✓[39m tests/encounter-picker.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 316[2mms[22m[39m
+ [32m✓[39m tests/dead-exports.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 1014[2mms[22m[39m
+     [33m[2m✓[22m[39m finds no exported symbol that nothing imports [33m 917[2mms[22m[39m
+ [32m✓[39m tests/site-blocklist.test.ts [2m([22m[2m23 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/xp.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/battle-store.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+ [32m✓[39m tests/dev-diagnostics.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+[90mstdout[2m | tests/background-entry.test.ts[2m > [22m[2mbackground entrypoint[2m > [22m[2ma context-menu click on an unknown item does not throw
+[22m[39m[tabmon] context menu no-op: unknown-item 
+
+ [32m✓[39m tests/background-entry.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 81[2mms[22m[39m
+ [32m✓[39m tests/battle-golden.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/themes.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m tests/content-script.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 43[2mms[22m[39m
+ [32m✓[39m tests/collection-naming.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 1014[2mms[22m[39m
+     [33m[2m✓[22m[39m names a creature, stores it, and shows it on the card [33m 376[2mms[22m[39m
+     [33m[2m✓[22m[39m a name that is only whitespace is not a name [33m 367[2mms[22m[39m
+ [32m✓[39m tests/cue-messages.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+ [32m✓[39m tests/capture.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 118[2mms[22m[39m
+ [32m✓[39m tests/theme.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+ [32m✓[39m tests/settings-shell.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 547[2mms[22m[39m
+ [32m✓[39m tests/encounter.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/onboarding.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m tests/theme-picker.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 520[2mms[22m[39m
+     [33m[2m✓[22m[39m records the theme the player picks [33m 312[2mms[22m[39m
+ [32m✓[39m tests/attack-icons.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 197[2mms[22m[39m
+ [32m✓[39m tests/url-utils.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/url-watch.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/rng.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 286[2mms[22m[39m
+ [32m✓[39m tests/collection-policy.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/roster-pick-sound.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 263[2mms[22m[39m
+ [32m✓[39m tests/stage.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32m✓[39m tests/theme-holders.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/shimmer.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/uid.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/types-chart.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+ [32m✓[39m tests/battle-wildmove.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/collection-theme-selection.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/sfx.test.ts [2m([22m[2m119 tests[22m[2m)[22m[33m 366505[2mms[22m[39m
+     [33m[2m✓[22m[39m gives the fetch script a prompt for every moment [33m 925[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps every moment inside its loudness band (the mix hierarchy) [33m 2583[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps every sample under the documented true-peak ceiling [33m 1704[2mms[22m[39m
+     [33m[2m✓[22m[39m cuts a moment at the effect's onset and lets it ring out [33m 4825[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps the moment-duration table in step with the packaged files [33m 1475[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'sunny-meadow' in the same key as the stings [33m 5704[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'starry-bakery' in the same key as the stings [33m 5874[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'cosmic-tea' in the same key as the stings [33m 1123[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'rainy-attic' in the same key as the stings [33m 1806[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'moonlit-grove' in the same key as the stings [33m 1457[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'witchs-market' in the same key as the stings [33m 885[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'crystal-cavern' in the same key as the stings [33m 4405[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'emberwood' in the same key as the stings [33m 6427[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'frostpeak' in the same key as the stings [33m 7380[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'sunken-temple' in the same key as the stings [33m 13994[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'neon-arcade' in the same key as the stings [33m 6813[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'paper-garden' in the same key as the stings [33m 6691[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'midnight-ferry' in the same key as the stings [33m 4102[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'glass-bells' in the same key as the stings [33m 4200[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'toy-march' in the same key as the stings [33m 4889[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'tape-wobble' in the same key as the stings [33m 8300[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'bamboo-flute' in the same key as the stings [33m 7410[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'fm-chimes' in the same key as the stings [33m 7614[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'deep-marimba' in the same key as the stings [33m 4397[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'bright-pings' in the same key as the stings [33m 4793[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'temple-bell' in the same key as the stings [33m 4330[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'twinkle-pins' in the same key as the stings [33m 2305[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'deep-drone' in the same key as the stings [33m 1015[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'sunny-meadow' on its own pulse [33m 2569[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'starry-bakery' on its own pulse [33m 3486[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'cosmic-tea' on its own pulse [33m 1030[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'rainy-attic' on its own pulse [33m 1155[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'moonlit-grove' on its own pulse [33m 1116[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'dragons-hoard' on its own pulse [33m 573[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'witchs-market' on its own pulse [33m 1228[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'crystal-cavern' on its own pulse [33m 2187[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'emberwood' on its own pulse [33m 1143[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'frostpeak' on its own pulse [33m 2068[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'sunken-temple' on its own pulse [33m 5474[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'neon-arcade' on its own pulse [33m 1312[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'paper-garden' on its own pulse [33m 1717[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'midnight-ferry' on its own pulse [33m 1333[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'glass-bells' on its own pulse [33m 1266[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'toy-march' on its own pulse [33m 891[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'tape-wobble' on its own pulse [33m 1330[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'bamboo-flute' on its own pulse [33m 1902[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'fm-chimes' on its own pulse [33m 2173[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'deep-marimba' on its own pulse [33m 1014[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'bright-pings' on its own pulse [33m 1580[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'temple-bell' on its own pulse [33m 1812[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'twinkle-pins' on its own pulse [33m 2168[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps 'deep-drone' on its own pulse [33m 621[2mms[22m[39m
+     [33m[2m✓[22m[39m flags a theme that is not on its own pulse (the tempo check is not vacuous) [33m 2782[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps the collection theme under the effects [33m 21605[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'sunny-meadow' looping without a seam [33m 7593[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'starry-bakery' looping without a seam [33m 11596[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'cosmic-tea' looping without a seam [33m 2776[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'rainy-attic' looping without a seam [33m 5605[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'moonlit-grove' looping without a seam [33m 3302[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'dragons-hoard' looping without a seam [33m 820[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'witchs-market' looping without a seam [33m 4133[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'crystal-cavern' looping without a seam [33m 9572[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'emberwood' looping without a seam [33m 9032[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'frostpeak' looping without a seam [33m 12484[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'sunken-temple' looping without a seam [33m 30249[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'neon-arcade' looping without a seam [33m 7004[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'paper-garden' looping without a seam [33m 5284[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'midnight-ferry' looping without a seam [33m 5510[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'glass-bells' looping without a seam [33m 3859[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'toy-march' looping without a seam [33m 3812[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'tape-wobble' looping without a seam [33m 3089[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'bamboo-flute' looping without a seam [33m 4129[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'fm-chimes' looping without a seam [33m 4345[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'deep-marimba' looping without a seam [33m 2688[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'bright-pings' looping without a seam [33m 3509[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'temple-bell' looping without a seam [33m 4751[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'twinkle-pins' looping without a seam [33m 4066[2mms[22m[39m
+     [33m[2m✓[22m[39m ships 'deep-drone' looping without a seam [33m 1592[2mms[22m[39m
+     [33m[2m✓[22m[39m flags a loop with a click at the wrap (the seam check is not vacuous) [33m 19480[2mms[22m[39m
+     [33m[2m✓[22m[39m flags a sample that was made louder (the band check is not vacuous) [33m 2306[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m68 passed[39m[22m[90m (68)[39m
+[2m      Tests [22m [1m[32m1093 passed[39m[22m[90m (1093)[39m
+[2m   Start at [22m 03:34:52
+[2m   Duration [22m 372.39s[2m (transform 13.04s, setup 2.34s, import 29.84s, tests 413.09s, environment 73.53s)[22m
+

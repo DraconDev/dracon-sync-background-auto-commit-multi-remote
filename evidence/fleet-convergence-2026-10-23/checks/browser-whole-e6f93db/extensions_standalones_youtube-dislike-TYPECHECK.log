@@ -1,0 +1,33 @@
+
+> youtube-dislike@1.1.0 compile
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G✔ Built extension in 7.439 s
+  ├─ .output/chrome-mv3/manifest.json                     1.36 kB  
+  ├─ .output/chrome-mv3/popup.html                        787 B    
+  ├─ .output/chrome-mv3/watch-history.html                594 B    
+  ├─ .output/chrome-mv3/welcome.html                      3.7 kB   
+  ├─ .output/chrome-mv3/background.js                     10.74 kB 
+  ├─ .output/chrome-mv3/chunks/gemini-C5QM4GTP.js         13.72 kB 
+  ├─ .output/chrome-mv3/chunks/popup-Bk0iGyRR.js          34.24 kB 
+  ├─ .output/chrome-mv3/chunks/style-B_rBc0NF.js          42.57 kB 
+  ├─ .output/chrome-mv3/chunks/watch-history-DYKoaQUt.js  35.24 kB 
+  ├─ .output/chrome-mv3/chunks/welcome-CXa5KiRi.js        1.65 kB  
+  ├─ .output/chrome-mv3/content-scripts/content.js        102.17 kB
+  ├─ .output/chrome-mv3/content-scripts/yt-relay.js       3.19 kB  
+  ├─ .output/chrome-mv3/assets/popup-C2JI7a9J.css         354 B    
+  ├─ .output/chrome-mv3/assets/style-CTnYQo6I.css         29.85 kB 
+  ├─ .output/chrome-mv3/assets/welcome-BrzAVy4r.css       4.9 kB   
+  ├─ .output/chrome-mv3/content-scripts/content.css       4.21 kB  
+  ├─ .output/chrome-mv3/_locales/en/messages.json         324 B    
+  ├─ .output/chrome-mv3/icon/128.png                      11.86 kB 
+  ├─ .output/chrome-mv3/icon/16.png                       521 B    
+  ├─ .output/chrome-mv3/icon/32.png                       1.24 kB  
+  ├─ .output/chrome-mv3/icon/48.png                       2.21 kB  
+  └─ .output/chrome-mv3/icon/96.png                       6.93 kB  
+Σ Total size: 312.36 kB                                 
+✔ Finished in 9.608 s

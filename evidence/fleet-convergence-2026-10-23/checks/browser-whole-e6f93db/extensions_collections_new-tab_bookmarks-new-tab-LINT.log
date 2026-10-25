@@ -1,0 +1,25 @@
+
+> bookmarks-new-tab-page@15.2.0 lint
+> eslint .
+
+(node:2964864) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/eslint.config.js?mtime=1792896176000 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/collections/new-tab/bookmarks-new-tab/entrypoints/newtab/components/AddBookmarkModal.tsx
+  1:41  warning  'CSSProperties' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/collections/new-tab/bookmarks-new-tab/entrypoints/newtab/components/BookmarkItem.tsx
+   36:10  warning  'imgError' is assigned a value but never used       @typescript-eslint/no-unused-vars
+   67:9   warning  'favicon' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  180:9   warning  'faviconRadius' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/collections/new-tab/bookmarks-new-tab/entrypoints/newtab/components/ContextMenu.tsx
+  213:7  warning  React Hook useMemo has a missing dependency: 'onNotice'. Either include it or remove the dependency array. If 'onNotice' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/collections/new-tab/bookmarks-new-tab/wxt.config.ts
+  49:9  warning  'env' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 6 problems (0 errors, 6 warnings)
+

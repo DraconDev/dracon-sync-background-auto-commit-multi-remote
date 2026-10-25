@@ -1,0 +1,24 @@
+
+> @dracon/extension-svelte@1.0.0 test
+> vitest run --passWithNoTests
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-svelte[39m
+
+ [32m✓[39m tests/exportsMap.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/focusTrap.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 116[2mms[22m[39m
+ [32m✓[39m tests/variantClassNames.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 131[2mms[22m[39m
+ [32m✓[39m tests/local.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/Button.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+ [32m✓[39m tests/Tabs.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 96[2mms[22m[39m
+ [32m✓[39m tests/Badge.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32m✓[39m tests/CopyToClipboard.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m tests/Card.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m tests/EmptyState.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m tests/Select.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m11 passed[39m[22m[90m (11)[39m
+[2m      Tests [22m [1m[32m86 passed[39m[22m[90m (86)[39m
+[2m   Start at [22m 03:50:20
+[2m   Duration [22m 8.56s[2m (transform 2.36s, setup 0ms, import 5.98s, tests 546ms, environment 7.51s)[22m
+

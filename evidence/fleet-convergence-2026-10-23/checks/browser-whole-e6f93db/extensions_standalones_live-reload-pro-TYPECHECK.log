@@ -1,0 +1,29 @@
+
+> live-reload-pro@1.6.0 compile
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G✔ Built extension in 6.583 s
+  ├─ .output/chrome-mv3/manifest.json                1.13 kB 
+  ├─ .output/chrome-mv3/popup.html                   530 B   
+  ├─ .output/chrome-mv3/welcome.html                 1.1 kB  
+  ├─ .output/chrome-mv3/background.js                15.06 kB
+  ├─ .output/chrome-mv3/chunks/browser-BnURzfs5.js   875 B   
+  ├─ .output/chrome-mv3/chunks/popup-B5xoyb8S.js     66.25 kB
+  ├─ .output/chrome-mv3/chunks/welcome-BxRy-o_B.js   410 B   
+  ├─ .output/chrome-mv3/content-scripts/content.js   5.02 kB 
+  ├─ .output/chrome-mv3/livereload.js                50.34 kB
+  ├─ .output/chrome-mv3/assets/popup-BUho1dqc.css    30.96 kB
+  ├─ .output/chrome-mv3/assets/welcome-Y5ANY7Y0.css  2.04 kB 
+  ├─ .output/chrome-mv3/_locales/en/messages.json    292 B   
+  ├─ .output/chrome-mv3/icon/128.png                 15.6 kB 
+  ├─ .output/chrome-mv3/icon/16.png                  5.77 kB 
+  ├─ .output/chrome-mv3/icon/32.png                  6.54 kB 
+  ├─ .output/chrome-mv3/icon/48.png                  7.55 kB 
+  ├─ .output/chrome-mv3/icon/96.png                  11.91 kB
+  └─ .output/chrome-mv3/wxt.svg                      1.07 kB 
+Σ Total size: 222.44 kB                            
+✔ Finished in 8.991 s

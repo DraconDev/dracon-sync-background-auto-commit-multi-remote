@@ -1,0 +1,28 @@
+
+> cinematic-pages-cooler-presentations@2.1.0 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G[cinematic-pages] Fixed paths in popup.html
+✔ Built extension in 9.720 s
+  ├─ .output/chrome-mv3/manifest.json                                 1.24 kB 
+  ├─ .output/chrome-mv3/popup.html                                    586 B   
+  ├─ .output/chrome-mv3/welcome.html                                  1.12 kB 
+  ├─ .output/chrome-mv3/background.js                                 12.84 kB
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-html-plugins-DPbbfBKe.js  779 B   
+  ├─ .output/chrome-mv3/chunks/popup-CmCxhais.js                      240.3 kB
+  ├─ .output/chrome-mv3/chunks/welcome-C8HBPPKa.js                    491 B   
+  ├─ .output/chrome-mv3/content-scripts/content.js                    40.8 kB 
+  ├─ .output/chrome-mv3/assets/popup-0ZQRGeXh.css                     21.59 kB
+  ├─ .output/chrome-mv3/assets/welcome-s-U42SHe.css                   1.92 kB 
+  ├─ .output/chrome-mv3/_locales/en/messages.json                     2.09 kB 
+  ├─ .output/chrome-mv3/icon/128.png                                  3.09 kB 
+  ├─ .output/chrome-mv3/icon/16.png                                   236 B   
+  ├─ .output/chrome-mv3/icon/32.png                                   354 B   
+  ├─ .output/chrome-mv3/icon/48.png                                   1.12 kB 
+  └─ .output/chrome-mv3/icon/96.png                                   888 B   
+Σ Total size: 329.44 kB                                             
+✔ Finished in 11.1 s

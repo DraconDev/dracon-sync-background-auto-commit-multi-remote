@@ -1,0 +1,80 @@
+npm warn Unknown project config "shamefully-hoist". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> death-note-typing-practice@1.2.0 lint
+> eslint .
+
+(node:3682158) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/eslint.config.js?mtime=1792896176000 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/death-note-typing-practice/components/Achievements.svelte
+  4:5  warning  'TIER_COLORS' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/death-note-typing-practice/components/Asteroids.svelte
+   16:88  warning  'playAsteroidDestroy' is defined but never used               @typescript-eslint/no-unused-vars
+   37:7   warning  'previousDifficultyLevel' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   79:11  warning  'destroyedAsteroids' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  197:12  warning  'getAsteroidDisplayText' is defined but never used            @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/death-note-typing-practice/components/Game.svelte
+  47:11  warning  '_' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  48:11  warning  '_2' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  56:12  warning  'getCursorClass' is defined but never used  @typescript-eslint/no-unused-vars
+  64:12  warning  'getCursorStyle' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/death-note-typing-practice/components/Menu.svelte
+   2:28  warning  'WordList' is defined but never used                     @typescript-eslint/no-unused-vars
+   4:26  warning  'getDifficultyLabel' is defined but never used           @typescript-eslint/no-unused-vars
+  34:64  warning  'onShowAchievements' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  85:9   warning  'eliminationDiffs' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  87:9   warning  'wordCountOptions' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  89:12  warning  'getDifficultyColor' is defined but never used           @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/death-note-typing-practice/components/Practice.svelte
+   17:37  warning  'eliminateEffect' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   17:54  warning  'showCrime' is assigned a value but never used        @typescript-eslint/no-unused-vars
+   40:12  warning  'isWordUpcoming' is defined but never used            @typescript-eslint/no-unused-vars
+   45:12  warning  'getWordClass' is defined but never used              @typescript-eslint/no-unused-vars
+   53:11  warning  '_' is assigned a value but never used                @typescript-eslint/no-unused-vars
+   54:11  warning  '_2' is assigned a value but never used               @typescript-eslint/no-unused-vars
+   78:11  warning  '_' is assigned a value but never used                @typescript-eslint/no-unused-vars
+   79:11  warning  '_2' is assigned a value but never used               @typescript-eslint/no-unused-vars
+  103:11  warning  '_' is assigned a value but never used                @typescript-eslint/no-unused-vars
+  104:11  warning  '_2' is assigned a value but never used               @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/death-note-typing-practice/components/SettingsPanel.svelte
+  11:19  warning  'selectedDifficulty' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/death-note-typing-practice/components/Toast.svelte
+  21:11  warning  'trackTimeout' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/death-note-typing-practice/entrypoints/game/App.svelte
+    4:28  warning  'quoteCategories' is defined but never used               @typescript-eslint/no-unused-vars
+    9:31  warning  'getProblemWords' is defined but never used               @typescript-eslint/no-unused-vars
+   32:5   warning  'TIMED_LIVES' is defined but never used                   @typescript-eslint/no-unused-vars
+   39:5   warning  'getDifficultyColor' is defined but never used            @typescript-eslint/no-unused-vars
+   40:5   warning  'getDifficultyLabel' is defined but never used            @typescript-eslint/no-unused-vars
+   41:5   warning  'getFormattedTime' is defined but never used              @typescript-eslint/no-unused-vars
+   42:5   warning  'getPerformanceQuote' is defined but never used           @typescript-eslint/no-unused-vars
+   43:5   warning  'getPerformanceAuthor' is defined but never used          @typescript-eslint/no-unused-vars
+   69:7   warning  'settingsLoaded' is assigned a value but never used       @typescript-eslint/no-unused-vars
+   73:7   warning  'showVirtualKeyboard' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  220:13  warning  'isPracticeMode' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  222:13  warning  'isTimed' is assigned a value but never used              @typescript-eslint/no-unused-vars
+  227:13  warning  'deltaSec' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  678:12  warning  'hasErrors' is defined but never used                     @typescript-eslint/no-unused-vars
+  696:18  warning  'saveSetting' is defined but never used                   @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/death-note-typing-practice/lib/game/asteroids.ts
+  51:42  warning  'difficulty' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/death-note-typing-practice/lib/game/char-stats.ts
+  69:9  warning  'vowels' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  70:9  warning  'consonants' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/death-note-typing-practice/lib/migration.ts
+  46:12  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 46 problems (0 errors, 46 warnings)
+

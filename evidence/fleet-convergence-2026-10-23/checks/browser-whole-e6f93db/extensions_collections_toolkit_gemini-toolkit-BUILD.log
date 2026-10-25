@@ -1,0 +1,24 @@
+
+> gemini-toolkit@0.8.0 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G✔ Built extension in 11.1 s
+  ├─ .output/chrome-mv3/manifest.json                946 B    
+  ├─ .output/chrome-mv3/options.html                 534 B    
+  ├─ .output/chrome-mv3/background.js                1.17 kB  
+  ├─ .output/chrome-mv3/chunks/options-ibMtiJfx.js   216.49 kB
+  ├─ .output/chrome-mv3/content-scripts/gemini.js    133.77 kB
+  ├─ .output/chrome-mv3/assets/options-2zinU4tr.css  10.74 kB 
+  ├─ .output/chrome-mv3/content-scripts/gemini.css   214 B    
+  ├─ .output/chrome-mv3/_locales/en/messages.json    326 B    
+  ├─ .output/chrome-mv3/icon/128.png                 4.29 kB  
+  ├─ .output/chrome-mv3/icon/16.png                  639 B    
+  ├─ .output/chrome-mv3/icon/32.png                  1.24 kB  
+  ├─ .output/chrome-mv3/icon/48.png                  1.86 kB  
+  └─ .output/chrome-mv3/icon/96.png                  3.25 kB  
+Σ Total size: 375.46 kB                            
+✔ Finished in 11.8 s

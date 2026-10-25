@@ -1,0 +1,60 @@
+
+> bugkit@1.2.1 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G
+🔧 Checking icon files...
+✅ Icon 16.png ready (519 bytes)
+✅ Icon 32.png ready (1326 bytes)
+✅ Icon 48.png ready (2617 bytes)
+✅ Icon 96.png ready (7804 bytes)
+✅ Icon 128.png ready (11321 bytes)
+
+📋 Icon Status:
+   If icons are placeholders, the extension will show a puzzle piece icon.
+   To fix: Convert SVG icons to PNG using the script in assets/convert-icons.js
+
+✔ Built extension in 26.3 s
+  ├─ .output/chrome-mv3/manifest.json                                 1.48 kB  
+  ├─ .output/chrome-mv3/index.html                                    11.11 kB 
+  ├─ .output/chrome-mv3/offscreen.html                                322 B    
+  ├─ .output/chrome-mv3/options.html                                  571 B    
+  ├─ .output/chrome-mv3/popup.html                                    559 B    
+  ├─ .output/chrome-mv3/welcome.html                                  1.1 kB   
+  ├─ .output/chrome-mv3/background.js                                 83.11 kB 
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-html-plugins-DPbbfBKe.js  779 B    
+  ├─ .output/chrome-mv3/chunks/index-CH-BXors.js                      203.81 kB
+  ├─ .output/chrome-mv3/chunks/offscreen-NiXevi8N.js                  5.53 kB  
+  ├─ .output/chrome-mv3/chunks/options-DXW_xzfW.js                    58.49 kB 
+  ├─ .output/chrome-mv3/chunks/popup-B2JxZLX0.js                      15.81 kB 
+  ├─ .output/chrome-mv3/chunks/welcome-2sJQ4igh.js                    441 B    
+  ├─ .output/chrome-mv3/content-scripts/content.js                    53.35 kB 
+  ├─ .output/chrome-mv3/page-instrumentation.js                       11.48 kB 
+  ├─ .output/chrome-mv3/rrweb-worker.js                               3.05 kB  
+  ├─ .output/chrome-mv3/rrweb.js                                      303.35 kB
+  ├─ .output/chrome-mv3/assets/options-JevPvTQw.css                   20.18 kB 
+  ├─ .output/chrome-mv3/assets/popup-DsFXkizF.css                     21.49 kB 
+  ├─ .output/chrome-mv3/assets/welcome-9LL6NoXo.css                   2.04 kB  
+  ├─ .output/chrome-mv3/_locales/en/messages.json                     575 B    
+  ├─ .output/chrome-mv3/icon/128.png                                  11.32 kB 
+  ├─ .output/chrome-mv3/icon/128.svg                                  3.77 kB  
+  ├─ .output/chrome-mv3/icon/16.png                                   519 B    
+  ├─ .output/chrome-mv3/icon/16.svg                                   641 B    
+  ├─ .output/chrome-mv3/icon/32.png                                   1.33 kB  
+  ├─ .output/chrome-mv3/icon/32.svg                                   1.13 kB  
+  ├─ .output/chrome-mv3/icon/48.png                                   2.62 kB  
+  ├─ .output/chrome-mv3/icon/48.svg                                   2.37 kB  
+  ├─ .output/chrome-mv3/icon/96.png                                   7.8 kB   
+  ├─ .output/chrome-mv3/icon/icon-16-alt1.png                         355 B    
+  ├─ .output/chrome-mv3/icon/icon-16-alt2.png                         452 B    
+  ├─ .output/chrome-mv3/icon/icon-16-alt3.png                         467 B    
+  ├─ .output/chrome-mv3/icon/icon-16-bug.png                          368 B    
+  ├─ .output/chrome-mv3/icon/icon-16.png                              431 B    
+  ├─ .output/chrome-mv3/icon/icon.svg                                 641 B    
+  └─ .output/chrome-mv3/icon/logo.png                                 11.32 kB 
+Σ Total size: 844.16 kB                                             
+✔ Finished in 27.5 s

@@ -1,0 +1,199 @@
+
+> volume-and-video-pro@3.22.28 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro[39m
+
+Warning: A vi.mock("@dracon/extension-core/reviewAsk") call in "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/tests/popup-surface.test.ts" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+Warning: A vi.mock("@/lib/review-ask") call in "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/tests/popup-surface.test.ts" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+Warning: A vi.mock("@/src/settings-manager") call in "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/tests/popup-surface.test.ts" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+ [32m✓[39m tests/wxtConfig.test.ts [2m([22m[2m38 tests[22m[2m)[22m[32m 86[2mms[22m[39m
+ [32m✓[39m tests/audio-processor.test.ts [2m([22m[2m23 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+[90mstderr[2m | tests/popup-surface.test.ts[2m > [22m[2mApp.svelte — popup integration[2m > [22m[2mstill reports failure when no active tab ever appears
+[22m[39mPopup: No active tab found after retries
+
+[90mstderr[2m | tests/settings-manager.test.ts[2m > [22m[2mSettingsManager - additional coverage[2m > [22m[2minitialize() survives a chrome.storage.sync rejection with in-memory defaults
+[22m[39mSettingsManager: storage.sync.get failed; using in-memory defaults until a retry succeeds: Error: SYNC_DISABLED
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39mtests/settings-manager.test.ts:165:7
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+
+[90mstderr[2m | tests/settings-manager.test.ts[2m > [22m[2mSettingsManager - broadcast delegation to background worker[2m > [22m[2mfalls back to a local fan-out when the runtime channel rejects
+[22m[39mSettingsManager: Background broadcast channel failed; running fan-out locally: Error: channel closed
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39mtests/settings-manager.test.ts:254:67
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+
+[90mstderr[2m | tests/popup-surface.test.ts[2m > [22m[2mApp.svelte — popup integration[2m > [22m[2mkeeps the error view mounted when the active tab has no URL
+[22m[39mPopup: No active tab found after retries
+
+[90mstderr[2m | tests/settings-manager.test.ts[2m > [22m[2mchrome.storage.sync per-item quota[2m > [22m[2mthrows SettingsQuotaError when a single site cannot fit the budget even alone
+[22m[39mSettingsManager: Failed to persist settings: SettingsQuotaError: Settings do not fit the 7000-byte sync budget even after evicting older sites
+    at SettingsManager.persistSettings [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39msrc/settings-manager.ts:309:15[90m)[39m
+    at SettingsManager.updateSiteSettings [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39msrc/settings-manager.ts:454:16[90m)[39m
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39mtests/settings-manager.test.ts:361:15
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20
+
+[90mstderr[2m | tests/settings-manager.test.ts[2m > [22m[2mchrome.storage.sync per-item quota[2m > [22m[2mdoes not write to sync when the quota gate rejects the payload
+[22m[39mSettingsManager: Failed to persist settings: SettingsQuotaError: Settings do not fit the 7000-byte sync budget even after evicting older sites
+    at SettingsManager.persistSettings [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39msrc/settings-manager.ts:309:15[90m)[39m
+    at SettingsManager.updateSiteSettings [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39msrc/settings-manager.ts:454:16[90m)[39m
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39mtests/settings-manager.test.ts:373:15
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20
+
+[90mstderr[2m | tests/settings-manager.test.ts[2m > [22m[2mrefreshFromStorage — stale fan-out map (audit 2026-10-22)[2m > [22m[2mkeeps in-memory state when the storage read rejects
+[22m[39mSettingsManager: refreshFromStorage failed; keeping in-memory state: Error: sync unavailable
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39mtests/settings-manager.test.ts:543:7
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20
+
+ [32m✓[39m tests/settings-manager.test.ts [2m([22m[2m33 tests[22m[2m)[22m[32m 173[2mms[22m[39m
+[90mstderr[2m | tests/popup-surface.test.ts[2m > [22m[2mApp.svelte — a failed mode toggle is surfaced and the UI reconciles[2m > [22m[2mshows an error banner when the mode write rejects
+[22m[39mPopup: Error toggling mode: Error: sync unavailable
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39mtests/popup-surface.test.ts:646:55
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+
+ [32m✓[39m tests/popup-surface.test.ts [2m([22m[2m31 tests[22m[2m)[22m[33m 3073[2mms[22m[39m
+     [33m[2m✓[22m[39m recovers when tabs.query transiently returns no active tab [33m 488[2mms[22m[39m
+     [33m[2m✓[22m[39m writes a restricted-page slider change to GLOBAL settings [33m 353[2mms[22m[39m
+     [33m[2m✓[22m[39m does not let a queued slider write overwrite the mode the user picks [33m 499[2mms[22m[39m
+     [33m[2m✓[22m[39m still applies a slider change made AFTER a mode change [33m 399[2mms[22m[39m
+ [32m✓[39m tests/audio-features.test.ts [2m([22m[2m36 tests[22m[2m)[22m[32m 91[2mms[22m[39m
+[90mstdout[2m | tests/media-processor.test.ts[2m > [22m[2mMediaProcessor.processMediaElements - suspended-context discipline[2m > [22m[2mpushes cross-element parameter updates even while the context is suspended
+[22m[39m[MediaProcessor] Processing 1 media element(s). Audio effects: true
+
+[90mstdout[2m | tests/media-processor.test.ts[2m > [22m[2mMediaProcessor.processMediaElements - suspended-context discipline[2m > [22m[2mstill updates effects when the context is running (unchanged behavior)
+[22m[39m[MediaProcessor] Processing 1 media element(s). Audio effects: true
+
+[90mstdout[2m | tests/media-processor.test.ts[2m > [22m[2mMediaProcessor.processMediaElements - suspended-context discipline[2m > [22m[2mnever touches a closed context
+[22m[39m[MediaProcessor] Processing 1 media element(s). Audio effects: true
+
+[90mstdout[2m | tests/media-processor.test.ts[2m > [22m[2mMediaProcessor.processMediaElements - suspended-context discipline[2m > [22m[2mtells the skip-silence controller about the change even when no graph is built
+[22m[39m[MediaProcessor] Processing 1 media element(s). Audio effects: false
+
+ [32m✓[39m tests/media-processor.test.ts [2m([22m[2m27 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+ [32m✓[39m tests/media-detector.test.ts [2m([22m[2m32 tests[22m[2m)[22m[33m 375[2mms[22m[39m
+ [32m✓[39m tests/skip-silence-regressions.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 56[2mms[22m[39m
+ [32m✓[39m tests/normaliser-regressions.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32m✓[39m tests/equalizer.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 1267[2mms[22m[39m
+     [33m[2m✓[22m[39m renders one focusable slider per band [33m 373[2mms[22m[39m
+[90mstdout[2m | tests/off-mode-regression.test.ts[2m > [22m[2m2026-10-24 Off-mode regressions[2m > [22m[2mMediaProcessor.stopManagingAll (the Off entry point)[2m > [22m[2mneutralises the graph and restores the site rate and volume
+[22m[39m[MediaProcessor] Processing 1 media element(s). Audio effects: true
+
+[90mstdout[2m | tests/off-mode-regression.test.ts[2m > [22m[2m2026-10-24 Off-mode regressions[2m > [22m[2mMediaProcessor.stopManagingAll (the Off entry point)[2m > [22m[2mstands the skip-silence controller down for the whole page
+[22m[39m[MediaProcessor] Processing 1 media element(s). Audio effects: true
+
+ [32m✓[39m tests/off-mode-regression.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 71[2mms[22m[39m
+[90mstdout[2m | tests/limiter-output-ceiling.test.ts[2m > [22m[2mlimiter output ceiling (real Chromium render)[2m > [22m[2mno sample exceeds full scale for sine, abrupt step or impulse
+[22m[39mlimiter ceiling peaks: sine=0.9881  step=0.9881  impulse=0.9881
+
+ [32m✓[39m tests/limiter-output-ceiling.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 2607[2mms[22m[39m
+ [32m✓[39m tests/welcome-page.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 768[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps the pinning guide collapsed until asked, and announces the change [33m 693[2mms[22m[39m
+ [32m✓[39m tests/content-script-wiring.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+[90mstdout[2m | tests/native-media-state.test.ts[2m > [22m[2mOff after a SPEED-ONLY change (live-CDP regression)[2m > [22m[2mrestores the site rate even though the element never entered the audio graph
+[22m[39m[MediaProcessor] Processing 1 media element(s). Audio effects: false
+
+ [32m✓[39m tests/native-media-state.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 83[2mms[22m[39m
+[90mstderr[2m | tests/iframe-hostname-handler.test.ts[2m > [22m[2msetupHostnameDetection (subframe) — retry loop[2m > [22m[2mfalls back to its own hostname after the 10s timeout when nobody answers
+[22m[39m[ContentScript iFrame] No hostname from top after 10000ms. Using own hostname: localhost.
+
+ [32m✓[39m tests/iframe-hostname-handler.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+[90mstderr[2m | tests/popup-save-failure.test.ts[2m > [22m[2mpopup save feedback[2m > [22m[2mshows a quota error and rolls back the optimistic value when the write cannot fit sync
+[22m[39mFailed to update settings via debounce: SettingsQuotaError: Settings do not fit the 7000-byte sync budget even after evicting older sites
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39mtests/popup-save-failure.test.ts:92:9
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+
+[90mstderr[2m | tests/popup-save-failure.test.ts[2m > [22m[2mpopup save feedback[2m > [22m[2mshows a generic error and rolls back when persistence fails for any other reason
+[22m[39mFailed to update settings via debounce: Error: sync unavailable
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39mtests/popup-save-failure.test.ts:115:26
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+
+ [32m✓[39m tests/needs-audio-processing.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+[90mstderr[2m | tests/popup-save-failure.test.ts[2m > [22m[2mpopup save feedback[2m > [22m[2mclears a previous error once a later edit succeeds
+[22m[39mFailed to update settings via debounce: SettingsQuotaError: too big
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/volume-and-video-pro/[39mtests/popup-save-failure.test.ts:167:30
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+
+[90mstderr[2m | tests/message-handler.test.ts[2m > [22m[2msetupMessageHandler port discipline[2m > [22m[2mreturns true (keeps port open) for a handled async message type
+[22m[39mMessage Handler: GET_INITIAL_SETTINGS received without hostname.
+
+[90mstderr[2m | tests/message-handler.test.ts[2m > [22m[2mmessage handler — strict hostname extraction (audit 2026-10-22)[2m > [22m[2mdoes not create a site key from a browser-internal sender URL
+[22m[39mMessage Handler: GET_INITIAL_SETTINGS received without hostname.
+
+ [32m✓[39m tests/message-handler.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/popup-save-failure.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 2335[2mms[22m[39m
+     [33m[2m✓[22m[39m shows a quota error and rolls back the optimistic value when the write cannot fit sync [33m 683[2mms[22m[39m
+     [33m[2m✓[22m[39m shows a generic error and rolls back when persistence fails for any other reason [33m 325[2mms[22m[39m
+     [33m[2m✓[22m[39m stays silent when the write succeeds [33m 373[2mms[22m[39m
+     [33m[2m✓[22m[39m tells the user which sites the sync byte budget dropped [33m 314[2mms[22m[39m
+     [33m[2m✓[22m[39m clears a previous error once a later edit succeeds [33m 637[2mms[22m[39m
+ [32m✓[39m tests/types.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m tests/browser-api.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+[90mstdout[2m | tests/content-script-startup-order.test.ts[2m > [22m[2mcontent script start-up order[2m > [22m[2mregisters the message listener before publishing the diagnostic hook
+[22m[39m[VVP] [ContentScript] Initializing script for hostname: example.com
+[VVP] [ContentScript DEBUG] Applying initial settings for localhost
+[VVP] [ContentScript DEBUG] processMedia called for localhost
+[VVP] [ContentScript] awaiting settings initialization
+
+[90mstdout[2m | tests/content-script-startup-order.test.ts[2m > [22m[2mcontent script start-up order[2m > [22m[2mregisters the message listener before publishing the diagnostic hook
+[22m[39m[VVP] [ContentScript DEBUG] Found 0 media elements
+[VVP] [ContentScript] Site is Off — not attaching media hooks
+
+ [32m✓[39m tests/content-script-startup-order.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+ [32m✓[39m tests/hostname.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m23 passed[39m[22m[90m (23)[39m
+[2m      Tests [22m [1m[32m350 passed[39m[22m[90m (350)[39m
+[2m   Start at [22m 03:44:38
+[2m   Duration [22m 31.45s[2m (transform 4.25s, setup 0ms, import 5.88s, tests 11.24s, environment 37.93s)[22m
+

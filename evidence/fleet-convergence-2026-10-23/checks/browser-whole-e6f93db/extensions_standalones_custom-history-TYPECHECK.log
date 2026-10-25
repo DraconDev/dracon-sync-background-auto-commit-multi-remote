@@ -1,0 +1,38 @@
+
+> custom-history@0.243.1 compile
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G✔ Built extension in 1.990 s
+  ├─ .output/chrome-mv3/manifest.json                                 761 B    
+  ├─ .output/chrome-mv3/dashboard.html                                843 B    
+  ├─ .output/chrome-mv3/rule-editor.html                              764 B    
+  ├─ .output/chrome-mv3/welcome.html                                  1.2 kB   
+  ├─ .output/chrome-mv3/background.js                                 11.29 kB 
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-html-plugins-DEFbuzoD.js  837 B    
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-plugins-lmjTq7WI.js       118 B    
+  ├─ .output/chrome-mv3/chunks/dashboard-DkIKFCLT.js                  43.51 kB 
+  ├─ .output/chrome-mv3/chunks/nanoid-DDG6EL6n.js                     2 kB     
+  ├─ .output/chrome-mv3/chunks/review-ask-20IlxTMh.js                 8.02 kB  
+  ├─ .output/chrome-mv3/chunks/rule-editor-ubXYi5xg.js                2.35 kB  
+  ├─ .output/chrome-mv3/chunks/RuleEditor-Dyyu4CFX.js                 22.03 kB 
+  ├─ .output/chrome-mv3/chunks/welcome-WzIJVUdU.js                    479 B    
+  ├─ .output/chrome-mv3/assets/RuleEditor-BsKNDg4r.css                17.04 kB 
+  ├─ .output/chrome-mv3/assets/welcome-Y5ANY7Y0.css                   2.04 kB  
+  ├─ .output/chrome-mv3/_locales/de/messages.json                     293 B    
+  ├─ .output/chrome-mv3/_locales/en/messages.json                     341 B    
+  ├─ .output/chrome-mv3/_locales/es/messages.json                     312 B    
+  ├─ .output/chrome-mv3/_locales/pt_BR/messages.json                  310 B    
+  ├─ .output/chrome-mv3/fonts/Inter-Bold.woff2                        114.84 kB
+  ├─ .output/chrome-mv3/fonts/Inter-Medium.woff2                      114.35 kB
+  ├─ .output/chrome-mv3/fonts/Inter-Regular.woff2                     111.27 kB
+  ├─ .output/chrome-mv3/fonts/Inter-SemiBold.woff2                    114.81 kB
+  ├─ .output/chrome-mv3/icon128.png                                   793 B    
+  ├─ .output/chrome-mv3/icon16.png                                    135 B    
+  ├─ .output/chrome-mv3/icon32.png                                    228 B    
+  └─ .output/chrome-mv3/icon48.png                                    314 B    
+Σ Total size: 571.27 kB                                             
+✔ Finished in 3.122 s

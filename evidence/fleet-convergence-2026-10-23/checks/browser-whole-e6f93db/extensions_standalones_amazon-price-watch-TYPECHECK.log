@@ -1,0 +1,34 @@
+
+> amazon-price-watch@0.1.0 precompile
+> node scripts/ensure-wxt.mjs
+
+
+> amazon-price-watch@0.1.0 compile
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G✔ Built extension in 3.425 s
+  ├─ .output/chrome-mv3/manifest.json                  2.16 kB 
+  ├─ .output/chrome-mv3/options.html                   21.73 kB
+  ├─ .output/chrome-mv3/popup.html                     16.21 kB
+  ├─ .output/chrome-mv3/welcome.html                   1.11 kB 
+  ├─ .output/chrome-mv3/background.js                  25.36 kB
+  ├─ .output/chrome-mv3/chunks/aliexpress-DwZm0ify.js  17.27 kB
+  ├─ .output/chrome-mv3/chunks/browser-BnURzfs5.js     875 B   
+  ├─ .output/chrome-mv3/chunks/options-Bm42GPHu.js     11.74 kB
+  ├─ .output/chrome-mv3/chunks/popup-BYZzNbxi.js       18.33 kB
+  ├─ .output/chrome-mv3/chunks/welcome-bYny9rf7.js     326 B   
+  ├─ .output/chrome-mv3/content-scripts/amazon.js      56.7 kB 
+  ├─ .output/chrome-mv3/assets/welcome-6b9mfk1u.css    1.41 kB 
+  ├─ .output/chrome-mv3/_locales/en/messages.json      302 B   
+  ├─ .output/chrome-mv3/icon/128.png                   6.31 kB 
+  ├─ .output/chrome-mv3/icon/16.png                    797 B   
+  ├─ .output/chrome-mv3/icon/32.png                    1.69 kB 
+  ├─ .output/chrome-mv3/icon/48.png                    2.58 kB 
+  ├─ .output/chrome-mv3/icon/512.png                   22.98 kB
+  └─ .output/chrome-mv3/icon/96.png                    4.91 kB 
+Σ Total size: 212.78 kB                              
+✔ Finished in 4.355 s

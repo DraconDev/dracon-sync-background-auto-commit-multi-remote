@@ -1,0 +1,31 @@
+
+> volume-and-video-pro@3.22.28 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G✔ Built extension in 6.683 s
+  ├─ .output/chrome-mv3/manifest.json                                 869 B   
+  ├─ .output/chrome-mv3/popup.html                                    853 B   
+  ├─ .output/chrome-mv3/privacy.html                                  5.73 kB 
+  ├─ .output/chrome-mv3/welcome.html                                  5.85 kB 
+  ├─ .output/chrome-mv3/background.js                                 14.53 kB
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-html-plugins-DPbbfBKe.js  779 B   
+  ├─ .output/chrome-mv3/chunks/popup-OqpZukj3.js                      85.35 kB
+  ├─ .output/chrome-mv3/chunks/welcome-BC-JKYo7.js                    836 B   
+  ├─ .output/chrome-mv3/content-scripts/content.js                    39.74 kB
+  ├─ .output/chrome-mv3/assets/popup-DQVzkWW6.css                     37.14 kB
+  ├─ .output/chrome-mv3/assets/welcome-CGv4WJ8C.css                   20.83 kB
+  ├─ .output/chrome-mv3/_locales/de/messages.json                     241 B   
+  ├─ .output/chrome-mv3/_locales/en/messages.json                     239 B   
+  ├─ .output/chrome-mv3/_locales/es/messages.json                     251 B   
+  ├─ .output/chrome-mv3/_locales/pt_BR/messages.json                  246 B   
+  ├─ .output/chrome-mv3/icon/128.png                                  16.07 kB
+  ├─ .output/chrome-mv3/icon/16.png                                   3.04 kB 
+  ├─ .output/chrome-mv3/icon/32.png                                   4.14 kB 
+  ├─ .output/chrome-mv3/icon/48.png                                   5.62 kB 
+  └─ .output/chrome-mv3/icon/96.png                                   11.57 kB
+Σ Total size: 253.93 kB                                             
+✔ Finished in 7.846 s

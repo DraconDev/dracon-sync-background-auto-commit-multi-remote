@@ -1,0 +1,26 @@
+
+> @dracon/full-page-screenshot@1.0.0 test
+> vitest run --passWithNoTests
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/full-page-screenshot[39m
+
+ [32m✓[39m tests/wxtConfig.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m tests/reviewAsk.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m utils/store.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m utils/captureEligibility.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+[90mstderr[2m | utils/image.test.ts[2m > [22m[2mcropImage[2m > [22m[2mshould return null for invalid src
+[22m[39mCrop error: Error: Image load timed out: invalid
+    at Timeout._onTimeout [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/full-page-screenshot/[39mutils/image.ts:10:14[90m)[39m
+[90m    at listOnTimeout (node:internal/timers:605:17)[39m
+[90m    at processTimers (node:internal/timers:541:7)[39m
+
+ [32m✓[39m utils/image.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 2028[2mms[22m[39m
+     [33m[2m✓[22m[39m should reject on invalid src [33m 1007[2mms[22m[39m
+     [33m[2m✓[22m[39m should return null for invalid src [33m 1012[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+[2m      Tests [22m [1m[32m36 passed[39m[22m[90m (36)[39m
+[2m   Start at [22m 03:28:30
+[2m   Duration [22m 5.68s[2m (transform 418ms, setup 208ms, import 355ms, tests 2.07s, environment 5.19s)[22m
+

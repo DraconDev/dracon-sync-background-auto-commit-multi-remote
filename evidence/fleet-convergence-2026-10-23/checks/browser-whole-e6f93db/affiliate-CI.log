@@ -1,0 +1,517 @@
+==> [0/4] shell syntax preflight (bash -n)
+==> [1/5] verify-urls.sh self-test (extractor + classifier)
+SELFTEST OK
+==> [2/5] unit tests (bun test — affiliate engine)
+bun test v1.3.14 (0d9b296a)
+
+build.test.ts:
+(pass) build deal-dashboard passes validation (or N78 scaffold for price-tracker), blocked at N116 [1422.47ms]
+(pass) build price-tracker passes validation (or N78 scaffold for price-tracker), blocked at N78 [302.46ms]
+(pass) N122: direct link with invalid tagField chars is rejected (N130) [197.15ms]
+(pass) N126: direct link with tagField:null + prebuilt url passes validate_config (N130) [728.58ms]
+(pass) N133: config with no links and no trackedRetailers is rejected (pins N78) (N133) [190.11ms]
+(pass) N58: disclosure without a commission statement is rejected (N140) [237.35ms]
+(pass) N103: active link with a placeholder URL is rejected (N140) [250.21ms]
+(pass) N80: direct link missing tagField + url/urlTemplate is rejected (N144) [259.24ms]
+(pass) N98: redirect link to unknown host is rejected (N144) [380.45ms]
+(pass) N85: link with empty program is rejected (N145) [188.06ms]
+(pass) N83: link with empty merchant is rejected (N145) [301.93ms]
+(pass) N27: active link with placeholder tag is rejected (N145) [352.71ms]
+(pass) N59: duplicate link program/merchant is rejected (N146) [258.74ms]
+(pass) N147: valid price-tracker config reaches validation (baseline) [963.18ms]
+(pass) N98-retailer: redirect to unknown host is rejected (N147) [167.72ms]
+(pass) N103-retailer: redirect with real URL but empty tag is rejected (N147) [245.44ms]
+(pass) N69: retailer host not covered by host_permissions is rejected (N147) [159.55ms]
+(pass) N69: unused host_permission is rejected (N147) [238.45ms]
+(pass) N72: link URL not http(s) is rejected (N148) [191.35ms]
+(pass) N72-retailer: retailer URL not http(s) is rejected (N148) [203.14ms]
+(pass) N27-retailer: active retailer with placeholder URL is rejected (N148) [162.38ms]
+(pass) N59-retailer: duplicate trackedRetailers program is rejected (N148) [242.88ms]
+(pass) N121: manifest referencing a 0-byte file is rejected (N151) [530.86ms]
+(pass) N92: empty extension string is rejected (N151) [135.80ms]
+(pass) real configs carry FTC commission disclosure at all places (N154) [133.13ms]
+(pass) both engine configs carry the exact "at no extra cost to you" fragment (N314) [0.37ms]
+(pass) both configs carry a non-empty inUISettings disclosure (N317) [0.41ms]
+(pass) both configs carry a non-empty storeListing disclosure (N320) [0.12ms]
+(pass) both configs carry a non-empty onboarding disclosure (N321) [0.13ms]
+(pass) both configs carry a non-empty singlePurposeField (N322) [0.12ms]
+(pass) both configs disclose all 4 required places (N324) [6.19ms]
+(pass) N155: redirect link missing both url and urlTemplate is rejected [346.57ms]
+(pass) N155: redirect retailer missing both url and urlTemplate is rejected [211.71ms]
+(pass) N157: unknown top-level config key is rejected by schema [573.02ms]
+(pass) N162: unknown price-tracker config key is rejected by schema [271.80ms]
+(pass) N88: tileRatio out of [0,1] is rejected [191.52ms]
+(pass) N169: nonAffiliateTiles item missing name/url is rejected [276.64ms]
+(pass) N26: direct link missing tag is rejected [179.26ms]
+(pass) N171: link with unknown property is rejected by schema [411.67ms]
+(pass) N82: <all_urls> host_permissions is rejected [756.40ms]
+(pass) N65: manifest missing singlePurposeField is rejected [828.60ms]
+(pass) N70: risky permission is rejected [757.80ms]
+(pass) N71: missing icon file is rejected [918.13ms]
+(pass) N89: missing 128 icon size is rejected [951.43ms]
+(pass) N74: invalid version is rejected [1260.87ms]
+(pass) N76: over-long name is rejected [2477.67ms]
+(pass) N76: name implying Google/Chrome is rejected [1432.62ms]
+(pass) N77: non-PNG icon is rejected [1198.99ms]
+(pass) N73: default_locale with empty message is rejected [1375.39ms]
+(pass) N177: duplicate JSON keys in config.json is rejected [294.93ms]
+(pass) N178: link with unknown shape is rejected [191.40ms]
+(pass) N179: retailer with unknown shape is rejected [553.09ms]
+(pass) N180: config.json missing $schema is rejected [227.98ms]
+
+schema.test.ts:
+(pass) config.schema.json enums match the engine canonical vocabulary (N112) [8.09ms]
+(pass) price-tracker + deal-dashboard schema shape enums agree (N115) [5.50ms]
+(pass) config.schema.json link.required pins the canonical link contract (N119) [0.58ms]
+(pass) price-tracker.schema.json retailer.required pins the canonical contract (N120) [0.13ms]
+(pass) price-tracker.schema.json retailer.window pins the N81 window format (N124) [7.34ms]
+(pass) config.schema.json link.tagField allows null (N128, parity N126) [2.31ms]
+(pass) config.schema.json link.window pattern matches N81/N124 (N141) [0.19ms]
+(pass) config.schema.json stays strict (additionalProperties:false + links required) (N143) [0.11ms]
+(pass) build.sh SHAPES matches schema shape enums (N158) [13.42ms]
+(pass) build.sh status allow-list matches schema status.enum (N160) [1.05ms]
+(pass) price-tracker.schema.json stays strict (N162) [1.03ms]
+(pass) config.schema.json link additionalProperties:false (N171) [0.09ms]
+(pass) shared config.schema.json requires disclosures (N191) [0.11ms]
+
+enrollment.test.ts:
+(pass) affiliate config paths resolve from the affiliate test root [2.71ms]
+(pass) deal-dashboard links are all planned in ENROLLMENT_SHEET (N62) [10.79ms]
+(pass) deal-dashboard placeholder links are exactly the known unfilled direct programs (N111) [1.07ms]
+(pass) price-tracker retailers are all planned in ENROLLMENT_SHEET (N131) [0.39ms]
+(pass) ENROLLMENT_SHEET per-link fill map covers every config.json link (N198) [1.97ms]
+(pass) all config.json placeholder tokens documented (N214) [1.02ms]
+(pass) config.json disclosure matches canonical text (N219) [0.86ms]
+
+verify-urls.test.ts:
+(pass) verify-urls.sh --self-test passes offline (N153) [1968.71ms]
+(pass) package.json verify:green chains green gates only (N206) [0.25ms]
+(pass) verify-urls.sh DOCS includes ENROLLMENT_SHEET.md (N218) [0.10ms]
+
+build-safety.test.ts:
+(pass) build all reports failed extensions and preserves their previous dist output [1053.21ms]
+(pass) manifest gates still run when _locales/en/messages.json is absent [440.90ms]
+
+docs.test.ts:
+(pass) no broken relative .md links in docs (N61/N134) [86.44ms]
+(pass) broken cross-dir .. .md link is detected (N134) [0.58ms]
+(pass) COMPETITOR_DELIVERY_RESEARCH.md integrity (N135) [0.21ms]
+(pass) AFFILIATE_CODES_WE_CAN_GET.md integrity (N139) [0.14ms]
+(pass) AFFILIATE_LINK_COLLECTION.md integrity (N142) [0.12ms]
+(pass) AFFILIATE_SIGNUP_GUIDE.md integrity (N149) [1.07ms]
+(pass) ENROLLMENT_SHEET.md integrity (N150) [0.32ms]
+(pass) signup-guide networks are all covered by the enrollment plan (N161) [0.39ms]
+(pass) signup-guide networks are all described in codes-we-can-get (N163) [0.17ms]
+(pass) signup-guide networks are all in the affiliate-link collection (N165) [2.05ms]
+(pass) each signup-guide network section has a Finding Your subsection (N167) [0.87ms]
+(pass) Tier-0 enrollment checklist is turnkey per program (N202) [0.55ms]
+(pass) affiliate tiles are labeled partner/affiliate shortcuts (N203) [0.26ms]
+(pass) ENROLLMENT_RUNBOOK consolidates delivery + code placement (N204) [0.13ms]
+(pass) COMPETITOR_DELIVERY_RESEARCH documents both delivery channels (N208) [0.91ms]
+(pass) README links ENROLLMENT_RUNBOOK.md (N211) [0.10ms]
+(pass) README links COMPETITOR_DELIVERY_RESEARCH.md (N339) [0.06ms]
+(pass) README mentions anti-blindside (N342) [0.05ms]
+(pass) CORPUS_INDEX links COMPETITOR_DELIVERY_RESEARCH.md (N348) [0.09ms]
+(pass) CORPUS_INDEX mentions anti-blindside (N351) [0.07ms]
+(pass) delivery research keeps mellowtel data point (N354) [0.10ms]
+(pass) README links AFFILIATE_LINK_COLLECTION.md (N215) [0.04ms]
+(pass) DISCLOSURE_SPEC requires consent before link fires (N216) [0.86ms]
+(pass) AFFILIATE_SIGNUP_GUIDE links ENROLLMENT_RUNBOOK (N217) [0.15ms]
+(pass) ENROLLMENT_RUNBOOK has post-enrollment verification checklist (N212) [0.06ms]
+(pass) DECISION_BRIEF links ENROLLMENT_RUNBOOK (N220) [0.11ms]
+(pass) ENROLLMENT_RUNBOOK names both engine paths (N221) [0.05ms]
+(pass) AFFILIATE_CODES_WE_CAN_GET links ENROLLMENT_RUNBOOK (N222) [0.06ms]
+(pass) ENROLLMENT_RUNBOOK §3 names Tier-0 programs (N223) [0.06ms]
+(pass) AFFILIATE_SIGNUP_GUIDE links ENROLLMENT_SHEET (N224) [0.07ms]
+(pass) ENROLLMENT_RUNBOOK links ENROLLMENT_SHEET (N225) [0.04ms]
+(pass) ENROLLMENT_RUNBOOK §2 names exact engine paths (N226) [0.05ms]
+(pass) CODES §E lists Tier-0 tag schemas (N227) [0.08ms]
+(pass) DISCLOSURE_SPEC references engine consent gate N187 (N228) [0.03ms]
+(pass) COMPETITOR_DELIVERY references CWS (N229) [0.07ms]
+(pass) SIGNUP_GUIDE notes ShareASale->Awin merge (N230) [0.06ms]
+(pass) DISCLOSURE_SPEC references fail-open (N231) [0.03ms]
+(pass) ENROLLMENT_RUNBOOK §4 references CWS + 2025 (N232) [0.05ms]
+(pass) DECISION_BRIEF links ENROLLMENT_SHEET (N233) [0.08ms]
+(pass) CODES §A.1 lists Tier-0 signup URLs (N234) [0.10ms]
+(pass) DISCLOSURE_SPEC contains canonical disclosure text (N235) [0.05ms]
+(pass) AFFILIATE_LINK_COLLECTION wired to delivery/search (N236) [0.19ms]
+(pass) COMPETITOR_DELIVERY references consent + disclosure (N237) [0.18ms]
+(pass) README links DISCLOSURE_SPEC + CODES (N238) [0.06ms]
+(pass) DECISION_BRIEF links DISCLOSURE_SPEC (N239) [0.08ms]
+(pass) both engines carry disclosure core (N240) [1.44ms]
+(pass) CODES links ENROLLMENT_SHEET (N241) [0.09ms]
+(pass) DISCLOSURE_SPEC names CWS + AMO (N242) [0.05ms]
+(pass) ENROLLMENT_RUNBOOK links DISCLOSURE_SPEC (N243) [0.04ms]
+(pass) SIGNUP_GUIDE links DISCLOSURE_SPEC (N244) [0.08ms]
+(pass) ENROLLMENT_SHEET has status column (N245) [0.25ms]
+(pass) COMPETITOR_DELIVERY references tile (N246) [0.17ms]
+(pass) LINK_COLLECTION names delivery method (N247) [0.37ms]
+(pass) RUNBOOK §5 references verify pipeline (N248) [0.07ms]
+(pass) SIGNUP_GUIDE links all 3 key docs (N249) [0.18ms]
+(pass) DISCLOSURE_SPEC names 3 disclosure places (N250) [0.08ms]
+(pass) LINK_COLLECTION links CODES (N251) [0.09ms]
+(pass) RUNBOOK references verify:green (N252) [0.04ms]
+(pass) CODES links ENROLLMENT_RUNBOOK (N253) [0.06ms]
+(pass) ENROLLMENT_SHEET links ENROLLMENT_RUNBOOK (N254) [0.08ms]
+(pass) DISCLOSURE_SPEC explicit consent (N255) [0.42ms]
+(pass) ENROLLMENT_SHEET master fields (N256) [0.25ms]
+(pass) SIGNUP_GUIDE disclosure + consent (N257) [0.19ms]
+(pass) COMPETITOR_DELIVERY CWS + consent (N258) [0.18ms]
+(pass) DISCLOSURE_SPEC AMO + consent (N259) [0.05ms]
+(pass) RUNBOOK references consent (N260) [0.06ms]
+(pass) CODES references disclosure (N261) [1.50ms]
+(pass) LINK_COLLECTION references tile (N262) [0.18ms]
+(pass) ENROLLMENT_SHEET covers compliance (N263) [0.25ms]
+(pass) price-tracker config has disclosure (N264) [3.17ms]
+(pass) both configs have disclosure (N265) [0.20ms]
+(pass) DISCLOSURE_SPEC fail-open + explicit (N266) [0.07ms]
+(pass) COMPETITOR full UX finding (N267) [0.20ms]
+(pass) DISCLOSURE_SPEC no web-content injection (N268) [0.11ms]
+(pass) COMPETITOR both stores (N269) [0.17ms]
+(pass) CODES references Tier-0 (N270) [0.07ms]
+(pass) README references DECISION_BRIEF (N271) [0.04ms]
+(pass) CODES references A.1.1 (N272) [0.06ms]
+(pass) RUNBOOK covers price-tracker (N273) [0.07ms]
+(pass) DISCLOSURE_SPEC tile (N274) [0.05ms]
+(pass) COMPETITOR new-tab surface (N275) [0.16ms]
+(pass) both configs commission (N276) [0.13ms]
+(pass) CODES references commission (N277) [0.17ms]
+(pass) COMPETITOR references commission (N278) [0.19ms]
+(pass) README references ENROLLMENT_SHEET (N279) [0.06ms]
+(pass) LINK_COLLECTION links ENROLLMENT_SHEET (N280) [0.07ms]
+(pass) DISCLOSURE_SPEC no extra cost (N281) [0.06ms]
+(pass) COMPETITOR references Amazon (N282) [0.10ms]
+(pass) CODES references eBay (N283) [0.08ms]
+(pass) LINK_COLLECTION references Amazon (N284) [0.09ms]
+(pass) RUNBOOK references Tier-0 (N285) [0.05ms]
+(pass) RUNBOOK references eBay (N286) [0.04ms]
+(pass) COMPETITOR references Impact (N287) [0.06ms]
+(pass) CODES references Impact (N288) [0.16ms]
+(pass) RUNBOOK references Amazon (N289) [0.06ms]
+(pass) SHEET references deal-dashboard (N290) [0.10ms]
+(pass) LINK_COLLECTION references eBay (N291) [0.12ms]
+(pass) RUNBOOK references deal-dashboard (N292) [0.10ms]
+(pass) LINK_COLLECTION references deal-dashboard (N293) [2.36ms]
+(pass) CODES references deal-dashboard (N294) [0.26ms]
+(pass) CODES references ENROLLMENT_SHEET (N295) [0.06ms]
+(pass) LINK_COLLECTION links DISCLOSURE_SPEC (N296) [0.06ms]
+(pass) RUNBOOK references DISCLOSURE_SPEC (N297) [0.04ms]
+(pass) SHEET references DISCLOSURE_SPEC (N298) [0.08ms]
+(pass) LINK_COLLECTION references ENROLLMENT_RUNBOOK (N299) [0.25ms]
+(pass) LINK_COLLECTION references consent (N300) [0.16ms]
+(pass) SHEET references consent (N301) [0.24ms]
+(pass) LINK_COLLECTION references disclosure (N302) [0.16ms]
+(pass) RUNBOOK references disclosure (N303) [0.07ms]
+(pass) LINK_COLLECTION references Tier-0 (N304) [0.06ms]
+(pass) SHEET references disclosure (N305) [0.23ms]
+(pass) SPEC references commission (N306) [0.06ms]
+(pass) LINK_COLLECTION references commission (N307) [0.17ms]
+(pass) SHEET references commission (N308) [0.25ms]
+(pass) CODES references Amazon (N309) [0.07ms]
+(pass) SIGNUP_GUIDE mentions price-tracker (N310) [0.08ms]
+(pass) LINK_COLLECTION mentions price-tracker (N311) [0.06ms]
+(pass) CODES mentions price-tracker (N312) [0.08ms]
+(pass) SPEC states consent fails closed (N315) [0.06ms]
+
+shared/lib/attribution.test.ts:
+(pass) direct injects tagField param [2.26ms]
+(pass) redirect returns prebuilt url as-is [0.08ms]
+(pass) missing tag fails open (returns merchantUrl) [0.02ms]
+(pass) no config link produces a ?null= param (guards iter-27 fix) [1.02ms]
+(pass) direct with null tagField fails open (N24: no ?null= corruption) [0.04ms]
+(pass) redirect link with static url returns it (N25: VigLink fix) [0.03ms]
+(pass) deal-dashboard direct links substitute placeholders (N26: no literal {ASIN}/{slug}) [0.34ms]
+(pass) direct-tag alias behaves like direct (N36 vocabulary reconciliation) [0.04ms]
+(pass) network-redirect alias behaves like redirect (N36 vocabulary reconciliation) [0.04ms]
+(pass) every networks.* builder emits a handled shape with a real destination (N39) [0.55ms]
+(pass) every network builder window matches the canonical config schema pattern [3.89ms]
+(pass) price-tracker trackedRetailers all tag correctly via buildTaggedUrl (N44) [0.18ms]
+(pass) deal-dashboard config links all tag correctly via buildTaggedUrl (N47) [0.21ms]
+(pass) redirect link without a tag still returns its prebuilt url (no fail-open) [0.02ms]
+(pass) redirect link with no url falls back to merchantUrl, never undefined (N54) [0.03ms]
+(pass) every networks.* builder yields a valid http(s) URL with attribution (N56) [0.42ms]
+(pass) disclosure places state commission (FTC phrase) — N58 [0.18ms]
+(pass) no duplicate program/merchant within a config (N59) [0.16ms]
+(pass) link/retailer shapes are in the allowed vocabulary (N63) [0.17ms]
+(pass) nexus engine shares the direct/redirect shape vocabulary (N66) [0.55ms]
+(pass) buildTaggedUrl fails open on unknown shape (N113) [0.05ms]
+(pass) NETWORK_HOSTS derivation matches canonical allowlist (N117) [0.25ms]
+(pass) networkRedirect invokes function urlTemplate (N127) [0.10ms]
+(pass) each redirect network ctor resolves to a known network host (N136) [1.02ms]
+(pass) each direct network ctor returns a valid tagField/tag (N138) [0.13ms]
+(pass) buildTaggedUrl handles real configs without throwing and tags correctly (N152) [0.24ms]
+(pass) placeholder <PASTE> urls fail open to merchantUrl on click (N160) [0.06ms]
+(pass) no real active/enrolled entry ships a placeholder URL or OUR- tag (N159) [0.30ms]
+(pass) unknown/missing shape fails open to merchant URL (N164) [0.04ms]
+(pass) N181: direct-tag with malformed URL fails open (no throw) [0.96ms]
+(pass) N182: direct-tag, no entry.url + malformed merchantUrl fails open [0.04ms]
+(pass) N183: buildTaggedUrl refuses to tag without consent (CWS 2025 gate) [0.06ms]
+(pass) N186: consent gate holds for network-redirect links (CWS 2025) [0.06ms]
+(pass) price-tracker retailers tag via shared engine with consent, fail open without (N188) [0.13ms]
+(pass) both engines fail-closed on consent by default (N207) [0.13ms]
+
+ 232 pass
+ 0 fail
+ 226 expect() calls
+Ran 232 tests across 7 files. [28.71s]
+==> [2.5/5] affiliate-deals package tests (bun test — shared engine; vitest-compatible)
+bun test v1.3.14 (0d9b296a)
+
+tests/curation.test.ts:
+(pass) extensionDeals — global-only surface > emits only global use-type enrolled entries in core [0.67ms]
+(pass) extensionDeals — global-only surface > emits the same set regardless of locale (no geo-gating) [0.31ms]
+(pass) extensionDeals — global-only surface > keeps geo-gated entries out even for matching locale [0.04ms]
+(pass) extensionDeals — global-only surface > never emits a sale-type entry without opt-in [0.05ms]
+(pass) extensionDeals — global-only surface > emits sale-type behind explicit opt-in only [0.53ms]
+(pass) extensionDeals — global-only surface > never surfaces candidates [0.19ms]
+(pass) extensionDeals — global-only surface > flags expiring promos and can drop them [0.90ms]
+(pass) siteDeals — deals.dracon.uk surface > includes the global core [0.14ms]
+(pass) siteDeals — deals.dracon.uk surface > includes sale-type by default on the site [0.08ms]
+(pass) siteDeals — deals.dracon.uk surface > region-gates geo entries to the matching locale [0.09ms]
+
+tests/library.test.ts:
+(pass) DEAL_LIBRARY schema > every entry has the full disclosure surface [0.24ms]
+(pass) DEAL_LIBRARY schema > affiliate and utility entries are both present [0.09ms]
+(pass) DEAL_LIBRARY schema > every affiliated entry with a tag has a tagField for direct-tag shapes [0.17ms]
+(pass) DEAL_LIBRARY schema > use-type entries carry a reach tier; sale-type entries never do (Rule 5/6) [0.09ms]
+(pass) enrollment-state integrity (N192) > no enrolled AFFILIATE deal ships with an empty tag [0.07ms]
+(pass) enrollment-state integrity (N192) > NO empty-tag affiliate entries in DEAL_LIBRARY (pass-3 2026-08-17 cut them) [0.06ms]
+(pass) enrollment-state integrity (N192) > the real tags are wired for amazon, ebay, nordvpn, nordpass [0.15ms]
+(pass) disclosure copy > both disclosure strings are non-empty and mention commission [0.07ms]
+(pass) shipped-config integrity (pass-3 2026-08-17) > no OUR-* / <PASTE> / empty-tag placeholders in any shipped config.json [16.70ms]
+(pass) shipped-config integrity (pass-3 2026-08-17) > every enrolled config.json link has a real tag (no placeholder) [0.62ms]
+
+tests/regions.test.ts:
+(pass) regionCodeForLocale > extracts the region subtag [1.09ms]
+(pass) regionCodeForLocale > falls back to the default region [0.07ms]
+(pass) amazon regional routing > GB: clean co.uk without consent, tagged co.uk with consent [0.13ms]
+(pass) amazon regional routing > US: correct local page, never tagged (no US tag exists) [0.03ms]
+(pass) amazon regional routing > DE (OneLink-linked): clean local page, ll1 OneLink URL on consent [0.04ms]
+(pass) amazon regional routing > CA and the rest of the linked EU stores use the ll1 form too [0.12ms]
+(pass) amazon regional routing > unlisted markets: local store, untagged [0.16ms]
+(pass) amazon regional routing > unknown locale defaults to the GB home store [0.04ms]
+(pass) amazon regional routing > no locale → flat library behavior unchanged [0.12ms]
+(pass) ebay regional routing > GB: UK EPN redirect with consent, clean co.uk without [0.04ms]
+(pass) ebay regional routing > US: US EPN redirect (mkrid 711-53200-19255-0, siteid 0) with consent [0.04ms]
+(pass) ebay regional routing > unwired marketplaces: local store, untagged [0.02ms]
+(pass) ebay regional routing > unknown locale falls back to the UK home store (tagged) [0.03ms]
+(pass) entries without regional tables > locale is ignored for unlisted entries [0.03ms]
+(pass) entries without regional tables > resolveRegionalLink returns the regional pair or null [0.04ms]
+
+tests/clickTag.test.ts:
+(pass) matchEntryByUrl (3-predicate URL match) > matches the flat registry URL [0.12ms]
+(pass) matchEntryByUrl (3-predicate URL match) > matches the locale-baked regional clean URL (DE amazon.de) [0.08ms]
+(pass) matchEntryByUrl (3-predicate URL match) > returns undefined for non-registry URLs [1.16ms]
+(pass) matchEntryByUrl (3-predicate URL match) > non-affiliate registry entries match but clickTag passes them clean [0.31ms]
+(pass) matchEntryByUrl (3-predicate URL match) > returns undefined for empty input [0.03ms]
+(pass) matchEntryByUrl (3-predicate URL match) > without locale, regional URLs do not match (flat back-compat) [0.57ms]
+(pass) clickTag (shared click-tagger) > pre-resolved entry wins: GB amazon → UK tagged URL [0.05ms]
+(pass) clickTag (shared click-tagger) > URL-only resolution: DE amazon.de + de-DE → OneLink [0.05ms]
+(pass) clickTag (shared click-tagger) > US locale → clean US URL (no wrong-store tag) [0.04ms]
+(pass) clickTag (shared click-tagger) > unmatched URL passes through unchanged (fail-open) [0.08ms]
+(pass) clickTag (shared click-tagger) > consent is fail-closed: sponsored entry without consent → clean URL [0.03ms]
+(pass) clickTag (shared click-tagger) > explicit null entry disables URL matching (surfaces that never URL-match) [0.02ms]
+(pass) clickTag (shared click-tagger) > matches buildTaggedUrl for the resolved entry (single source of truth) [0.10ms]
+
+tests/tag.test.ts:
+(pass) buildTaggedUrl > appends the affiliate tag for direct-tag entries [0.10ms]
+(pass) buildTaggedUrl > refuses to tag without explicit consent (fail-closed, CWS 2025) [0.03ms]
+(pass) buildTaggedUrl > redirectUrl wins when consent is given (partner-verified pattern) [0.03ms]
+(pass) buildTaggedUrl > preserves existing query parameters when appending the tag [0.03ms]
+(pass) buildTaggedUrl > returns the merchant URL unchanged when the tag is empty (fail-open) [0.01ms]
+(pass) buildTaggedUrl > returns the merchant URL unchanged for non-affiliate entries [0.01ms]
+(pass) buildTaggedUrl > uses the correct tag field per program (Booking aid=, eBay campid=) [0.04ms]
+(pass) buildTaggedUrl > falls back to the merchant URL on malformed URLs [0.10ms]
+(pass) buildTaggedUrl > returns the merchant URL unchanged for network-redirect entries (fail-open, no fake URL) [0.03ms]
+(pass) buildTaggedUrl > URL-encodes the tag value when appending [0.02ms]
+(pass) buildTaggedUrl > overwrites an existing tag query param with the configured tag [0.03ms]
+(pass) buildTaggedUrl > does not append a tag for non-affiliate entries even when tag is set [0.02ms]
+(pass) buildTaggedUrl > handles an empty merchant URL gracefully (returns empty) [0.04ms]
+(pass) buildTaggedUrl > preserves URL fragments when appending the tag [0.02ms]
+(pass) buildTaggedUrl vocabulary tolerance (N36/N53) > treats direct and direct-tag identically [0.10ms]
+(pass) buildTaggedUrl vocabulary tolerance (N36/N53) > treats redirect and network-redirect identically (returns prebuilt url) [0.04ms]
+(pass) buildTaggedUrl vocabulary tolerance (N36/N53) > non-affiliate always returns the url (fail-open) [0.02ms]
+(pass) buildTaggedUrl vocabulary tolerance (N36/N53) > redirect without a tag still returns its prebuilt url (no fail-open) [0.02ms]
+(pass) AFFILIATE_BOOKMARK_TAGS (canonical name) > only includes entries that are affiliated AND have a real tag [0.16ms]
+(pass) AFFILIATE_BOOKMARK_TAGS (canonical name) > size matches the count of fully-wired affiliate entries [0.05ms]
+(pass) AFFILIATE_BOOKMARK_TAGS (canonical name) > contains the click-time rewrite entries (amazon, ebay) [0.03ms]
+(pass) AFFILIATE_BOOKMARK_TAGS (canonical name) > excludes redirect-only entries (nordvpn/nordpass — no tagField, no rewrite) [0.02ms]
+(pass) AFFILIATE_TAG_BY_URL (deprecated alias backward compat) > points at the same map instance as the canonical name [0.01ms]
+(pass) affiliateBookmarkRewriter (canonical name) > appends the tag with the given field [0.02ms]
+(pass) affiliateBookmarkRewriter (canonical name) > uses the correct field per program [0.03ms]
+(pass) affiliateBookmarkRewriter (canonical name) > preserves existing query params and fragments [0.02ms]
+(pass) affiliateBookmarkRewriter (canonical name) > overwrites an existing tag param [0.02ms]
+(pass) affiliateBookmarkRewriter (canonical name) > returns the url unchanged when the tag is empty (fail-open) [0.02ms]
+(pass) affiliateBookmarkRewriter (canonical name) > returns the url unchanged on a malformed url (fail-open) [0.02ms]
+(pass) affiliateBookmarkRewriter (canonical name) > url-encodes the tag value [0.02ms]
+(pass) applyAffiliateTag (deprecated alias backward compat) > behaves identically to affiliateBookmarkRewriter [0.04ms]
+(pass) dealForEntry (no silent rewriting) > requires BOTH id and URL to match [0.11ms]
+(pass) dealForEntry (no silent rewriting) > tolerates trailing-slash and case variance [0.02ms]
+(pass) dealForEntry (no silent rewriting) > returns null for ids not in the library [0.02ms]
+(pass) buildTaggedUrl (region-aware — audit 2026-09-02 lock-in) > GB locale + consent: amazon.co.uk direct-tag, ebay.co.uk UK EPN [0.05ms]
+(pass) buildTaggedUrl (region-aware — audit 2026-09-02 lock-in) > GB locale + no consent: clean local store, no tag [0.03ms]
+(pass) buildTaggedUrl (region-aware — audit 2026-09-02 lock-in) > US locale + consent: amazon.com clean (no US tag exists), ebay.com US EPN [0.03ms]
+(pass) buildTaggedUrl (region-aware — audit 2026-09-02 lock-in) > US locale + no consent: clean local store, no tag [0.02ms]
+(pass) buildTaggedUrl (region-aware — audit 2026-09-02 lock-in) > DE locale + consent: amazon OneLink ll1 URL (server-side geo redirect) [0.04ms]
+(pass) buildTaggedUrl (region-aware — audit 2026-09-02 lock-in) > unknown locale falls back to the GB regional build [0.04ms]
+(pass) buildTaggedUrl (region-aware — audit 2026-09-02 lock-in) > locale=undefined falls through to the flat library behavior (UK home store) [0.03ms]
+
+ 89 pass
+ 0 fail
+ 274 expect() calls
+Ran 89 tests across 5 files. [170.00ms]
+==> [2.6/5] enrollment URL drift (strict: fail on real 404/410) — runs BEFORE build so drift is caught even if extension files are missing (N200)
+== Enrollment URL liveness (verify-urls.sh) ==
+OK    200  https://affiliate-program.amazon.com
+OK    202  https://amazon.com
+OK    202  https://booking.com
+WARN  403  WAF-botblock(maybe-live)  https://impact.com/publisher-signup
+OK    200  https://partnernetwork.ebay.com
+OK    200  https://partnerstack.com
+OK    200  https://rakutenadvertising.com
+OK    200  https://walmart.com
+OK    200  https://www.awin.com
+OK    200  https://www.awin.com/us/getting-started-sas
+OK    200  https://www.cj.com
+OK    200  https://affiliate-program.amazon.com
+OK    200  https://chromewebstore.google.com/detail/cuslr-essential-apps-in-y/ckenonjjcacieiocdmbhcmmgahbepjab
+OK    200  https://hubspot.com/affiliates
+OK    200  https://impact.com/get-started
+WARN  403  WAF-botblock(maybe-live)  https://nordvpn.com/affiliate/
+OK    200  https://partnernetwork.ebay.com
+OK    200  https://partnerstack.com
+OK    200  https://platform.sovrn.com/account/signup
+OK    200  https://rakutenadvertising.com
+OK    200  https://semrush.com/affiliate-program
+OK    200  https://www.awin.com
+OK    200  https://www.booking.com/affiliate-program/index.html
+OK    200  https://www.cj.com
+OK    200  https://www.etsy.com/affiliates
+OK    200  https://www.grammarly.com/affiliates
+OK    200  https://www.notion.so/affiliates
+OK    200  https://www.shareasale.com/affiliates/affiliate-signup.cfm
+OK    200  https://affiliate-program.amazon.com
+OK    200  https://affiliates.nordvpn.com/users/login.
+OK    200  https://bunny.net?ref=6uevqujmyc
+OK    200  https://cloud.google.com/free/docs/free-cloud-features
+OK    200  https://cloud.google.com/terms/supplemental-paid-credit
+OK    200  https://cloud.hi.cj.com/US-CJ-Lead-Form
+OK    200  https://cloud.vast.ai/?ref_id=210569
+OK    200  https://developers.google.com/terms
+OK    200  https://dracon.uk
+WARN  403  WAF-botblock(maybe-live)  https://go.nordpass.io/aff_c?offer_id=488&aff_id=153772&url_id=9356
+WARN  403  WAF-botblock(maybe-live)  https://go.nordvpn.net/aff_c?offer_id=15&aff_id=153772&url_id=902
+WARN  403  WAF-botblock(maybe-live)  https://go.nordvpn.net/aff_c?offer_id=15&aff_id=153772&url_id=902.
+OK    200  https://m.do.co/c/114182a6fc54
+OK    200  https://novita.ai/?ref=y2m5otq&utm_source=affiliate
+OK    200  https://partnernetwork.ebay.com
+OK    200  https://portals.aliexpress.com
+OK    200  https://runpod.io?ref=6nt4ms2a
+OK    200  https://www.digitalocean.com/?refcode=114182a6fc54&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge
+WARN  403  WAF-botblock(maybe-live)  https://www.g2a.com/n/reflink-b26bc082fb).
+WARN  403  WAF-botblock(maybe-live)  https://www.getyourguide.com/?partner_id=J2RACVT&utm_medium=online_publisher`.
+== Config link URL liveness (extensions/*/config.json) ==
+OK    200  https://calendar.google.com
+OK    200  https://drive.google.com
+OK    200  https://en.wikipedia.org
+OK    200  https://github.com
+WARN  403  WAF-botblock(maybe-live)  https://go.nordpass.io/aff_c?offer_id=488&aff_id=153772&url_id=9356
+WARN  403  WAF-botblock(maybe-live)  https://go.nordvpn.net/aff_c?offer_id=15&aff_id=153772&url_id=902
+OK    200  https://mail.google.com
+OK    200  https://news.ycombinator.com
+OK    200  https://s.click.aliexpress.com/e/_c3KmFhFZ
+OK    202  https://www.amazon.co.uk/
+WARN  403  WAF-botblock(maybe-live)  https://www.ebay.co.uk/?mkcid=1&mkrid=710-53481-19255-0&siteid=3&campid=5339180228&customid=dracon-newtab&toolid=10001&mkevt=1
+== Affiliate network host liveness (shared/lib/attribution.js networks) ==
+OK    200  https://awin1.com/
+OK    200  https://c.duomai.com/
+OK    200  https://click.linksynergy.com/
+WARN  403  WAF-botblock(maybe-live)  https://go.nordpass.io/
+OK    302  https://go.nordvpn.net/
+OK    200  https://impact.com/
+OK    200  https://www.jdoqocy.com/
+OK    307  https://redirect.viglink.com/
+== Source placeholder scan (shared/lib/attribution.js) ==
+OK    network-source-clean  /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/affiliate/shared/lib/attribution.js
+== summary: OK=57 WARN=11 DEAD=0 ==
+STRICT OK: no persistent 404/410 drift.
+==> [3/5] build deal-dashboard (affected-only: skipped unless the pushed range touches it)
+    skipped (untouched by pushed range)
+==> [4/5] build price-tracker (affected-only: skipped unless the pushed range touches it)
+    skipped (untouched by pushed range)
+==> [5/5] enrollment URL liveness (strict: fail on real 404/410 drift)
+== Enrollment URL liveness (verify-urls.sh) ==
+OK    200  https://affiliate-program.amazon.com
+OK    200  https://amazon.com
+OK    202  https://booking.com
+WARN  403  WAF-botblock(maybe-live)  https://impact.com/publisher-signup
+OK    200  https://partnernetwork.ebay.com
+OK    200  https://partnerstack.com
+OK    200  https://rakutenadvertising.com
+OK    200  https://walmart.com
+OK    200  https://www.awin.com
+OK    200  https://www.awin.com/us/getting-started-sas
+OK    200  https://www.cj.com
+OK    200  https://affiliate-program.amazon.com
+OK    200  https://chromewebstore.google.com/detail/cuslr-essential-apps-in-y/ckenonjjcacieiocdmbhcmmgahbepjab
+OK    200  https://hubspot.com/affiliates
+OK    200  https://impact.com/get-started
+WARN  403  WAF-botblock(maybe-live)  https://nordvpn.com/affiliate/
+OK    200  https://partnernetwork.ebay.com
+OK    200  https://partnerstack.com
+OK    200  https://platform.sovrn.com/account/signup
+OK    200  https://rakutenadvertising.com
+OK    200  https://semrush.com/affiliate-program
+OK    200  https://www.awin.com
+OK    200  https://www.booking.com/affiliate-program/index.html
+OK    200  https://www.cj.com
+OK    200  https://www.etsy.com/affiliates
+OK    200  https://www.grammarly.com/affiliates
+OK    200  https://www.notion.so/affiliates
+OK    200  https://www.shareasale.com/affiliates/affiliate-signup.cfm
+OK    200  https://affiliate-program.amazon.com
+OK    200  https://affiliates.nordvpn.com/users/login.
+OK    200  https://bunny.net?ref=6uevqujmyc
+OK    200  https://cloud.google.com/free/docs/free-cloud-features
+OK    200  https://cloud.google.com/terms/supplemental-paid-credit
+OK    200  https://cloud.hi.cj.com/US-CJ-Lead-Form
+OK    200  https://cloud.vast.ai/?ref_id=210569
+OK    200  https://developers.google.com/terms
+OK    200  https://dracon.uk
+WARN  403  WAF-botblock(maybe-live)  https://go.nordpass.io/aff_c?offer_id=488&aff_id=153772&url_id=9356
+WARN  403  WAF-botblock(maybe-live)  https://go.nordvpn.net/aff_c?offer_id=15&aff_id=153772&url_id=902
+WARN  403  WAF-botblock(maybe-live)  https://go.nordvpn.net/aff_c?offer_id=15&aff_id=153772&url_id=902.
+OK    200  https://m.do.co/c/114182a6fc54
+OK    200  https://novita.ai/?ref=y2m5otq&utm_source=affiliate
+OK    200  https://partnernetwork.ebay.com
+OK    200  https://portals.aliexpress.com
+OK    200  https://runpod.io?ref=6nt4ms2a
+OK    200  https://www.digitalocean.com/?refcode=114182a6fc54&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge
+WARN  403  WAF-botblock(maybe-live)  https://www.g2a.com/n/reflink-b26bc082fb).
+WARN  403  WAF-botblock(maybe-live)  https://www.getyourguide.com/?partner_id=J2RACVT&utm_medium=online_publisher`.
+== Config link URL liveness (extensions/*/config.json) ==
+OK    200  https://calendar.google.com
+OK    200  https://drive.google.com
+OK    200  https://en.wikipedia.org
+OK    200  https://github.com
+WARN  403  WAF-botblock(maybe-live)  https://go.nordpass.io/aff_c?offer_id=488&aff_id=153772&url_id=9356
+WARN  403  WAF-botblock(maybe-live)  https://go.nordvpn.net/aff_c?offer_id=15&aff_id=153772&url_id=902
+OK    200  https://mail.google.com
+OK    200  https://news.ycombinator.com
+OK    200  https://s.click.aliexpress.com/e/_c3KmFhFZ
+OK    202  https://www.amazon.co.uk/
+WARN  403  WAF-botblock(maybe-live)  https://www.ebay.co.uk/?mkcid=1&mkrid=710-53481-19255-0&siteid=3&campid=5339180228&customid=dracon-newtab&toolid=10001&mkevt=1
+== Affiliate network host liveness (shared/lib/attribution.js networks) ==
+OK    200  https://awin1.com/
+OK    200  https://c.duomai.com/
+OK    200  https://click.linksynergy.com/
+WARN  403  WAF-botblock(maybe-live)  https://go.nordpass.io/
+OK    302  https://go.nordvpn.net/
+OK    200  https://impact.com/
+OK    200  https://www.jdoqocy.com/
+OK    307  https://redirect.viglink.com/
+== Source placeholder scan (shared/lib/attribution.js) ==
+OK    network-source-clean  /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/affiliate/shared/lib/attribution.js
+== summary: OK=57 WARN=11 DEAD=0 ==
+STRICT OK: no persistent 404/410 drift.
+CI OK: tests + required builds green.

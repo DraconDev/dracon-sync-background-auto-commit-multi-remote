@@ -1,0 +1,46 @@
+
+> @dracon/api-debugger@2.5.5 test
+> vitest run --passWithNoTests
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/api-debugger[39m
+
+ [32m✓[39m tests/features.test.ts [2m([22m[2m84 tests[22m[2m)[22m[33m 302[2mms[22m[39m
+ [32m✓[39m tests/exhaustive.test.ts [2m([22m[2m273 tests[22m[2m)[22m[33m 400[2mms[22m[39m
+ [32m✓[39m tests/functions.test.ts [2m([22m[2m96 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+ [32m✓[39m tests/units.test.ts [2m([22m[2m106 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+ [32m✓[39m tests/coverage.test.ts [2m([22m[2m70 tests[22m[2m)[22m[32m 115[2mms[22m[39m
+ [32m✓[39m tests/extensive.test.ts [2m([22m[2m109 tests[22m[2m)[22m[32m 277[2mms[22m[39m
+[90mstderr[2m | tests/profiles-crud.test.ts[2m > [22m[2mProfile System: CRUD Operations[2m > [22m[2mgetProfiles[2m > [22m[2mreturns default profiles on storage error
+[22m[39m[api-debugger] [Profiles] Storage read failed: Error: Storage error
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/api-debugger/[39mtests/profiles-crud.test.ts:124:49
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+
+ [32m✓[39m tests/profiles-crud.test.ts [2m([22m[2m34 tests[22m[2m)[22m[32m 115[2mms[22m[39m
+ [32m✓[39m tests/more.test.ts [2m([22m[2m58 tests[22m[2m)[22m[32m 121[2mms[22m[39m
+ [32m✓[39m tests/wxtConfig.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/github-sync.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 85[2mms[22m[39m
+ [32m✓[39m tests/importers.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 77[2mms[22m[39m
+ [32m✓[39m tests/scriptExecutor.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 83[2mms[22m[39m
+ [32m✓[39m tests/oauth2.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 57[2mms[22m[39m
+ [32m✓[39m tests/ai-fallback.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m tests/byok.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+ [32m✓[39m tests/diagnostics.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 51[2mms[22m[39m
+ [32m✓[39m tests/diff.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/export.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/sw-diagnostics.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/storeCopy.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m20 passed[39m[22m[90m (20)[39m
+[2m      Tests [22m [1m[32m969 passed[39m[22m[90m (969)[39m
+[2m   Start at [22m 03:13:08
+[2m   Duration [22m 31.60s[2m (transform 6.42s, setup 1.85s, import 6.72s, tests 1.90s, environment 36.73s)[22m
+

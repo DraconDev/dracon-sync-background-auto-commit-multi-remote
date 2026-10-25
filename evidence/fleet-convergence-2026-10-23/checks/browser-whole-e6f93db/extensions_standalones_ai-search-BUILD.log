@@ -1,0 +1,39 @@
+
+> ai-search@0.1.0 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[1G✔ Built extension in 5.832 s
+  ├─ .output/chrome-mv3/manifest.json                           905 B    
+  ├─ .output/chrome-mv3/results.html                            647 B    
+  ├─ .output/chrome-mv3/search.html                             546 B    
+  ├─ .output/chrome-mv3/settings.html                           565 B    
+  ├─ .output/chrome-mv3/welcome.html                            481 B    
+  ├─ .output/chrome-mv3/background.js                           1.82 kB  
+  ├─ .output/chrome-mv3/chunks/ambient-BIShUaRH.js              2.66 kB  
+  ├─ .output/chrome-mv3/chunks/optionalPerms-BbjqcNoz.js        643 B    
+  ├─ .output/chrome-mv3/chunks/results-Co1TUbX2.js              33.36 kB 
+  ├─ .output/chrome-mv3/chunks/search-CJIXEaRP.js               5.31 kB  
+  ├─ .output/chrome-mv3/chunks/settings-C4tiLUYd.js             18.67 kB 
+  ├─ .output/chrome-mv3/chunks/siteRanks.generated-DVX-sMuE.js  3.33 MB  
+  ├─ .output/chrome-mv3/chunks/style-rlzGxKKn.js                162.45 kB
+  ├─ .output/chrome-mv3/chunks/welcome-ULEuWaKJ.js              5.95 kB  
+  ├─ .output/chrome-mv3/assets/results-DIAV6rCK.css             14.47 kB 
+  ├─ .output/chrome-mv3/assets/search-B13T5OhN.css              5.83 kB  
+  ├─ .output/chrome-mv3/assets/settings-IJWf3lRQ.css            9.25 kB  
+  ├─ .output/chrome-mv3/assets/welcome-CRpgkZYB.css             3.58 kB  
+  ├─ .output/chrome-mv3/icon/128.png                            17.88 kB 
+  ├─ .output/chrome-mv3/icon/16.png                             662 B    
+  ├─ .output/chrome-mv3/icon/32.png                             1.85 kB  
+  ├─ .output/chrome-mv3/icon/48.png                             3.56 kB  
+  └─ .output/chrome-mv3/icon/96.png                             11.24 kB 
+Σ Total size: 3.63 MB                                         
+✔ Finished in 6.390 s

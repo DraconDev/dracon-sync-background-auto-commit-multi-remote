@@ -1,0 +1,28 @@
+
+> @dracon/chatgpt-toolkit@0.1.0 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G✔ Built extension in 5.925 s
+  ├─ .output/chrome-mv3/manifest.json                  952 B   
+  ├─ .output/chrome-mv3/options.html                   488 B   
+  ├─ .output/chrome-mv3/sidepanel.html                 479 B   
+  ├─ .output/chrome-mv3/background.js                  42.02 kB
+  ├─ .output/chrome-mv3/chunks/links-4BIRHVkb.js       40.34 kB
+  ├─ .output/chrome-mv3/chunks/options-D6lLbIEA.js     4.76 kB 
+  ├─ .output/chrome-mv3/chunks/sidepanel-Cqm2S-Ij.js   53.74 kB
+  ├─ .output/chrome-mv3/content-scripts/content.js     42.32 kB
+  ├─ .output/chrome-mv3/assets/options-DylDXVKE.css    3.93 kB 
+  ├─ .output/chrome-mv3/assets/sidepanel-BnyIaouW.css  27.07 kB
+  ├─ .output/chrome-mv3/_locales/en/messages.json      315 B   
+  ├─ .output/chrome-mv3/icon/128.png                   4.65 kB 
+  ├─ .output/chrome-mv3/icon/16.png                    638 B   
+  ├─ .output/chrome-mv3/icon/32.png                    1.3 kB  
+  ├─ .output/chrome-mv3/icon/48.png                    1.84 kB 
+  ├─ .output/chrome-mv3/icon/96.png                    3.71 kB 
+  └─ .output/chrome-mv3/icon/icon.png                  3.78 kB 
+Σ Total size: 232.33 kB                              
+✔ Finished in 7.368 s

@@ -1,0 +1,140 @@
+
+> @dracon/virtual-pet@0.4.5 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[1G✔ Built extension in 5.972 s
+  ├─ .output/chrome-mv3/manifest.json                                   634 B    
+  ├─ .output/chrome-mv3/page.html                                       888 B    
+  ├─ .output/chrome-mv3/pet.html                                        613 B    
+  ├─ .output/chrome-mv3/popup.html                                      481 B    
+  ├─ .output/chrome-mv3/background.js                                   45.91 kB 
+  ├─ .output/chrome-mv3/chunks/page-D3Qz1zKd.js                         29.5 kB  
+  ├─ .output/chrome-mv3/chunks/pet-BiP2CP1h.js                          204.19 kB
+  ├─ .output/chrome-mv3/chunks/pet-DIznTFMe.js                          722.33 kB
+  ├─ .output/chrome-mv3/chunks/popup-gR2vCdBA.js                        2.25 kB  
+  ├─ .output/chrome-mv3/chunks/toasts-Cp5ZCwry.js                       15.88 kB 
+  ├─ .output/chrome-mv3/assets/page-mDMax5Kb.css                        34.97 kB 
+  ├─ .output/chrome-mv3/assets/pet-C8eHxDp0.css                         51.94 kB 
+  ├─ .output/chrome-mv3/assets/popup-D04m3d8V.css                       10.03 kB 
+  ├─ .output/chrome-mv3/_locales/en/messages.json                       315 B    
+  ├─ .output/chrome-mv3/backdrops/dashboard-hero-plush.jpg              121.27 kB
+  ├─ .output/chrome-mv3/backdrops/room-backdrop-plush-night.jpg         114.59 kB
+  ├─ .output/chrome-mv3/backdrops/room-backdrop-plush.jpg               108.37 kB
+  ├─ .output/chrome-mv3/icon/128.png                                    1.01 kB  
+  ├─ .output/chrome-mv3/icon/16.png                                     189 B    
+  ├─ .output/chrome-mv3/icon/32.png                                     287 B    
+  ├─ .output/chrome-mv3/icon/48.png                                     366 B    
+  ├─ .output/chrome-mv3/icon/96.png                                     19.31 kB 
+  ├─ .output/chrome-mv3/illustrations/diary-empty.png                   66.01 kB 
+  ├─ .output/chrome-mv3/illustrations/gate-no-pet.png                   71.96 kB 
+  ├─ .output/chrome-mv3/portraits/cat-base.jpg                          11.26 kB 
+  ├─ .output/chrome-mv3/portraits/cat-curious.jpg                       11.14 kB 
+  ├─ .output/chrome-mv3/portraits/dog-base.jpg                          14.8 kB  
+  ├─ .output/chrome-mv3/portraits/dog-curious.jpg                       13.4 kB  
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-eating-120.png          17.08 kB 
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-eating-2-120.png        19.34 kB 
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-eating-3-120.png        19.19 kB 
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-happy-120.png           15.44 kB 
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-happy-2-120.png         18.43 kB 
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-happy-3-120.png         17.52 kB 
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-idle-120.png            15.4 kB  
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-idle-2-120.png          16.78 kB 
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-idle-3-120.png          19.03 kB 
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-sick-120.png            19.44 kB 
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-sick-2-120.png          17.45 kB 
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-sick-3-120.png          19.1 kB  
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-sleeping-120.png        17.84 kB 
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-sleeping-2-120.png      15.45 kB 
+  ├─ .output/chrome-mv3/sprites/audition/3d/cat-sleeping-3-120.png      17.26 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-eating-120.png      17.51 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-eating-2-120.png    16.34 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-eating-3-120.png    15.57 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-happy-120.png       16.82 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-happy-2-120.png     14.52 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-happy-3-120.png     17.43 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-idle-120.png        15.68 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-idle-2-120.png      13.02 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-idle-3-120.png      14.09 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-sick-120.png        16.07 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-sick-2-120.png      15.71 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-sick-3-120.png      15.93 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-sleeping-120.png    14.09 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-sleeping-2-120.png  19.12 kB 
+  ├─ .output/chrome-mv3/sprites/audition/kawaii/cat-sleeping-3-120.png  13.53 kB 
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-eating-120.png       4.5 kB   
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-eating-2-120.png     4.38 kB  
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-eating-3-120.png     4.04 kB  
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-happy-120.png        4.21 kB  
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-happy-2-120.png      4.09 kB  
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-happy-3-120.png      4.66 kB  
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-idle-120.png         4.41 kB  
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-idle-2-120.png       4.65 kB  
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-idle-3-120.png       3.9 kB   
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-sick-120.png         3.98 kB  
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-sick-2-120.png       4.46 kB  
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-sick-3-120.png       4.67 kB  
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-sleeping-120.png     3.54 kB  
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-sleeping-2-120.png   3.97 kB  
+  ├─ .output/chrome-mv3/sprites/audition/pixel/cat-sleeping-3-120.png   3.63 kB  
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-eating-120.png       17.75 kB 
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-eating-2-120.png     22 kB    
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-eating-3-120.png     17.18 kB 
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-happy-120.png        14.45 kB 
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-happy-2-120.png      12.07 kB 
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-happy-3-120.png      14.59 kB 
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-idle-120.png         16.81 kB 
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-idle-2-120.png       15.28 kB 
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-idle-3-120.png       14.2 kB  
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-sick-120.png         16.95 kB 
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-sick-2-120.png       15.81 kB 
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-sick-3-120.png       17.77 kB 
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-sleeping-120.png     15.5 kB  
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-sleeping-2-120.png   17.46 kB 
+  ├─ .output/chrome-mv3/sprites/audition/story/cat-sleeping-3-120.png   15.67 kB 
+  ├─ .output/chrome-mv3/sprites/cat-coughing-120.png                    27.03 kB 
+  ├─ .output/chrome-mv3/sprites/cat-eating-120.png                      29.86 kB 
+  ├─ .output/chrome-mv3/sprites/cat-egg-120.png                         15.13 kB 
+  ├─ .output/chrome-mv3/sprites/cat-evolving-120.png                    26.74 kB 
+  ├─ .output/chrome-mv3/sprites/cat-feverish-120.png                    25.83 kB 
+  ├─ .output/chrome-mv3/sprites/cat-happy-120.png                       24.84 kB 
+  ├─ .output/chrome-mv3/sprites/cat-hatching-120.png                    24.29 kB 
+  ├─ .output/chrome-mv3/sprites/cat-hungry-120.png                      30.02 kB 
+  ├─ .output/chrome-mv3/sprites/cat-idle-120.png                        26.2 kB  
+  ├─ .output/chrome-mv3/sprites/cat-nauseous-120.png                    25.72 kB 
+  ├─ .output/chrome-mv3/sprites/cat-playing-120.png                     25.16 kB 
+  ├─ .output/chrome-mv3/sprites/cat-pooping-120.png                     28.93 kB 
+  ├─ .output/chrome-mv3/sprites/cat-sad-120.png                         26.99 kB 
+  ├─ .output/chrome-mv3/sprites/cat-scolding-120.png                    26.7 kB  
+  ├─ .output/chrome-mv3/sprites/cat-sick-120.png                        30.25 kB 
+  ├─ .output/chrome-mv3/sprites/cat-sleeping-120.png                    25.27 kB 
+  ├─ .output/chrome-mv3/sprites/dog-coughing-120.png                    24.1 kB  
+  ├─ .output/chrome-mv3/sprites/dog-eating-120.png                      27.02 kB 
+  ├─ .output/chrome-mv3/sprites/dog-egg-120.png                         14.8 kB  
+  ├─ .output/chrome-mv3/sprites/dog-evolving-120.png                    28.16 kB 
+  ├─ .output/chrome-mv3/sprites/dog-feverish-120.png                    21.43 kB 
+  ├─ .output/chrome-mv3/sprites/dog-happy-120.png                       23.13 kB 
+  ├─ .output/chrome-mv3/sprites/dog-hatching-120.png                    21.84 kB 
+  ├─ .output/chrome-mv3/sprites/dog-hungry-120.png                      23.43 kB 
+  ├─ .output/chrome-mv3/sprites/dog-idle-120.png                        22.5 kB  
+  ├─ .output/chrome-mv3/sprites/dog-nauseous-120.png                    24.09 kB 
+  ├─ .output/chrome-mv3/sprites/dog-playing-120.png                     18.61 kB 
+  ├─ .output/chrome-mv3/sprites/dog-pooping-120.png                     24.17 kB 
+  ├─ .output/chrome-mv3/sprites/dog-sad-120.png                         23.04 kB 
+  ├─ .output/chrome-mv3/sprites/dog-scolding-120.png                    19.96 kB 
+  ├─ .output/chrome-mv3/sprites/dog-sick-120.png                        26.84 kB 
+  ├─ .output/chrome-mv3/sprites/dog-sleeping-120.png                    20.46 kB 
+  ├─ .output/chrome-mv3/store/1.png                                     807.96 kB
+  ├─ .output/chrome-mv3/store/2.png                                     579.92 kB
+  ├─ .output/chrome-mv3/store/3.png                                     137.49 kB
+  └─ .output/chrome-mv3/store/description.txt                           2.6 kB   
+Σ Total size: 4.79 MB                                                 
+✔ Finished in 6.641 s

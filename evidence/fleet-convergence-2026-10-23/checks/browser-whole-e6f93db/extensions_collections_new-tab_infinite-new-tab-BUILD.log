@@ -1,0 +1,31 @@
+
+> infinite-new-tab@0.1.0 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[1G✔ Built extension in 3.370 s
+  ├─ .output/chrome-mv3/manifest.json               632 B    
+  ├─ .output/chrome-mv3/newtab.html                 445 B    
+  ├─ .output/chrome-mv3/background.js               729 B    
+  ├─ .output/chrome-mv3/chunks/newtab-DWKauAkQ.js   806.88 kB
+  ├─ .output/chrome-mv3/assets/newtab-q7t8bTiE.css  13.39 kB 
+  ├─ .output/chrome-mv3/icon/128.png                2.33 kB  
+  ├─ .output/chrome-mv3/icon/16.png                 258 B    
+  ├─ .output/chrome-mv3/icon/32.png                 539 B    
+  ├─ .output/chrome-mv3/icon/48.png                 844 B    
+  ├─ .output/chrome-mv3/icon/96.png                 3.21 kB  
+  ├─ .output/chrome-mv3/store/1.png                 625.06 kB
+  ├─ .output/chrome-mv3/store/2.png                 995.28 kB
+  ├─ .output/chrome-mv3/wallpapers/aurora.jpg       99.4 kB  
+  ├─ .output/chrome-mv3/wallpapers/cyberpunk.jpg    143.32 kB
+  └─ .output/chrome-mv3/wallpapers/nebula.jpg       130.08 kB
+Σ Total size: 2.82 MB                             
+✔ Finished in 4.042 s

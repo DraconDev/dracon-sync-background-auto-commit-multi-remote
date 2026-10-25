@@ -1,0 +1,62 @@
+
+> bugkit@1.2.1 lint
+> eslint .
+
+(node:3461092) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/eslint.config.js?mtime=1792896176000 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/bugkit/assets/create-placeholder-icons.mjs
+  72:9  warning  'assetsDir' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/bugkit/entrypoints/background.ts
+   12:3   warning  'DestinationResult' is defined but never used           @typescript-eslint/no-unused-vars
+   25:10  warning  'getPlugin' is defined but never used                   @typescript-eslint/no-unused-vars
+   26:22  warning  'applyPolicyToCaptureConfig' is defined but never used  @typescript-eslint/no-unused-vars
+   26:50  warning  'validateDestination' is defined but never used         @typescript-eslint/no-unused-vars
+  427:18  warning  'e' is defined but never used                           @typescript-eslint/no-unused-vars
+  531:12  warning  'e' is defined but never used                           @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/bugkit/entrypoints/content.ts
+   7:3  warning  'stopConsoleCapture' is defined but never used      @typescript-eslint/no-unused-vars
+   9:3  warning  'stopErrorCapture' is defined but never used        @typescript-eslint/no-unused-vars
+  11:3  warning  'stopNetworkCapture' is defined but never used      @typescript-eslint/no-unused-vars
+  20:5  warning  'currentConfig' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/bugkit/entrypoints/options/main.tsx
+   89:6   warning  React Hook useEffect has a missing dependency: 'loadSettings'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  121:14  warning  'e' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+  144:14  warning  'e' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/bugkit/entrypoints/popup/main.tsx
+   20:3   warning  'CaptureConfig' is defined but never used                                                                      @typescript-eslint/no-unused-vars
+   28:10  warning  'ext' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+   41:10  warning  'suggestedTitle' is assigned a value but never used                                                            @typescript-eslint/no-unused-vars
+   45:10  warning  'isRestricted' is assigned a value but never used                                                              @typescript-eslint/no-unused-vars
+  101:6   warning  React Hook useEffect has a missing dependency: 'loadStatus'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/bugkit/lib/bundle/zip.ts
+  1:46  warning  'Unzipped' is defined but never used  @typescript-eslint/no-unused-vars
+  3:52  warning  'AuditLog' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/bugkit/lib/capture/screenshot.ts
+  62:11  warning  'scrollWidth' is assigned a value but never used                           @typescript-eslint/no-unused-vars
+  62:38  warning  'clientWidth' is assigned a value but never used                           @typescript-eslint/no-unused-vars
+  92:57  warning  'regions' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  99:16  warning  'blurImageData' is defined but never used                                  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/bugkit/lib/destinations/github.ts
+  115:17  warning  'updateResponse' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/bugkit/lib/destinations/jira.ts
+  17:11  warning  'JiraAttachment' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/bugkit/wxt.config.ts
+    4:10  warning  'readFileSync' is defined but never used                               @typescript-eslint/no-unused-vars
+    4:24  warning  'writeFileSync' is defined but never used                              @typescript-eslint/no-unused-vars
+  115:26  warning  'wxt' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  124:15  warning  'svgPath' is assigned a value but never used                           @typescript-eslint/no-unused-vars
+
+✖ 31 problems (0 errors, 31 warnings)
+

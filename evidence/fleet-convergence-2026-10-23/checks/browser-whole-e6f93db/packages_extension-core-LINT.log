@@ -1,0 +1,40 @@
+
+> @dracon/extension-core@1.0.0 lint
+> eslint src/
+
+(node:42255) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/eslint.config.js?mtime=1792896176000 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-core/src/background/index.ts
+  151:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-core/src/byok/client.ts
+  160:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  353:64  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-core/src/config/build.ts
+    3:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   10:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   30:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   38:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   38:64  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   42:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   43:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   75:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   75:60  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   77:55  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  106:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  121:18  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  130:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-core/src/extension/index.ts
+  174:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  175:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/packages/extension-core/src/reviewAsk/index.ts
+  129:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 19 problems (0 errors, 19 warnings)
+

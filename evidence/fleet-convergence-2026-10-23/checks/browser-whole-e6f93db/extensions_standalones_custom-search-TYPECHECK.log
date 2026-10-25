@@ -1,0 +1,142 @@
+
+> custom-search@1.1.1 compile
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:570:2 Unused CSS selector ".action-grid"
+https://svelte.dev/e/css_unused_selector
+568: 
+569:   /* Action Cards */
+570:   .action-grid {
+                   ^
+571:     display: grid;
+572:     grid-template-columns: repeat(3, 1fr);
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:576:2 Unused CSS selector ".action-card"
+https://svelte.dev/e/css_unused_selector
+574:   }
+575: 
+576:   .action-card {
+                   ^
+577:     display: flex;
+578:     flex-direction: column;
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:591:2 Unused CSS selector ".action-card:hover"
+https://svelte.dev/e/css_unused_selector
+589:   }
+590: 
+591:   .action-card:hover {
+                         ^
+592:     border-color: rgba(255, 255, 255, 0.12);
+593:     background: #0e0e0e;
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:597:2 Unused CSS selector ".action-card > svg"
+https://svelte.dev/e/css_unused_selector
+595:   }
+596: 
+597:   .action-card > svg {
+                         ^
+598:     stroke: #666;
+599:     transition: stroke 0.15s;
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:602:2 Unused CSS selector ".action-card:hover > svg"
+https://svelte.dev/e/css_unused_selector
+600:   }
+601: 
+602:   .action-card:hover > svg {
+                               ^
+603:     stroke: #aaa;
+604:   }
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:606:2 Unused CSS selector ".action-title"
+https://svelte.dev/e/css_unused_selector
+604:   }
+605: 
+606:   .action-title {
+                    ^
+607:     font-size: 12px;
+608:     font-weight: 700;
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:612:2 Unused CSS selector ".action-desc"
+https://svelte.dev/e/css_unused_selector
+610:   }
+611: 
+612:   .action-desc {
+                   ^
+613:     font-size: 11px;
+614:     color: #666;
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:618:2 Unused CSS selector ".action-card.danger"
+https://svelte.dev/e/css_unused_selector
+616:   }
+617: 
+618:   .action-card.danger {
+                          ^
+619:     border-color: rgba(239, 68, 68, 0.08);
+620:   }
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:622:2 Unused CSS selector ".action-card.danger:hover"
+https://svelte.dev/e/css_unused_selector
+620:   }
+621: 
+622:   .action-card.danger:hover {
+                                ^
+623:     border-color: rgba(239, 68, 68, 0.2);
+624:     background: rgba(239, 68, 68, 0.03);
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:627:2 Unused CSS selector ".action-card.danger > .action-title"
+https://svelte.dev/e/css_unused_selector
+625:   }
+626: 
+627:   .action-card.danger > .action-title {
+                                          ^
+628:     color: #ef4444;
+629:   }
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:631:2 Unused CSS selector ".action-card.danger svg"
+https://svelte.dev/e/css_unused_selector
+629:   }
+630: 
+631:   .action-card.danger svg {
+                              ^
+632:     stroke: #ef4444;
+633:     opacity: 0.7;
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:636:2 Unused CSS selector ".action-card.danger:hover > svg"
+https://svelte.dev/e/css_unused_selector
+634:   }
+635: 
+636:   .action-card.danger:hover > svg {
+                                      ^
+637:     opacity: 1;
+638:   }
+03:24:52 [vite-plugin-svelte] entrypoints/dashboard/components/settings/SettingsTab.svelte:759:4 Unused CSS selector ".action-grid"
+https://svelte.dev/e/css_unused_selector
+757: 
+758:   @media (max-width: 480px) {
+759:     .action-grid {
+                     ^
+760:       grid-template-columns: 1fr;
+761:     }
+[1G✔ Built extension in 9.710 s
+  ├─ .output/chrome-mv3/manifest.json                                 4.44 kB  
+  ├─ .output/chrome-mv3/dashboard.html                                1.52 kB  
+  ├─ .output/chrome-mv3/popup.html                                    2.94 kB  
+  ├─ .output/chrome-mv3/privacy.html                                  3.63 kB  
+  ├─ .output/chrome-mv3/search.html                                   6.14 kB  
+  ├─ .output/chrome-mv3/welcome.html                                  1.11 kB  
+  ├─ .output/chrome-mv3/background.js                                 88.95 kB 
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-html-plugins-DPbbfBKe.js  779 B    
+  ├─ .output/chrome-mv3/chunks/dashboard-DWQq76Ro.js                  177.71 kB
+  ├─ .output/chrome-mv3/chunks/popup-5c27UUDI.js                      566 B    
+  ├─ .output/chrome-mv3/chunks/welcome-DnS0AP7H.js                    516 B    
+  ├─ .output/chrome-mv3/content-scripts/content.js                    20.94 kB 
+  ├─ .output/chrome-mv3/assets/dashboard-l0D7lOR6.css                 56.61 kB 
+  ├─ .output/chrome-mv3/assets/welcome-Y5ANY7Y0.css                   2.04 kB  
+  ├─ .output/chrome-mv3/content-scripts/content.css                   2.18 kB  
+  ├─ .output/chrome-mv3/_locales/en/messages.json                     344 B    
+  ├─ .output/chrome-mv3/icon/128.png                                  1.64 kB  
+  ├─ .output/chrome-mv3/icon/128.svg                                  314 B    
+  ├─ .output/chrome-mv3/icon/16.png                                   302 B    
+  ├─ .output/chrome-mv3/icon/16.svg                                   303 B    
+  ├─ .output/chrome-mv3/icon/32.png                                   485 B    
+  ├─ .output/chrome-mv3/icon/32.svg                                   301 B    
+  ├─ .output/chrome-mv3/icon/48.png                                   721 B    
+  ├─ .output/chrome-mv3/icon/48.svg                                   308 B    
+  ├─ .output/chrome-mv3/icon/96.png                                   1.16 kB  
+  ├─ .output/chrome-mv3/icon/96.svg                                   306 B    
+  └─ .output/chrome-mv3/store/logo.svg                                314 B    
+Σ Total size: 376.57 kB                                             
+✔ Finished in 11.6 s

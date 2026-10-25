@@ -1,0 +1,221 @@
+
+> auto-form-filler@2.4.0 precompile
+> node scripts/ensure-wxt.mjs
+
+
+> auto-form-filler@2.4.0 compile
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+
+ WARN  Duplicated imports "ObservedAnswer", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/siteObservation.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "DomainPromptRecord", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/domainPromptProvenance.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "DomainPromptMap", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/domainPromptProvenance.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "FileFieldIdentity", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/documentPolicy.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/profileDocuments.ts" is used
+
+
+ WARN  Duplicated imports "normalizeAnswerLabel", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/answerLabel.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/siteObservation.ts" is used
+
+- Preparing...
+
+ WARN  Duplicated imports "ObservedAnswer", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/siteObservation.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "DomainPromptRecord", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/domainPromptProvenance.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "DomainPromptMap", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/domainPromptProvenance.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "FileFieldIdentity", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/documentPolicy.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/profileDocuments.ts" is used
+
+
+ WARN  Duplicated imports "normalizeAnswerLabel", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/answerLabel.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/siteObservation.ts" is used
+
+
+ WARN  Duplicated imports "ObservedAnswer", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/siteObservation.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "DomainPromptRecord", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/domainPromptProvenance.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "DomainPromptMap", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/domainPromptProvenance.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "FileFieldIdentity", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/documentPolicy.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/profileDocuments.ts" is used
+
+
+ WARN  Duplicated imports "normalizeAnswerLabel", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/answerLabel.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/siteObservation.ts" is used
+
+
+ WARN  Duplicated imports "ObservedAnswer", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/siteObservation.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "DomainPromptRecord", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/domainPromptProvenance.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "DomainPromptMap", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/domainPromptProvenance.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "FileFieldIdentity", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/documentPolicy.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/profileDocuments.ts" is used
+
+
+ WARN  Duplicated imports "normalizeAnswerLabel", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/answerLabel.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/siteObservation.ts" is used
+
+
+ WARN  Duplicated imports "ObservedAnswer", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/siteObservation.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "DomainPromptRecord", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/domainPromptProvenance.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "DomainPromptMap", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/domainPromptProvenance.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "FileFieldIdentity", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/documentPolicy.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/profileDocuments.ts" is used
+
+
+ WARN  Duplicated imports "normalizeAnswerLabel", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/answerLabel.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/siteObservation.ts" is used
+
+03:14:05 [vite-plugin-svelte] entrypoints/options/App.svelte:1758:2 Unused CSS selector ".version"
+https://svelte.dev/e/css_unused_selector
+1756:   :global([data-ff-theme='dark']) .status-label.active,
+1757:   :global(.dark) .status-label.active { color: var(--ff-success-300); }
+1758:   .version {
+                ^
+1759:     font-size: var(--ff-text-2xs);
+1760:     color: var(--ff-text-subtle);
+03:14:05 [vite-plugin-svelte] entrypoints/popup/components/SiteFills.svelte:176:2 Unused CSS selector ".visually-hidden"
+https://svelte.dev/e/css_unused_selector
+174:   }
+175: 
+176:   .visually-hidden {
+                       ^
+177:     position: absolute;
+178:     width: 1px;
+03:14:06 [vite-plugin-svelte] entrypoints/options/components/WatchedSitesCard.svelte:552:2 Unused CSS selector ".detail-btn"
+https://svelte.dev/e/css_unused_selector
+550:   }
+551: 
+552:   .detail-btn {
+                  ^
+553:     background: none;
+554:     border: none;
+03:14:06 [vite-plugin-svelte] entrypoints/options/components/WatchedSitesCard.svelte:589:2 Unused CSS selector ".detail-edit"
+https://svelte.dev/e/css_unused_selector
+587:   /* The remembered value is editable: the next visit fills what is written
+588:      here, so the user does not have to go to the page to correct it. */
+589:   .detail-edit {
+                   ^
+590:     font-family: inherit;
+591:     font-size: var(--ff-text-xs);
+03:14:06 [vite-plugin-svelte] entrypoints/options/components/WatchedSitesCard.svelte:601:2 Unused CSS selector ".detail-edit:hover"
+https://svelte.dev/e/css_unused_selector
+599:     text-align: right;
+600:   }
+601:   .detail-edit:hover { border-bottom-color: var(--ff-brand-500); }
+                         ^
+602:   .detail-edit:focus-visible {
+603:     outline: none;
+03:14:06 [vite-plugin-svelte] entrypoints/options/components/WatchedSitesCard.svelte:602:2 Unused CSS selector ".detail-edit:focus-visible"
+https://svelte.dev/e/css_unused_selector
+600:   }
+601:   .detail-edit:hover { border-bottom-color: var(--ff-brand-500); }
+602:   .detail-edit:focus-visible {
+                                 ^
+603:     outline: none;
+604:     border-bottom-style: solid;
+03:14:06 [vite-plugin-svelte] entrypoints/options/components/WatchedSitesCard.svelte:608:2 Unused CSS selector ".visually-hidden"
+https://svelte.dev/e/css_unused_selector
+606:   }
+607: 
+608:   .visually-hidden {
+                       ^
+609:     position: absolute;
+610:     width: 1px;
+03:14:06 [vite-plugin-svelte] entrypoints/options/components/WatchedSitesCard.svelte:639:2 Unused CSS selector ".carry-tag"
+https://svelte.dev/e/css_unused_selector
+637:      answers: another form on the same site asking the same thing will be
+638:      pre-answered, so the row answers "will this carry over?" at a glance. */
+639:   .carry-tag {
+                 ^
+640:     display: inline-block;
+641:     margin-left: 6px;
+03:14:06 [vite-plugin-svelte] entrypoints/options/components/WatchedSitesCard.svelte:650:2 Unused CSS selector ":global([data-ff-theme='dark']) .carry-tag"
+https://svelte.dev/e/css_unused_selector
+648:     vertical-align: 1px;
+649:   }
+650:   :global([data-ff-theme='dark']) .carry-tag,
+                                                 ^
+651:   :global(.dark) .carry-tag {
+652:     color: var(--ff-brand-400);
+03:14:06 [vite-plugin-svelte] entrypoints/options/components/WatchedSitesCard.svelte:651:2 Unused CSS selector ":global(.dark) .carry-tag"
+https://svelte.dev/e/css_unused_selector
+649:   }
+650:   :global([data-ff-theme='dark']) .carry-tag,
+651:   :global(.dark) .carry-tag {
+                                ^
+652:     color: var(--ff-brand-400);
+653:     border-color: var(--ff-brand-500);
+
+ WARN  Duplicated imports "ObservedAnswer", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/siteObservation.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "DomainPromptRecord", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/domainPromptProvenance.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "DomainPromptMap", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/domainPromptProvenance.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/store.ts" is used
+
+
+ WARN  Duplicated imports "FileFieldIdentity", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/documentPolicy.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/profileDocuments.ts" is used
+
+
+ WARN  Duplicated imports "normalizeAnswerLabel", the one from "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/answerLabel.ts" has been ignored and "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/auto-form-filler/utils/siteObservation.ts" is used
+
+[1G✔ Built extension in 17.0 s
+  ├─ .output/chrome-mv3/manifest.json                                 1.32 kB  
+  ├─ .output/chrome-mv3/options.html                                  1.17 kB  
+  ├─ .output/chrome-mv3/popup.html                                    2.94 kB  
+  ├─ .output/chrome-mv3/practice-form.html                            4.61 kB  
+  ├─ .output/chrome-mv3/welcome.html                                  919 B    
+  ├─ .output/chrome-mv3/background.js                                 77.82 kB 
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-html-plugins-DPbbfBKe.js  779 B    
+  ├─ .output/chrome-mv3/chunks/options-7CECuZQG.js                    83.99 kB 
+  ├─ .output/chrome-mv3/chunks/popup-BuSWUAIf.js                      38.78 kB 
+  ├─ .output/chrome-mv3/chunks/practice-form-CmvJkfFP.js              665 B    
+  ├─ .output/chrome-mv3/chunks/practiceForm-DP0o0KoI.js               79.34 kB 
+  ├─ .output/chrome-mv3/chunks/style-CQ-3GKwx.js                      25.09 kB 
+  ├─ .output/chrome-mv3/chunks/testConnection-B89pPkYk.js             9.75 kB  
+  ├─ .output/chrome-mv3/chunks/welcome-DEILmWug.js                    11.65 kB 
+  ├─ .output/chrome-mv3/content-scripts/content.js                    162.72 kB
+  ├─ .output/chrome-mv3/content-scripts/siteObserver.js               170.21 kB
+  ├─ .output/chrome-mv3/assets/brand-components.css                   6.03 kB  
+  ├─ .output/chrome-mv3/assets/brand-utilities.css                    7.75 kB  
+  ├─ .output/chrome-mv3/assets/brand.css                              3.73 kB  
+  ├─ .output/chrome-mv3/assets/design-system-BYs1lxSQ.css             19.37 kB 
+  ├─ .output/chrome-mv3/assets/design-system.css                      19.37 kB 
+  ├─ .output/chrome-mv3/assets/options-C55gh7y7.css                   53.94 kB 
+  ├─ .output/chrome-mv3/assets/overlay-tokens.css                     171 B    
+  ├─ .output/chrome-mv3/assets/popup-avqNygu3.css                     21.09 kB 
+  ├─ .output/chrome-mv3/assets/practice-form-DnuXLC7P.css             5.5 kB   
+  ├─ .output/chrome-mv3/assets/practiceForm-C5Cw9id6.css              81 B     
+  ├─ .output/chrome-mv3/assets/shared-tokens.css                      4.23 kB  
+  ├─ .output/chrome-mv3/assets/style-C1DKtmsh.css                     46.64 kB 
+  ├─ .output/chrome-mv3/assets/style.css                              41.98 kB 
+  ├─ .output/chrome-mv3/assets/welcome-BKzdKC1P.css                   10.42 kB 
+  ├─ .output/chrome-mv3/_locales/en/messages.json                     270 B    
+  ├─ .output/chrome-mv3/icon/128.png                                  653 B    
+  ├─ .output/chrome-mv3/icon/16.png                                   236 B    
+  ├─ .output/chrome-mv3/icon/32.png                                   292 B    
+  ├─ .output/chrome-mv3/icon/48.png                                   340 B    
+  └─ .output/chrome-mv3/icon/96.png                                   548 B    
+Σ Total size: 914.4 kB                                              
+✔ Finished in 19.3 s

@@ -1,0 +1,25 @@
+
+> @dracon/wxt-starter@1.0.0 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G[starter] Fixed paths in popup.html
+✔ Built extension in 2.144 s
+  ├─ .output/chrome-mv3/manifest.json                  564 B    
+  ├─ .output/chrome-mv3/popup.html                     445 B    
+  ├─ .output/chrome-mv3/background.js                  40.27 kB 
+  ├─ .output/chrome-mv3/chunks/popup-BzIE2z_-.js       194.05 kB
+  ├─ .output/chrome-mv3/content-scripts/content.js     13.76 kB 
+  ├─ .output/chrome-mv3/wasm/dracon_wasm.js            13.5 kB  
+  ├─ .output/chrome-mv3/assets/popup-BA6nyhpL.css      11.97 kB 
+  ├─ .output/chrome-mv3/_locales/en/messages.json      135 B    
+  ├─ .output/chrome-mv3/_locales/README.md             3.49 kB  
+  ├─ .output/chrome-mv3/wasm/dracon_wasm_bg.wasm       126.17 kB
+  ├─ .output/chrome-mv3/wasm/dracon_wasm_bg.wasm.d.ts  1.09 kB  
+  ├─ .output/chrome-mv3/wasm/dracon_wasm.d.ts          2.54 kB  
+  └─ .output/chrome-mv3/wasm/package.json              331 B    
+Σ Total size: 408.32 kB                              
+✔ Finished in 2.546 s

@@ -1,0 +1,21 @@
+
+> custom-search@1.1.1 test
+> vitest run --passWithNoTests
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/custom-search[39m
+
+ [32m✓[39m lib/validation.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m lib/remoteCodeSurface.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 219[2mms[22m[39m
+ [32m✓[39m lib/engine.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m lib/omnibox.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 77[2mms[22m[39m
+ [32m✓[39m lib/inclusive-mode.e2e.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m lib/contextual.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 66[2mms[22m[39m
+ [32m✓[39m lib/platform-preferences.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m lib/utils.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+[2m      Tests [22m [1m[32m76 passed[39m[22m[90m (76)[39m
+[2m   Start at [22m 03:25:19
+[2m   Duration [22m 6.84s[2m (transform 2.23s, setup 753ms, import 2.40s, tests 442ms, environment 2ms)[22m
+

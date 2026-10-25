@@ -1,0 +1,417 @@
+
+> ai-search@0.1.0 test
+> bun test
+
+bun test v1.3.14 (0d9b296a)
+
+test/prefs.test.ts:
+(pass) prefs > falls back when the key is absent [0.57ms]
+(pass) prefs > falls back when the stored value fails validation [0.07ms]
+(pass) prefs > falls back on unparseable JSON [0.41ms]
+(pass) prefs > round-trips through save then load [0.65ms]
+(pass) prefs > rejects a value it cannot serialize [7.78ms]
+(pass) prefs > migrated read finds the own key first [0.23ms]
+(pass) prefs > migrated read falls back to the legacy key [0.03ms]
+(pass) prefs > migrated read falls back to the Ultimate sibling key [0.02ms]
+(pass) prefs > migrated read ignores an invalid sibling value [0.05ms]
+(pass) usePref / usePrefMigrated hooks > usePref returns the stored value and writes through on set [49.19ms]
+(pass) usePref / usePrefMigrated hooks > usePref falls back when the stored value fails validation [0.43ms]
+(pass) usePref / usePrefMigrated hooks > usePrefMigrated writes only to the own key, never the sibling [0.33ms]
+(pass) write-failure channel > a rejected setItem reports a failure to subscribers [3.23ms]
+(pass) write-failure channel > a successful write reports nothing [0.15ms]
+
+test/settings-keys.test.tsx:
+(pass) Settings key drafts > typing a replacement does not touch the stored key [219.56ms]
+(pass) Settings key drafts > a failed test leaves the saved key intact [137.62ms]
+(pass) Settings key drafts > a successful test persists the draft [170.68ms]
+
+test/results-app.test.tsx:
+(pass) initial render > the nokey state is the empty URL with a key-less account [24.44ms]
+(pass) initial render > the nokey state when no key is set points the user at Settings [11.19ms]
+Warning: An update to ResultsApp inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at ResultsApp (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/ai-search/entrypoints/results/ResultsApp.tsx:297:25)
+Warning: An update to ResultsApp inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at ResultsApp (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/ai-search/entrypoints/results/ResultsApp.tsx:297:25)
+Warning: An update to ResultsApp inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at ResultsApp (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/ai-search/entrypoints/results/ResultsApp.tsx:297:25)
+Warning: An update to ResultsApp inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at ResultsApp (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/ai-search/entrypoints/results/ResultsApp.tsx:297:25)
+Warning: An update to ResultsApp inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at ResultsApp (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/ai-search/entrypoints/results/ResultsApp.tsx:297:25)
+(pass) initial render > a query in the URL is read on mount [40.19ms]
+(pass) streaming flow > tokens land in the rail live and the page reaches the done state [46.80ms]
+(pass) streaming flow > the request URL carries the model id and the api key in a header [46.36ms]
+(pass) streaming flow > a 401 surfaces the "rejected that key" cause on the error card [45.93ms]
+(pass) streaming flow > a 429 headlines the card instead of pasting the raw quota blob [29.76ms]
+(pass) streaming flow > a quota failure with an Agnes key offers the one-click switch [18.89ms]
+(pass) streaming flow > clicking the switch flips the provider and re-runs on Agnes [42.10ms]
+(pass) streaming flow > no switch button when the other provider has no key [28.76ms]
+(pass) streaming flow > the retry button re-runs the last query [50.06ms]
+(pass) streaming flow > the stop button aborts an in-flight stream [37.32ms]
+(pass) cache > a fresh cache hit serves the cached answer without an API call [23.88ms]
+(pass) cache > the refresh button forces a fresh API call past the cache [45.31ms]
+(pass) cache > a successful stream writes the cache under (query, model, length, provider) [14.27ms]
+(pass) taste buttons (like / hide) > taste buttons ride below the site icon tile, not beside the URL [112.71ms]
+(pass) taste buttons (like / hide) > a 16px icon renders native-size (is-tiny) instead of upscaling [89.47ms]
+(pass) taste buttons (like / hide) > a 64px icon stays full-bleed (no is-tiny) [163.67ms]
+(pass) taste buttons (like / hide) > clicking the like button on a row marks it as liked and persists [53.96ms]
+(pass) taste buttons (like / hide) > a row the user has hidden is filtered from the source list [34.35ms]
+(pass) summary rail toggle > toggling the summary button hides the rail and keeps the source list [69.27ms]
+(pass) summary rail toggle > the summary toggle persists to the skipSummary pref [113.63ms]
+(pass) write-failure banner > a rejected taste write surfaces an alert instead of failing silently [121.71ms]
+(pass) cross-tab key sync > a key saved in another tab clears the nokey banner and runs [32.42ms]
+(pass) chrome calls > the gear button opens the Settings page in a new tab [18.73ms]
+(pass) chrome calls > the Settings step link points at the live aistudio URL [6.07ms]
+(pass) length picker > clicking Standard writes the pref so a reload re-uses it [15.23ms]
+(pass) Agnes provider routing > an Agnes key + provider hits Agnes with a Bearer key, not Google [51.61ms]
+(pass) Agnes provider routing > with no Agnes key while Agnes is active, the no-key guide links Agnes [7.76ms]
+(pass) Agnes provider routing > Google provider is untouched when Agnes prefs exist on the side [28.77ms]
+
+test/ai.test.ts:
+(pass) effectiveAiModel > a blank stored value falls back to the default id [0.04ms]
+(pass) effectiveAiModel > a typed id is used verbatim, only trimmed [0.07ms]
+(pass) aiPlainCause > a quota failure says the quota is spent [0.04ms]
+(pass) aiPlainCause > a bad key points at a fresh key [0.02ms]
+(pass) aiPlainCause > a 404 names the model id as retired [0.02ms]
+(pass) aiPlainCause > a network failure says the request never reached Google [0.02ms]
+(pass) aiPlainCause > a 403 names key restrictions, not the generic copy [0.04ms]
+(pass) aiPlainCause > a non-JSON error page surfaces its text, not a bare status [0.80ms]
+(pass) aiPlainCause > an unrecognised error gets the generic sentence, not a raw throw [0.03ms]
+(pass) aiHeadline > a quota blob headlines as one line, never the raw wall [0.03ms]
+(pass) aiHeadline > each cause branch has a matching headline [0.06ms]
+(pass) shortErrorDetail > a multi-line blob flattens to one line [0.03ms]
+(pass) shortErrorDetail > a long blob caps at 300 chars with an ellipsis [0.04ms]
+(pass) shortErrorDetail > a short message passes through untouched [0.02ms]
+(pass) length presets > every preset validates and carries a token budget [0.09ms]
+(pass) length presets > an unknown preset is rejected [0.02ms]
+
+test/style.test.ts:
+(pass) accentAlpha > converts a 6-digit hex with a 0..100 percent alpha [0.37ms]
+(pass) accentAlpha > the step name and the alpha agree, so tints survive a theme change [0.15ms]
+(pass) accentAlpha > is case-insensitive and tolerates padding [0.05ms]
+(pass) accentAlpha > non-hex values pass through untouched [0.04ms]
+(pass) every alpha step the stylesheets ask for is published > search/styles.css references resolve [0.72ms]
+(pass) every alpha step the stylesheets ask for is published > results/results.css references resolve [0.29ms]
+(pass) every alpha step the stylesheets ask for is published > settings/settings.css references resolve [0.34ms]
+(pass) every alpha step the stylesheets ask for is published > stripFallbacks removes nested var() fallbacks [0.14ms]
+(pass) every alpha step the stylesheets ask for is published > no stylesheet paints with a raw violet or soft-violet outside a fallback [1.26ms]
+(pass) every alpha step the stylesheets ask for is published > the stylesheet directory has no unpriced sheets left behind [1.80ms]
+(pass) applyStyle stamps the loaded pref onto the document > the stored theme controls the applied --ais-accent [0.38ms]
+(pass) applyStyle stamps the loaded pref onto the document > a fresh install with no stored theme falls back to ocean [0.16ms]
+(pass) applyStyle stamps the loaded pref onto the document > the stored shape controls the applied data-shape [0.10ms]
+(pass) PALETTES exposes every shippable theme > the picker offers seven themes including the two new ones [0.09ms]
+(pass) PALETTES exposes every shippable theme > the rose and aurora accents land in --ais-accent-a16 when previewed [0.14ms]
+(pass) previewStyle gives the radio clicks teeth > a Violet preview flips --ais-accent to violet immediately [0.11ms]
+(pass) previewStyle gives the radio clicks teeth > switching to Sharp stamps data-shape="sharp" and back clears it [0.12ms]
+(pass) previewStyle gives the radio clicks teeth > the alpha steps move with the accent, not the previous theme [0.12ms]
+(pass) watchStyle reaches other open pages after a Save > a storage event for theme re-applies; unrelated keys do not [0.34ms]
+(pass) watchStyle reaches other open pages after a Save > a Save in Settings that flips to violet updates the open results page [0.20ms]
+(pass) watchStyle reaches other open pages after a Save > shape changes propagate through watchStyle the same way [0.12ms]
+(pass) watchStyle reaches other open pages after a Save > watchStyle returns a no-op in a non-DOM environment [0.36ms]
+(pass) every style-bearing entry subscribes to cross-tab changes > search/main.tsx imports watchStyle from lib/style [0.25ms]
+(pass) every style-bearing entry subscribes to cross-tab changes > search/main.tsx calls watchStyle(applyStyle) [0.11ms]
+(pass) every style-bearing entry subscribes to cross-tab changes > results/main.tsx imports watchStyle from lib/style [0.12ms]
+(pass) every style-bearing entry subscribes to cross-tab changes > results/main.tsx calls watchStyle(applyStyle) [0.02ms]
+(pass) every style-bearing entry subscribes to cross-tab changes > settings/main.tsx imports watchStyle from lib/style [0.13ms]
+(pass) every style-bearing entry subscribes to cross-tab changes > settings/main.tsx calls watchStyle(applyStyle) [0.03ms]
+(pass) every style-bearing entry subscribes to cross-tab changes > welcome/main.tsx imports watchStyle from lib/style [0.12ms]
+(pass) every style-bearing entry subscribes to cross-tab changes > welcome/main.tsx calls watchStyle(applyStyle) [0.02ms]
+(pass) every style-bearing entry subscribes to cross-tab changes > no page subscribes twice [0.12ms]
+
+test/optionalPerms.test.ts:
+(pass) optional permissions > no chrome.permissions means "not available", not a crash [0.30ms]
+(pass) optional permissions > hasPermission reflects the real granted set [0.23ms]
+(pass) optional permissions > requestPermission grants on a user-accepted prompt [0.11ms]
+(pass) optional permissions > a declined prompt leaves the feature off and reports false [0.06ms]
+(pass) optional permissions > removePermission drops the grant so the next prompt is fresh [0.13ms]
+(pass) optional permissions > watchPermissions fires on grant and on revoke, then unsubscribes [0.20ms]
+(pass) optional permissions > a throwing api degrades instead of propagating [0.23ms]
+
+test/cache.test.ts:
+(pass) the cache key is the (query, model, length, provider) tuple > a save at one length does not answer a read at another [0.25ms]
+(pass) the cache key is the (query, model, length, provider) tuple > a save at one length answers a read at the same length [0.06ms]
+(pass) the cache key is the (query, model, length, provider) tuple > a change of model id alone changes the key [0.04ms]
+(pass) the cache key is the (query, model, length, provider) tuple > a change of query alone changes the key [0.04ms]
+(pass) the cache key is the (query, model, length, provider) tuple > two presets of the same query can coexist [0.08ms]
+(pass) the cache key is the (query, model, length, provider) tuple > the query is trimmed but the model and length are not [0.05ms]
+(pass) the cache key is the (query, model, length, provider) tuple > the delimiter cannot be forged to collide two triples [0.08ms]
+(pass) TTL and eviction > an entry past its TTL is not served [0.03ms]
+(pass) TTL and eviction > an entry exactly at its TTL is still served [0.03ms]
+(pass) TTL and eviction > the newest answer for a triple wins [0.04ms]
+(pass) TTL and eviction > an entry written ahead of the clock is refused [0.02ms]
+(pass) TTL and eviction > the 8-entry cap keeps the most recent, dropping the rest [0.38ms]
+(pass) storage failures and malformed data > a miss returns null [0.03ms]
+(pass) storage failures and malformed data > a corrupt stored entry is ignored, not thrown [0.08ms]
+(pass) storage failures and malformed data > a rejected write reports failure instead of pretending [0.34ms]
+(pass) storage failures and malformed data > a legacy-key cache is still read (migration read-fallback) [0.10ms]
+(pass) storage failures and malformed data > a save migrates to the namespaced key and drops the legacy one [0.09ms]
+(pass) storage failures and malformed data > an empty query or answer is refused [0.04ms]
+(pass) every cache call site passes the full key > the page reads and writes the cache [0.03ms]
+(pass) every cache call site passes the full key > the lookup passes query, model, length and provider [0.08ms]
+(pass) every cache call site passes the full key > the write passes query, model, length and provider [0.02ms]
+(pass) every cache call site passes the full key > a save on one provider does not answer a read on the other [0.10ms]
+(pass) every cache call site passes the full key > no call passes a bare query as the whole key [0.12ms]
+
+test/streaming.test.ts:
+(pass) generateStream — happy path > live tokens arrive via onToken as the SSE chunks land [0.70ms]
+(pass) generateStream — happy path > the request URL carries the model id and the SSE flag [0.16ms]
+(pass) generateStream — happy path > thought parts are stripped, only real text is delivered [0.22ms]
+(pass) generateStream — happy path > a multi-line data: payload joins the lines with \n, not " " [0.18ms]
+(pass) generateStream — happy path > a [DONE] sentinel is the last event, not a payload [0.17ms]
+(pass) generateStream — failures > a non-200 status throws an AiError with the google message [0.27ms]
+(pass) generateStream — failures > a mid-stream {"error": ...} event surfaces an AiError [0.35ms]
+(pass) generateStream — failures > a malformed JSON event throws instead of silently truncating [1.36ms]
+(pass) generateStream — failures > an empty response body throws a plain Error, not an AiError [0.28ms]
+(pass) generateStream — failures > a blank key throws before fetch is even called [0.10ms]
+(pass) generateStream — abort > an aborted signal cancels the in-flight stream [0.31ms]
+
+test/taste.test.ts:
+(pass) apexHost > ordinary hosts reduce to last-two labels [0.08ms]
+(pass) apexHost > listed multi-label suffixes reduce to last-three labels [0.04ms]
+(pass) apexHost > an unknown suffix at 4+ labels reduces to last-three, never the bare suffix [0.03ms]
+(pass) tasteEntryMatches > an apex entry covers its subdomains [0.04ms]
+(pass) loadTaste > a stored sub+apex pair loads as one apex entry [0.12ms]
+(pass) loadTaste > empty storage loads empty lists [0.02ms]
+
+test/settings-hotkey.test.tsx:
+(pass) Settings hotkey surface > Chrome users get a link to chrome://extensions/shortcuts [23.98ms]
+(pass) Settings hotkey surface > Firefox users get a link to about:addons, not the Chrome page [31.12ms]
+(pass) Settings hotkey surface > the address-bar keyword "ai" is advertised next to the hotkey [43.93ms]
+(pass) Settings hotkey surface > the Change-hotkey button opens the matching shortcuts page [20.85ms]
+(pass) Settings hotkey surface > the Firefox button opens about:addons, not the Chrome page [49.38ms]
+
+test/domainVisits.test.ts:
+(pass) domainVisitStats > counts getVisits inside the window, never cumulative visitCount [1.49ms]
+(pass) domainVisitStats > a URL with no getVisits contributes no count [3.63ms]
+(pass) domainVisitStats > a failing getVisits read is skipped, not counted as 1 [0.21ms]
+(pass) domainVisitStats > only in-window timestamps count; out-of-window visits are dropped [0.16ms]
+(pass) domainVisitStats > marks the stat capped when the sweep hits its bound [54.94ms]
+(pass) domainVisitStats > an under-bound sweep is not capped [0.43ms]
+(pass) domainVisitStats > hosts are apex-grouped [0.27ms]
+(pass) domainVisitStats > non-web URLs are ignored [0.24ms]
+(pass) domainVisitStats > no getVisits in the api means no stats at all [0.10ms]
+(pass) domainVisitStats > a throwing search returns an empty map, not a rejection [0.31ms]
+(pass) domainVisitStats > maxResults is clamped into the sweep bound [0.40ms]
+
+test/agnes.test.ts:
+(pass) effectiveAgnesModel > a blank stored value falls back to the default id [0.06ms]
+(pass) effectiveAgnesModel > a typed id is used verbatim, only trimmed [0.02ms]
+(pass) generateStreamAgnes — request shape > the request URL, Bearer auth, model and system instruction are set [0.87ms]
+(pass) generateStreamAgnes — request shape > the length preset sets max_tokens like the Google path [0.24ms]
+(pass) generateStreamAgnes — request shape > a blank key throws before fetch is even called [0.11ms]
+(pass) generateStreamAgnes — happy path > live tokens arrive via onToken as the SSE chunks land [0.25ms]
+(pass) generateStreamAgnes — happy path > the request URL carries no key — it lives in the header only [0.17ms]
+(pass) generateStreamAgnes — happy path > a [DONE] sentinel is the last event, not a payload [0.22ms]
+(pass) generateStreamAgnes — happy path > an empty stream yields the no-text fallback, not a crash [0.19ms]
+(pass) generateStreamAgnes — failures > a non-200 status throws an AiError with the Agnes message [0.33ms]
+(pass) generateStreamAgnes — failures > a malformed JSON event throws instead of silently truncating [0.39ms]
+(pass) generateStreamAgnes — failures > an empty keepalive data frame is skipped, not a malformed error [0.23ms]
+(pass) generateStreamAgnes — failures > an empty response body throws a plain Error, not an AiError [0.14ms]
+(pass) generateStreamAgnes — failures > a mid-stream abort propagates the abort, not a fake answer [0.31ms]
+(pass) probeAgnesKey > a good key resolves with the answering model [0.27ms]
+(pass) probeAgnesKey > the server-reported model wins over the requested id [0.13ms]
+(pass) probeAgnesKey > a missing server model falls back to the requested id [0.15ms]
+(pass) probeAgnesKey > a bad key throws AiError with the status [0.16ms]
+(pass) probeAgnesKey > a blank key throws before fetch [0.09ms]
+(pass) agnesHeadline > each cause branch has a matching one-line headline [0.16ms]
+(pass) agnesHeadline > headlines never carry newlines or countdown blobs [0.03ms]
+(pass) agnesPlainCause > a rejected key points at a fresh key [0.05ms]
+(pass) agnesPlainCause > quota/rate failures name the limit [0.02ms]
+(pass) agnesPlainCause > an unknown model id names the default [0.02ms]
+(pass) agnesPlainCause > a network failure says the request never reached Agnes [0.01ms]
+(pass) agnesPlainCause > an unrecognised error gets the generic sentence, not a raw throw [0.01ms]
+
+test/suggest.test.ts:
+(pass) groupSuggestions > a blank query suggests nothing [0.06ms]
+(pass) groupSuggestions > matching ignores case [2.79ms]
+(pass) groupSuggestions > the list is capped [0.15ms]
+(pass) groupSuggestions > recent equal to the typed query is not suggested [0.02ms]
+(pass) groupSuggestions > a recent that only differs by surrounding whitespace is not suggested [0.02ms]
+(pass) groupSuggestions > no matches means no suggestions [0.01ms]
+(pass) groupSuggestions > an empty recents list is fine [0.01ms]
+(pass) groupSuggestions > rows carry no url so the keyboard path re-runs the query [0.03ms]
+
+test/siteIntel.test.ts:
+(pass) static guess lists > the hi guess is the 180px touch icon — tried before the tiny .ico [0.10ms]
+(pass) static guess lists > the lo guess is /favicon.ico — the last resort before the letter [0.02ms]
+(pass) static guess lists > an unparseable URI yields no candidates (letter fallback) [0.09ms]
+(pass) iconRender > a 1px placeholder is a miss, never a tile [0.02ms]
+(pass) iconRender > a 16px straggler renders tiny (native size), never upscaled [0.01ms]
+(pass) iconRender > a 32px+ icon goes full-bleed [0.02ms]
+(pass) iconArea > multi-size values rank by max area [0.47ms]
+(pass) iconArea > "any" (vector) outranks every bitmap [0.04ms]
+(pass) iconArea > missing or garbage sizes rank zero, never NaN [0.02ms]
+(pass) extractIconHref > a plain rel=icon link wins [0.30ms]
+(pass) extractIconHref > attribute order does not matter (href before rel) [0.04ms]
+(pass) extractIconHref > a mask-icon is skipped, never served as the tile [0.03ms]
+(pass) extractIconHref > apple-touch-icon is the fallback when no rel=icon exists [0.02ms]
+(pass) extractIconHref > non-http(s) hrefs are rejected [0.03ms]
+(pass) extractIconHref > the largest declared icon wins, not the first [0.04ms]
+(pass) extractIconHref > an SVG icon wins outright — vectors never blur [0.04ms]
+(pass) extractIconHref > manifest fallback > a manifest link resolves against the page URL [0.07ms]
+(pass) extractIconHref > manifest fallback > no manifest link means no manifest fallback [0.03ms]
+(pass) extractIconHref > manifest fallback > the largest manifest icon wins [0.09ms]
+(pass) extractIconHref > manifest fallback > a manifest without icons yields nothing [0.02ms]
+(pass) extractIconHref > no link tags means no icon [0.01ms]
+(pass) discoverSiteIcon > resolves the page-declared icon URL [0.88ms]
+(pass) discoverSiteIcon > the second row from one origin costs no second fetch [0.30ms]
+(pass) discoverSiteIcon > a failing fetch resolves null, not a rejection [0.15ms]
+(pass) discoverSiteIcon > an unparseable page URI never touches the network [0.18ms]
+(pass) discoverSiteIcon > a manifest-only page resolves through the manifest [3.34ms]
+(pass) discoverSiteIcon > a page with neither icon nor manifest costs one fetch and resolves null [0.62ms]
+(pass) discoverSiteIcon > a transport failure is not cached — the retry refetches [0.26ms]
+(pass) discoverSiteIcon > a cross-origin redirect files the icon under the responding origin [0.25ms]
+(pass) opened-hosts key namespace > record writes the namespaced key and drops the legacy one [0.32ms]
+(pass) opened-hosts key namespace > legacy entries are still read when the namespaced key is absent [0.11ms]
+
+test/extractResults.test.ts:
+(pass) extractListResults — wrapped bullets > a wrapped description is joined back onto its row [2.30ms]
+(pass) extractListResults — wrapped bullets > a three-line wrap joins completely [0.16ms]
+(pass) extractListResults — wrapped bullets > the legacy bullet shape wraps too [0.05ms]
+(pass) extractListResults — trailing prose stays in the tail > a complete sentence after the last bullet is not a wrap [0.05ms]
+(pass) extractListResults — trailing prose stays in the tail > a capitalised line after an unterminated bullet is still not a wrap [0.04ms]
+(pass) extractListResults — trailing prose stays in the tail > both the wrap and the tail survive in one document [0.07ms]
+(pass) extractListResults — shape > no bullets means everything is the lead [0.04ms]
+
+test/search-tip.test.tsx:
+(pass) search help dialog focus > closing the dialog returns focus to the opener [13.44ms]
+
+test/ambient.test.ts:
+(pass) resolveAmbient > off means no layer at all [0.07ms]
+(pass) resolveAmbient > every shipped theme has its own bloom pair [0.35ms]
+(pass) resolveAmbient > rose and aurora bloom in their own accent, not violet [0.03ms]
+(pass) resolveAmbient > an unknown theme falls back to the ocean default, never violet [0.02ms]
+(pass) resolveAmbient > reduced motion gets one bloom and a stronger dim [0.06ms]
+(pass) ambientForPage > a fresh install defaults to ocean, matching the page default [0.08ms]
+(pass) ambientForPage > honours the stored theme [0.04ms]
+(pass) ambientForPage > a fresh install blooms by default; an explicit false stays off [0.05ms]
+
+test/welcome.test.tsx:
+(pass) welcome funnel > Google is the default with the Gemini link [8.01ms]
+(pass) welcome funnel > switching to Agnes shows the Agnes link and placeholder [7.75ms]
+(pass) welcome funnel > a good Agnes key tests, saves, and unlocks search [23.16ms]
+(pass) welcome funnel > a bad Agnes key shows the Agnes cause, not the Google one [20.79ms]
+(pass) welcome funnel > the Google path still tests, saves, and unlocks [15.19ms]
+
+test/rowMarks.test.ts:
+(pass) row marks > a raw http URI still earns the insecure badge (defense-in-depth) [4.33ms]
+(pass) row marks > an unstripped host records in hostOf form so the badge is found [0.13ms]
+(pass) row marks > permission-denied state renders no familiarity marks [0.23ms]
+(pass) row marks > visits mark is a labelled sample [0.19ms]
+(pass) row marks > zero-visit host gets no mark [0.09ms]
+(pass) row marks > subdomain rows match the apex host [0.13ms]
+(pass) row marks > saved is apex-matched, so a different site is not marked [0.06ms]
+(pass) row marks > opened tracks the full host, not the apex [0.10ms]
+(pass) row marks > path kind is suppressed when it echoes the host kind [0.10ms]
+(pass) row marks > path kind survives when it differs from the host kind [0.11ms]
+(pass) row marks > trust warnings fire for http and punycode [0.45ms]
+(pass) row marks > invalid URIs produce no marks at all [0.07ms]
+(pass) row marks > rank badge present for a top-100k host and absent otherwise [0.21ms]
+(pass) row marks > mark order is stable and readable [0.11ms]
+
+test/background.test.ts:
+(pass) registration > the toolbar icon, command and install events are all subscribed [0.18ms]
+(pass) registration > the omnibox publishes its default suggestion [0.08ms]
+(pass) toolbar icon > a click opens the search page [0.12ms]
+(pass) the open-search command > open-search opens the search page [0.05ms]
+(pass) the open-search command > an unrelated command opens nothing [0.03ms]
+(pass) first install > a fresh install opens the welcome page [0.06ms]
+(pass) first install > an update does not interrupt the user with the welcome page [0.03ms]
+(pass) the ai omnibox keyword > a typed query opens the results page with the query in the URL [1.47ms]
+(pass) the ai omnibox keyword > empty input opens the search page instead of a blank results page [1.31ms]
+(pass) the ai omnibox keyword > the "› open" suffix is stripped from the query [1.25ms]
+(pass) the ai omnibox keyword > the query is URL-encoded so spaces and & survive [1.32ms]
+(pass) the ai omnibox keyword > newForegroundTab opens a foreground tab [0.09ms]
+(pass) the ai omnibox keyword > newBackgroundTab opens an inactive tab [0.07ms]
+(pass) the ai omnibox keyword > the default disposition rewrites the active tab [1.25ms]
+(pass) the ai omnibox keyword > falls back to a new tab when the active tab cannot be resolved [1.27ms]
+(pass) the ai omnibox keyword > a failed rewrite still lands the user on the results page [1.29ms]
+(pass) the ai omnibox keyword > suggestions offer both the ask and the open-the-page variant [0.23ms]
+(pass) the ai omnibox keyword > blank input suggests nothing [0.06ms]
+
+test/liveness.test.ts:
+(pass) liveness classification > gone destinations are dead [0.03ms]
+(pass) liveness classification > server failures are dead [0.01ms]
+(pass) liveness classification > bot blocks and rate limits stay alive [0.01ms]
+(pass) liveness classification > success and redirects are alive [0.01ms]
+(pass) liveness classification > HEAD rejection asks for the GET retry [0.01ms]
+(pass) liveness classification > network failure marks dead [0.38ms]
+(pass) liveness classification > offline browsers report unknown, not dead [0.18ms]
+(pass) liveness classification > a live site is reported alive [0.13ms]
+(pass) probe second opinion > a 403 wall with a dead origin behind it (GET 522) removes the row [0.17ms]
+(pass) probe second opinion > a repeated wall keeps the row — a walled garden is not a dead site [0.10ms]
+(pass) probe second opinion > a host that blocks HEAD but serves GET stays [0.09ms]
+(pass) probe second opinion > a HEAD rejection rescued by GET stays [0.09ms]
+(pass) probe second opinion > a refused HEAD confirmed dead by GET is dead [0.10ms]
+(pass) probe second opinion > a flaky HEAD rescued by GET stays [0.09ms]
+(pass) probe second opinion > a wall whose GET fails stays unknown, never dead [0.10ms]
+(pass) probe second opinion > a hanging HEAD falls back to GET within budget [3008.08ms]
+(pass) checkLink probe cancellation > a hanging probe is aborted, not left pending [6253.76ms]
+
+test/provider.test.ts:
+(pass) isAiProvider > only google and agnes validate [0.88ms]
+(pass) loadAiProvider > a fresh install defaults to Google [3.44ms]
+(pass) loadAiProvider > a stored value round-trips [0.37ms]
+(pass) loadAiProvider > an invalid stored value falls back to the default [0.14ms]
+(pass) resolveProvider — Google > empty prefs yield an empty Google backend [0.60ms]
+(pass) resolveProvider — Google > the migrated Google key and model resolve [0.27ms]
+(pass) resolveProvider — Google > a surrounding-whitespace key is trimmed [0.16ms]
+(pass) resolveProvider — Agnes > the Agnes key and model resolve with no migration [3.43ms]
+(pass) resolveProvider — Agnes > a blank Agnes model falls back to the default id [0.15ms]
+(pass) resolveProvider — Agnes > Agnes ignores the Google key on the same profile [0.18ms]
+(pass) resolveProvider — Agnes > the Google cause mapper stays attached to the Google backend [0.37ms]
+(pass) resolveProvider — Agnes > the Agnes cause mapper is attached to the Agnes backend [1.47ms]
+(pass) resolveProvider — headline and backup > each backend carries its own headline mapper [0.40ms]
+(pass) resolveProvider — headline and backup > no backup when only one provider has a key [0.10ms]
+(pass) resolveProvider — headline and backup > a Google failure with an Agnes key offers the way over [3.22ms]
+(pass) resolveProvider — headline and backup > an Agnes failure with a Google key offers the way back [0.14ms]
+
+ 308 pass
+ 0 fail
+ 656 expect() calls
+Ran 308 tests across 22 files. [12.68s]

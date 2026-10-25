@@ -1,0 +1,8 @@
+
+> web-time-tracker-limiter@0.1.0 typecheck
+> svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/web-time-tracker-limiter
+Getting Svelte diagnostics...
+
+svelte-check found 0 errors and 0 warnings

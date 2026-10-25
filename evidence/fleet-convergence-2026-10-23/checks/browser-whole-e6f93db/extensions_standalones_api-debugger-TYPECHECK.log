@@ -1,0 +1,31 @@
+
+> @dracon/api-debugger@2.5.5 compile
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[1G✔ Built extension in 19.5 s
+  ├─ .output/chrome-mv3/manifest.json                                 930 B    
+  ├─ .output/chrome-mv3/dashboard.html                                556 B    
+  ├─ .output/chrome-mv3/welcome.html                                  1.12 kB  
+  ├─ .output/chrome-mv3/background.js                                 11.53 kB 
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-html-plugins-DPbbfBKe.js  779 B    
+  ├─ .output/chrome-mv3/chunks/dashboard-B2vdBHns.js                  630.77 kB
+  ├─ .output/chrome-mv3/chunks/welcome-DpzSugEF.js                    444 B    
+  ├─ .output/chrome-mv3/assets/dashboard-DBBBqFVk.css                 30.75 kB 
+  ├─ .output/chrome-mv3/assets/welcome-B4x7absd.css                   1.95 kB  
+  ├─ .output/chrome-mv3/_locales/en/messages.json                     353 B    
+  ├─ .output/chrome-mv3/icon/128.png                                  3.59 kB  
+  ├─ .output/chrome-mv3/icon/16.png                                   555 B    
+  ├─ .output/chrome-mv3/icon/32.png                                   949 B    
+  ├─ .output/chrome-mv3/icon/48.png                                   1.36 kB  
+  └─ .output/chrome-mv3/icon/96.png                                   2.63 kB  
+Σ Total size: 688.26 kB                                             
+✔ Finished in 21.0 s

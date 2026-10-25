@@ -1,0 +1,79 @@
+npm warn Unknown project config "shamefully-hoist". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> death-note-typing-practice@1.2.0 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+03:27:14 [vite-plugin-svelte] entrypoints/game/App.svelte:762:66 Redundant role 'main'
+https://svelte.dev/e/a11y_no_redundant_roles
+760: 
+761:   <!-- Content Container -->
+762:   <main class="relative z-10 w-full flex-1 flex flex-col min-h-0" role="main">
+                                                                                  ^
+763:     
+764:     <!-- ========== MAIN MENU ========== -->
+03:27:14 [vite-plugin-svelte] components/Achievements.svelte:86:0 Elements with the 'dialog' interactive role must have a tabindex value
+https://svelte.dev/e/a11y_interactive_supports_focus
+84: </script>
+85: 
+86: <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-label="Achievements" onclick={(e) => { if (e.target === e.currentTarget) onClose(); }} onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}>
+          ^
+87:   <div class="w-full max-w-2xl max-h-[85vh] bg-dn-void border border-dn-ink/20 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-4">
+88:     <!-- Header -->
+03:27:15 [vite-plugin-svelte] entrypoints/settings/SettingsApp.svelte:108:6 Non-interactive element `<nav>` cannot have interactive role 'tablist'
+https://svelte.dev/e/a11y_no_noninteractive_element_to_interactive_role
+106: 
+107:       <!-- Horizontal Tab Navigation -->
+108:       <nav class="flex gap-1 flex-wrap sm:flex-nowrap overflow-x-auto scrollbar-hide" role="tablist" aria-label="Settings sections">
+                 ^
+109:         {#each tabs as tab (tab)}
+110:           <button
+[1G✔ Built extension in 5.758 s
+  ├─ .output/chrome-mv3/manifest.json                                 686 B    
+  ├─ .output/chrome-mv3/game.html                                     1.41 kB  
+  ├─ .output/chrome-mv3/settings.html                                 1.42 kB  
+  ├─ .output/chrome-mv3/welcome.html                                  1.11 kB  
+  ├─ .output/chrome-mv3/background.js                                 11.96 kB 
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-html-plugins-DPbbfBKe.js  779 B    
+  ├─ .output/chrome-mv3/chunks/game-P3qVexAy.js                       143.2 kB 
+  ├─ .output/chrome-mv3/chunks/settings-C6VbDTZ7.js                   35.97 kB 
+  ├─ .output/chrome-mv3/chunks/stats-Dd1OhtFf.js                      975 B    
+  ├─ .output/chrome-mv3/chunks/style-D45bCplh.js                      226.24 kB
+  ├─ .output/chrome-mv3/chunks/welcome-DDIYOc-n.js                    497 B    
+  ├─ .output/chrome-mv3/assets/settings-KrfumMBl.css                  25 B     
+  ├─ .output/chrome-mv3/assets/style-M1Vy-6eq.css                     45.07 kB 
+  ├─ .output/chrome-mv3/assets/welcome-DPLGde6R.css                   1.92 kB  
+  ├─ .output/chrome-mv3/fonts/fonts.css                               993 B    
+  ├─ .output/chrome-mv3/_locales/en/messages.json                     330 B    
+  ├─ .output/chrome-mv3/_locales/README.md                            2.32 kB  
+  ├─ .output/chrome-mv3/fonts/cinzel-400.woff2                        14.54 kB 
+  ├─ .output/chrome-mv3/fonts/cinzel-700.woff2                        25.9 kB  
+  ├─ .output/chrome-mv3/fonts/cinzel-900.woff2                        14.54 kB 
+  ├─ .output/chrome-mv3/fonts/courier-prime-400.woff2                 12.74 kB 
+  ├─ .output/chrome-mv3/fonts/courier-prime-700.woff2                 12.93 kB 
+  ├─ .output/chrome-mv3/fonts/creepster-400.woff2                     28.12 kB 
+  ├─ .output/chrome-mv3/icon/128.png                                  6.05 kB  
+  ├─ .output/chrome-mv3/icon/16.png                                   511 B    
+  ├─ .output/chrome-mv3/icon/32.png                                   1.14 kB  
+  ├─ .output/chrome-mv3/icon/48.png                                   1.86 kB  
+  ├─ .output/chrome-mv3/icon/96.png                                   4.17 kB  
+  ├─ .output/chrome-mv3/sounds/achievement-voice.mp3                  29.44 kB 
+  ├─ .output/chrome-mv3/sounds/achievement.mp3                        2.05 kB  
+  ├─ .output/chrome-mv3/sounds/chime.mp3                              2.05 kB  
+  ├─ .output/chrome-mv3/sounds/danger.mp3                             2.05 kB  
+  ├─ .output/chrome-mv3/sounds/error.mp3                              2.05 kB  
+  ├─ .output/chrome-mv3/sounds/fanfare.mp3                            2.05 kB  
+  ├─ .output/chrome-mv3/sounds/music-elimination.mp3                  1.28 MB  
+  ├─ .output/chrome-mv3/sounds/music-gameover-2.mp3                   987.26 kB
+  ├─ .output/chrome-mv3/sounds/music-gameover.mp3                     1.39 MB  
+  ├─ .output/chrome-mv3/sounds/music-gameplay-2.mp3                   1.44 MB  
+  ├─ .output/chrome-mv3/sounds/music-gameplay.mp3                     839.52 kB
+  ├─ .output/chrome-mv3/sounds/music-menu-2.mp3                       1.28 MB  
+  ├─ .output/chrome-mv3/sounds/music-menu.mp3                         411.32 kB
+  ├─ .output/chrome-mv3/sounds/success.mp3                            2.05 kB  
+  └─ .output/chrome-mv3/sounds/whoosh.mp3                             2.05 kB  
+Σ Total size: 8.27 MB                                               
+✔ Finished in 6.891 s

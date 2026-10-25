@@ -1,0 +1,45 @@
+
+> gemini-toolkit@0.8.0 test
+> vitest run --passWithNoTests
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/collections/toolkit/gemini-toolkit[39m
+
+ [32m✓[39m tests/gemini-dom.test.ts [2m([22m[2m41 tests[22m[2m)[22m[33m 1694[2mms[22m[39m
+     [33m[2m✓[22m[39m returns false when no level matches [33m 308[2mms[22m[39m
+     [33m[2m✓[22m[39m closes the menu again when no level matches [33m 327[2mms[22m[39m
+ [32m✓[39m tests/panel.test.ts [2m([22m[2m43 tests[22m[2m)[22m[33m 2385[2mms[22m[39m
+     [33m[2m✓[22m[39m narrows the search to one folder [33m 304[2mms[22m[39m
+ [32m✓[39m tests/export.test.ts [2m([22m[2m35 tests[22m[2m)[22m[32m 297[2mms[22m[39m
+ [32m✓[39m tests/chain-runner.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 1591[2mms[22m[39m
+     [33m[2m✓[22m[39m sends the step even when the level cannot be chosen [33m 402[2mms[22m[39m
+ [32m✓[39m tests/page-tools.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 604[2mms[22m[39m
+ [32m✓[39m tests/dock.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 659[2mms[22m[39m
+ [32m✓[39m tests/gemini-data.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 84[2mms[22m[39m
+ [32m✓[39m tests/integration.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 1388[2mms[22m[39m
+     [33m[2m✓[22m[39m mounts the panel on a real Gemini page [33m 363[2mms[22m[39m
+     [33m[2m✓[22m[39m shows chains, quick actions and bookmarks in the panel [33m 424[2mms[22m[39m
+ [32m✓[39m tests/quick-actions.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 73[2mms[22m[39m
+ [32m✓[39m tests/chains.test.ts [2m([22m[2m32 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+ [32m✓[39m tests/google-rpc.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 86[2mms[22m[39m
+ [32m✓[39m tests/timestamps.test.ts [2m([22m[2m23 tests[22m[2m)[22m[32m 116[2mms[22m[39m
+ [32m✓[39m tests/folders.test.ts [2m([22m[2m23 tests[22m[2m)[22m[32m 242[2mms[22m[39m
+ [32m✓[39m tests/gemini-controls.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 593[2mms[22m[39m
+ [32m✓[39m tests/docx.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 56[2mms[22m[39m
+ [32m✓[39m tests/shortcuts.test.ts [2m([22m[2m27 tests[22m[2m)[22m[32m 155[2mms[22m[39m
+ [32m✓[39m tests/bookmarks.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+ [32m✓[39m tests/chat-index.test.ts [2m([22m[2m25 tests[22m[2m)[22m[32m 100[2mms[22m[39m
+ [32m✓[39m tests/queue.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+ [32m✓[39m tests/db.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 81[2mms[22m[39m
+ [32m✓[39m tests/settings.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32m✓[39m tests/manifest.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32m✓[39m tests/prompts.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+ [32m✓[39m tests/search.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m tests/context.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m tests/guide.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m26 passed[39m[22m[90m (26)[39m
+[2m      Tests [22m [1m[32m535 passed[39m[22m[90m (535)[39m
+[2m   Start at [22m 03:09:28
+[2m   Duration [22m 39.55s[2m (transform 4.65s, setup 1.05s, import 6.47s, tests 10.50s, environment 42.14s)[22m
+

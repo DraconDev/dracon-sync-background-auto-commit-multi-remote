@@ -1,0 +1,5 @@
+
+> @dracon/extension-svelte@1.0.0 build
+> node build-dts.mjs && tsc
+
+Generated 17 .svelte.d.ts files (skipped 0).

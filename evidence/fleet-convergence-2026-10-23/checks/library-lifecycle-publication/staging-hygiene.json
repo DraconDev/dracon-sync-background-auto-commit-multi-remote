@@ -1,0 +1,38 @@
+{
+  "packages/extension-react/.dist-build-fixture/index.js": {
+    "ignored": true,
+    "expected": true
+  },
+  "packages/extension-react/src/index.ts": {
+    "ignored": false,
+    "expected": false
+  },
+  "packages/extension-react/scripts/build.check.mjs": {
+    "ignored": false,
+    "expected": false
+  },
+  "packages/brand-icon/.dist-build-fixture/index.js": {
+    "ignored": true,
+    "expected": true
+  },
+  "packages/brand-icon/src/index.ts": {
+    "ignored": false,
+    "expected": false
+  },
+  "packages/brand-icon/scripts/build.check.mjs": {
+    "ignored": false,
+    "expected": false
+  },
+  "packages/extension-forms/.dist-build-fixture/index.js": {
+    "ignored": true,
+    "expected": true
+  },
+  "packages/extension-forms/src/index.ts": {
+    "ignored": false,
+    "expected": false
+  },
+  "packages/extension-forms/scripts/build.check.mjs": {
+    "ignored": false,
+    "expected": false
+  }
+}

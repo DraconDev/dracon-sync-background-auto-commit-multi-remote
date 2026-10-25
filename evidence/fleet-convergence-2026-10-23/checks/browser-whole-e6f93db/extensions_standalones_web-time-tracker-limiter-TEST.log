@@ -1,0 +1,34 @@
+
+> web-time-tracker-limiter@0.1.0 test
+> vitest run --passWithNoTests
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.AC9JDj/snapshot-e6f93db771998453c6577201f2585b31f7e3254a/extensions/standalones/web-time-tracker-limiter[39m
+
+ [32m✓[39m tests/tracking.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 87[2mms[22m[39m
+ [32m✓[39m tests/storage.test.ts [2m([22m[2m37 tests[22m[2m)[22m[32m 195[2mms[22m[39m
+ [32m✓[39m tests/engagement.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 69[2mms[22m[39m
+ [32m✓[39m tests/aggregate.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 178[2mms[22m[39m
+ [32m✓[39m tests/dashboard.test.ts [2m([22m[2m25 tests[22m[2m)[22m[33m 5592[2mms[22m[39m
+     [33m[2m✓[22m[39m renders every declared primitive with its original attributes [33m 500[2mms[22m[39m
+     [33m[2m✓[22m[39m renders an honest empty state when there is no data [33m 2300[2mms[22m[39m
+     [33m[2m✓[22m[39m puts the theme and the support links in the rail, not the header [33m 302[2mms[22m[39m
+ [32m✓[39m tests/rules.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+ [32m✓[39m tests/host-categories.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 83[2mms[22m[39m
+ [32m✓[39m tests/manifest-contract.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m tests/etld.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 92[2mms[22m[39m
+
+Rebuilding...
+
+Done in 2293ms.
+ [32m✓[39m tests/tailwind.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 6385[2mms[22m[39m
+   [33m[2m✓[22m[39m loads the ESM config and emits the shared Card padding from linked source [33m 6379[2mms[22m[39m
+ [32m✓[39m tests/nightfall-types.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 7986[2mms[22m[39m
+     [33m[2m✓[22m[39m resolves the real exports and accepts supported props [33m 3085[2mms[22m[39m
+     [33m[2m✓[22m[39m does not replace Card or StatusHero with an untyped fallback [33m 4896[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m11 passed[39m[22m[90m (11)[39m
+[2m      Tests [22m [1m[32m170 passed[39m[22m[90m (170)[39m
+[2m   Start at [22m 03:45:43
+[2m   Duration [22m 30.08s[2m (transform 3.18s, setup 1.07s, import 9.99s, tests 20.75s, environment 19.67s)[22m
+

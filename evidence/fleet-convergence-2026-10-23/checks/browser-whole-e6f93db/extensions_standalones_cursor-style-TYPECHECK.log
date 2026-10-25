@@ -1,0 +1,242 @@
+
+> cursor-style@1.0.0 compile
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+03:23:12 [vite-plugin-svelte] entrypoints/dashboard/DashboardApp.svelte:188:10 Self-closing HTML tags for non-void elements are ambiguous — use `<span ...></span>` rather than `<span ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+186:         <Power size={20} />
+187:         {#if state.isActive}
+188:           <span
+                 ^
+189:             class="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-ping"
+190:           />
+03:23:13 [vite-plugin-svelte] entrypoints/dashboard/components/TrailsSection.svelte:367:6 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+365:   <div class="grid grid-cols-2 gap-6">
+366:     <div class="space-y-4">
+367:       <label
+                 ^
+368:         class="text-sm font-bold text-muted-foreground uppercase tracking-widest"
+369:       >
+03:23:13 [vite-plugin-svelte] entrypoints/dashboard/components/TrailsSection.svelte:391:8 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+389:     <div class="space-y-4">
+390:       <div class="flex items-center justify-between">
+391:         <label
+                   ^
+392:           class="text-sm font-bold text-muted-foreground uppercase tracking-widest"
+393:         >
+03:23:13 [vite-plugin-svelte] entrypoints/dashboard/components/TrailsSection.svelte:409:10 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+407:       <div class="space-y-2">
+408:         <div class="flex items-center justify-between">
+409:           <label
+                     ^
+410:             class="text-sm font-bold text-muted-foreground uppercase tracking-widest"
+411:           >
+03:23:13 [vite-plugin-svelte] entrypoints/dashboard/components/TrailsSection.svelte:435:4 Self-closing HTML tags for non-void elements are ambiguous — use `<canvas ...></canvas>` rather than `<canvas ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+433:       Test Trail Effect
+434:     </h3>
+435:     <canvas
+           ^
+436:       bind:this={previewRef}
+437:       width={400}
+03:23:13 [vite-plugin-svelte] entrypoints/dashboard/components/EffectsSection.svelte:70:4 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+68: 
+69:   <div class="space-y-4">
+70:     <label
+              ^
+71:       class="text-sm font-bold text-muted-foreground uppercase tracking-widest"
+72:     >
+03:23:13 [vite-plugin-svelte] entrypoints/dashboard/components/EffectsSection.svelte:109:4 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+107: 
+108:   <div class="space-y-4">
+109:     <label
+               ^
+110:       class="text-sm font-bold text-muted-foreground uppercase tracking-widest"
+111:     >
+03:23:13 [vite-plugin-svelte] entrypoints/dashboard/components/EffectsSection.svelte:139:8 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+137:     <div class="space-y-6">
+138:       <div class="flex items-center justify-between">
+139:         <label
+                   ^
+140:           class="text-sm font-bold text-muted-foreground uppercase tracking-widest"
+141:         >
+03:23:13 [vite-plugin-svelte] entrypoints/dashboard/components/EffectsSection.svelte:155:14 Self-closing HTML tags for non-void elements are ambiguous — use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+153:           <div class="flex items-center justify-between">
+154:             <div class="flex items-center gap-2">
+155:               <div
+                     ^
+156:                 class="w-8 h-8 rounded-full flex items-center justify-center"
+157:                 style="background-color: {cursorState.glowColors[type]}40; border: 2px solid {cursorState.glowColors[type]}"
+03:23:13 [vite-plugin-svelte] entrypoints/dashboard/components/CollectionSection.svelte:89:16 Self-closing HTML tags for non-void elements are ambiguous — use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+87:               </button>
+88:               {#if activeCursorId === cursor.id}
+89:                 <div
+                      ^
+90:                   class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-primary"
+91:                 />
+03:23:14 [vite-plugin-svelte] entrypoints/dashboard/components/CursorCard.svelte:18:0 `<div>` with a mouseenter or mouseleave handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+16: </script>
+17: 
+18: <div
+        ^
+19:   class="relative group"
+20:   onmouseenter={() => (isHovered = true)}
+03:23:14 [vite-plugin-svelte] entrypoints/dashboard/components/CursorCard.svelte:48:4 Self-closing HTML tags for non-void elements are ambiguous — use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+46:   </button>
+47:   {#if isActive}
+48:     <div
+          ^
+49:       class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-primary"
+50:     />
+03:23:14 [vite-plugin-svelte] entrypoints/dashboard/components/UploadSection.svelte:21:0 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+19: </script>
+20: 
+21: <div
+        ^
+22:   class="border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer {isDragging
+23:     ? 'border-primary bg-primary/10'
+03:23:14 [vite-plugin-svelte] entrypoints/dashboard/components/UploadSection.svelte:21:0 `<div>` with a dragover, dragleave, drop or click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+19: </script>
+20: 
+21: <div
+        ^
+22:   class="border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer {isDragging
+23:     ? 'border-primary bg-primary/10'
+03:23:14 [vite-plugin-svelte] entrypoints/dashboard/components/UploadSection.svelte:45:6 Self-closing HTML tags for non-void elements are ambiguous — use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+43:   {#if isUploading}
+44:     <div class="flex items-center justify-center gap-3 text-primary">
+45:       <div
+            ^
+46:         class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"
+47:       />
+03:23:14 [vite-plugin-svelte] entrypoints/dashboard/components/ToggleCard.svelte:25:4 `<svelte:component>` is deprecated in runes mode — components are dynamic by default
+https://svelte.dev/e/svelte_component_deprecated
+23:       : 'bg-white/10'}"
+24:   >
+25:     <svelte:component this={icon} size={24} />
+                                                  ^
+26:   </div>
+27:   <h3 class="font-bold text-lg mb-1">{title}</h3>
+03:23:14 [vite-plugin-svelte] entrypoints/dashboard/components/ToggleCard.svelte:34:4 Self-closing HTML tags for non-void elements are ambiguous — use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+32:       : 'bg-white/20'}"
+33:   >
+34:     <div
+          ^
+35:       class="absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all {active
+36:         ? 'left-7'
+03:23:26 [vite-plugin-svelte] entrypoints/popup/App.svelte:123:8 Self-closing HTML tags for non-void elements are ambiguous — use `<span ...></span>` rather than `<span ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+121:       <Power size={18} />
+122:       {#if state.isActive}
+123:         <span class="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-ping" />
+                                                                                                   ^
+124:       {/if}
+125:     </button>
+[1G✔ Built extension in 21.7 s
+  ├─ .output/chrome-mv3/manifest.json                                 1.13 kB  
+  ├─ .output/chrome-mv3/dashboard.html                                661 B    
+  ├─ .output/chrome-mv3/popup.html                                    650 B    
+  ├─ .output/chrome-mv3/welcome.html                                  1.12 kB  
+  ├─ .output/chrome-mv3/background.js                                 715 B    
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-html-plugins-DPbbfBKe.js  779 B    
+  ├─ .output/chrome-mv3/chunks/dashboard-D8Vz-giA.js                  27.55 kB 
+  ├─ .output/chrome-mv3/chunks/popup-B6JwMvCG.js                      14.83 kB 
+  ├─ .output/chrome-mv3/chunks/style-vY2h_oYc.js                      72.51 kB 
+  ├─ .output/chrome-mv3/chunks/welcome-6xhYofeL.js                    499 B    
+  ├─ .output/chrome-mv3/content-scripts/content.js                    27.26 kB 
+  ├─ .output/chrome-mv3/assets/dashboard-CtS2jG2X.css                 2.02 kB  
+  ├─ .output/chrome-mv3/assets/popup-BUMuayX4.css                     115 B    
+  ├─ .output/chrome-mv3/assets/style-RGY5Ev7N.css                     8.36 kB  
+  ├─ .output/chrome-mv3/assets/welcome-bI5Z2rvg.css                   1.92 kB  
+  ├─ .output/chrome-mv3/_locales/en/messages.json                     354 B    
+  ├─ .output/chrome-mv3/assets/cursor-catalog.json                    10.89 kB 
+  ├─ .output/chrome-mv3/assets/cursors/amber-pointer.svg              201 B    
+  ├─ .output/chrome-mv3/assets/cursors/bat-pointer.svg                234 B    
+  ├─ .output/chrome-mv3/assets/cursors/blue-pointer.svg               201 B    
+  ├─ .output/chrome-mv3/assets/cursors/bow-pointer.svg                224 B    
+  ├─ .output/chrome-mv3/assets/cursors/bunny-pointer.svg              517 B    
+  ├─ .output/chrome-mv3/assets/cursors/cloud-pointer.svg              342 B    
+  ├─ .output/chrome-mv3/assets/cursors/clover-pointer.svg             413 B    
+  ├─ .output/chrome-mv3/assets/cursors/controller-pointer.svg         246 B    
+  ├─ .output/chrome-mv3/assets/cursors/cpu-pointer.svg                382 B    
+  ├─ .output/chrome-mv3/assets/cursors/crosshair-pointer.svg          220 B    
+  ├─ .output/chrome-mv3/assets/cursors/crown-pointer.svg              267 B    
+  ├─ .output/chrome-mv3/assets/cursors/crystal-cursor.svg             1.01 kB  
+  ├─ .output/chrome-mv3/assets/cursors/crystal-pointer.svg            1.01 kB  
+  ├─ .output/chrome-mv3/assets/cursors/cyan-pointer.svg               249 B    
+  ├─ .output/chrome-mv3/assets/cursors/cyber-cat-cursor.svg           1.61 kB  
+  ├─ .output/chrome-mv3/assets/cursors/cyber-cat-pointer.svg          1.5 kB   
+  ├─ .output/chrome-mv3/assets/cursors/diamond-gem-pointer.svg        367 B    
+  ├─ .output/chrome-mv3/assets/cursors/diamond-pointer.svg            317 B    
+  ├─ .output/chrome-mv3/assets/cursors/drop-pointer.svg               414 B    
+  ├─ .output/chrome-mv3/assets/cursors/dropper-pointer.svg            288 B    
+  ├─ .output/chrome-mv3/assets/cursors/emerald-gem-pointer.svg        282 B    
+  ├─ .output/chrome-mv3/assets/cursors/emerald-pointer.svg            414 B    
+  ├─ .output/chrome-mv3/assets/cursors/flame-cursor.svg               1.02 kB  
+  ├─ .output/chrome-mv3/assets/cursors/flame-pointer.svg              1.02 kB  
+  ├─ .output/chrome-mv3/assets/cursors/ghost-cursor.svg               1.2 kB   
+  ├─ .output/chrome-mv3/assets/cursors/ghost-pointer.svg              1.11 kB  
+  ├─ .output/chrome-mv3/assets/cursors/heart-arrow-pointer.svg        222 B    
+  ├─ .output/chrome-mv3/assets/cursors/heart-glow-cursor.svg          795 B    
+  ├─ .output/chrome-mv3/assets/cursors/heart-glow-pointer.svg         795 B    
+  ├─ .output/chrome-mv3/assets/cursors/indigo-pointer.svg             201 B    
+  ├─ .output/chrome-mv3/assets/cursors/infinity-pointer.svg           205 B    
+  ├─ .output/chrome-mv3/assets/cursors/leaf-pointer.svg               223 B    
+  ├─ .output/chrome-mv3/assets/cursors/lightning-bolt-cursor.svg      808 B    
+  ├─ .output/chrome-mv3/assets/cursors/lightning-bolt-pointer.svg     808 B    
+  ├─ .output/chrome-mv3/assets/cursors/moon-pointer.svg               282 B    
+  ├─ .output/chrome-mv3/assets/cursors/mushroom-cursor.svg            1.14 kB  
+  ├─ .output/chrome-mv3/assets/cursors/mushroom-pointer.svg           1.06 kB  
+  ├─ .output/chrome-mv3/assets/cursors/neon-arrow-cursor.svg          760 B    
+  ├─ .output/chrome-mv3/assets/cursors/neon-arrow-pointer.svg         760 B    
+  ├─ .output/chrome-mv3/assets/cursors/orange-pointer.svg             249 B    
+  ├─ .output/chrome-mv3/assets/cursors/paw-print-cursor.svg           1.12 kB  
+  ├─ .output/chrome-mv3/assets/cursors/paw-print-pointer.svg          1.06 kB  
+  ├─ .output/chrome-mv3/assets/cursors/peace-pointer.svg              225 B    
+  ├─ .output/chrome-mv3/assets/cursors/pink-pointer.svg               414 B    
+  ├─ .output/chrome-mv3/assets/cursors/pumpkin-pointer.svg            360 B    
+  ├─ .output/chrome-mv3/assets/cursors/rain-pointer.svg               285 B    
+  ├─ .output/chrome-mv3/assets/cursors/robot-pointer.svg              419 B    
+  ├─ .output/chrome-mv3/assets/cursors/shield-pointer.svg             270 B    
+  ├─ .output/chrome-mv3/assets/cursors/skull-pointer.svg              450 B    
+  ├─ .output/chrome-mv3/assets/cursors/star-burst-cursor.svg          851 B    
+  ├─ .output/chrome-mv3/assets/cursors/star-burst-pointer.svg         851 B    
+  ├─ .output/chrome-mv3/assets/cursors/star-gold-pointer.svg          222 B    
+  ├─ .output/chrome-mv3/assets/cursors/star-pointer.svg               218 B    
+  ├─ .output/chrome-mv3/assets/cursors/star-red-pointer.svg           266 B    
+  ├─ .output/chrome-mv3/assets/cursors/sun-pointer.svg                403 B    
+  ├─ .output/chrome-mv3/assets/cursors/swords-pointer.svg             307 B    
+  ├─ .output/chrome-mv3/assets/cursors/swords-red-pointer.svg         307 B    
+  ├─ .output/chrome-mv3/assets/cursors/target-pointer.svg             388 B    
+  ├─ .output/chrome-mv3/assets/cursors/teal-pointer.svg               201 B    
+  ├─ .output/chrome-mv3/assets/cursors/trophy-pointer.svg             364 B    
+  ├─ .output/chrome-mv3/assets/cursors/violet-pointer.svg             201 B    
+  ├─ .output/chrome-mv3/icon.svg                                      3.69 kB  
+  ├─ .output/chrome-mv3/icons/icon128.png                             16.9 kB  
+  ├─ .output/chrome-mv3/icons/icon16.png                              603 B    
+  ├─ .output/chrome-mv3/icons/icon32.png                              1.73 kB  
+  ├─ .output/chrome-mv3/icons/icon48.png                              3.36 kB  
+  ├─ .output/chrome-mv3/icons/marquee-promo.png                       117.63 kB
+  ├─ .output/chrome-mv3/icons/small-promo.png                         30.72 kB 
+  ├─ .output/chrome-mv3/icons/store-128.png                           16.9 kB  
+  └─ .output/chrome-mv3/icons/store-promo.png                         30.72 kB 
+Σ Total size: 426.18 kB                                             
+✔ Finished in 23.2 s
