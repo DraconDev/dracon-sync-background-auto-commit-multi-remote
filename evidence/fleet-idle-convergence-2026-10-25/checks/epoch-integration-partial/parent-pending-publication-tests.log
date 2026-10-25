@@ -1,2 +1,10 @@
     Blocking waiting for file lock on build directory
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: unused import: `git_name_status_entries`
+  --> dracon-sync/src/sync.rs:39:23
+   |
+39 |     cli_diff_entries, git_name_status_entries, has_origin_remote, has_tracking_upstream,
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
