@@ -97,11 +97,18 @@ pub(super) fn tighten_legacy(repo: &Path) -> Result<()> {
         Err(e) => return Err(e.into()),
         Ok(_) => private_directory(&root)?,
     }
+    let parent = OpenOptions::new().read(true).custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC).open(&root)?;
+    let parent_meta = parent.metadata()?;
+    ensure!(parent_meta.uid() == unsafe { libc::geteuid() } && parent_meta.mode() & 0o077 == 0,
+        "archive container changed; no permission repair authorized");
     for entry in std::fs::read_dir(&root)? {
         ensure!(std::time::Instant::now() < deadline, "excluded archive privacy repair deadline expired");
         let entry = entry?;
         if !entry.file_name().as_bytes().starts_with(b"dracon-excluded-recovery-") { continue; }
-        let file = OpenOptions::new().read(true).custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC).open(entry.path())?;
+        let name = CString::new(entry.file_name().as_bytes())?;
+        let fd = unsafe { libc::openat(parent.as_raw_fd(), name.as_ptr(), libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC) };
+        if fd < 0 { return Err(std::io::Error::last_os_error().into()); }
+        let file = unsafe { File::from_raw_fd(fd) };
         let meta = file.metadata()?;
         ensure!(meta.is_dir() && meta.uid() == unsafe { libc::geteuid() }, "foreign archive directory; permissions/content retained");
         if meta.mode() & 0o077 != 0 {
