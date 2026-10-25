@@ -41,7 +41,8 @@ pub(super) struct Evidence {
 
 pub(super) fn classify(row: &RepoReportRow) -> Current {
     let pending = row.modified + row.staged + row.untracked > 0 || row.ahead > 0 || row.behind > 0;
-    let blocked = row.pack_too_large || row.missing_objects > 0 || row.push_status == "BROKEN";
+    let blocked = row.pack_too_large || row.missing_objects > 0 || row.push_status == "BROKEN"
+        || row.state_flags.iter().any(|flag| flag.starts_with("EXCLUDED_RECOVERY"));
     // Legacy STUCK_PULL means merely behind-with-upstream, not an actual
     // pull blocker. A current blocker requires affirmative scheduler evidence.
     if blocked {

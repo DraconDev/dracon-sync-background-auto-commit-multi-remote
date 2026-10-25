@@ -4583,7 +4583,9 @@ pub(crate) async fn run_repos_report(
             _ => None,
         };
 
-        let mut hint = if let Some(h) = unowned_hint {
+        let mut hint = if recovery_flag.is_some() {
+            repo_hint(&flags, warn, concern)
+        } else if let Some(h) = unowned_hint {
             h
         } else if history_broken {
             // An invalid HEAD/ref can make libgit2 report every file as
