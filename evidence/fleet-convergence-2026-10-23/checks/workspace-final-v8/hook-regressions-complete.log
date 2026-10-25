@@ -9,3 +9,4 @@
 ✔ nested Bun scripts use the exact selected pin rather than inherited Bun (49055.553593ms)
 ✔ library workspaces are built before a dependent lifecycle script resolves them (59123.821105ms)
 ✔ same-repository preparation is exclusive but product gates still overlap (43953.900038ms)
+✔ native pool budgets bound lifecycle, library and gate workers (48572.502775ms)
