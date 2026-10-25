@@ -1,0 +1,22 @@
+
+> @dracon/extension-forms@1.0.0 test
+> node --test scripts/clean-build.check.mjs && vitest run --passWithNoTests
+
+✔ forms builds cold, tolerates an unrelated source addition and rejects a dist self-dependency (2854.011372ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2891.258331
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/packages/extension-forms
+
+
+ Test Files  6 passed (6)
+      Tests  47 passed (47)
+   Start at  07:09:21
+   Duration  781ms (transform 276ms, setup 0ms, import 378ms, tests 109ms, environment 1.74s)
+

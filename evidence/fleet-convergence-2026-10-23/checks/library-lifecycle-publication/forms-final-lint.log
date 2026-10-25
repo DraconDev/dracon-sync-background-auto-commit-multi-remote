@@ -1,0 +1,14 @@
+
+> @dracon/extension-forms@1.0.0 lint
+> eslint src/
+
+(node:1650030) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/Dev/browser-extensions-shared/eslint.config.js?mtime=1792007278247 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/dracon/Dev/browser-extensions-shared/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/home/dracon/Dev/browser-extensions-shared/packages/extension-forms/src/utils/domTraversal.ts
+  217:14  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 1 problem (0 errors, 1 warning)
+
