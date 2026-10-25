@@ -30,6 +30,7 @@ async fn fixture() -> (tempfile::TempDir, PathBuf, Vec<RestoreTarget>) {
     git(r, &["commit", "-q", "-m", "initial"]);
     let pending = tempfile::Builder::new()
         .prefix("dracon-excluded-recovery-")
+        .permissions({ use std::os::unix::fs::PermissionsExt; std::fs::Permissions::from_mode(0o700) })
         .tempdir_in(r.join(".git"))
         .unwrap()
         .keep();
