@@ -231,6 +231,9 @@ impl StagedIntentSnapshot {
                     use tokio::io::AsyncWriteExt;
                     stdin.write_all(&input).await?;
                     stdin.shutdown().await?;
+                    // ChildStdin shutdown alone does not close the pipe. Git's
+                    // batch reader needs EOF before its capture can complete.
+                    drop(stdin);
                     Ok::<_, anyhow::Error>(())
                 };
                 let ((status, output, stderr), ()) = tokio::try_join!(
