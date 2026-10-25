@@ -24,7 +24,7 @@ fn fixture(path: &Path) -> (tempfile::TempDir,Vec<(String,Vec<u8>)>) {
     native(r,&["config","core.hooksPath",hooks.to_str().unwrap()],None);
     std::fs::write(r.join(path),b"HEAD\0binary\xff\n").unwrap();
     std::fs::write(r.join("note.txt"),b"baseline\n").unwrap();
-    let mut names=path.as_os_str().as_bytes().to_vec();names.push(0);names.extend_from_slice(b"note.txt\0");
+    let mut names=b":(literal)".to_vec();names.extend_from_slice(path.as_os_str().as_bytes());names.push(0);names.extend_from_slice(b"note.txt\0");
     native(r,&["add","--pathspec-from-file=-","--pathspec-file-nul"],Some(&names));
     native(r,&["commit","-q","-m","initial"],None);
     let mut update=format!("0 {}\t","0".repeat(40)).into_bytes();
@@ -121,6 +121,9 @@ async fn unmerged_entry_production_sync_commits_only_verified_entry_staging_and_
     let (d,_)=fixture(Path::new("a.bin"));let r=d.path();let before=String::from_utf8(head(r)).unwrap().trim().to_owned();
     std::fs::write(r.join("note.txt"),b"captured staged B\n").unwrap();native(r,&["add","--","note.txt"],None);
     std::fs::write(r.join("note.txt"),b"later unstaged C\n").unwrap();std::fs::write(r.join("unrelated.txt"),b"untracked producer\n").unwrap();
+    let hook=r.join(".git/fixture-hooks/pre-commit");
+    std::fs::write(&hook,b"#!/bin/sh\ntest \"$(git show :note.txt)\" = 'captured staged B' || exit 41\nif git ls-files --error-unmatch unrelated.txt >/dev/null 2>&1; then exit 42; fi\nprintf 'pre-commit\\n' >> .git/meaningful-hook-called\n").unwrap();
+    std::fs::set_permissions(&hook,std::fs::Permissions::from_mode(0o755)).unwrap();
     let result=sync_repo(r,&policy(),&BTreeSet::new(),0,None,false,None).await;
     assert!(result.is_ok(),"real production sync failed: {result:?}");
     let commits=String::from_utf8(native(r,&["rev-list","--reverse",&format!("{before}..HEAD")],None)).unwrap();
@@ -129,4 +132,5 @@ async fn unmerged_entry_production_sync_commits_only_verified_entry_staging_and_
     assert!(native(r,&["ls-tree","-r","--name-only",first],None).split(|b|*b==b'\n').all(|p|p!=b"unrelated.txt"));
     assert_eq!(std::fs::read(r.join("note.txt")).unwrap(),b"later unstaged C\n");
     assert_eq!(std::fs::read(r.join("unrelated.txt")).unwrap(),b"untracked producer\n");
+    assert_eq!(std::fs::read(r.join(".git/meaningful-hook-called")).unwrap(),b"pre-commit\n", "meaningful original hook executes exactly once");
 }
