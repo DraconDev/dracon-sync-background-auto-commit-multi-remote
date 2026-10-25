@@ -3999,123 +3999,13 @@ fn compute_blast_radius(repo: &Path) -> String {
     subject
 }
 
-/// Detect unmerged entries in the git index and, if `auto_resolve_unmerged`
-/// is enabled and the working tree content matches HEAD for those paths,
-/// reset them so the index is clean and the commit can proceed.
-///
-/// Returns the number of unmerged entries that were resolved.
-///
-/// This is the SINGLE-POINT-OF-FIX for the 4+ hour staleness seen in
-/// `dracon-platform` where 4 unmerged PNGs in `web/ai-hub/audit-20260629/...`
-/// blocked every commit for 4+ hours. With this function, the daemon
-/// auto-detects the unmerged state, verifies the working tree matches HEAD
-/// byte-by-byte, and resets the unmerge so the commit can proceed.
-///
-/// ADDED 2026-06-21, goal 55db3bfc-4fc0-4650-8349-38da9e62bd44.
+/// Legacy behavioral controls call the SAME private-entry reconciliation used
+/// by production, not the removed live-index reset implementation.
+#[cfg(test)]
 async fn auto_resolve_unmerged_if_safe(repo: &Path, auto_resolve: bool) -> Result<usize> {
-    use anyhow::Context;
-
-    // List unmerged entries. The output format is:
-    //   <mode> <hash> <stage> <path>
-    // for each unmerged stage (1, 2, 3). We collect the unique
-    // paths (one entry per path across all stages).
-    let output = crate::policy::std_git_command()
-        .args(["-C", &repo.to_string_lossy(), "ls-files", "--unmerged"])
-        .output()
-        .with_context(|| format!("failed to list unmerged files in {}", repo.display()))?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    if stdout.trim().is_empty() {
-        return Ok(0);
-    }
-
-    // Parse unmerged paths. For each path with stage=1/2/3 entries, we
-    // need to check if the working tree matches HEAD. If yes, we can
-    // safely `git reset HEAD -- <path>` to clear the unmerge.
-    let mut unmerged_paths: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
-    for line in stdout.lines() {
-        // Format: <mode> <hash> <stage> <path>
-        // Example: "100644 abc123... 1    foo/bar.png"
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() >= 4 {
-            // The path is everything from index 3 onwards (paths can
-            // contain spaces in unusual cases)
-            unmerged_paths.insert(parts[3..].join(" "));
-        }
-    }
-
-    if unmerged_paths.is_empty() {
-        return Ok(0);
-    }
-
-    if !auto_resolve {
-        eprintln!(
-            "⚠️ {} has {} unmerged entries (auto_resolve_unmerged=false, commits will fail). \
-             Set auto_resolve_unmerged=true in the policy to clear them automatically.",
-            repo.display(),
-            unmerged_paths.len()
-        );
-        return Ok(0);
-    }
-
-    let mut resolved: usize = 0;
-    for path in &unmerged_paths {
-        // For each unmerged path, compare the working tree file
-        // content to the HEAD version. If they match, we can safely
-        // reset the unmerge.
-        let head_output = crate::policy::std_git_command()
-            .args([
-                "-C",
-                &repo.to_string_lossy(),
-                "show",
-                &format!("HEAD:{}", path),
-            ])
-            .output();
-        let wt_bytes = match std::fs::read(repo.join(path)) {
-            Ok(b) => b,
-            Err(_) => continue, // file deleted; skip
-        };
-        let head_bytes = match head_output {
-            Ok(o) if o.status.success() => o.stdout,
-            _ => continue, // path not in HEAD; skip
-        };
-        if wt_bytes == head_bytes {
-            // Working tree matches HEAD — safe to reset the unmerge.
-            // `git reset HEAD -- <path>` clears all stages and sets
-            // the file to its HEAD state (which is what the working
-            // tree already has).
-            let reset_result =
-                run_git_with_timeout(repo, &["reset", "HEAD", "--", path], 10, "reset-unmerged")
-                    .await;
-            match reset_result {
-                Ok(_) => {
-                    eprintln!(
-                        "🔧 {} auto-resolved unmerged entry (working tree matches HEAD): {}",
-                        repo.display(),
-                        path
-                    );
-                    resolved += 1;
-                }
-                Err(e) => {
-                    eprintln!(
-                        "⚠️ {} failed to auto-resolve unmerged entry {}: {}",
-                        repo.display(),
-                        path,
-                        e
-                    );
-                }
-            }
-        } else {
-            eprintln!(
-                "⚠️ {} has unmerged entry with working tree != HEAD; \
-                 manual resolution required: {}",
-                repo.display(),
-                path
-            );
-        }
-    }
-
-    Ok(resolved)
+    Ok(staged_epoch::reconcile_unmerged(repo, auto_resolve,
+        tokio::time::Instant::now() + Duration::from_secs(30)).await?
+        .map_or(0, |(_, count)| count))
 }
 
 /// Check the untracked file count and emit a warning if it exceeds
@@ -4261,26 +4151,9 @@ async fn stage_commit_and_push(
             }
             let staging = staged_epoch::Staging::new(repo, baseline).await?;
 
-            // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): auto-resolve
-            // unmerged index entries so the commit loop is never blocked.
-            // See `auto_resolve_unmerged_if_safe` for the full rationale.
+            // Stale conflict selection is part of entry capture, not a live
+            // actual-index mutator after private staging has already begun.
             let prepare_started = std::time::Instant::now();
-            let resolved =
-                auto_resolve_unmerged_if_safe(repo, policy.auto_resolve_unmerged).await?;
-            if debug_enabled() {
-                eprintln!(
-                    "scheduler: stage_prepare repo={} phase=unmerged elapsed_ms={}",
-                    repo.display(),
-                    prepare_started.elapsed().as_millis()
-                );
-            }
-            if resolved > 0 {
-                eprintln!(
-                    "🔧 {} auto-resolved {} unmerged entries",
-                    repo.display(),
-                    resolved
-                );
-            }
 
             // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): emit a warning
             // when the untracked-file count exceeds the policy threshold.
@@ -5312,7 +5185,8 @@ async fn sync_repo_local_with_ownership(
         return Ok(blocked);
     }
 
-    let entry_epoch = staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?;
+    let entry_epoch = staged_epoch::Epoch::capture_entry(repo, policy.stage_op_timeout_secs,
+        policy.auto_resolve_unmerged && policy.auto_commit && !dry_run).await?;
     let mut entry_epoch = Some(entry_epoch);
 
     // ADDED 2026-07-25 (v0.113.0): auto-gc when dangling garbage
