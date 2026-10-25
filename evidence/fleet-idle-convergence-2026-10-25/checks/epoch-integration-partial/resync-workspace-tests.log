@@ -400,4 +400,9 @@ test storage_core::index::tests::manual_index_changes_and_foreign_locks_are_pres
 test storage_core::index::tests::manual_managed_deletion_is_preserved_but_explicit_tombstone_stages ... ok
 test storage_core::index::tests::matched_index_pair_preserves_unrelated_staging_and_source ... ok
 test storage_core::index::tests::matched_pair_recovers_before_and_after_atomic_publication ... ok
-test storage_core::index::tests::oversized_physical_index_is_rejected_before_libgit2_decode ... 
+test storage_core::index::tests::oversized_physical_index_is_rejected_before_libgit2_decode ... ok
+test storage_core::index::tests::saved_intent_conflict_releases_only_its_owned_lock ... ok
+test storage_core::index::tests::sticky_contracts_cannot_disappear_or_change_without_migration ... ok
+test storage_core::journal::tests::aggregate_capture_budget_refuses_new_work_without_deleting_retained_versions ... ok
+test storage_core::journal::tests::cancelled_and_changed_sources_do_not_overwrite_old_jobs ... ok
+test storage_core::journal::tests::complete_capture_recovers_after_death_before_or_after_snapshot_publish ... 
