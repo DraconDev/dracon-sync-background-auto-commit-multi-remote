@@ -1,0 +1,91 @@
+warning: enum `CapturedHead` is never used
+ --> dracon-sync/src/git/staged_intent.rs:9:17
+  |
+9 | pub(crate) enum CapturedHead {
+  |                 ^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `CachedIdentity` is never constructed
+  --> dracon-sync/src/git/staged_intent.rs:15:19
+   |
+15 | pub(crate) struct CachedIdentity {
+   |                   ^^^^^^^^^^^^^^
+
+warning: struct `StagedIntentSnapshot` is never constructed
+  --> dracon-sync/src/git/staged_intent.rs:23:19
+   |
+23 | pub(crate) struct StagedIntentSnapshot {
+   |                   ^^^^^^^^^^^^^^^^^^^^
+
+warning: associated function `capture` is never used
+  --> dracon-sync/src/git/staged_intent.rs:33:25
+   |
+29 | impl StagedIntentSnapshot {
+   | ------------------------- associated function in this implementation
+...
+33 |     pub(crate) async fn capture(repo: &Path, deadline: Instant) -> Result<Self> {
+   |                         ^^^^^^^
+
+warning: function `run` is never used
+  --> dracon-sync/src/git/staged_intent.rs:81:10
+   |
+81 | async fn run(repo: &Path, args: &[&str]) -> Result<(std::process::ExitStatus, Vec<u8>)> {
+   |          ^^^
+
+warning: function `read` is never used
+  --> dracon-sync/src/git/staged_intent.rs:92:10
+   |
+92 | async fn read(repo: &Path, args: &[&str]) -> Result<Vec<u8>> {
+   |          ^^^^
+
+warning: function `read_head` is never used
+   --> dracon-sync/src/git/staged_intent.rs:101:10
+    |
+101 | async fn read_head(repo: &Path) -> Result<CapturedHead> {
+    |          ^^^^^^^^^
+
+warning: function `parse_entries` is never used
+   --> dracon-sync/src/git/staged_intent.rs:129:4
+    |
+129 | fn parse_entries(
+    |    ^^^^^^^^^^^^^
+
+warning: function `validate_flags` is never used
+   --> dracon-sync/src/git/staged_intent.rs:195:4
+    |
+195 | fn validate_flags(mut bytes: &[u8], count: usize, deadline: Instant) -> Result<()> {
+    |    ^^^^^^^^^^^^^^
+
+warning: `dracon-sync` (bin "dracon-sync") generated 9 warnings
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 08s
+     Running unittests src/lib.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-3a89fec731e39957)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 157 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-57355c10ae49de9a)
+
+running 5 tests
+test git::staged_intent::tests::deadline_and_caller_cancellation_release_owned_lock ... ok
+test git::staged_intent::tests::index_lock_contention_and_replaced_inode_cleanup ... ok
+test git::staged_intent::tests::partial_staged_reverted_worktree_deletion_modes_gitlink_and_byte_paths ... 
+thread 'git::staged_intent::tests::partial_staged_reverted_worktree_deletion_modes_gitlink_and_byte_paths' (2268655) panicked at dracon-sync/src/git/staged_intent.rs:306:9:
+assertion `left != right` failed
+  left: "8681f8b8f32615a16703053bc1eaffb3e5e720a5"
+ right: "8681f8b8f32615a16703053bc1eaffb3e5e720a5"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test git::staged_intent::tests::unborn_rename_and_sha256 ... ok
+test git::staged_intent::tests::unmerged_and_intent_to_add_refuse_without_index_changes ... ok
+
+failures:
+
+failures:
+    git::staged_intent::tests::partial_staged_reverted_worktree_deletion_modes_gitlink_and_byte_paths
+
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 1421 filtered out; finished in 1.20s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

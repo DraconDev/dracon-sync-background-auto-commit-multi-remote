@@ -1,0 +1,61 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: enum `CapturedHead` is never used
+ --> dracon-sync/src/git/staged_intent.rs:9:17
+  |
+9 | pub(crate) enum CapturedHead {
+  |                 ^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `CachedIdentity` is never constructed
+  --> dracon-sync/src/git/staged_intent.rs:15:19
+   |
+15 | pub(crate) struct CachedIdentity {
+   |                   ^^^^^^^^^^^^^^
+
+warning: struct `StagedIntentSnapshot` is never constructed
+  --> dracon-sync/src/git/staged_intent.rs:23:19
+   |
+23 | pub(crate) struct StagedIntentSnapshot {
+   |                   ^^^^^^^^^^^^^^^^^^^^
+
+warning: associated function `capture` is never used
+  --> dracon-sync/src/git/staged_intent.rs:33:25
+   |
+29 | impl StagedIntentSnapshot {
+   | ------------------------- associated function in this implementation
+...
+33 |     pub(crate) async fn capture(repo: &Path, deadline: Instant) -> Result<Self> {
+   |                         ^^^^^^^
+
+warning: function `run` is never used
+  --> dracon-sync/src/git/staged_intent.rs:81:10
+   |
+81 | async fn run(repo: &Path, args: &[&str]) -> Result<(std::process::ExitStatus, Vec<u8>)> {
+   |          ^^^
+
+warning: function `read` is never used
+  --> dracon-sync/src/git/staged_intent.rs:92:10
+   |
+92 | async fn read(repo: &Path, args: &[&str]) -> Result<Vec<u8>> {
+   |          ^^^^
+
+warning: function `read_head` is never used
+   --> dracon-sync/src/git/staged_intent.rs:101:10
+    |
+101 | async fn read_head(repo: &Path) -> Result<CapturedHead> {
+    |          ^^^^^^^^^
+
+warning: function `parse_entries` is never used
+   --> dracon-sync/src/git/staged_intent.rs:129:4
+    |
+129 | fn parse_entries(
+    |    ^^^^^^^^^^^^^
+
+warning: function `validate_flags` is never used
+   --> dracon-sync/src/git/staged_intent.rs:195:4
+    |
+195 | fn validate_flags(mut bytes: &[u8], count: usize, deadline: Instant) -> Result<()> {
+    |    ^^^^^^^^^^^^^^
+
+warning: `dracon-sync` (bin "dracon-sync") generated 9 warnings

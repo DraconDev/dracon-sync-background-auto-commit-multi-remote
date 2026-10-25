@@ -1,0 +1,65 @@
+{
+  "criteriaSatisfied": [
+    {
+      "id": "criterion-1",
+      "status": "satisfied",
+      "evidence": "Only three allowed production files changed. Capture preserves exact byte paths, full OIDs, modes, unborn HEAD and explicit cached deletions; refuses unmerged/unsupported flags without index/worktree replacement."
+    },
+    {
+      "id": "criterion-2",
+      "status": "satisfied",
+      "evidence": "Five disposable-repository tests and two existing IndexLock regressions passed on final source; exact logs and fingerprints retained."
+    }
+  ],
+  "changedFiles": [
+    "src/git/staged_intent.rs",
+    "src/git/status.rs",
+    "src/git/mod.rs"
+  ],
+  "testsAddedOrUpdated": [
+    "src/git/staged_intent.rs: five adjacent tests covering partial staging, deletion, modes, gitlink, byte paths, rename, SHA256, unborn HEAD, preservation, unsupported/unmerged refusal, lock ownership, deadline and cancellation"
+  ],
+  "commandsRun": [
+    {
+      "command": "CARGO_BUILD_JOBS=2 timeout --kill-after=15s 600s cargo test -p dracon-sync --bin dracon-sync --locked git::staged_intent::tests",
+      "result": "passed",
+      "summary": "5 passed; 0 failed; 12.35s test execution."
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=2 timeout --kill-after=15s 120s cargo test -p dracon-sync --bin dracon-sync --locked git::status::tests::test_index_lock",
+      "result": "passed",
+      "summary": "2 passed; 0 failed; 3.33s test execution."
+    },
+    {
+      "command": "rustfmt --edition 2021 --check src/git/status.rs src/git/staged_intent.rs; git diff --check",
+      "result": "passed",
+      "summary": "Formatting and diff checks clean."
+    },
+    {
+      "command": "Earlier bounded targeted test attempts",
+      "result": "failed",
+      "summary": "Three build timeouts; one fixture assertion subsequently corrected; one parent lock mismatch subsequently reconciled. All attempt logs retained."
+    }
+  ],
+  "validationOutput": [
+    "Final HEAD: 97d065f1d3ec04b45e3cd4d0ae64e4ababa35020; initial HEAD: 41a99ab6c3047e52e745229450e4f7187d8b8264.",
+    "Final test log: /tmp/staged-intent-tests-approved.log; SHA256 d7ef7df9f1c658854189e80117f3b51bd494478fea214fe8ebbb205057e40600.",
+    "Lock regression log: /tmp/staged-intent-index-lock-regressions.log; SHA256 6a091ff5644722d3a569805daefd8582215dbb2f09929c89ac07895a761b470a.",
+    "status.rs SHA256: 1d64b38c6cabc5eb47af64c1e77589df3c84f1a9a8a2fadf60a36528a69e9ff9.",
+    "staged_intent.rs SHA256: 1745cce82cf614406a5bf9e64420d547b6d2e4b5738cb0082f538339861e1360.",
+    "mod.rs SHA256: a2b4f95c540c7cd9f53f33a0788371f1d0a7db8cf7c99dbf2afddd0fb90bab9f.",
+    "Earlier exact outputs retained in /tmp/staged-intent-tests{,-retry,-final,-verified,-verified-retry,-accepted}.log."
+  ],
+  "residualRisks": [
+    "No staging/commit integration, newly staged provenance proof, hook transaction or fleet-idle approval.",
+    "Nine production dead-code warnings remain until integration; none suppressed.",
+    "Inode checks detect observed replacement but are not an atomic filesystem compare-and-unlink against hostile mutation.",
+    "Capture requires Unix; unsupported index flags conservatively refuse."
+  ],
+  "noStagedFiles": true,
+  "diffSummary": "Added StagedIntentSnapshot::capture(repo, absolute_deadline), reusing bounded owned-process Git helpers; hardened IndexLock cleanup and checked ownership before returning capture.",
+  "reviewFindings": [
+    "Independent reviewer gate remains required."
+  ],
+  "manualNotes": "No git add/commit/push or live repository reconciliation performed. Daemon independently committed source changes. Parent inspection coverage and evidence files were preserved."
+}

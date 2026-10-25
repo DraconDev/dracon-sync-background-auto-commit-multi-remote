@@ -1,0 +1,5 @@
+{
+  "dracon-sync/src/git/status.rs": "1d64b38c6cabc5eb47af64c1e77589df3c84f1a9a8a2fadf60a36528a69e9ff9",
+  "dracon-sync/src/git/staged_intent.rs": "1745cce82cf614406a5bf9e64420d547b6d2e4b5738cb0082f538339861e1360",
+  "dracon-sync/src/git/mod.rs": "a2b4f95c540c7cd9f53f33a0788371f1d0a7db8cf7c99dbf2afddd0fb90bab9f"
+}

@@ -1,0 +1,14 @@
+    Blocking waiting for file lock on build directory
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 24s
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-57355c10ae49de9a)
+
+running 5 tests
+test git::staged_intent::tests::deadline_and_caller_cancellation_release_owned_lock ... ok
+test git::staged_intent::tests::index_lock_contention_and_replaced_inode_cleanup ... ok
+test git::staged_intent::tests::partial_staged_reverted_worktree_deletion_modes_gitlink_and_byte_paths ... ok
+test git::staged_intent::tests::unborn_rename_and_sha256 ... ok
+test git::staged_intent::tests::unmerged_and_intent_to_add_refuse_without_index_changes ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1421 filtered out; finished in 6.24s
+
