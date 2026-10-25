@@ -114,6 +114,11 @@ async fn excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_
         r,
         &["remote", "add", "origin", remote.path().to_str().unwrap()],
     );
+    // The bootstrap publication gate requires a configured upstream, even
+    // before its tracking ref exists. This is eligible backlog, not a waiver
+    // of the no-unwanted-push guard for intentionally upstream-less repos.
+    git(r, &["config", "branch.main.remote", "origin"]);
+    git(r, &["config", "branch.main.merge", "refs/heads/main"]);
     p.auto_push = true;
     p.remotes.clear();
     let head = git(r, &["rev-parse", "HEAD"]);
