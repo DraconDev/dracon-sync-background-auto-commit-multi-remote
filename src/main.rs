@@ -748,7 +748,7 @@ fn main() -> Result<()> {
                 args.len() == 4,
                 "invalid excluded restore helper invocation"
             );
-            let parent: u32 = args[3].to_str().context("invalid helper parent")?.parse()?;
+            let parent: u32 = args[3].to_str().ok_or_else(|| anyhow::anyhow!("invalid helper parent"))?.parse()?;
             anyhow::ensure!(
                 unsafe { libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL) } == 0,
                 "cannot bind excluded helper lifetime to its parent"
