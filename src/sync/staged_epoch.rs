@@ -179,8 +179,11 @@ impl Epoch {
             "captured staged intent exceeds strict batch limit"
         );
         let rejected = self.ineligible_paths(repo, policy, excluded).await?;
-        ensure!(rejected.is_empty(), "captured staged path is excluded or oversized: {:?}",
-            rejected.first().map(|path| path_from_git_bytes(path)));
+        ensure!(
+            rejected.is_empty(),
+            "captured staged path is excluded or oversized: {:?}",
+            rejected.first().map(|path| path_from_git_bytes(path))
+        );
         Ok(())
     }
 
@@ -188,7 +191,10 @@ impl Epoch {
     // rejection may prune an OWNED ordinary candidate; captured user staging
     // still goes through eligible() and is refused intact.
     async fn ineligible_paths(
-        &self, repo: &Path, policy: &SyncPolicy, excluded: &BTreeSet<String>,
+        &self,
+        repo: &Path,
+        policy: &SyncPolicy,
+        excluded: &BTreeSet<String>,
     ) -> Result<Vec<Vec<u8>>> {
         let overrides = load_repo_override(repo);
         let excludes = crate::policy::effective_auto_commit_excludes(policy, &overrides);
@@ -240,17 +246,15 @@ impl Epoch {
         let mut rejected = Vec::new();
         for ((raw, entry), path) in self.snapshot.changed.iter().zip(self.entries()?) {
             let size = measured.get(raw).copied().unwrap_or(0);
-            if !(
-                crate::exclude::should_stage_entry_with_blob_size(
-                    repo,
-                    &path,
-                    size,
-                    excluded,
-                    &policy.exclude_file_patterns,
-                    policy.max_stage_file_bytes,
-                    &excludes
-                )
-            ) {
+            if !(crate::exclude::should_stage_entry_with_blob_size(
+                repo,
+                &path,
+                size,
+                excluded,
+                &policy.exclude_file_patterns,
+                policy.max_stage_file_bytes,
+                &excludes,
+            )) {
                 rejected.push(raw.clone());
                 continue;
             }
@@ -258,7 +262,9 @@ impl Epoch {
             // worktree rewrite as the content of an already-staged blob.
             if matches!(self.snapshot.head, CapturedHead::Unborn { .. }) && entry.is_some() {
                 if crate::exclude::matches_untracked_exclude(
-                    repo, &path.path, &policy.untracked_exclude_patterns,
+                    repo,
+                    &path.path,
+                    &policy.untracked_exclude_patterns,
                 ) {
                     rejected.push(raw.clone());
                 }
@@ -897,6 +903,57 @@ mod tests {
             "candidate payload must survive outside Git's loose-object GC reachability"
         );
         assert!(!repo.join(".git/index.lock").exists());
+    }
+
+    #[tokio::test]
+    async fn ordinary_size_rejection_prunes_only_private_delta_but_refuses_captured_intent() {
+        let (root, policy) = fixture().await;
+        let repo = root.path();
+        let baseline = Epoch::capture(repo, 60).await.unwrap();
+        let staging = Staging::new(repo, baseline).await.unwrap();
+        std::fs::write(repo.join("file"), b"eligible change\n").unwrap();
+        let large = vec![b'x'; 2048];
+        std::fs::write(repo.join("large"), &large).unwrap();
+        run_index_git(
+            repo,
+            &["add", "--", "file", "large"],
+            60,
+            "fixture owned candidate",
+            Some(staging.index()),
+        )
+        .await
+        .unwrap();
+        let retained = staging.directory.clone();
+        let epoch = staging
+            .finish(repo, &policy, &BTreeSet::new(), false, false)
+            .await
+            .unwrap();
+        assert_eq!(epoch.snapshot.changed.len(), 1);
+        assert!(epoch.snapshot.changed.contains_key(b"file".as_slice()));
+        assert!(!epoch.snapshot.entries.contains_key(b"large".as_slice()));
+        assert_eq!(std::fs::read(repo.join("large")).unwrap(), large);
+        assert_eq!(
+            std::fs::read(repo.join("file")).unwrap(),
+            b"eligible change\n"
+        );
+        let observed = Epoch::capture(repo, 60).await.unwrap();
+        assert_eq!(observed.snapshot, epoch.snapshot);
+        assert!(std::fs::read_dir(retained).unwrap().any(|entry| entry
+            .unwrap()
+            .path()
+            .extension()
+            .is_some_and(|ext| ext == "pack")));
+
+        // A user's existing oversized staging is not OUR candidate to prune.
+        git(repo, &["add", "--", "large"], None).await.unwrap();
+        let bytes = std::fs::read(repo.join(".git/index")).unwrap();
+        let captured = Epoch::capture(repo, 60).await.unwrap();
+        assert!(captured
+            .eligible(repo, &policy, &BTreeSet::new())
+            .await
+            .is_err());
+        assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), bytes);
+        assert_eq!(std::fs::read(repo.join("large")).unwrap(), large);
     }
 
     #[tokio::test]
