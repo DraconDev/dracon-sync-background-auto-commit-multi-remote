@@ -353,6 +353,18 @@ explicit per-file (not whole-directory) atomicity and committed-range limitation
 See `checks/library-lifecycle-publication/` and the browser repository's
 `docs/design/workspace-library-output-publication-2026-10-25.md`.
 
+Normal source4b955e45 failed during the cold forms prebuild: its internal package
+self-import depended on TypeScript remapping dist back to src, lost when outDir
+became staging. Warm dist had masked it. Direct internal source imports repair
+that dependency. A mandatory bounded test now compiles a copy of actual forms
+source without old output, accepts a harmless added module and rejects an
+injected compiled-output self-import. Final forms build/typecheck/lint/tests pass;
+failed gate logs are preserved under library-lifecycle-publication/failed-cold-4b955e45.
+Only browser's stuck retry entry was cleared after those checks. Final code anchor
+ad856e90708ef4a83e1930d7b254c8db5c0a941a and filtered fingerprints are captured
+in source-final.json. A fresh full-contract read-only rehearsal is active; its
+outcome and original normal publication are not assumed.
+
 **Still required:** ordinary affected-source gates and actual remote containment
 of the final library repair. Initial all-ten eligible-tip proof is already present.
 The daemon, not a manual push, must establish it. Current active work is not
