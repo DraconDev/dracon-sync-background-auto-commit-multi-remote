@@ -4166,12 +4166,14 @@ fn cap_batch_union(
 // Keep the truthful local Blocked result after a successful/no-op upload; an
 // actual transport failure remains PushFailed and preserves its failure ledger.
 async fn publish_backlog_after_index_deferral(
-    svc: &GitService, ctx: &mut SyncContext<'_>,
+    svc: &GitService,
+    ctx: &mut SyncContext<'_>,
 ) -> Result<Option<SyncOutcome>> {
-    if !ctx.commit_only {
-        if let PushReport::Attempted { ok: false, .. } = handle_ahead_push(ctx, svc).await? {
-            return Ok(Some(SyncOutcome::PushFailed));
-        }
+    if ctx.commit_only {
+        return Ok(Some(SyncOutcome::Blocked));
+    }
+    if let PushReport::Attempted { ok: false, .. } = handle_ahead_push(ctx, svc).await? {
+        return Ok(Some(SyncOutcome::PushFailed));
     }
     Ok(Some(SyncOutcome::Blocked))
 }
@@ -11862,12 +11864,20 @@ auto_bump_versions = false
         let index_before = std::fs::read(repo.join(".git/index")).unwrap();
         let head_before = git_cmd(&repo, &["rev-parse", "HEAD"]).stdout;
         let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
-        assert!(matches!(result, Ok(SyncOutcome::Blocked)),
-            "real dirty bytes plus a foreign lock are Blocked, not healthy filter-only: {result:?}");
-        assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), index_before);
+        assert!(
+            matches!(result, Ok(SyncOutcome::Blocked)),
+            "real dirty bytes plus a foreign lock are Blocked, not healthy filter-only: {result:?}"
+        );
+        assert_eq!(
+            std::fs::read(repo.join(".git/index")).unwrap(),
+            index_before
+        );
         assert_eq!(git_cmd(&repo, &["rev-parse", "HEAD"]).stdout, head_before);
         assert_eq!(std::fs::read(repo.join("debug.log")).unwrap(), b"v2");
-        assert_eq!(std::fs::read(repo.join(".git/index.lock")).unwrap(), b"concurrent");
+        assert_eq!(
+            std::fs::read(repo.join(".git/index.lock")).unwrap(),
+            b"concurrent"
+        );
 
         // Clean up the fake index.lock so the test teardown doesn't hang
         let _ = std::fs::remove_file(repo.join(".git").join("index.lock"));
@@ -11974,7 +11984,10 @@ trusted_authors = ["test"]
         );
         assert_eq!(std::fs::read(repo.join("file.txt")).unwrap(), b"v4-dirty\n");
         assert_eq!(git_cmd(&repo, &["show", ":file.txt"]).stdout, b"v3\n");
-        assert_eq!(std::fs::read(repo.join(".git/index.lock")).unwrap(), b"concurrent");
+        assert_eq!(
+            std::fs::read(repo.join(".git/index.lock")).unwrap(),
+            b"concurrent"
+        );
 
         let _ = std::fs::remove_file(repo.join(".git").join("index.lock"));
     }
