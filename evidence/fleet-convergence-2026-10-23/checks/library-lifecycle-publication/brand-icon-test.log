@@ -1,0 +1,13 @@
+
+> @dracon/brand-icon@1.0.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/packages/brand-icon
+
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  06:37:48
+   Duration  1.20s (transform 299ms, setup 0ms, import 375ms, tests 299ms, environment 430ms)
+

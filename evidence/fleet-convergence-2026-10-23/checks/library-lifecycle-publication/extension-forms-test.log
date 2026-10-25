@@ -1,0 +1,13 @@
+
+> @dracon/extension-forms@1.0.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/packages/extension-forms
+
+
+ Test Files  6 passed (6)
+      Tests  47 passed (47)
+   Start at  06:37:52
+   Duration  780ms (transform 307ms, setup 0ms, import 397ms, tests 139ms, environment 1.50s)
+
