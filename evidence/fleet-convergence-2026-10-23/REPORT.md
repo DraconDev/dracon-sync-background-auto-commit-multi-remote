@@ -319,6 +319,21 @@ or its marker removed. Pending source edits and retry recovery must proceed
 normally after that separate operation releases its pause; this is not accepted
 as a final external blocker or evidence of publication.
 
+The complete9ddc4c8 normal attempt subsequently passed146/147gates but retained
+four TabMon audio-case timeouts at the existing60second limit. Each key/tempo/
+seam case traversed the growing24theme collection; the mix negative control also
+performed duplicate mean/peak decodes per file. The repair parameterizes positive
+cases by theme without changing any deadline/assertion and obtains both mix
+levels from one fresh decode without caching modified fixtures. All audio,
+thresholds, channel/percentile semantics and bad/harmless controls remain intact.
+Full current TabMon typecheck,lint,1093tests and build pass (including119SFX cases).
+The original failing whole result is archived, not called passed. Two repeating
+old9dd mirror families were pidfd-cancelled only after source/identity/ownership
+validation; no live members remained. Normal retry now selects sourcee6f93db.
+Evidence and source anchor: `checks/tabmon-audio-budgets/`; rationale is documented
+in TabMon's `docs/audio-gate-case-budgets-2026-10-25.md`. This is local supporting
+qualification; the original complete whole gates still must pass normally.
+
 **Still required:** terminal success of the original browser whole gates and
 observed final-runtime eligible-tip advancement on all its intended remotes.
 The daemon, not a manual push, must establish it. Current active work is not

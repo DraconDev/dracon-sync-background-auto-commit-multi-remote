@@ -43,11 +43,22 @@ HEAD includes the module and normal current WXT preparation passes. Both old
 attempts alrsIE/qoO76V failed; their records are retained, not relabelled passed.
 Only the browser stuck entry was re-enabled afterward. No manual push/commit.
 
-At 2026-10-25T01:55UTC the daemon was validating complete source
-`9ddc4c869ac63b6cab04b2c7c69c2f409a636a43` in normal attempt
-`/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.H8jZa3/manifest.json`.
-It was running:97gates registered,96passed,one active,no failure recorded.
-This is not a whole-gate pass or remote acknowledgment.
+Source9ddc4c8 completed146/147 gates; TabMon TEST failed four60second audio
+case deadlines. Thresholds/audio were NOT defective observations. Positive key,
+tempo,seam cases traversed all24themes per case; the mix counterexample launched
+two identical volumedetect probes per file. The fix uses per-theme cases under
+the unchanged60second deadline and one fresh combined mean/peak measurement.
+All original assertions and off-tempo/broken-seam/louder-sample plus harmless
+reencode controls remain. Full current typecheck,lint,test(1093),build pass;
+standaloneSFX119pass. Raw logs/source anchor and cancellation records:
+checks/tabmon-audio-budgets/. Actual source anchor9e62ef2 was daemon committed.
+Both old9dd mirror families were identity-revalidated and pidfd-cancelled with
+no live family members left; manifests remain cancelled, not passed. Only browser
+retry was re-enabled after the repair. No manual Git publication.
+
+At2026-10-25T02:43UTC normal daemon attemptcBfjZa had selected repaired source
+`e6f93db771998453c6577201f2585b31f7e3254a`; it was running with zero gates yet.
+It is not a whole-gate pass or remote acknowledgment.
 
 During this assessment the8contract,5observer,8witness,13isolated-hook and6shell
 regressions passed freshly. Hook sources/tests match9ddc4c8 under normal required
@@ -63,5 +74,5 @@ eligible blob and advance from the recorded baseline. Refresh journal and the
 read-only all-ten observer, then run scripts/fleet-convergence-ledger.py. It now
 validates exact inventory equality and destination identity continuity; its
 contract/observer/witness regressions pass. Do not call complete_goal while any
-required gate, remote proof or committed task is unfinished. Current tasks3.1,
-4.1,5.2,5.3 and their parent milestones remain open.
+required gate, remote proof or committed task is unfinished. Product diagnosis
+milestone3 is now recorded; tasks4.1,5.2,5.3 and their parents remain open.
