@@ -235,7 +235,8 @@ impl Epoch {
         prepared: Option<&crate::bucket_assets::Prepared>,
     ) -> Result<bool> {
         let deadline = self.deadline;
-        tokio::time::timeout_at(deadline, async {
+        let mut published = false;
+        let result = tokio::time::timeout_at(deadline, async {
             ensure!(policy.auto_commit && self.has_intent(), "no authorized staged commit intent");
             ensure!(commit_allowed_by_ownership(repo, policy), "epoch ownership guard refused");
             let index = git(repo, &["rev-parse", "--path-format=absolute", "--git-path", "index"], None).await?;
@@ -286,11 +287,17 @@ impl Epoch {
             let zero = "0".repeat(oid.len());
             let previous = parent.unwrap_or(&zero);
             let transaction = if let Some(reference) = &self.reference {
-                format!("start\noption no-deref\nsymref-verify HEAD {reference}\nupdate {reference} {oid} {previous}\nprepare\ncommit\n")
+                // HEAD and its referent cannot both be transaction updates:
+                // Git also records HEAD's reflog for this branch update. The
+                // owned index lock blocks cooperative checkout, unchanged()
+                // checked HEAD immediately above, and the explicit captured
+                // branch CAS can never update a newly selected other branch.
+                format!("start\nupdate {reference} {oid} {previous}\nprepare\ncommit\n")
             } else {
                 format!("start\noption no-deref\nupdate HEAD {oid} {previous}\nprepare\ncommit\n")
             };
             git(repo, &["update-ref", "-m", "commit: captured staged epoch", "--stdin"], Some(transaction.as_bytes())).await?;
+            published = true;
             let lock_retained = !lock.is_owned();
             drop(lock);
             // Native post-commit runs after publication and does not control its
@@ -304,8 +311,24 @@ impl Epoch {
                 &["diff", "--quiet", "HEAD", "--"], "epoch follow-up")?;
             let (status, _, _) = crate::git::run_git_captured_output(child, repo, "epoch follow-up").await?;
             ensure!(status.success() || status.code() == Some(1), "cannot inspect post-publication work");
-            Ok(lock_retained || post_failed || !after.changed.is_empty() || !status.success())
-        }).await.context("staged epoch deadline expired; publication may already have occurred, inspect HEAD")?
+            let untracked = git(repo, &["ls-files", "--others", "--exclude-standard", "-z"], None).await?;
+            let branch_changed = reference(repo).await? != self.reference;
+            Ok(lock_retained || post_failed || branch_changed || !after.changed.is_empty()
+                || !status.success() || !untracked.stdout.is_empty())
+        }).await;
+        match result {
+            Ok(Ok(pending)) => Ok(pending),
+            Ok(Err(error)) if published => {
+                eprintln!("⚠️ {} epoch was published; follow-up remains unverified: {error:#}", repo.display());
+                Ok(true)
+            }
+            Err(_) if published => {
+                eprintln!("⚠️ {} epoch was published; deadline cancelled post-publication follow-up", repo.display());
+                Ok(true)
+            }
+            Ok(Err(error)) => Err(error),
+            Err(error) => Err(error).context("staged epoch deadline expired; ref outcome may require inspection"),
+        }
     }
 }
 
