@@ -1,6 +1,89 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Recovery/follow-up v2 — newest checkpoint; Rust gates PASS, NOT final/deployed
+## Archive-safety v3f — CURRENT; targeted gates green, NOT final/deployed
+
+The active fleet-convergence objective/contract in .pi-glla remains authoritative;
+ignore the stale bucket-strategy handoff. Task5 is NOT ready merely because it is
+listed as next pending: tasks2/3/4 retain implementation/deployment prerequisites.
+The recovered worker artifact b2a57e80 explicitly reported partial integration,
+not acceptance; current code/evidence supersedes its old compile-only checkpoint.
+
+Closed a real safety gap in the previous header's assumption: moving recovery
+into an archive does NOT prove its inode will never receive late writer bytes.
+Archived requests/targets now have immutable metadata observation seals including
+ctime and link count. Concern probes stat them without rehashing history; changes,
+missing/invalid seals or failed inspection never imply raw-clean idle. Same-size
+late writes with restored mtime are detected. Source fingerprint capture also
+binds hash/ctime/path identity across the read. Unknown sealed bytes are never
+resealed. Known missing-seal legacy records can be classified read-only once;
+existing identical seals survive retry after a crash-before-move. Raw canonical
+and actual-index bytes are never changed by these classification/concern probes.
+History scanning is O(retained targets), checked at2seconds with bounded seal reads;
+no stalled-filesystem, NFS or cross-platform timing/qualification claim is made.
+
+Initial v3 guard tests found tempfile creation used permissive default directory
+modes, contrary to private-recovery intent. Actual recovery and private-staging
+directories now request0700 AT CREATION, before materialization, not after exposure.
+Worker-only legacy directory privacy repair requires an owned0700 archive root
+and owned real children opened by pinned descriptor + O_NOFOLLOW, changes only
+group/other directory access, and never touches payloads/foreign symlink targets.
+The read-only report never performs this repair. Symlink/canary negative passes.
+
+Executed parent-crash control: observe matching helper PID + actual source inode
+in ACTIVE READ /proc/locks, verify real PPID, SIGKILL only its owned disposable
+parent, observe helper death/zombie in finite time, then reopen/write canonical
+inode nonblocking and preserve later bytes. This is separate from and in addition
+to the earlier actual-lease cancellation proof. It does NOT establish the exact
+instruction position of exchange; both sides must retain classifiable originals.
+The archive FD control actually keeps a producer open across archival, writes
+AFTER the move, restores mtime at same length, requires persistent concern and
+real sync_repo Blocked, retains index/seal/canonical bytes and leaves producer on.
+
+A final admission inspection found probe ERR could prevent its worker from fixing
+legacy permissions. Current sync_repo admits diagnostics on errors and preserves
+Blocked on unresolved settlement while draining already committed backlog. The
+legacy positive now uses real sync_repo rather than just private settlement.
+Its first extended fixture failed byte equality due to legitimate SDK stat-cache
+refresh after the fixture's inode swaps (not changed cached object identities).
+The fixture explicitly verifies cached HEAD equality and refreshes THAT synthetic
+index before recording its byte-exact baseline; the equality assertion remains.
+Failed v3 and v3e logs remain intact; no assertion/guard was weakened.
+
+CURRENT v3f observed gates, zero source drift and unchanged pinned DEBUG helper:
+- recovery10pass/0fail (includes actual-parent-crash, cancellation, late writer,
+  known/unknown legacy and retry, symlink/privacy and worker-admission controls).
+- restore9pass, original exclusion2pass, filter-only3pass, real JSON2pass, all0fail.
+- cargo clippy --workspace --locked --all-targets -- -D warnings: PASS.
+- current source/helper identities + actual per-command exits/log hashes:
+  checks/epoch-integration-partial/excluded-archive-v3f-source-before.json and
+  excluded-archive-v3f-source-after.json; raw logs/exit files use v3f-*.
+The new JSON archive seal is a declared synthetic CONSUMER fixture, NOT provenance
+that a helper produced it. Real settlement/FD and kernel-helper controls are
+separate. Do NOT infer installation/loaded behavior from any DEBUG fixture.
+
+PRECEDING v3d complete four-gate assembly: workspace1466 sync pass/0fail/3ignored,
+616 system pass,233 warden pass plus security/integration suites; release build,
+strict Clippy and cargo deny all PASS; zero source drift and unchanged helper.
+Its source-before/source-after JSONs and four raw logs use excluded-archive-v3d-*.
+Those four-gate results are HISTORICAL, not current v3f qualification: caller and
+fixture changed afterward. Current f full-workspace/release/deny are NOT claimed.
+Do not deploy target/release's older d assembly or mix these assembly proofs.
+No install/service/config migration, real-repo manual commit/push or fresh loaded
+execution/full-fleet observation was performed by this continuation.
+
+NEXT implementation remains: restore normal version/release bump (currently
+version_bumped=false), unmerged-before-capture handling, artifact cleanup and
+large-untracked hygiene WITHOUT replacing ownership/content safeguards; finish
+actual queued-open/lease-break and exact-exchange qualification, unsupported-FS
+controls, actual daemon restart/admission rehearsal and original product gates.
+Then re-run ALL four gates on the coherent FINAL assembly, independently review,
+qualify installed/loaded execution, safely apply authorized zero-batch migration,
+and prove actual autonomous publication + every watched repo raw-clean/idle.
+The captured baseline had37 repos; enumerate FRESH final inventory rather than
+hard-coding37 or omitting newly watched repos. No outstanding concerns may remain.
+Design: ../../docs/design/excluded-worktree-optin-2026-10-25.md.
+
+## Recovery/follow-up v2 — HISTORICAL assembly evidence, not current proof
 
 The active fleet-convergence goal remains authoritative, NOT the stale bucket
 handoff. No installation, service change, real-repository manual commit/push or
