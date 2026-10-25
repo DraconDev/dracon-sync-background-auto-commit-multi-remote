@@ -4227,6 +4227,21 @@ standard_files = []
     }
 
     #[test]
+    fn test_batch_limit_defaults_unlimited_and_positive_values_remain_opt_in() {
+        let omitted: SyncPolicy = toml::from_str("").unwrap();
+        let explicit_zero: SyncPolicy = toml::from_str("max_stage_batch_files = 0").unwrap();
+        let positive: SyncPolicy = toml::from_str("max_stage_batch_files = 100").unwrap();
+        for policy in [SyncPolicy::default(), omitted, explicit_zero] {
+            assert_eq!(policy.max_stage_batch_files, 0);
+            assert_eq!(policy.stage_batch_limit(), usize::MAX);
+            assert_eq!((0..120).take(policy.stage_batch_limit()).count(), 120);
+        }
+        assert_eq!(positive.max_stage_batch_files, 100);
+        assert_eq!(positive.stage_batch_limit(), 100);
+        assert_eq!((0..120).take(positive.stage_batch_limit()).count(), 100);
+    }
+
+    #[test]
     fn test_standard_files_default_empty() {
         let toml = r#"
 pulse_interval_secs = 1

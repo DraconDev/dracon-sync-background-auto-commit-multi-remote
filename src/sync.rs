@@ -11940,6 +11940,37 @@ trusted_authors = ["test"]
     /// (untracked-dir/gitlink entries stage whole trees), and foreign
     /// paths reported as extras.
     #[tokio::test]
+    async fn unlimited_batch_commits_all_related_worktree_files_in_one_epoch() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_repo(&tmp, "unlimited-related-epoch");
+        let mut policy: SyncPolicy = toml::from_str(r#"
+            auto_commit = true
+            auto_push = false
+            auto_pull = false
+            auto_github_private = false
+            auto_bump_versions = false
+            standard_files_auto = false
+            build_artifact_cleanup = false
+            max_stage_batch_files = 0
+        "#).unwrap();
+        policy.watch_roots = vec![tmp.path().to_string_lossy().into_owned()];
+        for number in 0..120 {
+            std::fs::write(repo.join(format!("related-{number:03}.txt")), b"same logical change\n").unwrap();
+        }
+        let result = tokio::time::timeout(Duration::from_secs(60),
+            sync_repo_with_ahead_since(&repo, &policy, &BTreeSet::new(), 5,
+                None, false, None, None, true)).await.expect("bounded unlimited-count epoch");
+        assert!(matches!(result, Ok(SyncOutcome::PushPaused)), "{result:?}");
+        for number in 0..120 {
+            assert_eq!(git_cmd(&repo, &["show", &format!("HEAD:related-{number:03}.txt")]).stdout,
+                b"same logical change\n");
+        }
+        assert_eq!(git_cmd(&repo, &["rev-list", "--count", "HEAD"]).stdout, b"2\n",
+            "all 120 related files must enter one new commit, not split epochs");
+        assert!(!repo.join(".git/index.lock").exists());
+    }
+
+    #[tokio::test]
     async fn captured_epoch_commits_partial_index_and_keeps_unstaged_work() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = init_test_repo(&tmp, "captured-partial-epoch");
