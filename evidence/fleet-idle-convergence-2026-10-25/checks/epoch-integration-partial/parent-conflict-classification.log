@@ -56,3 +56,12 @@ warning: function `unstage_paths_git` is never used
 1965 | async fn unstage_paths_git(repo: &Path, paths: &[String]) -> Result<()> {
      |          ^^^^^^^^^^^^^^^^^
 
+warning: `dracon-sync` (bin "dracon-sync" test) generated 8 warnings (run `cargo fix --bin "dracon-sync" -p dracon-sync --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 04s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 1 test
+test sync::staged_epoch::tests::only_typed_intent_conflicts_are_nonfailure_deferrals ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1437 filtered out; finished in 0.00s
+
