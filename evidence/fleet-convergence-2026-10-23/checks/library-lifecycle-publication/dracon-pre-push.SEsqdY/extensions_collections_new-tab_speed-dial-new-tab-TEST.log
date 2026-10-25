@@ -1,0 +1,23 @@
+
+> speed-dial-new-tab-page@0.1.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/collections/new-tab/speed-dial-new-tab[39m
+
+ [32m✓[39m tests/tagDialUrl.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/smoke.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1766[2mms[22m[39m
+     [33m[2m✓[22m[39m renders ONE vertical settings panel — no tabs (Ultimate-converged 2026-08-26) [33m 715[2mms[22m[39m
+     [33m[2m✓[22m[39m DialModal rejects a URL already pinned on another tile (duplicate guard, decided 2026-08-26) [33m 593[2mms[22m[39m
+ [32m✓[39m tests/widgets.test.tsx [2m([22m[2m20 tests[22m[2m)[22m[33m 830[2mms[22m[39m
+ [32m✓[39m tests/hexInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 568[2mms[22m[39m
+     [33m[2m✓[22m[39m does not propagate mid-typing fragments [33m 360[2mms[22m[39m
+ [32m✓[39m tests/starter.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/sidebar.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 269[2mms[22m[39m
+ [32m✓[39m tests/BrandIcon.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m7 passed[39m[22m[90m (7)[39m
+[2m      Tests [22m [1m[32m69 passed[39m[22m[90m (69)[39m
+[2m   Start at [22m 07:28:54
+[2m   Duration [22m 7.84s[2m (transform 1.44s, setup 1.03s, import 2.30s, tests 3.46s, environment 7.22s)[22m
+

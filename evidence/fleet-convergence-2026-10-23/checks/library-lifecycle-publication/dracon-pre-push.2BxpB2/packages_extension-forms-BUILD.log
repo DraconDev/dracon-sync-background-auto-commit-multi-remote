@@ -1,0 +1,4 @@
+
+> @dracon/extension-forms@1.0.0 build
+> node ../../scripts/build-library.mjs
+

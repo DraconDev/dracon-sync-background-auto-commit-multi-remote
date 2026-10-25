@@ -1,0 +1,4 @@
+
+> speed-dial-new-tab-page@0.1.0 compile
+> tsc --noEmit
+

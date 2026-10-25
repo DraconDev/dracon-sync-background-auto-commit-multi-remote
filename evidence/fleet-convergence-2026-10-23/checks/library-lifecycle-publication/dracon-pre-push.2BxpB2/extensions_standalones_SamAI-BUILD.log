@@ -1,0 +1,65 @@
+
+> sam-ai@49.3.2 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[plugin vite:reporter] 
+(!) /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/utils/googleAIStudioStore.ts is dynamically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/agnes.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/agnes.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/agnes.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/google-ai-studio.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/google-ai-studio.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/google-ai-studio.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/google-ai-studio.ts but also statically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/entrypoints/home/App.tsx, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/entrypoints/home/SettingsBlock.tsx, dynamic import will not move module into another chunk.
+
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[plugin vite:reporter] 
+(!) /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/utils/googleAIStudioStore.ts is dynamically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/agnes.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/agnes.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/agnes.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/google-ai-studio.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/google-ai-studio.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/google-ai-studio.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/lib/ai/google-ai-studio.ts but also statically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/utils/api.ts, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/utils/useIntelligence.ts, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/ChatTab.tsx is dynamically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel.tsx but also statically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/index.ts, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/components/WireframeIcon.tsx is dynamically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/ChatTab.tsx, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/FormTab.tsx, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/NotesTab.tsx, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/ScrapeTab.tsx, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/SearchTab.tsx, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/SummaryTab.tsx but also statically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/HomeTab.tsx, /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/TileGlyph.tsx, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/ScrapeTab.tsx is dynamically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel.tsx but also statically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/index.ts, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/SearchTab.tsx is dynamically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel.tsx but also statically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/index.ts, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/FormTab.tsx is dynamically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel.tsx but also statically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/index.ts, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/SummaryTab.tsx is dynamically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel.tsx but also statically imported by /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/SamAI/src/content/SearchPanel/components/index.ts, dynamic import will not move module into another chunk.
+
+[1G✔ Built extension in 9.276 s
+  ├─ .output/chrome-mv3/manifest.json                       1.43 kB  
+  ├─ .output/chrome-mv3/expand.html                         576 B    
+  ├─ .output/chrome-mv3/home.html                           646 B    
+  ├─ .output/chrome-mv3/onboarding.html                     495 B    
+  ├─ .output/chrome-mv3/background.js                       41.07 kB 
+  ├─ .output/chrome-mv3/BookmarksTab-a8CaE_z4.js            28.25 kB 
+  ├─ .output/chrome-mv3/chunks/copyToClipboard-CVufQICu.js  14.4 kB  
+  ├─ .output/chrome-mv3/chunks/expand-QWsFvnJ5.js           807.64 kB
+  ├─ .output/chrome-mv3/chunks/home-DjuhodPH.js             111.92 kB
+  ├─ .output/chrome-mv3/chunks/onboarding-frsRGrnV.js       3.15 kB  
+  ├─ .output/chrome-mv3/chunks/WireframeIcon-CvqUGsWX.js    212.65 kB
+  ├─ .output/chrome-mv3/content-scripts/content.js          218.9 kB 
+  ├─ .output/chrome-mv3/panel-runtime-Dzpu7a43.js           2.5 MB   
+  ├─ .output/chrome-mv3/panel-runtime.js                    81 B     
+  ├─ .output/chrome-mv3/assets/home-wblVHT1_.css            17.98 kB 
+  ├─ .output/chrome-mv3/assets/panel-runtime.css            24.98 kB 
+  ├─ .output/chrome-mv3/assets/WireframeIcon-6kKtK9z1.css   57.22 kB 
+  ├─ .output/chrome-mv3/_locales/en/messages.json           380 B    
+  ├─ .output/chrome-mv3/icon/128.png                        13.36 kB 
+  ├─ .output/chrome-mv3/icon/16.png                         1.39 kB  
+  ├─ .output/chrome-mv3/icon/32.png                         3.06 kB  
+  ├─ .output/chrome-mv3/icon/48.png                         5.42 kB  
+  ├─ .output/chrome-mv3/icon/96.png                         13.31 kB 
+  ├─ .output/chrome-mv3/icons/dracon-uk.svg                 97.09 kB 
+  └─ .output/chrome-mv3/wxt.svg                             1.07 kB  
+Σ Total size: 4.17 MB                                     
+✔ Finished in 9.455 s

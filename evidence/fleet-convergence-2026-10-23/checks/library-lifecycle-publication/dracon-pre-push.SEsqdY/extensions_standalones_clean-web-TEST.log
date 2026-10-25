@@ -1,0 +1,2674 @@
+
+> clean-web@1.0.0 test
+> vitest run --passWithNoTests
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web[39m
+
+[90mstderr[2m | test/engine.test.ts[2m > [22m[2minvariant 3 — only model answers are cached[2m > [22m[2ma cache write failure never fails the pass
+[22m[39m[CleanWeb] verdict cache write failed, continuing uncached: Error: Resource::kQuotaBytesPerItem quota exceeded
+    at Object.<anonymous> [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/[39mtest/engine.test.ts:242:13[90m)[39m
+    at Object.Mock [as putMany] (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/@vitest+spy@4.1.9/node_modules/[4m@vitest/spy[24m/dist/index.js:332:34)
+    at resolveVerdicts [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/[39msrc/engine.ts:999:23[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/[39mtest/engine.test.ts:245:17
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20
+
+ [32m✓[39m test/engine.test.ts [2m([22m[2m75 tests[22m[2m)[22m[32m 192[2mms[22m[39m
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2maction popup[2m > [22m[2mstates both switches in words, so the state never depends on the knob
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2maction popup[2m > [22m[2mstates both switches in words, so the state never depends on the knob
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2maction popup[2m > [22m[2mturns everything off from the header
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2maction popup[2m > [22m[2mshow originals is a real toggle: on and off, both reach the setting
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2maction popup[2m > [22m[2mshow originals is a real toggle: on and off, both reach the setting
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mlists every section in the rail and navigates to it
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mlists every section in the rail and navigates to it
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mprompts[2m > [22m[2mshows the fixed contract read-only and an editor per voice
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mprompts[2m > [22m[2msaves a custom voice wording and restores the default on reset
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mprompts[2m > [22m[2msaves a custom voice wording and restores the default on reset
+[22m[39mAn update to Prompts inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mprompts[2m > [22m[2msaves a custom voice wording and restores the default on reset
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m test/judge.test.ts [2m([22m[2m52 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mprompts[2m > [22m[2msaves a custom voice wording and restores the default on reset
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mprompts[2m > [22m[2msaves a custom voice wording and restores the default on reset
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mprompts[2m > [22m[2mshows the SAVED override in the editor, not the shipped default
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mprompts[2m > [22m[2mkeeps a blank override as "use the default", not as empty instructions
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mprompts[2m > [22m[2mruns the unsaved draft in the sandbox and saves nothing
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mprompts[2m > [22m[2mruns the unsaved draft in the sandbox and saves nothing
+[22m[39mAn update to Prompts inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Prompts inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Prompts inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mprompts[2m > [22m[2mexplains why a trial did not run instead of showing nothing
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mprompts[2m > [22m[2mexplains why a trial did not run instead of showing nothing
+[22m[39mAn update to Prompts inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Prompts inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mper-site overrides[2m > [22m[2madds, lists and removes an override through the store
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mper-site overrides[2m > [22m[2madds, lists and removes an override through the store
+[22m[39mAn update to Sites inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Sites inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mper-site overrides[2m > [22m[2madds, lists and removes an override through the store
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mper-site overrides[2m > [22m[2mcreates a tolerance-only override, not a disabled one
+[22m[39mAn update to Sites inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Sites inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Sites inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mper-site overrides[2m > [22m[2msays on the row when a site is switched off, and lets it be switched back on
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mper-site overrides[2m > [22m[2msetting a threshold on a row never silently disables the site
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2musage and limits[2m > [22m[2mshows the live numbers, states the daily cap as none, and saves the one limit
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2musage and limits[2m > [22m[2mshows the live numbers, states the daily cap as none, and saves the one limit
+[22m[39mAn update to Usage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2musage and limits[2m > [22m[2mblames the provider, not a quota of ours, while backing off
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2musage and limits[2m > [22m[2mclamps a nonsense limit instead of trusting the field
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2musage and limits[2m > [22m[2mclamps a nonsense limit instead of trusting the field
+[22m[39mAn update to Usage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2musage and limits[2m > [22m[2mcan forget everything it has learned
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2moffers the three independent cleaning choices, not one exclusive voice list
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mturns readability on, which the old exclusive list could not combine with a filter
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mturns readability on, which the old exclusive list could not combine with a filter
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mchanges the content filter independently of the tone switch
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mchanges the content filter independently of the tone switch
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m test/validate.test.ts [2m([22m[2m79 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mships holding text back until it is judged, and lets it go
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mships holding text back until it is judged, and lets it go
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mships a loading placeholder for the held text, and lets it go
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mships a loading placeholder for the held text, and lets it go
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mdisables the placeholder while nothing is being held back
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mdisables the placeholder while nothing is being held back
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2moffers all three tolerance levels and explains the chosen one
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2moffers all three tolerance levels and explains the chosen one
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2msays tolerance, not routing: the control no longer claims to gate what gets sent
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mkeeps the debug view off by default and says what it does
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mstates the privacy position in full
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mtakes a model id the user typed, and says so only when it stuck
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mtakes a model id the user typed, and says so only when it stuck
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mshows the fetched model list on screen, not only in a dropdown
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mshows the fetched model list on screen, not only in a dropdown
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mshows the fetched model list on screen, not only in a dropdown
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mnames the recommended model and says why
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mnames the recommended model and says why
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mnames the recommended model and says why
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mnames the recommended model and says why
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mrecommends the free router for OpenRouter and flash 3 for Agnes
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mrecommends the free router for OpenRouter and flash 3 for Agnes
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mrecommends the free router for OpenRouter and flash 3 for Agnes
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2moffers the provider’s own model list, fetched from the provider
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2moffers the provider’s own model list, fetched from the provider
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2moffers the provider’s own model list, fetched from the provider
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2msays when the provider no longer lists the stored model
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2msays when the provider no longer lists the stored model
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mwarns when the stored model belongs to another provider
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mwarns when the stored model belongs to another provider
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mwarns when a typed model id belongs to another provider
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mwarns when a typed model id belongs to another provider
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mwarns when a typed model id belongs to another provider
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mdoes not accuse a typed model id it cannot place
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mdoes not accuse a typed model id it cannot place
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2msettings dashboard[2m > [22m[2mthe rest of the sections[2m > [22m[2mdoes not accuse a typed model id it cannot place
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mhas AI as its own place in the rail, not a card inside Privacy
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mwalks a first-time user through connecting, with the key field first
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2msays plainly that a connected key is stored on this device
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mtests the key it actually stored, never the word "stored"
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mtests the key it actually stored, never the word "stored"
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mdoes not claim to be connected before a test has said so
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mchecks with a metadata call by default, and only spends a request when asked
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mchecks with a metadata call by default, and only spends a request when asked
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mchecks with a metadata call by default, and only spends a request when asked
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mkeeps the route to a key once one is stored, not only before
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mkeeps the route to a key once one is stored, not only before
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2msays a failing key didn't answer, and does not call it connected
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2msays a failing key didn't answer, and does not call it connected
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mtells a quota failure apart from a bad key, so nobody replaces a good key
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mtells a quota failure apart from a bad key, so nobody replaces a good key
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mkeeps Save key on screen but disabled until a replacement is typed
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mdisconnects without saving a typed replacement
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mdisconnects without saving a typed replacement
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mrecords a passing check where the popup can see it
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mrecords a passing check where the popup can see it
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2moffers the real-request test on Agnes too, not just Google
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2moffers the real-request test on Agnes too, not just Google
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2moffers the real-request test on Agnes too, not just Google
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mkeeps both check tiers on Google
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mchecks both stored keys in one click and reports each
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mchecks both stored keys in one click and reports each
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mskips a provider with no stored key instead of failing it
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mskips a provider with no stored key instead of failing it
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mrecords a failing check where the popup can see it
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mconnecting the AI[2m > [22m[2mrecords a failing check where the popup can see it
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2mmakes connecting the AI the second step, with the field right there
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2mcan be skipped, and skipping is recorded so it never returns uninvited
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m test/content-flow.test.ts [2m([22m[2m32 tests[22m[2m)[22m[33m 1114[2mms[22m[39m
+     [33m[2m✓[22m[39m follows up on spans beyond the per-pass extraction cap [33m 393[2mms[22m[39m
+     [33m[2m✓[22m[39m does not re-read safe spans when it follows up [33m 471[2mms[22m[39m
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2mshows the voice choice as the third step
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2msends an Agnes model id even when a Google id is stored under it
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2msends an Agnes model id even when a Google id is stored under it
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2msends an Agnes model id even when a Google id is stored under it
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2mthe model the user picks is the model saved and pinged
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2mthe model the user picks is the model saved and pinged
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2mthe model the user picks is the model saved and pinged
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2mclears a model picked under the other provider when the tabs switch
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2mclears a model picked under the other provider when the tabs switch
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2mclears a model picked under the other provider when the tabs switch
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2msays Connect saves first, so it never contradicts the dashboard rule
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2mrecords the welcome check where the popup can see it
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe welcome screen[2m > [22m[2mrecords the welcome check where the popup can see it
+[22m[39mAn update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Welcome inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe provider copy[2m > [22m[2mnames the provider the tab is on, not Google
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe provider copy[2m > [22m[2mnames the provider the tab is on, not Google
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe provider copy[2m > [22m[2mnames Agnes on the Agnes tab
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe provider copy[2m > [22m[2mnames Agnes on the Agnes tab
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe provider copy[2m > [22m[2mdoes not claim Google's free tier on another provider's tab
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe provider copy[2m > [22m[2mdoes not claim Google's free tier on another provider's tab
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe provider copy[2m > [22m[2mdoes not claim Google's free tier on another provider's tab
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe provider copy[2m > [22m[2mblames the provider that refused the key, not Google
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe provider copy[2m > [22m[2mblames the provider that refused the key, not Google
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe provider copy[2m > [22m[2mblames the provider that refused the key, not Google
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe per-site surfaces[2m > [22m[2mleaves the site alone when the user accepts the offer
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe per-site surfaces[2m > [22m[2mremembers a refusal, so the offer is not made again
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe per-site surfaces[2m > [22m[2mwrites a rule for one board, not for the whole site
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | test/popup-app.test.tsx[2m > [22m[2mthe per-site surfaces[2m > [22m[2mwrites a rule for one board, not for the whole site
+[22m[39mAn update to Sites inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m test/popup-app.test.tsx [2m([22m[2m107 tests[22m[2m)[22m[33m 3133[2mms[22m[39m
+ [32m✓[39m test/show-originals.test.ts [2m([22m[2m30 tests[22m[2m)[22m[32m 155[2mms[22m[39m
+ [32m✓[39m test/policy.test.ts [2m([22m[2m35 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m test/images-association.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 208[2mms[22m[39m
+ [32m✓[39m test/policy-knobs.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 77[2mms[22m[39m
+ [32m✓[39m test/mutation-coalescing.test.ts [2m([22m[2m27 tests[22m[2m)[22m[33m 311[2mms[22m[39m
+ [32m✓[39m test/extract.test.ts [2m([22m[2m38 tests[22m[2m)[22m[32m 71[2mms[22m[39m
+ [32m✓[39m test/hide-until-judged.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+ [32m✓[39m test/model-double.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+ [32m✓[39m test/browser-corpus.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 79[2mms[22m[39m
+ [32m✓[39m test/funnel-audit.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 56[2mms[22m[39m
+ [32m✓[39m test/rewind.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 101[2mms[22m[39m
+ [32m✓[39m test/apply.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32m✓[39m test/debug-view.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+ [32m✓[39m test/cache.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m test/budget.test.ts [2m([22m[2m20 tests[22m[2m)[22m[32m 89[2mms[22m[39m
+ [32m✓[39m test/live-profile.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m test/site-rules.test.ts [2m([22m[2m30 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m test/providers.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m test/byok-store.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m test/multi-node-block.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m test/site-stats.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 278[2mms[22m[39m
+ [32m✓[39m test/manifest-policy.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m test/page-lifecycle.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 95[2mms[22m[39m
+ [32m✓[39m test/page-probe.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32m✓[39m test/judge-egress.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 61[2mms[22m[39m
+ [32m✓[39m test/bfcache-resume.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+ [32m✓[39m test/leak-detector.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m test/prohibited-terms.test.ts [2m([22m[2m32 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m test/contracts.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+[90mstderr[2m | test/openrouter.test.ts[2m > [22m[2mchatWithOpenRouter[2m > [22m[2mcarries the HTTP status on a failure, so a 429 is recognisable as a limit
+[22m[39m[OpenRouter] Attempt 1 failed: Rate limit exceeded
+
+[90mstderr[2m | test/openrouter.test.ts[2m > [22m[2mchatWithOpenRouter[2m > [22m[2mdoes not retry a 4xx that is not a 429 — a bad key fails the same way every time
+[22m[39m[OpenRouter] Attempt 1 failed: No auth credentials found
+
+[90mstdout[2m | test/openrouter.test.ts[2m > [22m[2mchatWithOpenRouter[2m > [22m[2mretries a 429 while attempts remain, then gives up
+[22m[39m[OpenRouter] Retry attempt 1 after 1500ms...
+
+[90mstderr[2m | test/openrouter.test.ts[2m > [22m[2mchatWithOpenRouter[2m > [22m[2mretries a 429 while attempts remain, then gives up
+[22m[39m[OpenRouter] Attempt 1 failed: Rate limit exceeded
+
+ [32m✓[39m test/leak-detector-coverage-flag.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+ [32m✓[39m test/site-skip.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 71[2mms[22m[39m
+ [32m✓[39m test/cache-auto-apply.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+ [32m✓[39m test/realistic-page.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+[90mstdout[2m | test/openrouter.test.ts[2m > [22m[2mchatWithOpenRouter[2m > [22m[2mretries a 429 while attempts remain, then gives up
+[22m[39m[OpenRouter] Retry attempt 2 after 1500ms...
+
+[90mstderr[2m | test/openrouter.test.ts[2m > [22m[2mchatWithOpenRouter[2m > [22m[2mretries a 429 while attempts remain, then gives up
+[22m[39m[OpenRouter] Attempt 2 failed: Body has already been used for "".
+
+ [32m✓[39m test/budget-limits.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m test/prompt-policy.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m test/benchmark.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+[90mstderr[2m | test/openrouter.test.ts[2m > [22m[2mchatWithOpenRouter[2m > [22m[2mretries a 429 while attempts remain, then gives up
+[22m[39m[OpenRouter] Attempt 3 failed: Body has already been used for "".
+
+[90mstderr[2m | test/openrouter.test.ts[2m > [22m[2mtestOpenRouterConnection[2m > [22m[2mreports the failure instead of throwing, and spends nothing without a key
+[22m[39m[OpenRouter] Attempt 1 failed: No auth credentials found
+
+[90mstderr[2m | test/openrouter.test.ts[2m > [22m[2mtestOpenRouterConnection[2m > [22m[2mreports the failure instead of throwing, and spends nothing without a key
+[22m[39m[OpenRouter] testOpenRouterConnection failed: Error: No auth credentials found
+    at chatWithOpenRouter (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/packages/extension-core/src/byok/openrouter.ts:175:23)
+    at testOpenRouterConnection (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/packages/extension-core/src/byok/openrouter.ts:232:22)
+    at [90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/[39mtest/openrouter.test.ts:179:20
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20 {
+  status: [33m401[39m
+}
+
+ [32m✓[39m test/openrouter.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 3026[2mms[22m[39m
+     [33m[2m✓[22m[39m retries a 429 while attempts remain, then gives up [33m 3015[2mms[22m[39m
+ [32m✓[39m test/originals-notice.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m test/budget-single-writer.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m test/queue-follow-up.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 492[2mms[22m[39m
+ [32m✓[39m test/action-state.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+[90mstdout[2m | test/live-judge.test.ts[2m > [22m[2mlive Gemini judge[2m > [22m[2mreturns a parseable, fact-preserving verdict
+[22m[39mSKIP: live gate off — run it with `bun run test:live`
+
+ [32m✓[39m test/live-judge.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 2[2mms[22m[39m
+[90mstdout[2m | test/measure-migration-counts.test.ts[2m > [22m[2mmeasure: sync→local migration before/after counts[2m > [22m[2mreports the before/after counts on a populated legacy (7 entries)
+[22m[39mMEASURE: migration before/after counts (7-entry seeded legacy)
+  legacy sync:   before=7  after=0
+  local:         before=0  after=7
+  getAll returned: 7 entries
+  second call (idempotent): 7 entries
+  identity: legacy.length===0 && local.length===7 -> true
+
+ [32m✓[39m test/measure-migration-counts.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m test/page-styles.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m test/classifier.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m test/retention-reader.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m test/prompt-trial.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m test/peek-quiet-window.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m test/heuristic-caps.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 268[2mms[22m[39m
+ [32m✓[39m test/images.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m test/heuristic.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+
+
+  ── WRONG HAPPY-DOM ───────────────────────────────────────────────
+
+  The environment loaded, but it cannot survive this suite's own DOM
+  reset (`document.documentElement.innerHTML = ''`): the <body>
+  element is dropped, so `document.body` is null and every DOM test
+  dies on "Cannot set properties of null (setting 'innerHTML')".
+
+  This is happy-dom 15.x (or older). The project resolves 20.14.6,
+  which re-creates <head></head><body></body> on that reset.
+
+  The vitest VERSION is not the problem — both runners use 4.1.9. What
+  differs is which install of it is launched, and therefore which
+  happy-dom its peer symlink names:
+
+    use    bun run test       -> node_modules/.bin/vitest -> happy-dom 20.14.6
+    avoid  npx vitest run    -> npm-exec resolves a different vitest
+                                install -> happy-dom 15.11.7
+
+  No test in this suite is compatible with the broken document. Failures
+  under it are a runner artefact — re-run with `bun run test`.
+
+  ─────────────────────────────────────────────────────────────────
+
+
+
+  ── WRONG HAPPY-DOM ───────────────────────────────────────────────
+
+  The environment loaded, but it cannot survive this suite's own DOM
+  reset (`document.documentElement.innerHTML = ''`): the <body>
+  element is dropped, so `document.body` is null and every DOM test
+  dies on "Cannot set properties of null (setting 'innerHTML')".
+
+  This is happy-dom 15.x (or older). The project resolves 20.14.6,
+  which re-creates <head></head><body></body> on that reset.
+
+  The vitest VERSION is not the problem — both runners use 4.1.9. What
+  differs is which install of it is launched, and therefore which
+  happy-dom its peer symlink names:
+
+    use    bun run test       -> node_modules/.bin/vitest -> happy-dom 20.14.6
+    avoid  npx vitest run    -> npm-exec resolves a different vitest
+                                install -> happy-dom 15.11.7
+
+  No test in this suite is compatible with the broken document. Failures
+  under it are a runner artefact — re-run with `bun run test`.
+
+  ─────────────────────────────────────────────────────────────────
+
+ [32m✓[39m test/runner-guard.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m test/leak-coverage.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m test/content-settings.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m test/policy-default.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m test/validate-leak-detector-drift.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m test/budget-messages.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m test/browser-verdict.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m test/page-measurement.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m test/harness-model.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m test/fingerprint.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 333[2mms[22m[39m
+     [33m[2m✓[22m[39m does not collide across a realistic cache population [33m 329[2mms[22m[39m
+[90mstdout[2m | test/zz-probe-leak.test.ts[2m > [22m[2mprobe[2m > [22m[2mchecks whether parsed documents are retained after the loop
+[22m[39mhas window global: object
+plan/fixtures/bait-corpus.html         heapUsed=   26.5MB
+plan/fixtures/bait-table.html          heapUsed=   27.0MB
+plan/fixtures/calm-hostile-oneliners.html heapUsed=   27.4MB
+plan/fixtures/clarity-corpus.html      heapUsed=   27.6MB
+plan/fixtures/fresh-bait.html          heapUsed=   27.7MB
+plan/fixtures/fresh-bait2.html         heapUsed=   27.9MB
+plan/fixtures/image-association.html   heapUsed=   28.9MB
+plan/fixtures/smoke-article.html       heapUsed=   29.5MB
+plan/fixtures/strict-keeps-news-calm.html heapUsed=   30.0MB
+plan/fixtures/table-hn.snapshot.html   heapUsed=   36.1MB
+total parsed element nodes: 1021
+after loop + forced GC: heapUsed=   36.1MB (start 25.7) rss=116.3MB
+globalThis.document === parsed? n/a
+window keys with "doc": 
+
+ [32m✓[39m test/zz-probe-leak.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 86[2mms[22m[39m
+[90mstdout[2m | test/zz-probe-memory.test.ts[2m > [22m[2mprobe[2m > [22m[2mmeasures happy-dom parse cost per corpus page
+[22m[39mplan/fixtures/bait-table.html            file=   0.0MB nodes=    28 heapD=    0.7MB heapUsed=   26.2MB rss=  103.3MB
+plan/fixtures/bait-corpus.html           file=   0.0MB nodes=    29 heapD=    0.4MB heapUsed=   26.8MB rss=  103.3MB
+
+ [32m✓[39m test/zz-probe-memory.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m test/copy-style.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 363[2mms[22m[39m
+ [32m✓[39m test/browser-process-cleanup.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 883[2mms[22m[39m
+     [33m[2m✓[22m[39m escalates when an owned detached child ignores SIGTERM [33m 882[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m70 passed[39m[22m[90m (70)[39m
+[2m      Tests [22m [1m[32m1125 passed[39m[22m[90m (1125)[39m
+[2m   Start at [22m 07:30:43
+[2m   Duration [22m 23.10s[2m (transform 1.55s, setup 862ms, import 3.16s, tests 12.29s, environment 18.67s)[22m
+

@@ -1,0 +1,28 @@
+
+> dark-new-tab-page@0.1.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/collections/new-tab/dark-new-tab[39m
+
+ [32m✓[39m tests/ShortcutGrid.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1003[2mms[22m[39m
+ [32m✓[39m tests/widgets.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 1098[2mms[22m[39m
+     [33m[2m✓[22m[39m prompts when nothing is saved for today [33m 427[2mms[22m[39m
+ [32m✓[39m tests/ShortcutGrid.live.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 598[2mms[22m[39m
+ [32m✓[39m tests/smoke.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 788[2mms[22m[39m
+     [33m[2m✓[22m[39m opens the settings drawer as ONE vertical panel (no tabs) with privacy policy visible [33m 499[2mms[22m[39m
+ [32m✓[39m tests/starter.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/SettingsPanel.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 707[2mms[22m[39m
+     [33m[2m✓[22m[39m renders ONE vertical panel — every section at once, no tabs (Ultimate-converged) [33m 391[2mms[22m[39m
+ [32m✓[39m tests/sidebar.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 384[2mms[22m[39m
+ [32m✓[39m tests/darkSearchHttp.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 69[2mms[22m[39m
+ [32m✓[39m tests/BrandIcon.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 71[2mms[22m[39m
+ [32m✓[39m tests/starterGuard.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m tests/ShortcutModal.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 545[2mms[22m[39m
+     [33m[2m✓[22m[39m preserves the intentionally supported Custom Section category [33m 544[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m11 passed[39m[22m[90m (11)[39m
+[2m      Tests [22m [1m[32m70 passed[39m[22m[90m (70)[39m
+[2m   Start at [22m 07:26:45
+[2m   Duration [22m 13.07s[2m (transform 1.75s, setup 2.01s, import 2.94s, tests 5.27s, environment 12.21s)[22m
+

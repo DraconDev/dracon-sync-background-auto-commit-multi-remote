@@ -1,0 +1,98 @@
+
+> @dracon/extension-react@1.0.0 test
+> node --test scripts/build.check.mjs && vitest run --passWithNoTests
+
+✔ readers retain complete output throughout a rebuild and receive the new output (6.094858ms)
+✔ failed compilation preserves readable output and cleans staging (2.376518ms)
+✔ successful publication prunes stale compiler output but preserves other files (2.226153ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 47.616338
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/packages/extension-react[39m
+
+ [32m✓[39m tests/WireframeIcon.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+[90mstderr[2m | tests/ErrorBoundary.test.tsx[2m > [22m[2mErrorBoundary[2m > [22m[2mrenders the fallback UI when a child throws
+[22m[39mError: boom
+    at Boom [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/packages/extension-react/[39mtests/ErrorBoundary.test.tsx:6:9[90m)[39m
+    at Object.react_stack_bottom_frame (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25904:20)
+    at renderWithHooks (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:7662:22)
+    at updateFunctionComponent (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:10166:19)
+    at beginWork (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:11778:18)
+    at runWithFiberInDEV (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:874:13)
+    at performUnitOfWork (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:17641:22)
+    at workLoopSync (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:17469:41)
+    at renderRootSync (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:17450:11)
+    at performWorkOnRoot (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:16583:35) {
+  [stack]: [36m[Getter/Setter][39m,
+  [message]: [32m'boom'[39m
+}
+
+The above error occurred in the <Boom> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+[ErrorBoundary] Caught error: Error: boom
+    at Boom [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/packages/extension-react/[39mtests/ErrorBoundary.test.tsx:6:9[90m)[39m
+    at Object.react_stack_bottom_frame (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25904:20)
+    at renderWithHooks (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:7662:22)
+    at updateFunctionComponent (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:10166:19)
+    at beginWork (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:11778:18)
+    at runWithFiberInDEV (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:874:13)
+    at performUnitOfWork (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:17641:22)
+    at workLoopSync (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:17469:41)
+    at renderRootSync (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:17450:11)
+    at performWorkOnRoot (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:16583:35) {
+  componentStack: [32m'\n'[39m +
+    [32m'    at Boom (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/packages/extension-react/tests/ErrorBoundary.test.tsx:10:9)\n'[39m +
+    [32m'    at ErrorBoundary (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/packages/extension-react/src/components/ErrorBoundary.tsx:9:5)'[39m
+}
+
+[90mstderr[2m | tests/ErrorBoundary.test.tsx[2m > [22m[2mErrorBoundary[2m > [22m[2mrenders the default error UI when no fallback is provided
+[22m[39mError: boom
+    at Boom [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/packages/extension-react/[39mtests/ErrorBoundary.test.tsx:6:9[90m)[39m
+    at Object.react_stack_bottom_frame (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25904:20)
+    at renderWithHooks (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:7662:22)
+    at updateFunctionComponent (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:10166:19)
+    at beginWork (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:11778:18)
+    at runWithFiberInDEV (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:874:13)
+    at performUnitOfWork (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:17641:22)
+    at workLoopSync (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:17469:41)
+    at renderRootSync (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:17450:11)
+    at performWorkOnRoot (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:16583:35) {
+  [stack]: [36m[Getter/Setter][39m,
+  [message]: [32m'boom'[39m
+}
+
+The above error occurred in the <Boom> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+[ErrorBoundary] Caught error: Error: boom
+    at Boom [90m(/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/packages/extension-react/[39mtests/ErrorBoundary.test.tsx:6:9[90m)[39m
+    at Object.react_stack_bottom_frame (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25904:20)
+    at renderWithHooks (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:7662:22)
+    at updateFunctionComponent (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:10166:19)
+    at beginWork (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:11778:18)
+    at runWithFiberInDEV (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:874:13)
+    at performUnitOfWork (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:17641:22)
+    at workLoopSync (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:17469:41)
+    at renderRootSync (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:17450:11)
+    at performWorkOnRoot (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/node_modules/[4m.bun[24m/react-dom@19.2.8+0f58469d5b3bd39f/node_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:16583:35) {
+  componentStack: [32m'\n'[39m +
+    [32m'    at Boom (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/packages/extension-react/tests/ErrorBoundary.test.tsx:10:9)\n'[39m +
+    [32m'    at ErrorBoundary (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/packages/extension-react/src/components/ErrorBoundary.tsx:9:5)'[39m
+}
+
+ [32m✓[39m tests/ErrorBoundary.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 113[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m7 passed[39m[22m[90m (7)[39m
+[2m   Start at [22m 07:33:28
+[2m   Duration [22m 966ms[2m (transform 114ms, setup 0ms, import 366ms, tests 138ms, environment 1.16s)[22m
+

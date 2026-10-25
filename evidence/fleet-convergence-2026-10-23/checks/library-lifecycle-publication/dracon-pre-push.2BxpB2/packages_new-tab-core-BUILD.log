@@ -1,0 +1,9 @@
+
+> @dracon/new-tab-core@1.0.0 prebuild
+> bun run --cwd ../brand-icon build
+
+$ node ../../scripts/build-library.mjs
+
+> @dracon/new-tab-core@1.0.0 build
+> tsc && mkdir -p dist/styles && cp src/styles/tokens.css src/styles/a11y.css dist/styles/
+

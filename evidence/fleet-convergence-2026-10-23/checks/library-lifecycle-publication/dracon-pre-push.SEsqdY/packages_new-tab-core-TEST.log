@@ -1,0 +1,19 @@
+
+> @dracon/new-tab-core@1.0.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/packages/new-tab-core[39m
+
+ [32m✓[39m tests/wallpaperRotation.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/syncSettingsStore.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/useFocusTrap.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 91[2mms[22m[39m
+ [32m✓[39m tests/dashboard.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[32m 249[2mms[22m[39m
+ [32m✓[39m tests/brandIcon.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 71[2mms[22m[39m
+ [32m✓[39m tests/wallpaperUrl.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m6 passed[39m[22m[90m (6)[39m
+[2m      Tests [22m [1m[32m46 passed[39m[22m[90m (46)[39m
+[2m   Start at [22m 07:33:35
+[2m   Duration [22m 3.58s[2m (transform 639ms, setup 0ms, import 1.04s, tests 427ms, environment 4.41s)[22m
+

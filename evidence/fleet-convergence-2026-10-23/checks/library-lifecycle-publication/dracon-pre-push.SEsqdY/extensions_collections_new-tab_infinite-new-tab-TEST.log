@@ -1,0 +1,20 @@
+
+> infinite-new-tab@0.1.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/collections/new-tab/infinite-new-tab[39m
+
+ [32m✓[39m tests/rotation.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32m✓[39m tests/widgets.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 443[2mms[22m[39m
+ [32m✓[39m tests/smoke.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 1509[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the clock over a wallpaper surface with a settings trigger [33m 301[2mms[22m[39m
+     [33m[2m✓[22m[39m opens the drawer, switches to manual, picks a wallpaper, persists it [33m 1090[2mms[22m[39m
+ [32m✓[39m tests/sidebar.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 504[2mms[22m[39m
+     [33m[2m✓[22m[39m renders card sections with accessible titles once the drawer opens [33m 427[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m4 passed[39m[22m[90m (4)[39m
+[2m      Tests [22m [1m[32m49 passed[39m[22m[90m (49)[39m
+[2m   Start at [22m 07:27:06
+[2m   Duration [22m 3.84s[2m (transform 730ms, setup 500ms, import 1.30s, tests 2.48s, environment 2.82s)[22m
+

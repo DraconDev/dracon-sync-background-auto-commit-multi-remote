@@ -1,0 +1,32 @@
+
+> bookmarks-new-tab-page@15.2.0 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[1G✔ Built extension in 4.514 s
+  ├─ .output/chrome-mv3/manifest.json                 662 B    
+  ├─ .output/chrome-mv3/dashboard.html                501 B    
+  ├─ .output/chrome-mv3/newtab.html                   484 B    
+  ├─ .output/chrome-mv3/background.js                 25.18 kB 
+  ├─ .output/chrome-mv3/chunks/dashboard-dYaEmoRh.js  31.58 kB 
+  ├─ .output/chrome-mv3/chunks/globals-DAkx4mbA.js    806.03 kB
+  ├─ .output/chrome-mv3/chunks/newtab-BDslNwjq.js     128.08 kB
+  ├─ .output/chrome-mv3/assets/globals-DYOinJs6.css   36.14 kB 
+  ├─ .output/chrome-mv3/background.webp               10.89 kB 
+  ├─ .output/chrome-mv3/icon/128.png                  754 B    
+  ├─ .output/chrome-mv3/icon/16.png                   156 B    
+  ├─ .output/chrome-mv3/icon/32.png                   216 B    
+  ├─ .output/chrome-mv3/icon/48.png                   293 B    
+  ├─ .output/chrome-mv3/icon/96.png                   13.8 kB  
+  ├─ .output/chrome-mv3/store/1.png                   160.37 kB
+  └─ .output/chrome-mv3/store/2.png                   888.89 kB
+Σ Total size: 2.1 MB                                
+✔ Finished in 4.694 s

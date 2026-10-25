@@ -1,0 +1,35 @@
+
+> youtube-filter@1.0.0 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G✔ Built extension in 2.019 s
+  ├─ .output/chrome-mv3/manifest.json                  966 B    
+  ├─ .output/chrome-mv3/options.html                   674 B    
+  ├─ .output/chrome-mv3/welcome.html                   688 B    
+  ├─ .output/chrome-mv3/background.js                  47.15 kB 
+  ├─ .output/chrome-mv3/chunks/options-BcEAzlR8.js     70.34 kB 
+  ├─ .output/chrome-mv3/chunks/theme-CNZ-0Dr4.js       217.28 kB
+  ├─ .output/chrome-mv3/chunks/welcome-BCIm_B6K.js     5.32 kB  
+  ├─ .output/chrome-mv3/content-scripts/content.js     101.35 kB
+  ├─ .output/chrome-mv3/content-scripts/yt-relay.js    2.67 kB  
+  ├─ .output/chrome-mv3/wasm/dracon_wasm.js            13.5 kB  
+  ├─ .output/chrome-mv3/assets/options-it2Hw7DI.css    16.27 kB 
+  ├─ .output/chrome-mv3/assets/theme-q_GX_Sih.css      571 B    
+  ├─ .output/chrome-mv3/assets/welcome-BdrVPE4j.css    211 B    
+  ├─ .output/chrome-mv3/_locales/en/messages.json      315 B    
+  ├─ .output/chrome-mv3/_locales/README.md             2.74 kB  
+  ├─ .output/chrome-mv3/icon/128.png                   4.86 kB  
+  ├─ .output/chrome-mv3/icon/16.png                    602 B    
+  ├─ .output/chrome-mv3/icon/32.png                    1.28 kB  
+  ├─ .output/chrome-mv3/icon/48.png                    1.93 kB  
+  ├─ .output/chrome-mv3/icon/96.png                    3.7 kB   
+  ├─ .output/chrome-mv3/wasm/dracon_wasm_bg.wasm       126.17 kB
+  ├─ .output/chrome-mv3/wasm/dracon_wasm_bg.wasm.d.ts  1.09 kB  
+  ├─ .output/chrome-mv3/wasm/dracon_wasm.d.ts          2.54 kB  
+  └─ .output/chrome-mv3/wasm/package.json              331 B    
+Σ Total size: 622.53 kB                              
+✔ Finished in 2.165 s

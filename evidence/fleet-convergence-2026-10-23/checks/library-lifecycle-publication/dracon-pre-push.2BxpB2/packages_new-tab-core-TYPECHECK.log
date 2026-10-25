@@ -1,0 +1,9 @@
+
+> @dracon/new-tab-core@1.0.0 pretypecheck
+> bun run --cwd ../brand-icon build
+
+$ node ../../scripts/build-library.mjs
+
+> @dracon/new-tab-core@1.0.0 typecheck
+> tsc --noEmit
+

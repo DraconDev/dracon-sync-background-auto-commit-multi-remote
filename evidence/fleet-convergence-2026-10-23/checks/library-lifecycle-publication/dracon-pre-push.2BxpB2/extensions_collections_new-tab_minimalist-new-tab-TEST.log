@@ -1,0 +1,21 @@
+
+> minimalist-new-tab-page@0.1.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/collections/new-tab/minimalist-new-tab[39m
+
+ [32m✓[39m tests/smoke.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 543[2mms[22m[39m
+ [32m✓[39m tests/widgets.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 562[2mms[22m[39m
+ [32m✓[39m tests/sidebar.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 386[2mms[22m[39m
+ [32m✓[39m tests/httpLan.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 623[2mms[22m[39m
+     [33m[2m✓[22m[39m an http:// LAN URL saves and opens on click [33m 489[2mms[22m[39m
+ [32m✓[39m tests/starterGuard.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32m✓[39m tests/BrandIcon.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+ [32m✓[39m tests/wxtConfig.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m7 passed[39m[22m[90m (7)[39m
+[2m      Tests [22m [1m[32m43 passed[39m[22m[90m (43)[39m
+[2m   Start at [22m 07:15:12
+[2m   Duration [22m 6.00s[2m (transform 900ms, setup 956ms, import 1.41s, tests 2.21s, environment 5.80s)[22m
+

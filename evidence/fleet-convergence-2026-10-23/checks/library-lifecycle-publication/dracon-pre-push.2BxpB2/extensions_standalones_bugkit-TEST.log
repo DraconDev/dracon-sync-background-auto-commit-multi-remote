@@ -1,0 +1,33 @@
+
+> bugkit@1.2.1 test
+> vitest run --passWithNoTests
+
+
+ RUN  v2.1.9 /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/bugkit
+
+ ✓ entrypoints/__tests__/background.test.ts (19 tests) 15ms
+ ✓ tests/redactPatterns.test.ts (22 tests) 10ms
+ ✓ lib/bundle/__tests__/har-export.test.ts (16 tests) 7ms
+ ✓ lib/utils/__tests__/url-patterns.test.ts (28 tests) 7ms
+ ✓ tests/viewerSanitization.test.ts (9 tests) 3ms
+ ✓ tests/urlPatterns.test.ts (19 tests) 7ms
+ ✓ lib/capture/__tests__/heatmap.test.ts (19 tests) 7ms
+ ✓ lib/capture/__tests__/index.test.ts (13 tests) 5ms
+ ✓ tests/messaging.test.ts (5 tests) 4ms
+ ✓ lib/capture/__tests__/annotation.test.ts (14 tests) 3ms
+ ✓ lib/bundle/__tests__/index.test.ts (6 tests) 23ms
+ ✓ tests/reviewAsk.test.ts (7 tests) 4ms
+ ✓ lib/capture/__tests__/auto-recording.test.ts (7 tests) 3ms
+ ✓ lib/capture/__tests__/redaction.test.ts (5 tests) 2ms
+stderr | lib/bundle/__tests__/e2e-bug-report.test.ts > E2E: Bug Report Bundle Creation > Error Handling > should throw error when no data to bundle
+[BugKit] [Bundle] No valid data to bundle!
+[BugKit] [Bundle] Screenshots count: 0
+[BugKit] [Bundle] Valid screenshots: 0
+
+ ✓ lib/bundle/__tests__/e2e-bug-report.test.ts (23 tests) 88ms
+
+ Test Files  15 passed (15)
+      Tests  212 passed (212)
+   Start at  07:18:59
+   Duration  11.31s (transform 506ms, setup 62ms, collect 549ms, tests 186ms, environment 7.60s, prepare 904ms)
+

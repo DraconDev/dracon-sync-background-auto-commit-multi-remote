@@ -1,0 +1,81 @@
+
+> clean-web@1.0.0 lint
+> eslint . --ext .ts,.tsx
+
+(node:1960458) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/eslint.config.js?mtime=1792912125000 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/entrypoints/dashboard/sections/Prompts.tsx
+  117:5  warning  React Hook useCallback has a missing dependency: 'settings'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/entrypoints/popup/App.tsx
+  106:9  warning  The 'edits' logical expression could make the dependencies of useMemo Hook (at line 107) change on every render. To fix this, wrap the initialization of 'edits' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  106:9  warning  The 'edits' logical expression could make the dependencies of useMemo Hook (at line 108) change on every render. To fix this, wrap the initialization of 'edits' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/plan/measurements/image-association-2026-10-08/forum-class-measurement.mjs
+  70:14  warning  'pm' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/audit-behavior.mjs
+  115:59  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/leak-detector.d.mts
+  47:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  49:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/live-profile-retention-audit.mjs
+  40:7  warning  'PROHIBITED' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/live-profile.d.mts
+  15:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:9   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  40:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/model-double.d.mts
+  116:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/page-probe.mjs
+  11:47  warning  'passesAtNav' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/probe-originals-notice.mjs
+  49:7  warning  'NOTICE' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/probe-policy-knobs.mjs
+   30:10  warning  'installModelDouble' is defined but never used       @typescript-eslint/no-unused-vars
+  151:11  warning  'PROMPT_VERSION' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/probe-show-originals.mjs
+  96:59  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/report-tables.mjs
+  62:27  warning  'file' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/run-audit-live.mjs
+   91:109  warning  'e' is defined but never used            @typescript-eslint/no-unused-vars
+  194:100  warning  'e' is defined but never used            @typescript-eslint/no-unused-vars
+  215:139  warning  'e' is defined but never used            @typescript-eslint/no-unused-vars
+  272:59   warning  'e' is defined but never used            @typescript-eslint/no-unused-vars
+  280:10   warning  'expandState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/run.mjs
+  302:9  warning  'quiet' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/sweep-live-profile-coherent.mjs
+  37:28  warning  'join' is defined but never used           @typescript-eslint/no-unused-vars
+  43:7   warning  'HERE' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/scripts/browser-test/verify-budget-migration.mjs
+   25:8   warning  'path' is defined but never used                                         @typescript-eslint/no-unused-vars
+   27:22  warning  'modelKey' is defined but never used                                     @typescript-eslint/no-unused-vars
+   27:32  warning  'resolveTestModel' is defined but never used                             @typescript-eslint/no-unused-vars
+   74:7   warning  'flags' is assigned a value but never used                               @typescript-eslint/no-unused-vars
+  155:44  warning  'model' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  196:7   warning  'storedEnum' is assigned a value but never used                          @typescript-eslint/no-unused-vars
+
+/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/clean-web/src/settings.ts
+  302:20  warning  '_dropDaily' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+✖ 34 problems (0 errors, 34 warnings)
+

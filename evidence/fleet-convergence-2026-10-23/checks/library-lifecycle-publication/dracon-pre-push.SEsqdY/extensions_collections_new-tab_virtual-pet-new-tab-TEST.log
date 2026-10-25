@@ -1,0 +1,58 @@
+
+> @dracon/virtual-pet@0.4.5 test
+> bash scripts/check-privacy-date.sh --check && vitest run --passWithNoTests
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.SEsqdY/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/collections/new-tab/virtual-pet-new-tab[39m
+
+ [32m✓[39m tests/wiring.test.ts [2m([22m[2m68 tests[22m[2m)[22m[32m 83[2mms[22m[39m
+ [32m✓[39m tests/petMechanics.test.ts [2m([22m[2m113 tests[22m[2m)[22m[32m 90[2mms[22m[39m
+ [32m✓[39m tests/petStorage.test.ts [2m([22m[2m35 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m tests/petGround.test.ts [2m([22m[2m37 tests[22m[2m)[22m[32m 114[2mms[22m[39m
+ [32m✓[39m tests/petGames.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32m✓[39m tests/petSkills.test.ts [2m([22m[2m20 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m tests/petConditions.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/petDiary.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/deals.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/widgets.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/petPortraits.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m tests/artAudition.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m tests/petHelpers.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/petExport.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/petStatsHistory.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/focusQuote.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/petCareLog.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/toasts.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/petPageStates.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/petPersonality.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/clockWidget.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+[90mstderr[2m | tests/focusRollover.test.tsx[2m > [22m[2mFocusWidget mounted rollover[2m > [22m[2mhides yesterday immediately on day change and keeps the stored record
+[22m[39mThe current testing environment is not configured to support act(...)
+
+[90mstderr[2m | tests/focusRollover.test.tsx[2m > [22m[2mFocusWidget mounted rollover[2m > [22m[2mhides yesterday immediately on day change and keeps the stored record
+[22m[39mThe current testing environment is not configured to support act(...)
+
+[90mstderr[2m | tests/focusRollover.test.tsx[2m > [22m[2mFocusWidget mounted rollover[2m > [22m[2mhides yesterday immediately on day change and keeps the stored record
+[22m[39mThe current testing environment is not configured to support act(...)
+
+[90mstderr[2m | tests/focusRollover.test.tsx[2m > [22m[2mFocusWidget mounted rollover[2m > [22m[2mhides yesterday even when the fresh read resolves late with a mismatch
+[22m[39mThe current testing environment is not configured to support act(...)
+
+[90mstderr[2m | tests/focusRollover.test.tsx[2m > [22m[2mFocusWidget mounted rollover[2m > [22m[2mhides yesterday even when the fresh read resolves late with a mismatch
+[22m[39mThe current testing environment is not configured to support act(...)
+
+[90mstderr[2m | tests/focusRollover.test.tsx[2m > [22m[2mFocusWidget mounted rollover[2m > [22m[2mhides yesterday even when the fresh read resolves late with a mismatch
+[22m[39mThe current testing environment is not configured to support act(...)
+
+ [32m✓[39m tests/focusRollover.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m tests/affiliateFailClosed.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/brandIconChatGpt.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/wxtConfig.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m tests/sidebar.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m tests/audit20260904.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m27 passed[39m[22m[90m (27)[39m
+[2m      Tests [22m [1m[32m504 passed[39m[22m[90m (504)[39m
+[2m   Start at [22m 07:29:14
+[2m   Duration [22m 4.93s[2m (transform 1.62s, setup 0ms, import 3.04s, tests 474ms, environment 330ms)[22m
+

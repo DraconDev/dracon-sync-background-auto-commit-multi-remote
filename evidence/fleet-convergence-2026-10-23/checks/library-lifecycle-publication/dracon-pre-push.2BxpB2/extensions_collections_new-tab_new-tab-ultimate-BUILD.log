@@ -1,0 +1,127 @@
+
+> new-tab-ultimate@0.5.1 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[1G✔ Built extension in 3.631 s
+  ├─ .output/chrome-mv3/manifest.json                           839 B    
+  ├─ .output/chrome-mv3/newtab.html                             652 B    
+  ├─ .output/chrome-mv3/results-settings.html                   720 B    
+  ├─ .output/chrome-mv3/results.html                            743 B    
+  ├─ .output/chrome-mv3/background.js                           4.82 kB  
+  ├─ .output/chrome-mv3/chunks/newtab-DK6Hiwve.js               92.46 kB 
+  ├─ .output/chrome-mv3/chunks/results-DJlTUVrU.js              3.37 MB  
+  ├─ .output/chrome-mv3/chunks/results-settings-xivOe7z2.js     4.21 kB  
+  ├─ .output/chrome-mv3/chunks/SearchSourceToggles-DZ7-VwCn.js  869.77 kB
+  ├─ .output/chrome-mv3/chunks/SearchSuggestions-LZPy_Io4.js    15.73 kB 
+  ├─ .output/chrome-mv3/chunks/SettingsPanel-BuKPdrcX.js        71.83 kB 
+  ├─ .output/chrome-mv3/chunks/taste-32ot2Mu4.js                8.17 kB  
+  ├─ .output/chrome-mv3/assets/newtab-BiZFxrGv.css              38.72 kB 
+  ├─ .output/chrome-mv3/assets/results-C2PeIwOE.css             19.63 kB 
+  ├─ .output/chrome-mv3/assets/results-settings-WEqfn1H4.css    1.96 kB  
+  ├─ .output/chrome-mv3/assets/taste-DA9zEji-.css               5.82 kB  
+  ├─ .output/chrome-mv3/icon/128.png                            954 B    
+  ├─ .output/chrome-mv3/icon/16.png                             175 B    
+  ├─ .output/chrome-mv3/icon/32.png                             254 B    
+  ├─ .output/chrome-mv3/icon/48.png                             351 B    
+  ├─ .output/chrome-mv3/icon/96.png                             3.21 kB  
+  ├─ .output/chrome-mv3/media/photo/abyss.jpg                   75.76 kB 
+  ├─ .output/chrome-mv3/media/photo/ash-dunes.jpg               219.97 kB
+  ├─ .output/chrome-mv3/media/photo/aurora-choir.jpg            238.64 kB
+  ├─ .output/chrome-mv3/media/photo/aurora.jpg                  99.4 kB  
+  ├─ .output/chrome-mv3/media/photo/basalt-surge.jpg            262.88 kB
+  ├─ .output/chrome-mv3/media/photo/blackglass-narrows.jpg      194.41 kB
+  ├─ .output/chrome-mv3/media/photo/blackpine.jpg               271.82 kB
+  ├─ .output/chrome-mv3/media/photo/braided-dark.jpg            194.84 kB
+  ├─ .output/chrome-mv3/media/photo/cinderflow.jpg              233.84 kB
+  ├─ .output/chrome-mv3/media/photo/cliffside.jpg               302.71 kB
+  ├─ .output/chrome-mv3/media/photo/cloud-falls.jpg             208.05 kB
+  ├─ .output/chrome-mv3/media/photo/cloudsea.jpg                165.93 kB
+  ├─ .output/chrome-mv3/media/photo/crater-lake-ancient.jpg     215.76 kB
+  ├─ .output/chrome-mv3/media/photo/cyberpunk.jpg               143.32 kB
+  ├─ .output/chrome-mv3/media/photo/cypress-road.jpg            177.84 kB
+  ├─ .output/chrome-mv3/media/photo/driftsong.jpg               215.29 kB
+  ├─ .output/chrome-mv3/media/photo/drowned-road.jpg            211.83 kB
+  ├─ .output/chrome-mv3/media/photo/dunes.jpg                   125.44 kB
+  ├─ .output/chrome-mv3/media/photo/ember-canyon.jpg            186.81 kB
+  ├─ .output/chrome-mv3/media/photo/ember-oak.jpg               217.46 kB
+  ├─ .output/chrome-mv3/media/photo/forked-sky.jpg              138.02 kB
+  ├─ .output/chrome-mv3/media/photo/foxfire-grove.jpg           219.25 kB
+  ├─ .output/chrome-mv3/media/photo/frostfall-vale.jpg          263.53 kB
+  ├─ .output/chrome-mv3/media/photo/ghost-gum.jpg               225.24 kB
+  ├─ .output/chrome-mv3/media/photo/greyveil.jpg                166.72 kB
+  ├─ .output/chrome-mv3/media/photo/grimspire.jpg               168.64 kB
+  ├─ .output/chrome-mv3/media/photo/hollow-choir.jpg            295.79 kB
+  ├─ .output/chrome-mv3/media/photo/hood.jpg                    194.58 kB
+  ├─ .output/chrome-mv3/media/photo/icebound-choir.jpg          293.06 kB
+  ├─ .output/chrome-mv3/media/photo/ink-bamboo.jpg              165.23 kB
+  ├─ .output/chrome-mv3/media/photo/juniper-haunt.jpg           227.33 kB
+  ├─ .output/chrome-mv3/media/photo/lampwater-hut.jpg           170.08 kB
+  ├─ .output/chrome-mv3/media/photo/louise.jpg                  317.26 kB
+  ├─ .output/chrome-mv3/media/photo/mangrove-night.jpg          241.46 kB
+  ├─ .output/chrome-mv3/media/photo/mirror-mere.jpg             175.54 kB
+  ├─ .output/chrome-mv3/media/photo/mistvine.jpg                207.31 kB
+  ├─ .output/chrome-mv3/media/photo/mistwood.jpg                240.33 kB
+  ├─ .output/chrome-mv3/media/photo/moonreach.jpg               235.67 kB
+  ├─ .output/chrome-mv3/media/photo/nebula.jpg                  130.08 kB
+  ├─ .output/chrome-mv3/media/photo/night-falls.jpg             210.85 kB
+  ├─ .output/chrome-mv3/media/photo/obsidian.jpg                178.8 kB 
+  ├─ .output/chrome-mv3/media/photo/pale-peak.jpg               262.51 kB
+  ├─ .output/chrome-mv3/media/photo/polar-ember.jpg             260.07 kB
+  ├─ .output/chrome-mv3/media/photo/primeval.jpg                267.84 kB
+  ├─ .output/chrome-mv3/media/photo/rain-alley.jpg              313.08 kB
+  ├─ .output/chrome-mv3/media/photo/rowboat-black-mirror.jpg    144.56 kB
+  ├─ .output/chrome-mv3/media/photo/salagou.jpg                 373.06 kB
+  ├─ .output/chrome-mv3/media/photo/salt-mirror.jpg             284.61 kB
+  ├─ .output/chrome-mv3/media/photo/saltmist.jpg                138.45 kB
+  ├─ .output/chrome-mv3/media/photo/shingle-dark.jpg            207.29 kB
+  ├─ .output/chrome-mv3/media/photo/silent-erg.jpg              228.41 kB
+  ├─ .output/chrome-mv3/media/photo/slag-glow.jpg               248.61 kB
+  ├─ .output/chrome-mv3/media/photo/slate-roof.jpg              246.5 kB 
+  ├─ .output/chrome-mv3/media/photo/spire-mirror.jpg            281.19 kB
+  ├─ .output/chrome-mv3/media/photo/starfall-col.jpg            214.8 kB 
+  ├─ .output/chrome-mv3/media/photo/summit.jpg                  245.75 kB
+  ├─ .output/chrome-mv3/media/photo/sylvester.jpg               201.11 kB
+  ├─ .output/chrome-mv3/media/photo/thornwood.jpg               199.79 kB
+  ├─ .output/chrome-mv3/media/photo/tideglass.jpg               238.9 kB 
+  ├─ .output/chrome-mv3/media/photo/tor-and-vale.jpg            230.32 kB
+  ├─ .output/chrome-mv3/media/photo/violet-veil.jpg             199.22 kB
+  ├─ .output/chrome-mv3/media/photo/volt-canal.jpg              273.93 kB
+  ├─ .output/chrome-mv3/media/photo/wreck-of-the-grey.jpg       226.78 kB
+  ├─ .output/chrome-mv3/media/video/aurora-dance.jpg            19.21 kB 
+  ├─ .output/chrome-mv3/media/video/aurora-dance.webm           333.58 kB
+  ├─ .output/chrome-mv3/media/video/clouds-timelapse.jpg        28.6 kB  
+  ├─ .output/chrome-mv3/media/video/clouds-timelapse.webm       879.27 kB
+  ├─ .output/chrome-mv3/media/video/dune-rabjerg.jpg            21.2 kB  
+  ├─ .output/chrome-mv3/media/video/dune-rabjerg.webm           702.16 kB
+  ├─ .output/chrome-mv3/media/video/elf-sleep.jpg               102.04 kB
+  ├─ .output/chrome-mv3/media/video/elf-sleep.webm              889.36 kB
+  ├─ .output/chrome-mv3/media/video/iceland-waves.jpg           66.44 kB 
+  ├─ .output/chrome-mv3/media/video/iceland-waves.webm          993.2 kB 
+  ├─ .output/chrome-mv3/media/video/kawaida-falls.jpg           36.9 kB  
+  ├─ .output/chrome-mv3/media/video/kawaida-falls.webm          1.31 MB  
+  ├─ .output/chrome-mv3/media/video/lake-aurora.jpg             29.93 kB 
+  ├─ .output/chrome-mv3/media/video/lake-aurora.webm            124.79 kB
+  ├─ .output/chrome-mv3/media/video/milky-way.jpg               18.76 kB 
+  ├─ .output/chrome-mv3/media/video/milky-way.webm              78.5 kB  
+  ├─ .output/chrome-mv3/media/video/mojave-sunset.jpg           85.96 kB 
+  ├─ .output/chrome-mv3/media/video/mojave-sunset.webm          910.43 kB
+  ├─ .output/chrome-mv3/media/video/rain-glass.jpg              36.43 kB 
+  ├─ .output/chrome-mv3/media/video/rain-glass.webm             143.88 kB
+  ├─ .output/chrome-mv3/store/1.png                             809.33 kB
+  ├─ .output/chrome-mv3/store/2.png                             908.98 kB
+  ├─ .output/chrome-mv3/store/3.png                             456.73 kB
+  ├─ .output/chrome-mv3/store/4.png                             80.65 kB 
+  ├─ .output/chrome-mv3/store/440x280.png                       192.59 kB
+  ├─ .output/chrome-mv3/store/5.png                             272.98 kB
+  └─ .output/chrome-mv3/store/promo-marquee.png                 1.34 MB  
+Σ Total size: 29.09 MB                                        
+✔ Finished in 3.795 s

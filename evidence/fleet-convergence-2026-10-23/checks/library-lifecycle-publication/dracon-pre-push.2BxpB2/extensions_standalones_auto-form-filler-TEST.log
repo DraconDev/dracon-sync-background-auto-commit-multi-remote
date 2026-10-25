@@ -1,0 +1,141 @@
+
+> auto-form-filler@2.4.0 pretest
+> node scripts/ensure-wxt.mjs
+
+
+> auto-form-filler@2.4.0 test
+> vitest run --passWithNoTests
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.2BxpB2/snapshot-ad856e90708ef4a83e1930d7b254c8db5c0a941a/extensions/standalones/auto-form-filler[39m
+
+ [32m✓[39m tests/siteObserver.test.ts [2m([22m[2m64 tests[22m[2m)[22m[33m 1115[2mms[22m[39m
+     [33m[2m✓[22m[39m watches a site nothing was ever decided about [33m 388[2mms[22m[39m
+ [32m✓[39m tests/background.test.ts [2m([22m[2m46 tests[22m[2m)[22m[33m 2010[2mms[22m[39m
+ [32m✓[39m tests/siteObservation.test.ts [2m([22m[2m52 tests[22m[2m)[22m[33m 990[2mms[22m[39m
+     [33m[2m✓[22m[39m drops the oldest form rather than exceeding the budget [33m 397[2mms[22m[39m
+     [33m[2m✓[22m[39m enforces the budget inside the store instead of throwing and freezing it [33m 492[2mms[22m[39m
+ [32m✓[39m tests/reviewOverlay.test.ts [2m([22m[2m25 tests[22m[2m)[22m[33m 804[2mms[22m[39m
+ [32m✓[39m tests/formFiller.test.ts [2m([22m[2m33 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+ [32m✓[39m tests/contentReentrancy.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 371[2mms[22m[39m
+ [32m✓[39m tests/popupSource.test.ts [2m([22m[2m47 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/autoMemory.test.ts [2m([22m[2m22 tests[22m[2m)[22m[33m 418[2mms[22m[39m
+ [32m✓[39m tests/smartFill.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m tests/fillWorkflow.test.ts [2m([22m[2m31 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m tests/formHtml.test.ts [2m([22m[2m32 tests[22m[2m)[22m[32m 172[2mms[22m[39m
+ [32m✓[39m tests/designSystem.test.ts [2m([22m[2m103 tests[22m[2m)[22m[32m 88[2mms[22m[39m
+ [32m✓[39m tests/questionLabel.test.ts [2m([22m[2m25 tests[22m[2m)[22m[32m 121[2mms[22m[39m
+ [32m✓[39m tests/siteWatcherSource.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m tests/providerByok.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m tests/visual2.test.ts [2m([22m[2m37 tests[22m[2m | [22m[33m2 skipped[39m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/learnedFillsStats.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 62[2mms[22m[39m
+ [32m✓[39m tests/fieldMarks.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 95[2mms[22m[39m
+ [2m[90m↓[39m[22m tests/e2eLiveFill.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
+ [32m✓[39m tests/livePreview.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 404[2mms[22m[39m
+ [32m✓[39m tests/siteProactive.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 498[2mms[22m[39m
+ [32m✓[39m tests/a11y.test.ts [2m([22m[2m31 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/practiceFormFill.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 1378[2mms[22m[39m
+ [32m✓[39m tests/resolveFieldLabel.test.ts [2m([22m[2m27 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/profileResolver.test.ts [2m([22m[2m23 tests[22m[2m)[22m[32m 87[2mms[22m[39m
+ [32m✓[39m tests/quickFill.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/designTokens.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/domainPromptProvenance.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [2m[90m↓[39m[22m tests/liveGemma.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
+ [32m✓[39m tests/sveltePropWiring.test.ts [2m([22m[2m56 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/roboformFill.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 171[2mms[22m[39m
+ [32m✓[39m tests/semanticMatching.test.ts [2m([22m[2m23 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+ [32m✓[39m tests/documentPolicy.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/apiRetry.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 2016[2mms[22m[39m
+     [33m[2m✓[22m[39m should retry on failure and succeed [33m 502[2mms[22m[39m
+     [33m[2m✓[22m[39m should rate-limit each retry attempt [33m 502[2mms[22m[39m
+     [33m[2m✓[22m[39m should throw after max retries exceeded [33m 502[2mms[22m[39m
+     [33m[2m✓[22m[39m should fall back to getModel() when config.model is missing [33m 503[2mms[22m[39m
+ [32m✓[39m tests/multiValueFill.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 383[2mms[22m[39m
+ [32m✓[39m tests/constrainedFill.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 219[2mms[22m[39m
+ [32m✓[39m tests/selectiveFill.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/multiPage.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m tests/observedFileFields.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 86[2mms[22m[39m
+[90mstderr[2m | tests/contentHandler.test.ts[2m > [22m[2mhandleFillForm integration[2m > [22m[2mfillForm message handler[2m > [22m[2mshould throw on empty AI response
+[22m[39m[2026-10-25T07:18:15.367Z] ERROR: Error in handleFillForm
+Context: {
+  "error": "No fill data provided"
+}
+
+[90mstderr[2m | tests/contentHandler.test.ts[2m > [22m[2mhandleFillForm integration[2m > [22m[2mfillForm message handler[2m > [22m[2mshould throw on pre-aborted signal
+[22m[39m[2026-10-25T07:18:15.368Z] ERROR: Error in handleFillForm
+Context: {
+  "error": "Unknown"
+}
+
+[90mstderr[2m | tests/contentHandler.test.ts[2m > [22m[2mhandleFillForm integration[2m > [22m[2mcancel fill (AbortController integration)[2m > [22m[2mshould throw AbortError when signal is already aborted
+[22m[39m[2026-10-25T07:18:15.388Z] ERROR: Error in handleFillForm
+Context: {
+  "error": "Unknown"
+}
+
+ [32m✓[39m tests/contentHandler.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 40[2mms[22m[39m
+ [32m✓[39m tests/fieldSelectors.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 54[2mms[22m[39m
+ [32m✓[39m tests/siteDetect.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/adversarial.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+ [32m✓[39m tests/fieldPolicy.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/popupWidth.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/popupFillRequest.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+[90mstdout[2m | tests/releasePackaging.test.ts[2m > [22m[2mrelease path normalization[2m > [22m[2mnormalizes HTML entries inside release ZIPs
+[22m[39m[fix-paths] Fixed /tmp/auto-form-filler-release-0fODIA/chrome-mv3/popup.html
+[fix-paths] Fixed /tmp/auto-form-filler-release-0fODIA/chrome-mv3/welcome.html
+[fix-paths] Fixed 2 HTML entries in /tmp/auto-form-filler-release-0fODIA/auto-form-filler-chrome.zip
+
+ [32m✓[39m tests/releasePackaging.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 90[2mms[22m[39m
+ [32m✓[39m tests/siteOffer.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 11048[2mms[22m[39m
+     [33m[2m✓[22m[39m appears for a form it recognises [33m 1216[2mms[22m[39m
+     [33m[2m✓[22m[39m does not appear when the switch is off [33m 1810[2mms[22m[39m
+     [33m[2m✓[22m[39m does not appear for a page it does not recognise [33m 1813[2mms[22m[39m
+     [33m[2m✓[22m[39m does not appear twice for one page [33m 3099[2mms[22m[39m
+     [33m[2m✓[22m[39m is remembered for that form and stops the offer [33m 1812[2mms[22m[39m
+     [33m[2m✓[22m[39m does not suppress a different form on the same site [33m 1235[2mms[22m[39m
+ [32m✓[39m tests/promptTermEndToEnd.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+ [32m✓[39m tests/peekRemembered.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 64[2mms[22m[39m
+ [32m✓[39m tests/aiServiceCache.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/savedAnswersLayout.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+ [32m✓[39m tests/fileDocumentAttach.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/profileManager.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/fillLabels.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/searchFieldRule.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m tests/onboarding.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/shortcutMemoryRecord.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+ [32m✓[39m tests/storeV230.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/settingsLayout.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/fieldMatching.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+ [32m✓[39m tests/inputContrast.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/backgroundMigration.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/observedAnswers.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/profileDocuments.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/hourlyQuota.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/messaging.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/detectCaptcha.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+ [32m✓[39m tests/aiService.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m tests/fileDocuments.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 101[2mms[22m[39m
+ [32m✓[39m tests/fillShortcut.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/popupPrompt.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/optionsProfileLayout.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/aiCacheIdentity.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 62[2mms[22m[39m
+ [32m✓[39m tests/reviewFields.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 66[2mms[22m[39m
+ [32m✓[39m tests/profilePayload.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/messagingRetry.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m tests/logger.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/livePreviewApply.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+ [32m✓[39m tests/rowKeys.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/ensureContentScript.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/modelRegistryDrift.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/markdownToJSON.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/formFillerDryRun.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m tests/practiceForm.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m tests/invariants.test.ts [2m([22m[2m73 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m tests/loggerSuppression.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/backgroundSafeImport.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 17[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m86 passed[39m[22m[2m | [22m[33m2 skipped[39m[90m (88)[39m
+[2m      Tests [22m [1m[32m1398 passed[39m[22m[2m | [22m[33m4 skipped[39m[90m (1402)[39m
+[2m   Start at [22m 07:17:43
+[2m   Duration [22m 56.30s[2m (transform 3.70s, setup 2.18s, import 5.34s, tests 23.89s, environment 65.37s)[22m
+

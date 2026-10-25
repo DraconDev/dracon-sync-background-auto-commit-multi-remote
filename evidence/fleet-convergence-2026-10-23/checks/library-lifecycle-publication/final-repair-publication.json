@@ -1,0 +1,40 @@
+{
+  "anchor": "ad856e90708ef4a83e1930d7b254c8db5c0a941a",
+  "loaded_sha256": "8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad",
+  "destinations": [
+    {
+      "destination": "github.com/dracondev/browser-extensions-shared",
+      "observations": [
+        {
+          "alias": "origin",
+          "tip": "ece486181852c5ea18a654959ebd705d0a4e0e43",
+          "contains_final_repair": true,
+          "confirmed_at": 1792913778.5857472
+        }
+      ]
+    },
+    {
+      "destination": "github.com/dracondev/browser-extensions-shared",
+      "observations": [
+        {
+          "alias": "origin",
+          "tip": "ece486181852c5ea18a654959ebd705d0a4e0e43",
+          "contains_final_repair": true,
+          "confirmed_at": 1792913778.5857472
+        }
+      ]
+    },
+    {
+      "destination": "gitlab.com/DraconDev/browser-extensions-shared",
+      "observations": [
+        {
+          "alias": "gitlab",
+          "tip": "ece486181852c5ea18a654959ebd705d0a4e0e43",
+          "contains_final_repair": true,
+          "confirmed_at": 1792913777.6127114
+        }
+      ]
+    }
+  ],
+  "observation": "refs-final-v8-final-repair-published.json"
+}

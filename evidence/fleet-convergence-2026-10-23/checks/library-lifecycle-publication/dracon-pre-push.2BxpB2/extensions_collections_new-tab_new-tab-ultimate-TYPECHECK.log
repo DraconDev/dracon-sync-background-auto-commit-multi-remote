@@ -1,0 +1,4 @@
+
+> new-tab-ultimate@0.5.1 compile
+> tsc --noEmit
+
