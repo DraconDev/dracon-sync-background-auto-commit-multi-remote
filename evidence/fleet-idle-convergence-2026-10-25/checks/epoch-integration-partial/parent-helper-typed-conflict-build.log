@@ -7,3 +7,119 @@ warning: unused import: `git_name_status_entries`
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
+warning: function `can_restore_entry` is never used
+    --> dracon-sync/src/exclude.rs:1804:15
+     |
+1804 | pub(crate) fn can_restore_entry(_repo: &Path, entry: &dracon_git::types::DiffFile) -> bool {
+     |               ^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `append_to_gitignore` is never used
+    --> dracon-sync/src/exclude.rs:1828:15
+     |
+1828 | pub(crate) fn append_to_gitignore(repo: &Path, patterns: &[String]) -> Result<()> {
+     |               ^^^^^^^^^^^^^^^^^^^
+
+warning: function `handle_large_untracked` is never used
+    --> dracon-sync/src/exclude.rs:1917:15
+     |
+1917 | pub(crate) fn handle_large_untracked(
+     |               ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_build_output_dir_name` is never used
+    --> dracon-sync/src/exclude.rs:1948:4
+     |
+1948 | fn is_build_output_dir_name(name: &str) -> bool {
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `remove_tracked_excluded_paths` is never used
+    --> dracon-sync/src/exclude.rs:1961:15
+     |
+1961 | pub(crate) fn remove_tracked_excluded_paths(
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `git_name_status_entries` is never used
+   --> dracon-sync/src/git/diff.rs:226:21
+    |
+226 | pub(crate) async fn git_name_status_entries(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `unstage_excluded_paths` is never used
+  --> dracon-sync/src/git/staging.rs:10:21
+   |
+10 | pub(crate) async fn unstage_excluded_paths(
+   |                     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `unstage_oversized_paths` is never used
+   --> dracon-sync/src/git/staging.rs:254:21
+    |
+254 | pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Result<usize> {
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `restore_paths` is never used
+   --> dracon-sync/src/git/staging.rs:829:21
+    |
+829 | pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
+    |                     ^^^^^^^^^^^^^
+
+warning: function `is_excluded_change_path` is never used
+   --> dracon-sync/src/git/staging.rs:887:4
+    |
+887 | fn is_excluded_change_path(path: &Path, excluded_dir_names: &BTreeSet<String>) -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `has_configured_storage_guard` is never used
+    --> dracon-sync/src/storage/mod.rs:2793:15
+     |
+2793 | pub(crate) fn has_configured_storage_guard(repo: &Path) -> Result<bool> {
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `PreparedStorageCommit` is never constructed
+    --> dracon-sync/src/storage/mod.rs:2807:19
+     |
+2807 | pub(crate) struct PreparedStorageCommit {
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `prepare_storage_commit_inner` is never used
+    --> dracon-sync/src/storage/mod.rs:2813:4
+     |
+2813 | fn prepare_storage_commit_inner(
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `staged_extra_paths` is never used
+    --> dracon-sync/src/sync.rs:1136:15
+     |
+1136 | pub(crate) fn staged_extra_paths(
+     |               ^^^^^^^^^^^^^^^^^^
+
+warning: function `stage_existing_files_filtered` is never used
+    --> dracon-sync/src/sync.rs:1149:10
+     |
+1149 | async fn stage_existing_files_filtered(
+     |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `stage_existing_files_suppressing` is never used
+    --> dracon-sync/src/sync.rs:1169:10
+     |
+1169 | async fn stage_existing_files_suppressing(
+     |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `stage_gitlink_updates` is never used
+    --> dracon-sync/src/sync.rs:1655:10
+     |
+1655 | async fn stage_gitlink_updates(
+     |          ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `git_rm_missing` is never used
+    --> dracon-sync/src/sync.rs:1881:10
+     |
+1881 | async fn git_rm_missing(repo: &Path, missing: &[String], dry_run: bool) -> Result<()> {
+     |          ^^^^^^^^^^^^^^
+
+warning: function `unstage_paths_git` is never used
+    --> dracon-sync/src/sync.rs:1965:10
+     |
+1965 | async fn unstage_paths_git(repo: &Path, paths: &[String]) -> Result<()> {
+     |          ^^^^^^^^^^^^^^^^^
+
