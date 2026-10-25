@@ -601,6 +601,7 @@ pub(crate) async fn prepare(
             PathBuf::from(&config.manifest_path),
             manifest_bytes,
             materialized_paths,
+            PathBuf::from(&config.asset_root),
         )
         .with_output_ceiling(policy.max_stage_file_bytes),
     ))

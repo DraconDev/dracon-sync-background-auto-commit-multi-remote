@@ -4449,7 +4449,20 @@ async fn stage_commit_and_push(
                 PushReport::Attempted { ok: true, .. } => {}
             }
         }
-        return Ok(Some(SyncOutcome::NothingToDo));
+        let pending = match private_assets {
+            Some(prepared) => tokio::time::timeout_at(
+                epoch.deadline(),
+                prepared.has_materialization_followup(repo),
+            )
+            .await
+            .context("private materialization follow-up deadline expired")??,
+            None => false,
+        };
+        return Ok(Some(if pending {
+            SyncOutcome::StagedPending
+        } else {
+            SyncOutcome::NothingToDo
+        }));
     }
 
     // Use blast radius as commit message
@@ -5514,6 +5527,18 @@ async fn sync_repo_local_with_ownership(
             return Ok(SyncOutcome::Blocked);
         }
     };
+    let private_followup_pending = match private_assets.as_ref() {
+        Some(prepared) => tokio::time::timeout(
+            Duration::from_secs(policy.stage_op_timeout_secs.max(1)),
+            prepared.has_materialization_followup(repo),
+        )
+        .await
+        .context("private materialization inspection deadline expired")??,
+        None => false,
+    };
+    if private_followup_pending {
+        eprintln!("⏳ {} private materializations are not covered by the verified manifest; local bytes retained pending eligible regeneration/reconciliation", repo.display());
+    }
     preparation_phase("before_diff");
 
     let DiffResult {
@@ -5610,7 +5635,9 @@ async fn sync_repo_local_with_ownership(
     // gitlink pointer updated). Post-fix, an injection of stale
     // gitlinks prevents the early-return so the rest of the apply
     // phase runs and the parent commits the gitlink advance.
-    if should_short_circuit_filter_only(filter_only_cleared, stale_gitlink_injected) {
+    if should_short_circuit_filter_only(filter_only_cleared, stale_gitlink_injected)
+        && !private_followup_pending
+    {
         // CHANGED 2026-07-26 (v0.113.1): run the push phase BEFORE
         // returning FilterOnly. Pre-fix, a repo whose only dirty
         // entries are filter noise (e.g. junk-runner's tracked +
@@ -5872,7 +5899,11 @@ async fn sync_repo_local_with_ownership(
         PushReport::Attempted {
             ok: true,
             degraded: false,
-        } => Ok(SyncOutcome::NothingToDo),
+        } => Ok(if private_followup_pending {
+            SyncOutcome::StagedPending
+        } else {
+            SyncOutcome::NothingToDo
+        }),
     }
 }
 

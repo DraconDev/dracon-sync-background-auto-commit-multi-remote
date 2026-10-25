@@ -237,6 +237,85 @@ stage_op_timeout_secs = 30
     }
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn bucket_qualification_later_materialized_bytes_never_become_false_no_work() {
+    use std::os::unix::fs::PermissionsExt;
+    if !node_available() {
+        eprintln!("skip: node unavailable");
+        return;
+    }
+    let f = Fixture::new();
+    let mut later = f.source[0].clone();
+    later.extend_from_slice(b"later producer bytes");
+    let input = f.temp.path().join("later.png");
+    std::fs::write(&input, &later).unwrap();
+    let hooks = f.repo.join(".git/source-producer-hooks");
+    std::fs::create_dir(&hooks).unwrap();
+    let hook = hooks.join("pre-commit");
+    std::fs::write(
+        &hook,
+        format!("#!/bin/sh\ncp '{}' public/a.png\n", input.display()),
+    )
+    .unwrap();
+    std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+    git(
+        &f.repo,
+        &["config", "core.hooksPath", hooks.to_str().unwrap()],
+    );
+    assert_eq!(
+        f.cycle().await,
+        SyncOutcome::StagedPending,
+        "source bytes changed AFTER upload verification must not be called processed"
+    );
+    let manifest: Value =
+        serde_json::from_slice(&git(&f.repo, &["show", &format!("HEAD:{MANIFEST}")])).unwrap();
+    let old = manifest["assets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|asset| asset["sourcePath"] == SOURCES[0])
+        .unwrap();
+    assert_eq!(
+        old["sha256"],
+        hash(&f.source[0]),
+        "first commit retains its exact verified upload"
+    );
+    assert_eq!(
+        read(f.repo.join(SOURCES[0])),
+        later,
+        "later local producer bytes survive"
+    );
+    assert!(git(&f.repo, &["ls-files", "--", SOURCES[0]]).is_empty());
+    let verified = git(&f.repo, &["show", &format!("HEAD:{MANIFEST}")]);
+    assert_eq!(
+        f.cycle().await,
+        SyncOutcome::StagedPending,
+        "a no-commit cycle must not turn unresolved producer bytes into healthy NothingToDo"
+    );
+    assert_eq!(
+        git(&f.repo, &["show", &format!("HEAD:{MANIFEST}")]),
+        verified
+    );
+    assert_eq!(read(f.repo.join(SOURCES[0])), later);
+    // The SDK intentionally pins existing references until explicit eligible
+    // regeneration. Do not bypass that policy to force promotion. A harmless
+    // return to already-verified bytes clears pending, without stopping hooks.
+    std::fs::write(&input, &f.source[0]).unwrap();
+    std::fs::write(f.repo.join(SOURCES[0]), &f.source[0]).unwrap();
+    assert_eq!(f.cycle().await, SyncOutcome::NothingToDo);
+    f.assert_enrolled();
+    assert!(
+        hook.is_file(),
+        "the producer was never stopped to manufacture convergence"
+    );
+    assert_eq!(
+        f.stored(),
+        2,
+        "unapproved changed materializations were never promoted"
+    );
+}
+
 #[tokio::test]
 async fn bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore() {
     if !node_available() {
@@ -246,14 +325,29 @@ async fn bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore() {
     let f = Fixture::new();
     let before = f.head();
     let outcome = f.cycle().await;
+    let native = git(
+        &f.repo,
+        &["ls-files", "--others", "--exclude-standard", "-z"],
+    );
+    let visible: BTreeSet<_> = native
+        .split(|byte| *byte == 0)
+        .filter(|path| !path.is_empty())
+        .map(|path| path.to_vec())
+        .collect();
+    let expected = BTreeSet::from([
+        b"public/a.png".to_vec(),
+        b"public/b.png".to_vec(),
+        format!("{MANIFEST}.lock").into_bytes(),
+    ]);
+    assert_eq!(
+        visible, expected,
+        "eligible-work accounting MUST NOT hide raw Git state or delete materializations"
+    );
     assert_eq!(
         outcome,
         SyncOutcome::Synced,
-        "native untracked after enrollment: {:?}",
-        String::from_utf8_lossy(&git(
-            &f.repo,
-            &["ls-files", "--others", "--exclude-standard", "-z"]
-        ))
+        "verified unchanged materializations are not new eligible Git work: {:?}",
+        String::from_utf8_lossy(&native)
     );
     assert_ne!(
         before,

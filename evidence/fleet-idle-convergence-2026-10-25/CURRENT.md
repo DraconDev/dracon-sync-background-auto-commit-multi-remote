@@ -1,6 +1,61 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Resync continuation — current source, NOT deployment qualification
+## Storage accounting continuation — newest checkpoint
+
+No deployment, canonical index recovery, manual real-repository commit/push,
+service change or live zero-batch migration was performed in this continuation.
+
+The two remaining SDK enrollment/outage gates now pass with the original
+Synced assertions, plus STRONGER raw-visibility and changed-source controls.
+Prepared now retains the configured asset root. Post-publication accounting
+recognizes only its existing exact runtime-lock exclusion and materialized
+sources whose current streamed SHA256 AND byte count match the upload-verified
+manifest. Same-size edits, unknown children, missing inspection targets and
+substituted symlinks cannot be called processed. Raw Git state is NEVER changed,
+ignored, normalized clean or hidden: the enrollment test requires that native
+Git STILL reports exactly the two raw sources and SDK lock. These are eligible-
+work cycle outcomes, NOT evidence that a watched repo is raw-clean/all-idle.
+The final fleet contract still requires its independent actual raw-clean proof.
+
+A real producer pre-commit hook changes materialized source bytes AFTER upload.
+The original manifest stays exact, raw producer bytes survive, and both that
+commit cycle AND a subsequent NO-COMMIT cycle must remain StagedPending. The
+SDK intentionally pins existing references until explicit eligible regeneration;
+we did NOT force promotion or relax that guard. Returning the fixture producer's
+input to already verified bytes clears pending WITHOUT removing/stopping its
+hook. This is a positive/negative control, NOT a live producer modification.
+Gitignored present sources are also inspected; absent materializations in sparse
+consumers are not fabricated work. Failed inspections are not healthy/no-work.
+
+Early RED artifacts are retained: materialization-real-sdk-cohort.log aborted
+with a stack overflow from an inline64KiB async buffer; it was fixed by a bounded
+heap-backed buffer, NOT a larger worker stack. The next streaming cohort passed
+3original SDK gates but exposed false NothingToDo for changed private bytes in
+a no-commit cycle; that RED result remains in
+materialization-real-sdk-streaming-cohort.log. The no-commit/filter-only paths
+now retain private-source pending state while still allowing backlog publication.
+
+Latest matching-helper source cohort:
+- materialization-pending-sync__bucket_qualification_tests.log:4pass,0fail,
+  including original enrollment/retry/fresh-restore, outages/partial uploads,
+  concurrent-manifest preservation and the new running-producer negative.
+- materialization-pending-followup_accounts_for_exact_verified_bytes.log:1pass,
+  both configured-root forms plus exact-byte/foreign-path/missing/symlink controls.
+- materialization-compatible-bucket_assets__tests.log:7pass,0fail.
+- materialization-compatible-integrated_failure_recovery_harness.log:1pass,0fail.
+- materialization-pending-strict-clippy.log: strict workspace/all-target passes.
+Source and DEBUG helper hashes: checks/epoch-integration-partial/
+materialization-source-checkpoint.json. This is NOT release/installed qualification.
+
+Next remains explicit excluded-worktree opt-in reconciliation and the other
+unwired legacy policy behavior listed below (version bump/release, unmerged,
+build-artifact cleanup, large-untracked hygiene). Keep default edits and uncertain
+staging intact; no blanket post-hook reset or filename-prefix ownership waiver.
+Then require a fresh coherent full workspace suite, release/deny and Warden gates,
+independent review, qualified safe deployment plus authorized zero-value migration,
+and actual ALL37 autonomous-publication/raw-clean/idle proof. No completion claim.
+
+## Earlier resync continuation — historical revision evidence
 
 The active goal file is authoritative; `.pi-glla/handoff-brief.md` describes a
 different historical bucket-strategy goal and must not redirect this work.

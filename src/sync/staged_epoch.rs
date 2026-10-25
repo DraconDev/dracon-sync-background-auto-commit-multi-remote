@@ -461,13 +461,23 @@ impl Epoch {
                 None,
             )
             .await?;
+            let paths = untracked
+                .stdout
+                .split(|byte| *byte == 0)
+                .filter(|raw| !raw.is_empty())
+                .map(path_from_git_bytes)
+                .collect::<Result<Vec<_>>>()?;
+            let untracked_pending = match prepared {
+                Some(prepared) => prepared.has_untracked_followup(repo, &paths).await?,
+                None => !paths.is_empty(),
+            };
             let branch_changed = reference(repo).await? != self.reference;
             Ok(lock_retained
                 || post_failed
                 || branch_changed
                 || !after.changed.is_empty()
                 || !status.success()
-                || !untracked.stdout.is_empty())
+                || untracked_pending)
         })
         .await;
         match result {

@@ -28,6 +28,7 @@ struct Config {
 pub(crate) struct Prepared {
     manifest_path: PathBuf,
     verified_manifest: Vec<u8>,
+    asset_root: PathBuf,
     output_ceiling: Option<u64>,
     pub(crate) materialized_paths: HashSet<PathBuf>,
 }
@@ -216,6 +217,7 @@ pub(crate) async fn prepare(
     Ok(Some(Prepared {
         manifest_path: PathBuf::from(config.manifest),
         verified_manifest: bytes,
+        asset_root: PathBuf::from(config.asset_root),
         output_ceiling: None,
         materialized_paths,
     }))
@@ -233,10 +235,12 @@ impl Prepared {
         manifest_path: PathBuf,
         verified_manifest: Vec<u8>,
         materialized_paths: HashSet<PathBuf>,
+        asset_root: PathBuf,
     ) -> Self {
         Self {
             manifest_path,
             verified_manifest,
+            asset_root,
             output_ceiling: None,
             materialized_paths,
         }
@@ -245,6 +249,130 @@ impl Prepared {
     pub(crate) fn with_output_ceiling(mut self, ceiling: u64) -> Self {
         self.output_ceiling = Some(ceiling);
         self
+    }
+
+    /// Missing materializations in a sparse/fresh consumer are not new work.
+    /// Present changed sources must remain pending even if they are Gitignored.
+    pub(crate) async fn has_materialization_followup(&self, repo: &Path) -> Result<bool> {
+        let mut present = Vec::new();
+        for path in &self.materialized_paths {
+            match std::fs::symlink_metadata(repo.join(path)) {
+                Ok(_) => present.push(path.clone()),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error.into()),
+            }
+        }
+        self.has_untracked_followup(repo, &present).await
+    }
+
+    /// Git still reports raw untracked materializations; do not hide or rewrite
+    /// that state. For THIS eligible-work result only, exclude exactly the
+    /// already-declared runtime lock and sources whose current bytes still match
+    /// the upload-verified manifest. Unknown paths/changed bytes remain pending.
+    /// The caller's absolute epoch deadline owns this streaming inspection.
+    pub(crate) async fn has_untracked_followup(
+        &self,
+        repo: &Path,
+        untracked: &[PathBuf],
+    ) -> Result<bool> {
+        use sha2::{Digest, Sha256};
+        use tokio::io::AsyncReadExt;
+        let manifest: serde_json::Value = serde_json::from_slice(&self.verified_manifest)?;
+        let mut sources = std::collections::HashMap::new();
+        for asset in manifest["assets"]
+            .as_array()
+            .context("verified manifest assets missing")?
+        {
+            if asset["bucketed"] != true {
+                continue;
+            }
+            let source = asset["sourcePath"]
+                .as_str()
+                .context("missing verified source path")?;
+            if !safe_relative(source) {
+                bail!("unsafe verified source path");
+            }
+            let source = if self.asset_root == Path::new(".") {
+                PathBuf::from(source)
+            } else {
+                self.asset_root.join(source)
+            };
+            sources.insert(source, asset);
+        }
+        let runtime_lock = PathBuf::from(format!("{}.lock", self.manifest_path.display()));
+        for path in untracked {
+            if !self.materialized_paths.contains(path) {
+                return Ok(true);
+            }
+            if path == &runtime_lock {
+                continue;
+            } // already-reserved SDK lock, not an asset/name-prefix waiver
+            let Some(asset) = sources.get(path) else {
+                return Ok(true);
+            };
+            let Some(expected_bytes) = asset["bytes"].as_u64() else {
+                return Ok(true);
+            };
+            let Some(expected_sha) = asset["sha256"].as_str().filter(|sha| {
+                sha.len() == 64
+                    && sha
+                        .bytes()
+                        .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+            }) else {
+                return Ok(true);
+            };
+            let relative = path.to_str().context("nonportable verified source path")?;
+            let full = regular_in_repo(repo, relative)?;
+            let mut options = std::fs::OpenOptions::new();
+            options.read(true);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::OpenOptionsExt;
+                options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+            }
+            let file = options.open(&full)?;
+            let before = file.metadata()?;
+            if !before.is_file() || before.len() != expected_bytes {
+                return Ok(true);
+            }
+            let mut file = tokio::fs::File::from_std(file);
+            let mut digest = Sha256::new();
+            let mut read = 0u64;
+            // Heap-backed: embedding 64KiB in the nested epoch/scheduler
+            // future can overflow the normal test/worker stack when moved.
+            let mut buffer = vec![0u8; 64 * 1024];
+            loop {
+                let count = file.read(&mut buffer).await?;
+                if count == 0 {
+                    break;
+                }
+                read = read
+                    .checked_add(count as u64)
+                    .context("materialization byte overflow")?;
+                if read > expected_bytes {
+                    return Ok(true);
+                }
+                digest.update(&buffer[..count]);
+            }
+            let after = std::fs::symlink_metadata(&full)?;
+            if !after.is_file()
+                || after.len() != before.len()
+                || after.modified()? != before.modified()?
+            {
+                return Ok(true);
+            }
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                if after.dev() != before.dev() || after.ino() != before.ino() {
+                    return Ok(true);
+                }
+            }
+            if read != expected_bytes || format!("{:x}", digest.finalize()) != expected_sha {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     pub(crate) async fn verify_staged(&self, repo: &Path, timeout_secs: u64) -> Result<()> {
@@ -285,6 +413,71 @@ impl Prepared {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn followup_accounts_for_exact_verified_bytes_without_hiding_foreign_work() {
+        use sha2::{Digest, Sha256};
+        for root in [".", "public"] {
+            let dir = tempfile::tempdir().unwrap();
+            let relative = if root == "." {
+                PathBuf::from("asset.bin")
+            } else {
+                PathBuf::from("public/asset.bin")
+            };
+            std::fs::create_dir_all(dir.path().join(&relative).parent().unwrap()).unwrap();
+            std::fs::write(dir.path().join(&relative), b"old").unwrap();
+            let manifest = serde_json::json!({"assets":[{"sourcePath":"asset.bin",
+                "bucketed":true,"bytes":3,"sha256":format!("{:x}", Sha256::digest(b"old"))}]});
+            let lock = PathBuf::from("manifest.json.lock");
+            std::fs::write(dir.path().join(&lock), b"reserved SDK lock").unwrap();
+            let prepared = Prepared::from_parts(
+                PathBuf::from("manifest.json"),
+                serde_json::to_vec(&manifest).unwrap(),
+                HashSet::from([relative.clone(), lock.clone()]),
+                PathBuf::from(root),
+            );
+            let paths = vec![relative.clone(), lock];
+            assert!(!prepared
+                .has_untracked_followup(dir.path(), &paths)
+                .await
+                .unwrap());
+            std::fs::write(dir.path().join(&relative), b"new").unwrap();
+            assert!(
+                prepared
+                    .has_untracked_followup(dir.path(), &paths)
+                    .await
+                    .unwrap(),
+                "same-size later source bytes are real pending private work"
+            );
+            std::fs::write(dir.path().join(&relative), b"old").unwrap();
+            let mut foreign = paths.clone();
+            foreign.push(PathBuf::from("public/unknown-child.bin"));
+            assert!(
+                prepared
+                    .has_untracked_followup(dir.path(), &foreign)
+                    .await
+                    .unwrap(),
+                "a known directory or SDK enrollment must not waive an unknown child"
+            );
+            assert_eq!(std::fs::read(dir.path().join(&relative)).unwrap(), b"old");
+            std::fs::remove_file(dir.path().join(&relative)).unwrap();
+            assert!(
+                prepared
+                    .has_untracked_followup(dir.path(), &paths)
+                    .await
+                    .is_err(),
+                "inspection failure cannot become no-work"
+            );
+            #[cfg(unix)]
+            {
+                std::fs::write(dir.path().join("other"), b"old").unwrap();
+                std::os::unix::fs::symlink(dir.path().join("other"), dir.path().join(&relative))
+                    .unwrap();
+                assert!(prepared.has_untracked_followup(dir.path(), &paths).await.is_err(),
+                    "even identical bytes through a substituted symlink are not verified materialization");
+            }
+        }
+    }
 
     #[test]
     fn malicious_paths_and_ineligible_manifests_are_refused() {

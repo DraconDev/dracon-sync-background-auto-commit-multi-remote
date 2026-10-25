@@ -1,0 +1,28 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 29s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 4 tests
+test sync::bucket_qualification_tests::bucket_qualification_daemon_concurrent_manifest_preserves_independent_writer ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery ... ok
+test sync::bucket_qualification_tests::bucket_qualification_later_materialized_bytes_remain_pending_and_then_converge ... FAILED
+
+failures:
+
+---- sync::bucket_qualification_tests::bucket_qualification_later_materialized_bytes_remain_pending_and_then_converge stdout ----
+📝 committed 3 file(s) in /tmp/.tmplaC5J6/repo
+
+thread 'sync::bucket_qualification_tests::bucket_qualification_later_materialized_bytes_remain_pending_and_then_converge' (641350) panicked at dracon-sync/src/sync/bucket_qualification_tests.rs:291:5:
+assertion `left == right` failed: unchanged producer output must publish on follow-up, without stopping the hook
+  left: NothingToDo
+ right: Synced
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sync::bucket_qualification_tests::bucket_qualification_later_materialized_bytes_remain_pending_and_then_converge
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 1446 filtered out; finished in 39.31s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
