@@ -857,6 +857,7 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
         let (root, mut policy) = fixture().await;
         let repo = root.path();
+        policy.auto_commit = true;
         policy.watch_roots = vec![repo.to_string_lossy().into_owned()];
         let hooks = repo.join(".git/epoch-hooks");
         std::fs::create_dir(&hooks).unwrap();
