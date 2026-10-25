@@ -362,8 +362,14 @@ injected compiled-output self-import. Final forms build/typecheck/lint/tests pas
 failed gate logs are preserved under library-lifecycle-publication/failed-cold-4b955e45.
 Only browser's stuck retry entry was cleared after those checks. Final code anchor
 ad856e90708ef4a83e1930d7b254c8db5c0a941a and filtered fingerprints are captured
-in source-final.json. A fresh full-contract read-only rehearsal is active; its
-outcome and original normal publication are not assumed.
+in source-final.json. The fresh full-contract read-only rehearsal settled:
+checks/final-rehearsal-0715/review.md maps the actual underlying qualification,
+runtime and all-ten evidence, finding no additional inspected source defect and
+correctly blocking final completion on normal final-repair gates/publication.
+Its execution/live-query limitations are retained. Executor freshly replayed8/5/8
+Python regressions and1forms cold-build test, all passing. Normal2BxpB2 selects
+the exact final repair: all10filtered fingerprints match. Loaded PID/hash still
+match qualification. Selection is not success; normal outcomes remain pending.
 
 **Still required:** ordinary affected-source gates and actual remote containment
 of the final library repair. Initial all-ten eligible-tip proof is already present.

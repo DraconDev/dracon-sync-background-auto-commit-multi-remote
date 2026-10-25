@@ -88,7 +88,7 @@ Review runa923c34b settled successfully; no active owned child remains.
 Evidence: checks/library-lifecycle-publication/; source-final.json records exact
 repair anchor4b955e45fd6ae7df9324486da99dcdf3c088e2ad and file fingerprints.
 
-## Cold-build follow-up —07:15UTC
+## Cold-build follow-up
 
 JWBEHh was older queued source, not final-repair proof. Subsequent normal4b955e45
 attempts CTqkJ3/rCGHQP/C24EJO/7slg7G failed at forms prebuild. TypeScript staging
@@ -101,11 +101,19 @@ stuck entry was cleared after those checks. No manual Git operations.
 Final filtered source anchor nowad856e90708ef4a83e1930d7b254c8db5c0a941a,
 with10fingerprinted source inputs in library-lifecycle-publication/source-final.json.
 The old4b source capture is retained as source-before-cold-fix.json.
-Fresh full-contract read-only reviewer cc1a3647-8ee3-4cc8-9d90-7990406d5640 is
-active; it is not approval or original-gate evidence. Its native wake is owned.
-Next normal upload must contain final repair, pass applicable gates and reach all
-intended browser remotes. All-ten eligible witness proof already exists, but the
-additional repair remains open.
+Full-contract read-only reviewer cc1a3647-8ee3-4cc8-9d90-7990406d5640 settled.
+Raw rehearsal: checks/final-rehearsal-0715/review.md. It found no additional
+source-proven defect, inspected underlying Rust/runtime/all-ten evidence, and
+correctly BLOCKED completion solely on final normal qualification/publication.
+Its read-only toolset could not run checks; executor freshly ran the8/5/8Python
+regressions and1forms cold-build test; raw logs are beside that review.
+The reviewer did not independently run live refs/hash checks or reconstruct Git
+ranges. Final committed-repair-final.diff now captures the complete cold fix.
+At07:13UTC normal attempt2BxpB2 selectedad856e9; every one of10filtered source
+fingerprints matches final repair. The qualified loaded PID/hash was rechecked.
+This is selection, NOT a gate pass or publication. No active owned child remains.
+Next require applicable gates and actual repair containment at all browser remotes.
+All-ten eligible witness proof already exists, but this additional repair remains open.
 
 Next: inspect actual terminal/failure evidence for this candidate. Do not bypass,
 skip, weaken or replace the original whole gate with selected local diagnostics.
