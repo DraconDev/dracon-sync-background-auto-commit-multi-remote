@@ -436,7 +436,8 @@ pub(super) async fn helper(request_path: &Path) -> Result<()> {
             return response(false);
         }
         // Hashing itself must not run past kernel-enforced lease expiry.
-        if started.elapsed() >= lease_budget {
+        if started.elapsed() >= lease_budget || leases.iter().any(|file|
+            unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETLEASE) } != libc::F_RDLCK) {
             return response(false);
         }
         if before.is_none() {
@@ -453,7 +454,8 @@ pub(super) async fn helper(request_path: &Path) -> Result<()> {
             }
         } else {
             source.exchange(&desired, libc::RENAME_EXCHANGE)?;
-            if desired.fingerprint().await? != before {
+            if desired.fingerprint().await? != before || leases.iter().any(|file|
+                unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETLEASE) } != libc::F_RDLCK) {
                 source.exchange(&desired, libc::RENAME_EXCHANGE)?;
                 return response(false);
             }
