@@ -755,6 +755,14 @@ async fn async_main() -> Result<()> {
         default_panic_hook(info);
     }));
 
+    #[cfg(target_os = "linux")]
+    {
+        let args: Vec<_> = std::env::args_os().collect();
+        if args.get(1).is_some_and(|arg| arg == "--dracon-excluded-restore-helper") {
+            anyhow::ensure!(args.len() == 3, "invalid excluded restore helper invocation");
+            return sync::excluded_restore_helper(std::path::Path::new(&args[2])).await;
+        }
+    }
     let cli = Cli::parse();
     #[cfg(unix)]
     if matches!(&cli.cmd, Command::Once | Command::SyncNow { .. }) {
