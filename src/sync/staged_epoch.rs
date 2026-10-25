@@ -265,14 +265,13 @@ impl Epoch {
             }
             // Preserve the existing untracked opt-outs, without interpreting a
             // worktree rewrite as the content of an already-staged blob.
-            if matches!(self.snapshot.head, CapturedHead::Unborn { .. }) && entry.is_some() {
-                if crate::exclude::matches_untracked_exclude(
-                    repo,
-                    &path.path,
-                    &policy.untracked_exclude_patterns,
-                ) {
-                    rejected.push(raw.clone());
-                }
+            if matches!(self.snapshot.head, CapturedHead::Unborn { .. })
+                && entry.is_some()
+                && crate::exclude::matches_untracked_exclude(
+                    repo, &path.path, &policy.untracked_exclude_patterns,
+                )
+            {
+                rejected.push(raw.clone());
             }
         }
         Ok(rejected)
