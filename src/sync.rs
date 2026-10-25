@@ -4493,7 +4493,18 @@ async fn stage_commit_and_push(
                 PushReport::Attempted { ok: true, .. } => {}
             }
         }
-        let pending = match private_assets {
+        let mut pending = match epoch.index_changed(repo).await {
+            Ok(changed) => changed,
+            Err(error) => {
+                eprintln!("⚠️ {} empty-candidate follow-up unverified; local work retained: {error:#}", repo.display());
+                true
+            }
+        };
+        #[cfg(target_os = "linux")]
+        if !dry_run && !to_restore.is_empty() && load_repo_override(repo).revert_excluded_to_head == Some(true) {
+            pending |= excluded_revert::paths_dirty(repo, to_restore, epoch.deadline()).await?;
+        }
+        pending |= match private_assets {
             Some(prepared) => tokio::time::timeout_at(
                 epoch.deadline(),
                 prepared.has_materialization_followup(repo),
