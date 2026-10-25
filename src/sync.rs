@@ -10153,12 +10153,34 @@ push_url = "{}"
         );
         let policy: SyncPolicy = toml::from_str(&toml_str).unwrap();
 
-        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
-        assert!(result.is_ok(), "sync_repo should not error: {:?}", result);
-        assert!(
-            matches!(result, Ok(SyncOutcome::Synced)),
-            "mirror push success should return true"
-        );
+        let observe = |path: &Path, args: &[&str]| {
+            let output = git_cmd(path, args);
+            assert!(output.status.success(), "Git observation {args:?} failed: {}", String::from_utf8_lossy(&output.stderr));
+            output.stdout
+        };
+        let mut result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None)
+            .await.expect("mirror publication must not fail");
+        for round in 0..4 {
+            assert!(matches!(result, SyncOutcome::Synced | SyncOutcome::StagedPending | SyncOutcome::NothingToDo),
+                "transport failure or ownership pause is not mirror success: {result:?}");
+            let head = observe(&repo, &["rev-parse", "HEAD"]);
+            let origin = observe(&origin_bare, &["rev-parse", "refs/heads/master"]);
+            let mirror = observe(&mirror_bare, &["rev-parse", "refs/heads/master"]);
+            let raw = observe(&repo, &["status", "--porcelain=v1", "--untracked-files=all"]);
+            let converged = raw.is_empty() && origin == head && mirror == head;
+            if result != SyncOutcome::StagedPending {
+                assert!(converged, "healthy/no-work must mean BOTH destinations match and raw Git is clean");
+            }
+            if converged {
+                assert_eq!(observe(&repo, &["show", "HEAD:change.txt"]), b"changed\n");
+                return;
+            }
+            assert!(round < 3, "mirror publication/metadata did not converge within four rounds");
+            result = tokio::time::timeout(Duration::from_secs(60),
+                sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None))
+                .await.expect("mirror follow-up must be bounded").unwrap();
+        }
+        unreachable!();
     }
 
     /// REGRESSION (2026-08-09, v0.113.48, pi-goal-loop-audit incident):

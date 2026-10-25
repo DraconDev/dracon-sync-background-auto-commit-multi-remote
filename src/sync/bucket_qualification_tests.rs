@@ -245,7 +245,9 @@ async fn bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore() {
     }
     let f = Fixture::new();
     let before = f.head();
-    assert_eq!(f.cycle().await, SyncOutcome::Synced);
+    let outcome = f.cycle().await;
+    assert_eq!(outcome, SyncOutcome::Synced, "native untracked after enrollment: {:?}",
+        String::from_utf8_lossy(&git(&f.repo, &["ls-files", "--others", "--exclude-standard", "-z"])));
     assert_ne!(
         before,
         f.head(),
