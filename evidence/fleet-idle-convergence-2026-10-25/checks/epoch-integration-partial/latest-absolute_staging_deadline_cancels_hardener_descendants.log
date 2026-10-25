@@ -1,1 +1,11 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3m 25s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 2 tests
+test sync::tests::bootstrap_absolute_staging_deadline_cancels_hardener_descendants ... ok
+test sync::tests::ordinary_absolute_staging_deadline_cancels_hardener_descendants ... [main (root-commit) ed0f890] disposable fixture baseline
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1444 filtered out; finished in 2.54s
+
