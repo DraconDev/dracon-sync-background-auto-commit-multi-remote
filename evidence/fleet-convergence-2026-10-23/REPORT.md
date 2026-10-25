@@ -72,6 +72,18 @@ remote was added or rewired to manufacture a matching name.
   transient. Generic hook failures now direct inspection of actual hook/product/
   environment output, not weakening storage policy.
 
+The final completion/drain regression forced a one-permit FIFO circular wait:
+upload completion queued outer capacity restoration before a refresh that had
+already begun admission. Restoration then held the capacity while awaiting that
+refresh. The coordinator now encloses upload completion AND non-cancellable
+refresh drainage within the yielded-capacity boundary, restoring capacity only
+before later mutation. It preserves the original upload error and exclusive
+repository ownership. Controlled regressions cover successful/failed upload
+completion, an already active refresh, and the async-frame safety budget; the old
+implementation fails the completion race (`checks/publication-drain-deadlock/`).
+Final installed execution additionally proves actual retirement and redispatch,
+not merely a helper's synthetic semaphore result.
+
 ### Hook/dependency and product integration
 
 Browser gates execute each pushed Git revision in an isolated tree with its own
