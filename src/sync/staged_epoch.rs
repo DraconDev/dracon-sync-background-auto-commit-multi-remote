@@ -857,6 +857,15 @@ mod tests {
         assert!(!repo.join(".git/index.lock").exists());
     }
 
+    #[test]
+    fn only_typed_intent_conflicts_are_nonfailure_deferrals() {
+        let changed = anyhow::Error::new(EpochConflict::IndexChanged)
+            .context("retained candidate fixture");
+        assert!(is_conflict(&changed));
+        assert!(!is_conflict(&anyhow::anyhow!("epoch index or parent changed")));
+        assert!(!is_conflict(&anyhow::anyhow!("permission denied reading index")));
+    }
+
     #[tokio::test]
     async fn private_staging_same_path_conflict_retains_both_payloads() {
         refused_install_preserves_actual_and_pack(false).await;
