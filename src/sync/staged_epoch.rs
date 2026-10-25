@@ -237,52 +237,118 @@ impl Epoch {
         let deadline = self.deadline;
         let mut published = false;
         let result = tokio::time::timeout_at(deadline, async {
-            ensure!(policy.auto_commit && self.has_intent(), "no authorized staged commit intent");
-            ensure!(commit_allowed_by_ownership(repo, policy), "epoch ownership guard refused");
-            let index = git(repo, &["rev-parse", "--path-format=absolute", "--git-path", "index"], None).await?;
+            ensure!(
+                policy.auto_commit && self.has_intent(),
+                "no authorized staged commit intent"
+            );
+            ensure!(
+                commit_allowed_by_ownership(repo, policy),
+                "epoch ownership guard refused"
+            );
+            let index = git(
+                repo,
+                &["rev-parse", "--path-format=absolute", "--git-path", "index"],
+                None,
+            )
+            .await?;
             let index = PathBuf::from(std::str::from_utf8(&index.stdout)?.trim_end_matches('\n'));
             ensure!(index.is_absolute(), "index identity is not absolute");
-            let lock = crate::git::IndexLock::acquire_path(index.with_extension("lock"), repo).map_err(anyhow::Error::msg)?;
+            let lock = crate::git::IndexLock::acquire_path(index.with_extension("lock"), repo)
+                .map_err(anyhow::Error::msg)?;
             self.unchanged(repo, &lock).await?;
             self.eligible(repo, policy, excluded).await?;
             let tree = self.snapshot.materialize_tree(repo, deadline).await?;
-            let private = if prepared.is_none() { prepare_private(repo, policy).await? } else { None };
+            let private = if prepared.is_none() {
+                prepare_private(repo, policy).await?
+            } else {
+                None
+            };
             let prepared = prepared.or(private.as_ref());
             let guards = async {
-                if let Some(prepared) = prepared { prepared.verify_staged(repo, policy.stage_op_timeout_secs).await?; }
-                crate::bucket_guard::check_staged_forward_only(repo, policy.stage_op_timeout_secs,
-                    std::env::var("DRACON_BUCKET_GUARD").ok().as_deref()).await
+                if let Some(prepared) = prepared {
+                    prepared
+                        .verify_staged(repo, policy.stage_op_timeout_secs)
+                        .await?;
+                }
+                crate::bucket_guard::check_staged_forward_only(
+                    repo,
+                    policy.stage_op_timeout_secs,
+                    std::env::var("DRACON_BUCKET_GUARD").ok().as_deref(),
+                )
+                .await
             };
             guards.await?;
             self.unchanged(repo, &lock).await?;
             // Original hook order/arguments/editor semantics; hook edits are
             // read back, refusals propagate, and no hook runs twice.
-            let required_binding = verify_storage(repo, &tree, policy.stage_op_timeout_secs, false).await?;
-            let approved = run_sealed_commit_hooks(repo, message, policy.stage_op_timeout_secs).await?;
+            let required_binding =
+                verify_storage(repo, &tree, policy.stage_op_timeout_secs, false).await?;
+            let approved =
+                run_sealed_commit_hooks(repo, message, policy.stage_op_timeout_secs).await?;
             self.unchanged(repo, &lock).await?;
-            if let Some(prepared) = prepared { prepared.verify_staged(repo, policy.stage_op_timeout_secs).await?; }
-            crate::bucket_guard::check_staged_forward_only(repo, policy.stage_op_timeout_secs,
-                std::env::var("DRACON_BUCKET_GUARD").ok().as_deref()).await?;
+            if let Some(prepared) = prepared {
+                prepared
+                    .verify_staged(repo, policy.stage_op_timeout_secs)
+                    .await?;
+            }
+            crate::bucket_guard::check_staged_forward_only(
+                repo,
+                policy.stage_op_timeout_secs,
+                std::env::var("DRACON_BUCKET_GUARD").ok().as_deref(),
+            )
+            .await?;
             verify_storage(repo, &tree, policy.stage_op_timeout_secs, required_binding).await?;
             self.eligible(repo, policy, excluded).await?;
             self.unchanged(repo, &lock).await?;
-            ensure!(commit_allowed_by_ownership(repo, policy), "epoch ownership changed");
+            ensure!(
+                commit_allowed_by_ownership(repo, policy),
+                "epoch ownership changed"
+            );
             let mut args = vec!["commit-tree", tree.as_str()];
-            let parent = match &self.snapshot.head { CapturedHead::Commit(parent) => Some(parent.as_str()), _ => None };
-            if let Some(parent) = parent { args.extend(["-p", parent]); }
+            let parent = match &self.snapshot.head {
+                CapturedHead::Commit(parent) => Some(parent.as_str()),
+                _ => None,
+            };
+            if let Some(parent) = parent {
+                args.extend(["-p", parent]);
+            }
             // commit-tree doesn't honor commit.gpgSign by itself.
             let mut config = crate::policy::tokio_git_command();
-            config.args(["config", "--bool", "--get", "commit.gpgSign"]).current_dir(repo);
-            let signing = crate::git::run_command_captured_output(config.into_tokio(), policy.stage_op_timeout_secs, "epoch signing config", None).await?;
+            config
+                .args(["config", "--bool", "--get", "commit.gpgSign"])
+                .current_dir(repo);
+            let signing = crate::git::run_command_captured_output(
+                config.into_tokio(),
+                policy.stage_op_timeout_secs,
+                "epoch signing config",
+                None,
+            )
+            .await?;
             if signing.status.success() {
-                ensure!(matches!(signing.stdout.as_slice(), b"true\n" | b"false\n"), "invalid signing policy");
-                if signing.stdout == b"true\n" { args.push("-S"); }
-            } else { ensure!(signing.status.code() == Some(1), "cannot read signing policy"); }
+                ensure!(
+                    matches!(signing.stdout.as_slice(), b"true\n" | b"false\n"),
+                    "invalid signing policy"
+                );
+                if signing.stdout == b"true\n" {
+                    args.push("-S");
+                }
+            } else {
+                ensure!(
+                    signing.status.code() == Some(1),
+                    "cannot read signing policy"
+                );
+            }
             let message = format!("{}\n", approved.message);
-            ensure!(message.len() <= 1024 * 1024, "commit message exceeds budget");
+            ensure!(
+                message.len() <= 1024 * 1024,
+                "commit message exceeds budget"
+            );
             let commit = git(repo, &args, Some(message.as_bytes())).await?;
             let oid = std::str::from_utf8(&commit.stdout)?.trim();
-            ensure!(crate::git::is_valid_object_id(oid), "invalid created commit identity");
+            ensure!(
+                crate::git::is_valid_object_id(oid),
+                "invalid created commit identity"
+            );
             self.unchanged(repo, &lock).await?;
             let zero = "0".repeat(oid.len());
             let previous = parent.unwrap_or(&zero);
@@ -296,38 +362,79 @@ impl Epoch {
             } else {
                 format!("start\noption no-deref\nupdate HEAD {oid} {previous}\nprepare\ncommit\n")
             };
-            git(repo, &["update-ref", "-m", "commit: captured staged epoch", "--stdin"], Some(transaction.as_bytes())).await?;
+            git(
+                repo,
+                &[
+                    "update-ref",
+                    "-m",
+                    "commit: captured staged epoch",
+                    "--stdin",
+                ],
+                Some(transaction.as_bytes()),
+            )
+            .await?;
             published = true;
             let lock_retained = !lock.is_owned();
             drop(lock);
             // Native post-commit runs after publication and does not control its
             // success. A failing hook remains diagnostic and pending follow-up.
-            let post_failed = if let Err(error) = run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs).await {
-                eprintln!("⚠️ {} post-commit failed AFTER epoch publication: {error:#}", repo.display());
+            let post_failed = if let Err(error) =
+                run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs).await
+            {
+                eprintln!(
+                    "⚠️ {} post-commit failed AFTER epoch publication: {error:#}",
+                    repo.display()
+                );
                 true
-            } else { false };
+            } else {
+                false
+            };
             let after = StagedIntentSnapshot::capture(repo, deadline).await?;
-            let child = crate::git::spawn_git_command_cancellable_stdin(repo,
-                &["diff", "--quiet", "HEAD", "--"], "epoch follow-up")?;
-            let (status, _, _) = crate::git::run_git_captured_output(child, repo, "epoch follow-up").await?;
-            ensure!(status.success() || status.code() == Some(1), "cannot inspect post-publication work");
-            let untracked = git(repo, &["ls-files", "--others", "--exclude-standard", "-z"], None).await?;
+            let child = crate::git::spawn_git_command_cancellable_stdin(
+                repo,
+                &["diff", "--quiet", "HEAD", "--"],
+                "epoch follow-up",
+            )?;
+            let (status, _, _) =
+                crate::git::run_git_captured_output(child, repo, "epoch follow-up").await?;
+            ensure!(
+                status.success() || status.code() == Some(1),
+                "cannot inspect post-publication work"
+            );
+            let untracked = git(
+                repo,
+                &["ls-files", "--others", "--exclude-standard", "-z"],
+                None,
+            )
+            .await?;
             let branch_changed = reference(repo).await? != self.reference;
-            Ok(lock_retained || post_failed || branch_changed || !after.changed.is_empty()
-                || !status.success() || !untracked.stdout.is_empty())
-        }).await;
+            Ok(lock_retained
+                || post_failed
+                || branch_changed
+                || !after.changed.is_empty()
+                || !status.success()
+                || !untracked.stdout.is_empty())
+        })
+        .await;
         match result {
             Ok(Ok(pending)) => Ok(pending),
             Ok(Err(error)) if published => {
-                eprintln!("⚠️ {} epoch was published; follow-up remains unverified: {error:#}", repo.display());
+                eprintln!(
+                    "⚠️ {} epoch was published; follow-up remains unverified: {error:#}",
+                    repo.display()
+                );
                 Ok(true)
             }
             Err(_) if published => {
-                eprintln!("⚠️ {} epoch was published; deadline cancelled post-publication follow-up", repo.display());
+                eprintln!(
+                    "⚠️ {} epoch was published; deadline cancelled post-publication follow-up",
+                    repo.display()
+                );
                 Ok(true)
             }
             Ok(Err(error)) => Err(error),
-            Err(error) => Err(error).context("staged epoch deadline expired; ref outcome may require inspection"),
+            Err(error) => Err(error)
+                .context("staged epoch deadline expired; ref outcome may require inspection"),
         }
     }
 }
@@ -756,17 +863,43 @@ mod tests {
         let post = hooks.join("post-commit");
         std::fs::write(&post, "#!/bin/sh\nsleep 30\n").unwrap();
         std::fs::set_permissions(&post, std::fs::Permissions::from_mode(0o755)).unwrap();
-        git(repo, &["config", "core.hooksPath", hooks.to_str().unwrap()], None).await.unwrap();
+        git(
+            repo,
+            &["config", "core.hooksPath", hooks.to_str().unwrap()],
+            None,
+        )
+        .await
+        .unwrap();
         std::fs::write(repo.join("file"), b"published before follow-up\n").unwrap();
         git(repo, &["add", "--", "file"], None).await.unwrap();
         let epoch = Epoch::capture(repo, 10).await.unwrap();
-        let result = tokio::time::timeout(Duration::from_secs(15),
-            epoch.commit(repo, "fixture bounded publication", &policy, &BTreeSet::new(), None))
-            .await.expect("absolute epoch deadline must terminate post hook");
-        assert!(matches!(result, Ok(true)), "known publication must remain pending, not failure: {result:?}");
-        assert_eq!(git(repo, &["show", "HEAD:file"], None).await.unwrap().stdout,
-            b"published before follow-up\n");
-        assert_eq!(std::fs::read(repo.join("file")).unwrap(), b"published before follow-up\n");
+        let result = tokio::time::timeout(
+            Duration::from_secs(15),
+            epoch.commit(
+                repo,
+                "fixture bounded publication",
+                &policy,
+                &BTreeSet::new(),
+                None,
+            ),
+        )
+        .await
+        .expect("absolute epoch deadline must terminate post hook");
+        assert!(
+            matches!(result, Ok(true)),
+            "known publication must remain pending, not failure: {result:?}"
+        );
+        assert_eq!(
+            git(repo, &["show", "HEAD:file"], None)
+                .await
+                .unwrap()
+                .stdout,
+            b"published before follow-up\n"
+        );
+        assert_eq!(
+            std::fs::read(repo.join("file")).unwrap(),
+            b"published before follow-up\n"
+        );
         assert!(!repo.join(".git/index.lock").exists());
     }
 
