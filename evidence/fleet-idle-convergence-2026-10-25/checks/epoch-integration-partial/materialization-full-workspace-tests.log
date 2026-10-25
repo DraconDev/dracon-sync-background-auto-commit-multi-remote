@@ -390,4 +390,9 @@ test storage_core::hydration::tests::local_resume_refuses_corrupt_output_intent_
 test storage_core::hydration::tests::missing_working_file_is_published_without_a_backup_or_index_changes ... ok
 test storage_core::hydration::tests::selected_commit_manifest_repo_and_placement_must_match_before_publication ... ok
 test storage_core::index::tests::approved_metadata_cannot_be_substituted_for_another_manifest ... ok
-test storage_core::index::tests::changed_reference_without_verified_job_and_unknown_prior_metadata_fail_closed ... 
+test storage_core::index::tests::changed_reference_without_verified_job_and_unknown_prior_metadata_fail_closed ... ok
+test storage_core::index::tests::commit_lock_crash_helper ... ignored, commit-lock subprocess helper invoked by crash recovery test
+test storage_core::index::tests::commit_lock_preserves_foreign_locks_and_releases_only_its_inode ... ok
+test storage_core::index::tests::commit_lock_recovers_owned_git_lock_after_process_death ... ok
+test storage_core::index::tests::index_crash_helper ... ignored, subprocess helper invoked by crash recovery test
+test storage_core::index::tests::lossless_non_utf8_paths_are_staged_as_exact_index_entries ... 
