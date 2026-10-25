@@ -4261,193 +4261,194 @@ async fn stage_commit_and_push(
     let epoch = if let Some(epoch) = epoch {
         epoch
     } else {
-    // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): auto-resolve
-    // unmerged index entries so the commit loop is never blocked.
-    // See `auto_resolve_unmerged_if_safe` for the full rationale.
-    let prepare_started = std::time::Instant::now();
-    let resolved = auto_resolve_unmerged_if_safe(repo, policy.auto_resolve_unmerged).await?;
-    if debug_enabled() {
-        eprintln!(
-            "scheduler: stage_prepare repo={} phase=unmerged elapsed_ms={}",
-            repo.display(),
-            prepare_started.elapsed().as_millis()
-        );
-    }
-    if resolved > 0 {
-        eprintln!(
-            "🔧 {} auto-resolved {} unmerged entries",
-            repo.display(),
-            resolved
-        );
-    }
-
-    // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): emit a warning
-    // when the untracked-file count exceeds the policy threshold.
-    let _untracked_count = check_untracked_threshold(repo, policy.untracked_warn_threshold).await?;
-    if debug_enabled() {
-        eprintln!(
-            "scheduler: stage_prepare repo={} phase=untracked elapsed_ms={}",
-            repo.display(),
-            prepare_started.elapsed().as_millis()
-        );
-    }
-
-    // FIX (goal mr0xseig-fn9bbd): split `to_stage` into gitlink
-    // pointer updates vs regular files. Gitlink entries are staged
-    // without recursion (`git add <path>`) so the parent's index
-    // records the new submodule SHA without walking into the
-    // submodule's working tree. Regular files keep their existing
-    // recursion-and-`git add -A` path.
-    //
-    // CHANGED 2026-09-17 (sync-convergence follow-up): the partition
-    // previously called per-path `is_gitlink` — one `git ls-tree HEAD`
-    // subprocess PER FILE. Measured on this box (20-file fixture,
-    // load ~70-90): stage_enter → first add_spawn took ~5.7s for 20
-    // files; a 100-file commit never reached `git add` within the
-    // 20s probe window. `tracked_gitlink_set` resolves the same
-    // classification with ONE `git ls-tree HEAD -- <all candidates>`
-    // call (already used by the commit-subject path). Paths absent
-    // from HEAD (new untracked files) cannot be gitlinks, so only
-    // paths present in the returned set partition as gitlinks —
-    // identical semantics, O(1) spawns instead of O(N).
-    let candidates: Vec<String> = to_stage
-        .iter()
-        .map(|e| e.path.to_string_lossy().to_string())
-        .collect();
-    let gitlink_set = tracked_gitlink_set(repo, &candidates);
-    let (gitlink_entries, regular_entries): (
-        Vec<dracon_git::types::DiffFile>,
-        Vec<dracon_git::types::DiffFile>,
-    ) = to_stage
-        .iter()
-        .cloned()
-        .partition(|e| gitlink_set.contains(&e.path.to_string_lossy().to_string()));
-    let gitlink_paths: Vec<String> = gitlink_entries
-        .iter()
-        .map(|e| e.path.to_string_lossy().to_string())
-        .collect();
-    let regular_paths: Vec<String> = regular_entries
-        .iter()
-        .map(|e| e.path.to_string_lossy().to_string())
-        .collect();
-
-    // FIX (2026-06-19, goal mqli43u6-tg3lcf): limit the number of files
-    // staged in a single commit batch to avoid lock contention and large
-    // commit overhead. When a repo has more untracked files than the
-    // batch limit, the daemon commits them in multiple smaller batches.
-    //
-    // FIX (goal mr0xseig-fn9bbd): batch-limit applies to the union of
-    // regular and gitlink paths; gitlinks are NOT subject to the
-    // recursion-skip behavior so they don't contribute to the
-    // subdir-expansion that would otherwise inflate counts (a single
-    // gitlink path is one entry, not many).
-    //
-    // CHANGED 2026-08-11 (audit find, stage_commit_and_push batch
-    // union): the cap is now enforced on the UNION — the previous code
-    // truncated each list independently to `max_batch`, so a commit
-    // could stage up to 2×max_batch entries whenever both entry classes
-    // were present. Gitlink pointer updates get priority (single
-    // non-recursive index entries that drive the parent's submodule-
-    // gitlink convergence); regular files fill the remainder. Deferred
-    // entries stay dirty and are picked up by the next cycle.
-    let max_batch = policy.max_stage_batch_files;
-    let total_to_stage = regular_paths.len() + gitlink_paths.len();
-    let (regular_paths, gitlink_paths) = if total_to_stage > max_batch {
-        eprintln!(
-            "📦 batching {} entries into chunks of {}",
-            total_to_stage, max_batch
-        );
-        cap_batch_union(regular_paths, gitlink_paths, max_batch)
-    } else {
-        (regular_paths, gitlink_paths)
-    };
-
-    let (existing, missing): (Vec<_>, Vec<_>) = regular_paths
-        .into_iter()
-        .partition(|p| repo.join(p).exists());
-
-    // FIX (goal mr0xseig-fn9bbd): gitlink pointer updates are
-    // staged WITHOUT recursion via `git add <path>` (no `-A`).
-    // `stage_existing_files` recurses-and-skips for anything in
-    // `existing` whose `.git` exists; for gitlinks we want the
-    // OPPOSITE — do not recurse, but DO emit the `git add`.
-    let (gitlink_existing, gitlink_missing): (Vec<_>, Vec<_>) = gitlink_paths
-        .into_iter()
-        .partition(|p| repo.join(p).exists());
-
-    // CHANGED 2026-07-21 (v0.112.31, audit H6/F1.5): filtered
-    // variant so files discovered by the directory-expansion
-    // recursion get the per-file staging policy re-applied (size
-    // limit + exclude patterns) — previously a 500 MiB file nested
-    // in a new untracked dir bypassed the 100 MiB hard exclusion.
-    // The `auto_commit_exclude_patterns` value uses the SAME
-    // effective (per-repo-override-aware) resolution as the
-    // partition in `sync_repo_with_ahead_since`.
-    let staging_repo_override = load_repo_override(repo);
-    // R3-M2: per-repo entries EXTEND the global list (union helper).
-    let auto_commit_exclude_for_staging =
-        crate::policy::effective_auto_commit_excludes(ctx.policy, &staging_repo_override);
-    // ADDED 2026-10-03 (audit R4-SC-15): a STILL-contended index
-    // after the add-site retries maps to Blocked (non-failure, work
-    // retained for next cycle) instead of Err (failure budget burn +
-    // MAX_FAILURES backoff for a healthy repo).
-    match stage_existing_files_suppressing(
-        repo,
-        &existing,
-        dry_run,
-        ctx.policy.stage_op_timeout_secs,
-        ctx.excluded_dir_names,
-        Some((ctx.policy, &auto_commit_exclude_for_staging)),
-        private_assets.map(|prepared| &prepared.materialized_paths),
-    )
-    .await
-    {
-        Ok(()) => {}
-        Err(e) if is_index_lock_failure(&e.to_string()) => {
+        // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): auto-resolve
+        // unmerged index entries so the commit loop is never blocked.
+        // See `auto_resolve_unmerged_if_safe` for the full rationale.
+        let prepare_started = std::time::Instant::now();
+        let resolved = auto_resolve_unmerged_if_safe(repo, policy.auto_resolve_unmerged).await?;
+        if debug_enabled() {
             eprintln!(
-                "⏸️ {} staging blocked by index.lock contention (retry next cycle)",
-                repo.display()
+                "scheduler: stage_prepare repo={} phase=unmerged elapsed_ms={}",
+                repo.display(),
+                prepare_started.elapsed().as_millis()
             );
-            return Ok(Some(SyncOutcome::Blocked));
         }
-        Err(e) => return Err(e),
-    }
-
-    stage_gitlink_updates(
-        repo,
-        &gitlink_existing,
-        dry_run,
-        ctx.policy.stage_op_timeout_secs,
-    )
-    .await?;
-
-    let missing_iter = missing.into_iter().chain(gitlink_missing);
-    let missing: Vec<_> = missing_iter.collect();
-    if !missing.is_empty() {
-        git_rm_missing(repo, &missing, dry_run).await?;
-    }
-
-    // Close the staging epoch without resetting excluded/unknown content.
-    // A separate capture is the sole commit candidate, never a live write-tree.
-    let staged = git_name_status_entries(repo, &["diff", "--cached", "--name-status"]).await?;
-    // ADDED 2026-10-03 (audit R4-SC-16): staged set ⊆ intent.
-    // Foreign-staged paths (manual adds landing mid-cycle) defer the
-    // WHOLE commit one cycle with the index intact — the consent
-    // window. Next cycle they are pre-staged → classified → intended
-    // → committed, so commit-all converges with no wedge. Skipped in
-    // dry-run (nothing stages or commits there).
-    if !dry_run {
-        let extras = staged_extra_paths(repo, &staged, to_stage);
-        if !extras.is_empty() {
+        if resolved > 0 {
             eprintln!(
+                "🔧 {} auto-resolved {} unmerged entries",
+                repo.display(),
+                resolved
+            );
+        }
+
+        // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): emit a warning
+        // when the untracked-file count exceeds the policy threshold.
+        let _untracked_count =
+            check_untracked_threshold(repo, policy.untracked_warn_threshold).await?;
+        if debug_enabled() {
+            eprintln!(
+                "scheduler: stage_prepare repo={} phase=untracked elapsed_ms={}",
+                repo.display(),
+                prepare_started.elapsed().as_millis()
+            );
+        }
+
+        // FIX (goal mr0xseig-fn9bbd): split `to_stage` into gitlink
+        // pointer updates vs regular files. Gitlink entries are staged
+        // without recursion (`git add <path>`) so the parent's index
+        // records the new submodule SHA without walking into the
+        // submodule's working tree. Regular files keep their existing
+        // recursion-and-`git add -A` path.
+        //
+        // CHANGED 2026-09-17 (sync-convergence follow-up): the partition
+        // previously called per-path `is_gitlink` — one `git ls-tree HEAD`
+        // subprocess PER FILE. Measured on this box (20-file fixture,
+        // load ~70-90): stage_enter → first add_spawn took ~5.7s for 20
+        // files; a 100-file commit never reached `git add` within the
+        // 20s probe window. `tracked_gitlink_set` resolves the same
+        // classification with ONE `git ls-tree HEAD -- <all candidates>`
+        // call (already used by the commit-subject path). Paths absent
+        // from HEAD (new untracked files) cannot be gitlinks, so only
+        // paths present in the returned set partition as gitlinks —
+        // identical semantics, O(1) spawns instead of O(N).
+        let candidates: Vec<String> = to_stage
+            .iter()
+            .map(|e| e.path.to_string_lossy().to_string())
+            .collect();
+        let gitlink_set = tracked_gitlink_set(repo, &candidates);
+        let (gitlink_entries, regular_entries): (
+            Vec<dracon_git::types::DiffFile>,
+            Vec<dracon_git::types::DiffFile>,
+        ) = to_stage
+            .iter()
+            .cloned()
+            .partition(|e| gitlink_set.contains(&e.path.to_string_lossy().to_string()));
+        let gitlink_paths: Vec<String> = gitlink_entries
+            .iter()
+            .map(|e| e.path.to_string_lossy().to_string())
+            .collect();
+        let regular_paths: Vec<String> = regular_entries
+            .iter()
+            .map(|e| e.path.to_string_lossy().to_string())
+            .collect();
+
+        // FIX (2026-06-19, goal mqli43u6-tg3lcf): limit the number of files
+        // staged in a single commit batch to avoid lock contention and large
+        // commit overhead. When a repo has more untracked files than the
+        // batch limit, the daemon commits them in multiple smaller batches.
+        //
+        // FIX (goal mr0xseig-fn9bbd): batch-limit applies to the union of
+        // regular and gitlink paths; gitlinks are NOT subject to the
+        // recursion-skip behavior so they don't contribute to the
+        // subdir-expansion that would otherwise inflate counts (a single
+        // gitlink path is one entry, not many).
+        //
+        // CHANGED 2026-08-11 (audit find, stage_commit_and_push batch
+        // union): the cap is now enforced on the UNION — the previous code
+        // truncated each list independently to `max_batch`, so a commit
+        // could stage up to 2×max_batch entries whenever both entry classes
+        // were present. Gitlink pointer updates get priority (single
+        // non-recursive index entries that drive the parent's submodule-
+        // gitlink convergence); regular files fill the remainder. Deferred
+        // entries stay dirty and are picked up by the next cycle.
+        let max_batch = policy.max_stage_batch_files;
+        let total_to_stage = regular_paths.len() + gitlink_paths.len();
+        let (regular_paths, gitlink_paths) = if total_to_stage > max_batch {
+            eprintln!(
+                "📦 batching {} entries into chunks of {}",
+                total_to_stage, max_batch
+            );
+            cap_batch_union(regular_paths, gitlink_paths, max_batch)
+        } else {
+            (regular_paths, gitlink_paths)
+        };
+
+        let (existing, missing): (Vec<_>, Vec<_>) = regular_paths
+            .into_iter()
+            .partition(|p| repo.join(p).exists());
+
+        // FIX (goal mr0xseig-fn9bbd): gitlink pointer updates are
+        // staged WITHOUT recursion via `git add <path>` (no `-A`).
+        // `stage_existing_files` recurses-and-skips for anything in
+        // `existing` whose `.git` exists; for gitlinks we want the
+        // OPPOSITE — do not recurse, but DO emit the `git add`.
+        let (gitlink_existing, gitlink_missing): (Vec<_>, Vec<_>) = gitlink_paths
+            .into_iter()
+            .partition(|p| repo.join(p).exists());
+
+        // CHANGED 2026-07-21 (v0.112.31, audit H6/F1.5): filtered
+        // variant so files discovered by the directory-expansion
+        // recursion get the per-file staging policy re-applied (size
+        // limit + exclude patterns) — previously a 500 MiB file nested
+        // in a new untracked dir bypassed the 100 MiB hard exclusion.
+        // The `auto_commit_exclude_patterns` value uses the SAME
+        // effective (per-repo-override-aware) resolution as the
+        // partition in `sync_repo_with_ahead_since`.
+        let staging_repo_override = load_repo_override(repo);
+        // R3-M2: per-repo entries EXTEND the global list (union helper).
+        let auto_commit_exclude_for_staging =
+            crate::policy::effective_auto_commit_excludes(ctx.policy, &staging_repo_override);
+        // ADDED 2026-10-03 (audit R4-SC-15): a STILL-contended index
+        // after the add-site retries maps to Blocked (non-failure, work
+        // retained for next cycle) instead of Err (failure budget burn +
+        // MAX_FAILURES backoff for a healthy repo).
+        match stage_existing_files_suppressing(
+            repo,
+            &existing,
+            dry_run,
+            ctx.policy.stage_op_timeout_secs,
+            ctx.excluded_dir_names,
+            Some((ctx.policy, &auto_commit_exclude_for_staging)),
+            private_assets.map(|prepared| &prepared.materialized_paths),
+        )
+        .await
+        {
+            Ok(()) => {}
+            Err(e) if is_index_lock_failure(&e.to_string()) => {
+                eprintln!(
+                    "⏸️ {} staging blocked by index.lock contention (retry next cycle)",
+                    repo.display()
+                );
+                return Ok(Some(SyncOutcome::Blocked));
+            }
+            Err(e) => return Err(e),
+        }
+
+        stage_gitlink_updates(
+            repo,
+            &gitlink_existing,
+            dry_run,
+            ctx.policy.stage_op_timeout_secs,
+        )
+        .await?;
+
+        let missing_iter = missing.into_iter().chain(gitlink_missing);
+        let missing: Vec<_> = missing_iter.collect();
+        if !missing.is_empty() {
+            git_rm_missing(repo, &missing, dry_run).await?;
+        }
+
+        // Close the staging epoch without resetting excluded/unknown content.
+        // A separate capture is the sole commit candidate, never a live write-tree.
+        let staged = git_name_status_entries(repo, &["diff", "--cached", "--name-status"]).await?;
+        // ADDED 2026-10-03 (audit R4-SC-16): staged set ⊆ intent.
+        // Foreign-staged paths (manual adds landing mid-cycle) defer the
+        // WHOLE commit one cycle with the index intact — the consent
+        // window. Next cycle they are pre-staged → classified → intended
+        // → committed, so commit-all converges with no wedge. Skipped in
+        // dry-run (nothing stages or commits there).
+        if !dry_run {
+            let extras = staged_extra_paths(repo, &staged, to_stage);
+            if !extras.is_empty() {
+                eprintln!(
                 "⏸️ {} staged set has {} path(s) outside this cycle's intent (concurrent staging?) — deferring to next cycle: {:?}",
                 repo.display(),
                 extras.len(),
                 &extras[..extras.len().min(5)]
             );
-            return Ok(Some(SyncOutcome::Blocked));
+                return Ok(Some(SyncOutcome::Blocked));
+            }
         }
-    }
         staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?
     };
     let committed_entries = epoch.entries()?;
@@ -4525,7 +4526,9 @@ async fn stage_commit_and_push(
         }
         println!("  message: {}", msg.lines().next().unwrap_or("(empty)"));
     } else {
-        let pending = epoch.commit(repo, &msg, policy, ctx.excluded_dir_names, private_assets).await?;
+        let pending = epoch
+            .commit(repo, &msg, policy, ctx.excluded_dir_names, private_assets)
+            .await?;
         if pending {
             // Publication succeeded, but never call retained staged/unstaged
             // data clean or reset failure state as though this epoch drained it.
@@ -4830,27 +4833,60 @@ async fn bootstrap_empty_repo_commit_owned(
     }
 
     let epoch = staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?;
-    let epoch = if epoch.has_intent() { epoch } else {
+    let epoch = if epoch.has_intent() {
+        epoch
+    } else {
         let untracked = untracked_entries(repo).await?;
         let excludes = crate::policy::effective_auto_commit_excludes(policy, &repo_override);
-        let paths: Vec<String> = untracked.iter().filter(|entry| policy.auto_stage_untracked
-            && !crate::exclude::matches_untracked_exclude(repo, &entry.path, &policy.untracked_exclude_patterns)
-            && should_stage_entry(repo, entry, excluded_dir_names, &policy.exclude_file_patterns,
-                policy.max_stage_file_bytes, &excludes))
-            .take(policy.max_stage_batch_files).map(|e| e.path.to_string_lossy().to_string()).collect();
-        if paths.is_empty() || dry_run { return Ok(false); }
-        stage_existing_files_filtered(repo, &paths, false, policy.stage_op_timeout_secs,
-            excluded_dir_names, Some((policy, &excludes))).await?;
+        let paths: Vec<String> = untracked
+            .iter()
+            .filter(|entry| {
+                policy.auto_stage_untracked
+                    && !crate::exclude::matches_untracked_exclude(
+                        repo,
+                        &entry.path,
+                        &policy.untracked_exclude_patterns,
+                    )
+                    && should_stage_entry(
+                        repo,
+                        entry,
+                        excluded_dir_names,
+                        &policy.exclude_file_patterns,
+                        policy.max_stage_file_bytes,
+                        &excludes,
+                    )
+            })
+            .take(policy.max_stage_batch_files)
+            .map(|e| e.path.to_string_lossy().to_string())
+            .collect();
+        if paths.is_empty() || dry_run {
+            return Ok(false);
+        }
+        stage_existing_files_filtered(
+            repo,
+            &paths,
+            false,
+            policy.stage_op_timeout_secs,
+            excluded_dir_names,
+            Some((policy, &excludes)),
+        )
+        .await?;
         let fresh = staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?;
         let intended: HashSet<_> = paths.iter().map(PathBuf::from).collect();
         if fresh.entries()?.iter().any(|e| !intended.contains(&e.path)) {
-            anyhow::bail!("root staging epoch contains foreign extra paths; retained for next capture");
+            anyhow::bail!(
+                "root staging epoch contains foreign extra paths; retained for next capture"
+            );
         }
         fresh
     };
-    if !epoch.has_intent() || dry_run { return Ok(false); }
+    if !epoch.has_intent() || dry_run {
+        return Ok(false);
+    }
     let message = format!("auto: initial commit ({} files)", epoch.entries()?.len());
-    epoch.commit(repo, &message, policy, excluded_dir_names, None).await?;
+    epoch
+        .commit(repo, &message, policy, excluded_dir_names, None)
+        .await?;
     Ok(true)
 }
 
@@ -4939,26 +4975,55 @@ async fn run_sealed_commit_hooks(
     message: &str,
     timeout_secs: u64,
 ) -> Result<PreparedSealedCommit> {
-    let git_dir = git_dir_path(repo)?;
-    let msgfile = git_dir.join("COMMIT_EDITMSG");
-    // Git provides an existing message file to these hooks; `commit-msg`
-    // expects to be able to rewrite it in place.
-    std::fs::write(&msgfile, format!("{message}\n"))
-        .with_context(|| format!("cannot seed {}", msgfile.display()))?;
-    let msgfile_arg = msgfile.to_string_lossy().to_string();
-
-    run_configured_hook(repo, "pre-commit", &[], timeout_secs).await?;
-    run_configured_hook(
-        repo,
-        "prepare-commit-msg",
-        &[&msgfile_arg, "message"],
-        timeout_secs,
-    )
-    .await?;
-    run_configured_hook(repo, "commit-msg", &[&msgfile_arg], timeout_secs).await?;
-
-    let approved = std::fs::read_to_string(&msgfile)
-        .with_context(|| format!("cannot read {}", msgfile.display()))?;
+    anyhow::ensure!(message.len() <= 1024 * 1024, "epoch message exceeds budget");
+    let output = staged_epoch::git(repo, &["rev-parse", "--absolute-git-dir"], None).await?;
+    let git_dir = PathBuf::from(std::str::from_utf8(&output.stdout)?.trim_end_matches('\n'));
+    // Unique capability, not the operator's COMMIT_EDITMSG. Retain on refusal
+    // so the hook-edited diagnostic is never silently discarded.
+    let directory = tempfile::Builder::new()
+        .prefix("dracon-epoch-message-")
+        .tempdir_in(git_dir)?;
+    let msgfile = directory.path().join("COMMIT_EDITMSG");
+    std::fs::write(&msgfile, format!("{message}\n"))?;
+    let msgfile_arg = msgfile.to_str().context("unsupported message path")?;
+    let hooks = async {
+        run_configured_hook(repo, "pre-commit", &[], timeout_secs).await?;
+        run_configured_hook(
+            repo,
+            "prepare-commit-msg",
+            &[msgfile_arg, "message"],
+            timeout_secs,
+        )
+        .await?;
+        run_configured_hook(repo, "commit-msg", &[msgfile_arg], timeout_secs).await
+    }
+    .await;
+    if let Err(error) = hooks {
+        let retained = directory.keep();
+        return Err(error.context(format!(
+            "refused epoch message retained at {}",
+            retained.display()
+        )));
+    }
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+    }
+    let file = options.open(&msgfile)?;
+    anyhow::ensure!(
+        file.metadata()?.is_file() && file.metadata()?.len() <= 1024 * 1024,
+        "invalid or oversized hook message"
+    );
+    use std::io::Read;
+    let mut approved = String::new();
+    file.take(1024 * 1024 + 1).read_to_string(&mut approved)?;
+    anyhow::ensure!(
+        approved.len() <= 1024 * 1024,
+        "hook message grew past budget"
+    );
     let approved = approved.trim_end_matches('\n').to_owned();
     // Git ABORTS on an empty commit message ("Aborting commit due to empty
     // commit message"). Silently restoring the original text here would let a
@@ -4970,24 +5035,6 @@ async fn run_sealed_commit_hooks(
         ));
     }
     Ok(PreparedSealedCommit { message: approved })
-}
-
-/// Resolve the repository's git directory (`git rev-parse --absolute-git-dir`).
-fn git_dir_path(repo: &Path) -> Result<std::path::PathBuf> {
-    let output = crate::policy::std_git_command()
-        .args(["rev-parse", "--absolute-git-dir"])
-        .current_dir(repo)
-        .output()
-        .context("cannot resolve the repository git directory")?;
-    if !output.status.success() {
-        return Err(anyhow::anyhow!(
-            "git rev-parse --absolute-git-dir failed: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        ));
-    }
-    Ok(std::path::PathBuf::from(
-        String::from_utf8_lossy(&output.stdout).trim(),
-    ))
 }
 
 /// ADDED 2026-07-27 (v0.113.5, audit M2): decide whether the
@@ -5235,11 +5282,19 @@ async fn sync_repo_local_with_ownership(
             return Ok(SyncOutcome::NothingToDo);
         }
         if let Some(epoch) = entry_epoch.take() {
-            if !policy.auto_commit || dry_run { return Ok(SyncOutcome::StagedPending); }
+            if !policy.auto_commit || dry_run {
+                return Ok(SyncOutcome::StagedPending);
+            }
             let message = format!("auto: initial commit ({} files)", epoch.entries()?.len());
-            let pending = epoch.commit(repo, &message, policy, excluded_dir_names, None).await?;
+            let pending = epoch
+                .commit(repo, &message, policy, excluded_dir_names, None)
+                .await?;
             // Do not enter ordinary staging after a root captured epoch.
-            return Ok(if pending { SyncOutcome::StagedPending } else { SyncOutcome::PushPaused });
+            return Ok(if pending {
+                SyncOutcome::StagedPending
+            } else {
+                SyncOutcome::PushPaused
+            });
         }
         match bootstrap_empty_repo_commit_owned(repo, policy, excluded_dir_names, dry_run).await {
             Ok(true) => {
@@ -5380,7 +5435,9 @@ async fn sync_repo_local_with_ownership(
     };
 
     if let Some(epoch) = entry_epoch {
-        if !policy.auto_commit || dry_run { return Ok(SyncOutcome::StagedPending); }
+        if !policy.auto_commit || dry_run {
+            return Ok(SyncOutcome::StagedPending);
+        }
         if ctx.backstop_active {
             return Ok(match handle_ahead_push(&mut ctx, &svc).await? {
                 PushReport::Attempted { ok: false, .. } => SyncOutcome::PushFailed,
@@ -5388,8 +5445,17 @@ async fn sync_repo_local_with_ownership(
             });
         }
         let entries = epoch.entries()?;
-        return Ok(stage_commit_and_push(&svc, &mut ctx, &initial_status, &entries,
-            &[], None, Some(epoch)).await?.unwrap_or(SyncOutcome::Synced));
+        return Ok(stage_commit_and_push(
+            &svc,
+            &mut ctx,
+            &initial_status,
+            &entries,
+            &[],
+            None,
+            Some(epoch),
+        )
+        .await?
+        .unwrap_or(SyncOutcome::Synced));
     }
 
     let copied_standard_files = if policy.standard_files_auto {

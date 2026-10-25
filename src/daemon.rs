@@ -1158,6 +1158,16 @@ pub(crate) fn apply_outcome(
             stage_cooldowns.insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(60));
             ApplyOutcome::BackstopSkipped
         }
+        Ok(SyncOutcome::StagedPending) => {
+            eprintln!(
+                "⏳ {} staged epoch has retained follow-up work{}",
+                repo.display(),
+                late_tag
+            );
+            // Real progress is not proof of clean publication: retain failure,
+            // blocked and activity evidence without a filter-only cooldown.
+            ApplyOutcome::PushPaused
+        }
         Ok(SyncOutcome::PublicationPending) => {
             // A successful local pass is not evidence of publication. Keep
             // the activity, failure budget, blocked age and stuck ledger.
@@ -7037,6 +7047,12 @@ pub(crate) async fn run_once(policy_path: &Path) -> Result<()> {
             Ok(SyncOutcome::PushPaused) => {
                 changed += 1;
                 eprintln!("⏸️ {} committed but push paused", repo.display());
+            }
+            Ok(SyncOutcome::StagedPending) => {
+                eprintln!(
+                    "⏳ {} staged epoch has retained follow-up work",
+                    repo.display()
+                );
             }
             Ok(SyncOutcome::PublicationPending) => {
                 eprintln!(

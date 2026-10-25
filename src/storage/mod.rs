@@ -2748,9 +2748,16 @@ fn verify_configured_tree(repo: &Path, tree: &str, index_path: &Path) -> Result<
     // Environment belongs solely to this helper process. Existing authority
     // checks inspect this explicit private view, including portable attributes.
     std::env::set_var("GIT_INDEX_FILE", index_path);
-    let Some(binding) = configured_guard(repo, true)? else { return Ok(()); };
-    let indexed = indexed_manifest_at(repo, &binding.repo_id, &binding.metadata_root,
-        &binding.manifest_path, Some(index_path.to_path_buf()))?;
+    let Some(binding) = configured_guard(repo, true)? else {
+        return Ok(());
+    };
+    let indexed = indexed_manifest_at(
+        repo,
+        &binding.repo_id,
+        &binding.metadata_root,
+        &binding.manifest_path,
+        Some(index_path.to_path_buf()),
+    )?;
     verify_guard_entries(&indexed)
 }
 
@@ -2779,15 +2786,6 @@ pub(crate) struct PreparedStorageCommit {
     pub commit_id: String,
     pub previous_id: String,
     _lock: dracon_sync::storage_core::index::CommitLock,
-}
-
-/// Prepare immutable content without updating HEAD through libgit2. The daemon
-/// updates it through native Git so reference-transaction hooks are honored.
-pub(crate) fn prepare_configured_storage_commit(
-    repo: &Path,
-    message: &str,
-) -> Result<Option<PreparedStorageCommit>> {
-    prepare_storage_commit_inner(repo, message, false)
 }
 
 fn prepare_storage_commit_inner(
