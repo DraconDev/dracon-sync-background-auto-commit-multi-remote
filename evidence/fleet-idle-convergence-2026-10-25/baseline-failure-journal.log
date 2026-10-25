@@ -1,0 +1,17 @@
+      "url": "git@github.com:DraconDev/doomtap.git",
+      "url": "git@gitlab.com:DraconDev/doomtap.git",
+      "url": "git@github.com:DraconDev/doomtap.git",
+⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap with status exit status: 1: {
+🔔 sync alert: /home/dracon/Dev/dracon-platform/web/games/wip/doomtap — Sync Failures (backing off): 5 consecutive sync failures; probing every 15 min
+⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/doomtap exceeded max failures (5), backing off 15 min (will re-probe)
+classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform/web/games/wip/doomtap elapsed_ms=6626 outcome=success
+      "url": "git@github.com:DraconDev/doomtap.git",
+      "url": "git@gitlab.com:DraconDev/doomtap.git",
+      "url": "git@github.com:DraconDev/doomtap.git",
+⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap with status exit status: 1: {
+      "url": "git@github.com:DraconDev/doomtap.git",
+      "url": "git@gitlab.com:DraconDev/doomtap.git",
+      "url": "git@github.com:DraconDev/doomtap.git",
+⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap with status exit status: 1: {
+⚠️ /home/dracon/Dev/dracon-strategy/ai-auto-writer status_failed (retry in 300s): status inspection timed out; owned Git process group cancelled
+⚠️ /home/dracon/Dev/dracon-strategy/ai-auto-writer status task failed: status inspection timed out; owned Git process group cancelled
