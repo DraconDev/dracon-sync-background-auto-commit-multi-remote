@@ -145,7 +145,6 @@ struct Target {
     path: PathBuf,
     source: Location,
     before: Option<Fingerprint>,
-    desired: Location,
     desired_before: Fingerprint,
 }
 
@@ -249,7 +248,7 @@ async fn restore_inner(
         let desired = Location::open(&tree, &path)?;
         let desired_before = desired.fingerprint().await?.context("missing excluded restore target")?;
         targets.push(Target {
-            path, source, before, desired, desired_before,
+            path, source, before, desired_before,
         });
     }
     let lock = match crate::git::IndexLock::try_acquire_path(crate::git::index_lock_path(repo)) {
@@ -286,39 +285,109 @@ async fn restore_inner(
         repo.display(),
         retained.display()
     );
-    for target in targets {
-        ensure!(
-            lock.is_owned(),
-            "excluded restore index lock replaced; recovery retained"
-        );
-        if target.source.fingerprint().await? != target.before {
-            return Ok(false);
+    let executable = std::env::current_exe()?;
+    #[cfg(test)]
+    let executable = {
+        let _ = executable;
+        PathBuf::from(std::env::var_os("DRACON_EPOCH_TEST_HELPER")
+            .context("matching revision-qualified excluded restore helper required")?)
+    };
+    ensure!(executable.is_absolute(), "excluded helper must be absolute");
+    let mut command = tokio::process::Command::new(executable);
+    command.arg("--dracon-excluded-restore-helper").arg(&journal_path)
+        .env("TOKIO_WORKER_THREADS", "2").current_dir(repo);
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") { command.env_remove(key); }
+    }
+    let output = crate::git::run_command_captured_output(command, 3600,
+        "excluded restore helper", None).await?;
+    ensure!(output.status.success(), "excluded restore helper refused: {}", String::from_utf8_lossy(&output.stderr));
+    ensure!(lock.is_owned(), "excluded restore lock replaced; recovery retained");
+    let response: (String, bool) = serde_json::from_slice(&output.stdout)?;
+    ensure!(response.0 == env!("DRACON_EPOCH_SOURCE_ID"), "excluded helper source identity mismatch");
+    Ok(response.1)
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct RestoreTarget { path: Vec<u8>, before: Option<Fingerprint>, desired: Fingerprint }
+#[derive(serde::Serialize, serde::Deserialize)]
+struct RestoreRequest { source_id: String, repo: Vec<u8>, head: String, targets: Vec<RestoreTarget> }
+
+/// Private child ONLY: signal disposition and kernel leases must never affect
+/// daemon/editor threads. Parent cancellation kills the owned child group and
+/// releases leases; no detached blocking thread can restore files afterwards.
+pub(super) async fn helper(request_path: &Path) -> Result<()> {
+    use std::os::unix::ffi::OsStringExt;
+    let file = tokio::fs::File::open(request_path).await?;
+    let mut bytes = Vec::new();
+    file.take(64 * 1024 * 1024 + 1).read_to_end(&mut bytes).await?;
+    ensure!(bytes.len() <= 64 * 1024 * 1024, "excluded recovery request too large");
+    let request: RestoreRequest = serde_json::from_slice(&bytes)?;
+    ensure!(request.source_id == env!("DRACON_EPOCH_SOURCE_ID"), "excluded helper source identity mismatch");
+    let repo = PathBuf::from(std::ffi::OsString::from_vec(request.repo.clone()));
+    let tree = request_path.parent().context("recovery root missing")?.join("files");
+    // An ignored SIGIO is scoped to this otherwise idle dedicated child. A
+    // competing new writer waits only for this short critical section; an
+    // ALREADY open writable FD/mmap makes lease acquisition fail, not relocate
+    // the producer's future writes into an invisible recovery file.
+    unsafe { libc::signal(libc::SIGIO, libc::SIG_IGN); }
+    let break_seconds: u64 = std::fs::read_to_string("/proc/sys/fs/lease-break-time")?.trim().parse()?;
+    ensure!(break_seconds > 1, "kernel lease break interval too short; excluded bytes retained");
+    let started = Instant::now();
+    let lease_budget = Duration::from_secs(break_seconds - 1);
+    let mut leases = Vec::new();
+    let mut targets = Vec::new();
+    for item in request.targets {
+        let path = PathBuf::from(std::ffi::OsString::from_vec(item.path));
+        let source = Location::open(&repo, &path)?;
+        if let Some(file) = source.file()? {
+            let result = unsafe { libc::fcntl(file.as_raw_fd(), libc::F_SETLEASE, libc::F_RDLCK) };
+            if result < 0 {
+                let error = std::io::Error::last_os_error();
+                if error.raw_os_error() == Some(libc::EAGAIN) {
+                    return response(false);
+                }
+                return Err(error).context("cannot prove excluded file has no active writer; bytes retained");
+            }
+            leases.push(file);
         }
-        if target.before.is_none() {
-            // Atomic no-replace: a newly created producer file wins.
-            target
-                .desired
-                .exchange(&target.source, libc::RENAME_NOREPLACE)?;
+        let desired = Location::open(&tree, &path)?;
+        if source.fingerprint().await? != item.before
+            || desired.fingerprint().await? != Some(item.desired) { return response(false); }
+        targets.push((source, desired, item.before));
+    }
+    let snapshot = StagedIntentSnapshot::capture(&repo, started + lease_budget).await?;
+    if snapshot.head != CapturedHead::Commit(request.head) || !snapshot.changed.is_empty() { return response(false); }
+    for (source, desired, before) in targets {
+        if started.elapsed() >= lease_budget || leases.iter().any(|file|
+            unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETLEASE) } != libc::F_RDLCK) {
+            return response(false);
+        }
+        if source.fingerprint().await? != before { return response(false); }
+        // Hashing itself must not run past kernel-enforced lease expiry.
+        if started.elapsed() >= lease_budget { return response(false); }
+        if before.is_none() {
+            match desired.exchange(&source, libc::RENAME_NOREPLACE) {
+                Ok(()) => {},
+                Err(error) if error.downcast_ref::<std::io::Error>().is_some_and(|e|
+                    e.kind() == std::io::ErrorKind::AlreadyExists) => return response(false),
+                Err(error) => return Err(error),
+            }
         } else {
-            target
-                .source
-                .exchange(&target.desired, libc::RENAME_EXCHANGE)?;
-            if target.desired.fingerprint().await? != target.before {
-                // An intervening producer won. Put it back; both displaced
-                // inodes remain reachable, including edits via existing FDs.
-                target
-                    .source
-                    .exchange(&target.desired, libc::RENAME_EXCHANGE)?;
-                eprintln!(
-                    "⏳ excluded restore raced; work retained: {}",
-                    retained.display()
-                );
-                return Ok(false);
+            source.exchange(&desired, libc::RENAME_EXCHANGE)?;
+            if desired.fingerprint().await? != before {
+                source.exchange(&desired, libc::RENAME_EXCHANGE)?;
+                return response(false);
             }
-            if let Some(file) = target.desired.file()? {
-                file.sync_all()?;
-            }
+            if let Some(file) = desired.file()? { file.sync_all()?; }
         }
     }
-    Ok(true)
+    response(true)
 }
+fn response(restored: bool) -> Result<()> {
+    use std::io::Write;
+    let out = serde_json::to_vec(&(env!("DRACON_EPOCH_SOURCE_ID"), restored))?;
+    std::io::stdout().write_all(&out)?;
+    Ok(())
+}
+
