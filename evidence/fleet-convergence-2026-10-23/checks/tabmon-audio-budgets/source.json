@@ -1,0 +1,16 @@
+{
+  "observed_at": 1792896120.972517,
+  "daemon_commit_anchor": "9e62ef2eea2382ac4cb20f9ebbd2a28f12d73933",
+  "test_path": "extensions/standalones/tabmon/tests/sfx.test.ts",
+  "test_sha256": "e339f02c63e5f485068e082b898172f852f2aac62acf0f85b5e4fb1390ef0629",
+  "all_local_gates_passed": [
+    "typecheck",
+    "lint",
+    "test",
+    "build"
+  ],
+  "test_case_timeout_unchanged": 60000,
+  "audio_assets_changed_by_this_repair": false,
+  "thresholds_changed": false,
+  "nonvacuity_controls": "off-tempo synthetic pulse, broken seam, louder sample; harmless on-pulse and reencode controls preserved"
+}

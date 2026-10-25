@@ -1,0 +1,109 @@
+{
+  "observed_at": 1792896121.1230052,
+  "active_manifest": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.1ZPjN7/manifest.json",
+  "signals": [
+    {
+      "pid": 1842915,
+      "starttime": "260192827",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1842933,
+      "starttime": "260192831",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1843467,
+      "starttime": "260192939",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845229,
+      "starttime": "260193440",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 2523974,
+      "starttime": "260378653",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 2524176,
+      "starttime": "260378686",
+      "signal": "SIGTERM"
+    }
+  ],
+  "failed_revision": "9ddc4c869ac63b6cab04b2c7c69c2f409a636a43",
+  "group": 1842915,
+  "daemon_pid": 3906273,
+  "initial_members": [
+    {
+      "pid": 1842915,
+      "state": "S",
+      "ppid": 3906273,
+      "group": 1842915,
+      "starttime": "260192827",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "git"
+    },
+    {
+      "pid": 1842933,
+      "state": "S",
+      "ppid": 1842915,
+      "group": 1842915,
+      "starttime": "260192831",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "ssh"
+    },
+    {
+      "pid": 1843467,
+      "state": "S",
+      "ppid": 1842915,
+      "group": 1842915,
+      "starttime": "260192939",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "pre-push"
+    },
+    {
+      "pid": 1845229,
+      "state": "S",
+      "ppid": 1843467,
+      "group": 1842915,
+      "starttime": "260193440",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "MainThread"
+    },
+    {
+      "pid": 2523974,
+      "state": "S",
+      "ppid": 1845229,
+      "group": 1842915,
+      "starttime": "260378653",
+      "uid": 1000,
+      "cwd": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.1ZPjN7/snapshot-9ddc4c869ac63b6cab04b2c7c69c2f409a636a43/extensions/collections/toolkit/gemini-toolkit",
+      "unit": true,
+      "name": "npm run build"
+    },
+    {
+      "pid": 2524176,
+      "state": "R",
+      "ppid": 2523974,
+      "group": 1842915,
+      "starttime": "260378686",
+      "uid": 1000,
+      "cwd": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.1ZPjN7/snapshot-9ddc4c869ac63b6cab04b2c7c69c2f409a636a43/extensions/collections/toolkit/gemini-toolkit",
+      "unit": true,
+      "name": "MainThread"
+    }
+  ],
+  "applied": true,
+  "corrected_test_anchor": "9e62ef2eea2382ac4cb20f9ebbd2a28f12d73933"
+}
