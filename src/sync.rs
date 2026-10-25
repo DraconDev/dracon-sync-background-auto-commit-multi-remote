@@ -4374,6 +4374,7 @@ async fn stage_commit_and_push(
     let blast_radius = compute_blast_radius(repo);
 
     let version_bumped = false;
+    let mut pending_local = false;
 
     if committed_entries.is_empty() {
         if debug_enabled() {
@@ -4444,14 +4445,12 @@ async fn stage_commit_and_push(
         }
         println!("  message: {}", msg.lines().next().unwrap_or("(empty)"));
     } else {
-        let pending = epoch
+        pending_local = epoch
             .commit(repo, &msg, policy, ctx.excluded_dir_names, private_assets)
             .await?;
-        if pending {
-            // Publication succeeded, but never call retained staged/unstaged
-            // data clean or reset failure state as though this epoch drained it.
-            return Ok(Some(SyncOutcome::StagedPending));
-        }
+        // A committed epoch can leave unstaged or newly staged follow-up.
+        // Retain that fact, but still publish the known immutable commit below;
+        // local editing must not starve an already committed backlog.
         if crate::policy::debug_enabled() {
             // Exact commit-completion timestamp for the fairness probe's
             // commit→push gate, including sealed storage commits that do
@@ -4499,19 +4498,25 @@ async fn stage_commit_and_push(
         }
     }
 
-    if !ctx.commit_only && !captured_at_entry {
+    if !ctx.commit_only && !captured_at_entry && !pending_local {
         prune_other_default_branch(repo).await;
         post_commit_pull(svc, repo, policy).await;
     }
 
-    let alert_status = svc.get_status().await?;
-    if alert_status.ahead > policy.alert_unpushed_threshold {
-        eprintln!(
-            "🚨 ALERT: {} has {} unpushed commits (threshold: {}). Something may be wrong with push.",
-            repo.display(),
-            alert_status.ahead,
-            policy.alert_unpushed_threshold
-        );
+    // This alert needs a commit count, not another worktree/filter traversal.
+    // Failure after a known commit must not erase that fact or skip publication.
+    match count_ahead_commits(repo).await {
+        Ok(ahead) if ahead > policy.alert_unpushed_threshold as u64 => {
+            eprintln!(
+                "🚨 ALERT: {} has {} unpushed commits (threshold: {}). Something may be wrong with push.",
+                repo.display(), ahead, policy.alert_unpushed_threshold
+            );
+        }
+        Ok(_) => {}
+        Err(error) => {
+            pending_local = true;
+            eprintln!("⚠️ {} committed, but follow-up ahead inspection failed: {error:#}", repo.display());
+        }
     }
 
     let _ = to_restore; // excluded content is never reset after publication.
@@ -4642,19 +4647,23 @@ async fn stage_commit_and_push(
             "⏳ {} post-publication local work deferred (no local ownership)",
             repo.display()
         );
-        return if push_failed {
-            Ok(Some(SyncOutcome::PushFailed))
-        } else {
-            Ok(None)
-        };
+        return Ok(committed_epoch_outcome(push_failed, true));
     }
     run_release_pipeline_if_bumped(repo, policy, version_bumped).await;
 
-    if push_failed {
-        return Ok(Some(SyncOutcome::PushFailed));
-    }
+    Ok(committed_epoch_outcome(push_failed, pending_local))
+}
 
-    Ok(None)
+/// Transport failure takes precedence, but successful publication never means
+/// local follow-up disappeared. None retains the caller's fully-synced contract.
+fn committed_epoch_outcome(push_failed: bool, pending_local: bool) -> Option<SyncOutcome> {
+    if push_failed {
+        Some(SyncOutcome::PushFailed)
+    } else if pending_local {
+        Some(SyncOutcome::StagedPending)
+    } else {
+        None
+    }
 }
 
 /// ADDED 2026-07-21 (v0.112.30): policy-aware root-commit bootstrap for
@@ -11899,6 +11908,14 @@ trusted_authors = ["test"]
     /// Unit test for R4-SC-16's matcher: exact hits, dir-prefix hits
     /// (untracked-dir/gitlink entries stage whole trees), and foreign
     /// paths reported as extras.
+    #[test]
+    fn committed_epoch_outcome_keeps_local_pending_and_transport_failure_distinct() {
+        assert_eq!(committed_epoch_outcome(false, false), None);
+        assert_eq!(committed_epoch_outcome(false, true), Some(SyncOutcome::StagedPending));
+        assert_eq!(committed_epoch_outcome(true, false), Some(SyncOutcome::PushFailed));
+        assert_eq!(committed_epoch_outcome(true, true), Some(SyncOutcome::PushFailed));
+    }
+
     #[test]
     fn test_staged_extra_paths_matching() {
         use dracon_git::types::{DiffFile, FileStatus};
