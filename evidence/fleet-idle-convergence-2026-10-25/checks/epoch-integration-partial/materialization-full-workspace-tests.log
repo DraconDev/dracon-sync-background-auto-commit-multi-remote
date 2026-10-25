@@ -2186,3 +2186,5 @@ ok
 test sync::tests::test_sync_repo_skips_rebase_in_progress ... [master (root-commit) 293f215] init
 ok
 test sync::tests::test_sync_repo_skips_revert_in_progress ... [master (root-commit) 293f215] init
+ok
+test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) 1b51db3] init
