@@ -1,0 +1,13 @@
+{
+  "started_unix": 1792888910.2520952,
+  "verified_unix": 1792888916.432693,
+  "old_pid": 3046262,
+  "new_pid": 3906273,
+  "old_loaded_sha256": "59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc",
+  "loaded_sha256": "8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad",
+  "installed_sha256": "8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad",
+  "backup": "/home/dracon/.local/state/dracon/deployments/20261025T004150Z-final-v8-convergence",
+  "method": "maintenance wrapper; atomic binary replacement; pidfd SIGTERM; Restart=always",
+  "service_stop_used": false,
+  "manual_repository_pushes": false
+}

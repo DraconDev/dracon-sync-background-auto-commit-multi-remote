@@ -50,13 +50,10 @@ for name, metadata in source['repositories'].items():
 (OUT / 'frozen-input-integrity.json').write_text(json.dumps({'refs_unchanged': True, 'captured_overlay_unchanged': True, 'other_tracked_inputs_match_required_smudge': True, 'filtered_equivalents': filtered}, indent=2) + '\n')
 before = identity()
 assert before['sha256'] == '59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc'
-original = Path(q['binary_path'])
-assert digest(original) == q['binary_sha256']
-candidate = state / 'qualified-bin/dracon-sync'
-candidate.parent.mkdir(mode=0o700)
-assert not candidate.exists()
-shutil.copy2(original, candidate)
-candidate.chmod(0o755)
+recovery = json.loads((OUT / 'artifact-recovery.json').read_text())
+assert recovery['status'] == 'passed'
+candidate = Path(recovery['durable_binary'])
+assert candidate.is_file() and not candidate.is_symlink()
 assert digest(candidate) == q['binary_sha256']
 dependencies = subprocess.run(['ldd', str(candidate)], capture_output=True, text=True, timeout=20)
 (OUT / 'runtime-dependencies.log').write_text(dependencies.stdout + dependencies.stderr)

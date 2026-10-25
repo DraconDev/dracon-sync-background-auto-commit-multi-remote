@@ -8,7 +8,7 @@ assert all(row['exit_code']==0 for row in qualified['commands'])
 source = json.loads((qualification_root/'source.json').read_text())
 state = Path(source['state_root'])
 assert state.parent==Path('/tmp') and state.name.startswith('fleet-worktree-qualified-')
-candidate = state/'qualified-bin/dracon-sync'
+candidate = Path(json.loads((qualification_root/'candidate-stage.json').read_text())['candidate'])
 target = Path.home() / '.local/bin/dracon-sync'
 expected = qualified['binary_sha256']
 old_expected = '59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc'
