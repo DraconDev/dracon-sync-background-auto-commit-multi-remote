@@ -1,7 +1,9 @@
 //! Persistent private recovery must not be normalized healthy by a raw-clean report.
 use std::{path::Path,process::Command,time::Duration};
 fn git(repo:&Path,args:&[&str])->Vec<u8>{
-    let out=Command::new("git").arg("--no-optional-locks").arg("-C").arg(repo).args(args)
+    let mut command=Command::new("git");
+    for(key,_)in std::env::vars_os(){if key.to_string_lossy().starts_with("GIT_"){command.env_remove(key);}}
+    let out=command.arg("--no-optional-locks").arg("-C").arg(repo).args(args)
         .env("GIT_CONFIG_GLOBAL","/dev/null").env("GIT_CONFIG_NOSYSTEM","1").output().unwrap();
     assert!(out.status.success(),"{args:?}: {}",String::from_utf8_lossy(&out.stderr));out.stdout
 }
