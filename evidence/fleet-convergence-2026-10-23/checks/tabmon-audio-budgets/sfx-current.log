@@ -1,3 +1,9 @@
 
  RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/tabmon
 
+
+ Test Files  1 passed (1)
+      Tests  119 passed (119)
+   Start at  02:20:33
+   Duration  440.98s (transform 522ms, setup 235ms, import 406ms, tests 438.85s, environment 1.01s)
+
