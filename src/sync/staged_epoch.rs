@@ -7,11 +7,20 @@ use tokio::time::Instant;
 #[path = "unmerged_epoch.rs"]
 mod unmerged;
 
-pub(super) async fn reconcile_unmerged(repo: &Path, enabled: bool, deadline: Instant) -> Result<Option<(Epoch, usize)>> {
+pub(super) async fn reconcile_unmerged(
+    repo: &Path,
+    enabled: bool,
+    deadline: Instant,
+) -> Result<Option<(Epoch, usize)>> {
     #[cfg(unix)]
-    { unmerged::reconcile(repo, enabled, deadline).await }
+    {
+        unmerged::reconcile(repo, enabled, deadline).await
+    }
     #[cfg(not(unix))]
-    { let _ = (repo, enabled, deadline); anyhow::bail!("descriptor-bound unmerged reconciliation unsupported; index retained") }
+    {
+        let _ = (repo, enabled, deadline);
+        anyhow::bail!("descriptor-bound unmerged reconciliation unsupported; index retained")
+    }
 }
 
 #[derive(Debug)]
@@ -138,18 +147,28 @@ impl Epoch {
 
     /// Reconciliation precedes ordinary capture, but its complete raw-index
     /// observation and private candidate are themselves the entry provenance.
-    pub(super) async fn capture_entry(repo: &Path, timeout_secs: u64, auto_resolve: bool) -> Result<Self> {
+    pub(super) async fn capture_entry(
+        repo: &Path,
+        timeout_secs: u64,
+        auto_resolve: bool,
+    ) -> Result<Self> {
         let deadline = Instant::now() + Duration::from_secs(timeout_secs.max(1));
         tokio::time::timeout_at(deadline, async {
             match Self::capture(repo, timeout_secs).await {
                 Ok(epoch) => Ok(epoch),
                 Err(original) if auto_resolve => {
-                    if let Some((epoch, _)) = reconcile_unmerged(repo, true, deadline).await? { Ok(epoch) }
-                    else { Err(original).context("unmerged/uncertain entry retained; no verified resolution") }
+                    if let Some((epoch, _)) = reconcile_unmerged(repo, true, deadline).await? {
+                        Ok(epoch)
+                    } else {
+                        Err(original)
+                            .context("unmerged/uncertain entry retained; no verified resolution")
+                    }
                 }
                 Err(error) => Err(error),
             }
-        }).await.context("entry capture/reconciliation absolute deadline expired")?
+        })
+        .await
+        .context("entry capture/reconciliation absolute deadline expired")?
     }
 
     pub(super) fn deadline(&self) -> Instant {

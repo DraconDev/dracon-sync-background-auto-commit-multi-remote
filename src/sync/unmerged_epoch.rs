@@ -6,87 +6,205 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::CString;
 use std::fs::{File, OpenOptions};
 use std::os::fd::{AsRawFd, FromRawFd};
-use std::os::unix::{ffi::OsStrExt, fs::{MetadataExt, OpenOptionsExt, PermissionsExt}};
+use std::os::unix::{
+    ffi::OsStrExt,
+    fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
+};
 use tokio::io::AsyncReadExt;
 
-type Stamp = (u64,u64,u64,u32,u32,u32,i64,i64,i64,i64,u64);
+type Stamp = (u64, u64, u64, u32, u32, u32, i64, i64, i64, i64, u64);
 fn stamp(meta: &std::fs::Metadata) -> Stamp {
-    (meta.dev(),meta.ino(),meta.len(),meta.mode(),meta.uid(),meta.gid(),meta.mtime(),meta.mtime_nsec(),meta.ctime(),meta.ctime_nsec(),meta.nlink())
+    (
+        meta.dev(),
+        meta.ino(),
+        meta.len(),
+        meta.mode(),
+        meta.uid(),
+        meta.gid(),
+        meta.mtime(),
+        meta.mtime_nsec(),
+        meta.ctime(),
+        meta.ctime_nsec(),
+        meta.nlink(),
+    )
 }
-struct Source { parent: File, leaf: CString, file: File, before: Stamp, parent_before: Stamp }
+struct Source {
+    parent: File,
+    leaf: CString,
+    file: File,
+    before: Stamp,
+    parent_before: Stamp,
+}
 impl Source {
     fn open(repo: &Path, path: &Path) -> Result<Self> {
         ensure!(crate::git::is_safe_git_path(path), "unsafe unmerged path");
-        let mut parent = OpenOptions::new().read(true).custom_flags(libc::O_DIRECTORY|libc::O_NOFOLLOW|libc::O_CLOEXEC).open(repo)?;
+        let mut parent = OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+            .open(repo)?;
         let parts: Vec<_> = path.components().collect();
         for part in &parts[..parts.len().saturating_sub(1)] {
-            let std::path::Component::Normal(name) = part else { anyhow::bail!("non-normal unmerged path") };
+            let std::path::Component::Normal(name) = part else {
+                anyhow::bail!("non-normal unmerged path")
+            };
             let name = CString::new(name.as_bytes())?;
-            let fd = unsafe { libc::openat(parent.as_raw_fd(),name.as_ptr(),libc::O_RDONLY|libc::O_DIRECTORY|libc::O_NOFOLLOW|libc::O_CLOEXEC) };
-            ensure!(fd >= 0, "cannot open unmerged ancestor: {}",std::io::Error::last_os_error());
+            let fd = unsafe {
+                libc::openat(
+                    parent.as_raw_fd(),
+                    name.as_ptr(),
+                    libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                )
+            };
+            ensure!(
+                fd >= 0,
+                "cannot open unmerged ancestor: {}",
+                std::io::Error::last_os_error()
+            );
             parent = unsafe { File::from_raw_fd(fd) };
         }
-        let Some(std::path::Component::Normal(name)) = parts.last() else { anyhow::bail!("missing unmerged basename") };
+        let Some(std::path::Component::Normal(name)) = parts.last() else {
+            anyhow::bail!("missing unmerged basename")
+        };
         let leaf = CString::new(name.as_bytes())?;
-        let fd = unsafe { libc::openat(parent.as_raw_fd(),leaf.as_ptr(),libc::O_RDONLY|libc::O_NOFOLLOW|libc::O_NONBLOCK|libc::O_CLOEXEC) };
-        ensure!(fd >= 0, "cannot open unmerged source: {}",std::io::Error::last_os_error());
+        let fd = unsafe {
+            libc::openat(
+                parent.as_raw_fd(),
+                leaf.as_ptr(),
+                libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC,
+            )
+        };
+        ensure!(
+            fd >= 0,
+            "cannot open unmerged source: {}",
+            std::io::Error::last_os_error()
+        );
         let file = unsafe { File::from_raw_fd(fd) };
         let meta = file.metadata()?;
-        ensure!(meta.is_file() && meta.nlink()==1, "unmerged source must be a single-link regular file");
-        Ok(Self { before:stamp(&meta),parent_before:stamp(&parent.metadata()?),parent,leaf,file })
+        ensure!(
+            meta.is_file() && meta.nlink() == 1,
+            "unmerged source must be a single-link regular file"
+        );
+        Ok(Self {
+            before: stamp(&meta),
+            parent_before: stamp(&parent.metadata()?),
+            parent,
+            leaf,
+            file,
+        })
     }
     fn unchanged(&self, repo: &Path, path: &Path) -> Result<bool> {
-        let named = Self::open(repo,path)?;
-        Ok(stamp(&self.file.metadata()?)==self.before && named.before==self.before
-            && stamp(&self.parent.metadata()?)==self.parent_before && named.parent_before==self.parent_before
-            && self.leaf==named.leaf)
+        let named = Self::open(repo, path)?;
+        Ok(stamp(&self.file.metadata()?) == self.before
+            && named.before == self.before
+            && stamp(&self.parent.metadata()?) == self.parent_before
+            && named.parent_before == self.parent_before
+            && self.leaf == named.leaf)
     }
 }
-async fn index_bytes(path: &Path) -> Result<(Vec<u8>,Stamp)> {
-    let file = OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW|libc::O_CLOEXEC).open(path)?;
+async fn index_bytes(path: &Path) -> Result<(Vec<u8>, Stamp)> {
+    let file = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(path)?;
     let meta = file.metadata()?;
-    ensure!(meta.is_file() && meta.nlink()==1 && meta.uid()==unsafe{libc::geteuid()} && meta.len()<=64*1024*1024,
-        "unmerged index must be an owned single-link regular bounded file");
+    ensure!(
+        meta.is_file()
+            && meta.nlink() == 1
+            && meta.uid() == unsafe { libc::geteuid() }
+            && meta.len() <= 64 * 1024 * 1024,
+        "unmerged index must be an owned single-link regular bounded file"
+    );
     let before = stamp(&meta);
     let mut file = tokio::fs::File::from_std(file);
-    let mut bytes=Vec::new();
-    (&mut file).take(64*1024*1024+1).read_to_end(&mut bytes).await?;
-    ensure!(bytes.len() as u64 == meta.len() && stamp(&file.metadata().await?)==before, "unmerged index changed during capture");
-    Ok((bytes,before))
+    let mut bytes = Vec::new();
+    (&mut file)
+        .take(64 * 1024 * 1024 + 1)
+        .read_to_end(&mut bytes)
+        .await?;
+    ensure!(
+        bytes.len() as u64 == meta.len() && stamp(&file.metadata().await?) == before,
+        "unmerged index changed during capture"
+    );
+    Ok((bytes, before))
 }
 fn private_file(path: &Path, bytes: &[u8]) -> Result<()> {
     use std::io::Write;
-    let mut file=OpenOptions::new().create_new(true).write(true).mode(0o600).open(path)?;
-    file.write_all(bytes)?; file.sync_all()?; Ok(())
+    let mut file = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .mode(0o600)
+        .open(path)?;
+    file.write_all(bytes)?;
+    file.sync_all()?;
+    Ok(())
 }
 async fn private_read(repo: &Path, index: &Path, args: &[&str]) -> Result<Vec<u8>> {
-    let mut command=crate::policy::tokio_git_command();
-    for(key,_)in std::env::vars_os(){if key.to_string_lossy().starts_with("GIT_"){command.env_remove(key);}}
-    command.current_dir(repo).env("GIT_INDEX_FILE",index).env("GIT_NO_LAZY_FETCH","1").env("GIT_OPTIONAL_LOCKS","0")
-        .args(["--no-optional-locks","-c","core.fsmonitor=false"]).args(args);
-    let out=crate::git::run_command_captured_output(command.into_tokio(),3600,"unmerged private observation",None).await?;
-    ensure!(out.status.success(),"unmerged private read refused"); Ok(out.stdout)
+    let mut command = crate::policy::tokio_git_command();
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(key);
+        }
+    }
+    command
+        .current_dir(repo)
+        .env("GIT_INDEX_FILE", index)
+        .env("GIT_NO_LAZY_FETCH", "1")
+        .env("GIT_OPTIONAL_LOCKS", "0")
+        .args(["--no-optional-locks", "-c", "core.fsmonitor=false"])
+        .args(args);
+    let out = crate::git::run_command_captured_output(
+        command.into_tokio(),
+        3600,
+        "unmerged private observation",
+        None,
+    )
+    .await?;
+    ensure!(out.status.success(), "unmerged private read refused");
+    Ok(out.stdout)
 }
-fn slots(raw: &[u8], deadline: Instant) -> Result<BTreeMap<Vec<u8>,Vec<(u32,String,u8)>>> {
-    let mut paths:BTreeMap<Vec<u8>,Vec<(u32,String,u8)>>=BTreeMap::new();
-    ensure!(raw.is_empty() || raw.ends_with(&[0]),"unterminated unmerged observation");
-    for record in raw.split(|b|*b==0).filter(|r|!r.is_empty()) {
-        ensure!(Instant::now()<deadline,"unmerged deadline expired");
-        let tab=record.iter().position(|b|*b==b'\t').context("invalid unmerged path header")?;
-        let fields:Vec<_>=std::str::from_utf8(&record[..tab])?.split(' ').collect();
-        ensure!(fields.len()==3 && crate::git::is_valid_object_id(fields[1]),"invalid unmerged identity");
-        let mode=u32::from_str_radix(fields[0],8)?; let stage:u8=fields[2].parse()?;
-        ensure!(matches!(mode,0o100644|0o100755|0o120000|0o160000) && stage<=3,"unsupported conflict mode/stage");
-        let path=record[tab+1..].to_vec();
-        ensure!(crate::git::is_safe_git_path(&path_from_git_bytes(&path)?),"unsafe conflict path");
-        let entries=paths.entry(path).or_default();
-        ensure!(!entries.iter().any(|(_,_,s)|*s==stage),"duplicate conflict stage");
-        entries.push((mode,fields[1].to_owned(),stage));
+fn slots(raw: &[u8], deadline: Instant) -> Result<BTreeMap<Vec<u8>, Vec<(u32, String, u8)>>> {
+    let mut paths: BTreeMap<Vec<u8>, Vec<(u32, String, u8)>> = BTreeMap::new();
+    ensure!(
+        raw.is_empty() || raw.ends_with(&[0]),
+        "unterminated unmerged observation"
+    );
+    for record in raw.split(|b| *b == 0).filter(|r| !r.is_empty()) {
+        ensure!(Instant::now() < deadline, "unmerged deadline expired");
+        let tab = record
+            .iter()
+            .position(|b| *b == b'\t')
+            .context("invalid unmerged path header")?;
+        let fields: Vec<_> = std::str::from_utf8(&record[..tab])?.split(' ').collect();
+        ensure!(
+            fields.len() == 3 && crate::git::is_valid_object_id(fields[1]),
+            "invalid unmerged identity"
+        );
+        let mode = u32::from_str_radix(fields[0], 8)?;
+        let stage: u8 = fields[2].parse()?;
+        ensure!(
+            matches!(mode, 0o100644 | 0o100755 | 0o120000 | 0o160000) && stage <= 3,
+            "unsupported conflict mode/stage"
+        );
+        let path = record[tab + 1..].to_vec();
+        ensure!(
+            crate::git::is_safe_git_path(&path_from_git_bytes(&path)?),
+            "unsafe conflict path"
+        );
+        let entries = paths.entry(path).or_default();
+        ensure!(
+            !entries.iter().any(|(_, _, s)| *s == stage),
+            "duplicate conflict stage"
+        );
+        entries.push((mode, fields[1].to_owned(), stage));
     }
     Ok(paths)
 }
 
-pub(super) async fn reconcile(repo: &Path, enabled: bool, deadline: Instant) -> Result<Option<(Epoch,usize)>> {
+pub(super) async fn reconcile(
+    repo: &Path,
+    enabled: bool,
+    deadline: Instant,
+) -> Result<Option<(Epoch, usize)>> {
     tokio::time::timeout_at(deadline,async {
         // Never treat an active user merge/rebase/cherry-pick as stale slots.
         if check_conflict_state(repo).is_some() { return Ok(None) }

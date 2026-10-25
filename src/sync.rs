@@ -4003,9 +4003,13 @@ fn compute_blast_radius(repo: &Path) -> String {
 /// by production, not the removed live-index reset implementation.
 #[cfg(test)]
 async fn auto_resolve_unmerged_if_safe(repo: &Path, auto_resolve: bool) -> Result<usize> {
-    Ok(staged_epoch::reconcile_unmerged(repo, auto_resolve,
-        tokio::time::Instant::now() + Duration::from_secs(30)).await?
-        .map_or(0, |(_, count)| count))
+    Ok(staged_epoch::reconcile_unmerged(
+        repo,
+        auto_resolve,
+        tokio::time::Instant::now() + Duration::from_secs(30),
+    )
+    .await?
+    .map_or(0, |(_, count)| count))
 }
 
 /// Check the untracked file count and emit a warning if it exceeds
@@ -5185,8 +5189,12 @@ async fn sync_repo_local_with_ownership(
         return Ok(blocked);
     }
 
-    let entry_epoch = staged_epoch::Epoch::capture_entry(repo, policy.stage_op_timeout_secs,
-        policy.auto_resolve_unmerged && policy.auto_commit && !dry_run).await?;
+    let entry_epoch = staged_epoch::Epoch::capture_entry(
+        repo,
+        policy.stage_op_timeout_secs,
+        policy.auto_resolve_unmerged && policy.auto_commit && !dry_run,
+    )
+    .await?;
     let mut entry_epoch = Some(entry_epoch);
 
     // ADDED 2026-07-25 (v0.113.0): auto-gc when dangling garbage
