@@ -1,0 +1,69 @@
+{
+  "binary": "/home/dracon/.local/bin/dracon-sync",
+  "binary_version": "dracon-sync 0.113.95",
+  "binary_sha256": "8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad",
+  "fixture_root": "/tmp/fleet-worktree-qualified-5o0l71pf/installed-execution/fixture",
+  "real_service_untouched": true,
+  "baseline_heads": {
+    "a": "0ef230270df8c981faaa41faabb6a89900450899",
+    "b": "4dcfb8a3291900181e18ee5924caaacd246a92d8",
+    "c": "43eefb81182045bcc7d643df252562179714a23a"
+  },
+  "isolation": {
+    "policy": "/tmp/fleet-worktree-qualified-5o0l71pf/installed-execution/fixture/home/.dracon/dracon-sync.toml",
+    "state_dir": "/tmp/fleet-worktree-qualified-5o0l71pf/installed-execution/fixture/state",
+    "watch_root": "/tmp/fleet-worktree-qualified-5o0l71pf/installed-execution/fixture/watch",
+    "home": "/tmp/fleet-worktree-qualified-5o0l71pf/installed-execution/fixture/home",
+    "remotes": "filesystem bare repositories only"
+  },
+  "a_pinned_during_block": "6903b3a44988c933d967518a3134078acfacd6d8",
+  "a_remote_before_release": "",
+  "b_tip": "d290cf98118031f683250b4d8a5016d312b9a550",
+  "b_remote_tip": "d290cf98118031f683250b4d8a5016d312b9a550",
+  "a_still_blocked_while_b_published": true,
+  "a_second_commit": "9bfd086127c44a62130b4fa3adb609d0c8c04b35",
+  "a_newest_tip": "6c63dbe00cf685f0bc9f663ac6194c9656468bae",
+  "a_remote_tip": "6c63dbe00cf685f0bc9f663ac6194c9656468bae",
+  "a_published_object": "commit",
+  "a_completed_worker_retired": true,
+  "a_pre_redispatch_tip": "9bfd086127c44a62130b4fa3adb609d0c8c04b35",
+  "a_post_round_tip": "6c63dbe00cf685f0bc9f663ac6194c9656468bae",
+  "a_post_round_work_published": true,
+  "b_precommit_hook_ran": true,
+  "service_environment": {
+    "bun": {
+      "path": "/tmp/fleet-worktree-qualified-5o0l71pf/installed-execution/fixture/home/.bun/bin/bun",
+      "version": "1.3.3"
+    },
+    "pnpm": {
+      "path": "/tmp/fleet-worktree-qualified-5o0l71pf/installed-execution/fixture/home/.npm-global/bin/pnpm",
+      "version": "11.5.1"
+    }
+  },
+  "inherited_path_lacked_toolchains": true,
+  "b_lifecycle_hooks": [
+    "prepare-commit-msg",
+    "commit-msg",
+    "post-commit"
+  ],
+  "b_lifecycle_cycles": 1,
+  "c_commit_hook_refusal_reported": true,
+  "c_precommit_hook_ran": true,
+  "c_head": "43eefb81182045bcc7d643df252562179714a23a",
+  "c_remote_refs": "",
+  "c_work_preserved": true,
+  "c_recovered_tip": "f3099b5e8ecff5fc557b2b0d5d6fe7ae83c6648f",
+  "c_recovered_object": "commit",
+  "a_owning_leases": [
+    "dracon-sync.operation-lease",
+    "dracon-sync.publication-lease"
+  ],
+  "b_owning_leases": [
+    "dracon-sync.operation-lease",
+    "dracon-sync.publication-lease"
+  ],
+  "concurrent_publication_observed": true,
+  "ok": true,
+  "shutdown": "joined after SIGTERM",
+  "orphan_pids_after_shutdown": []
+}
