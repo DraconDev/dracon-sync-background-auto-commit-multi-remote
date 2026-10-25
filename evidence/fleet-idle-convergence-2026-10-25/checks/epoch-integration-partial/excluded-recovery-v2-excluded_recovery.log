@@ -3,4 +3,11 @@
      Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
 
 running 5 tests
-test sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late ... 
+test sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_empty_epoch_followup_observes_foreign_staging_without_resetting_it ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_foreign_lock_prevents_settlement_and_remains_exact ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_partial_transaction_settles_without_replaying_or_resetting_user_work ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_uncertain_displaced_bytes_block_a_raw_clean_repo_even_without_optin ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1459 filtered out; finished in 13.08s
+
