@@ -422,12 +422,13 @@ pub(super) async fn settle_pending(repo: &Path, deadline: Instant) -> Result<boo
         Err(error) => return Err(error.into()),
     }
     for entry in std::fs::read_dir(gitdir)? {
+        ensure!(Instant::now() < deadline, "excluded recovery inspection deadline expired");
         let entry = entry?;
         if !entry.file_name().as_bytes().starts_with(b"dracon-excluded-recovery-") { continue; }
         ensure!(entry.file_type()?.is_dir(), "non-directory excluded recovery record");
         if !settle_directory(repo, &entry.path(), deadline).await? { return Ok(false); }
     }
-    Ok(true)
+    Ok(!super::has_pending_excluded_recovery(repo)?)
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
