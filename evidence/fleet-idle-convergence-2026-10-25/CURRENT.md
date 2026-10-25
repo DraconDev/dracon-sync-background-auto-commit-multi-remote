@@ -1,6 +1,62 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Full-workspace reassessment — newest checkpoint
+## Explicit excluded-worktree opt-in — newest checkpoint, NOT deployment-ready
+
+The original failing opt-in positive now passes WITHOUT changing its expected
+HEAD-content assertion. Default preservation also passes. Restoration runs only
+for the explicit repo opt-in, BEFORE ordinary private staging; never after hooks
+or publication, never during dry-run or captured-intent handling. Excluded-only
+work is handled without manufacturing a commit. The new path preserves the actual
+index and unknown staging, uses real required smudge filters and exact filenames,
+refuses foreign locks/content, and retains displaced binary bytes in a private
+fsynced Git-directory recovery tree before Linux atomic exchange/no-replace.
+
+A dedicated source-identity-bound helper owns kernel read leases and SIGIO
+handling, not daemon threads. Already-open writable FDs cause refusal instead of
+moving their future writes into a hidden backup. Parent deadlines own the helper/
+filter process groups. There is NO unchecked overwrite/copy/unlink fallback on
+unsupported primitives or filesystems; non-Linux opt-in restoration currently
+refuses accurately. These implementation assertions are not a final safety verdict.
+
+Observed new controls:
+- excluded-restore-expanded-controls.log:8pass,0fail (binary recovery, deletion,
+  untracked preservation, byte-exact foreign index/lock, active writer FD whose
+  future bytes remain canonical, required-smudge refusal/later edits, actual
+  hanging-filter descendant cancellation, dry-run, no-extra-commit and later
+  running pre-commit producer preservation).
+- excluded-restore-original-behavior.log:2pass,0fail, original preservation/opt-in
+  tests. Original first-positive failure from stale helper identity is retained.
+- excluded-restore-sync-strict-clippy.log: package all-target strict pass.
+- excluded-restore-workspace-strict-clippy-final.log: workspace all-target strict
+  pass after correcting newly arriving guard assembly failures, not suppressing
+  warnings or tests. The new guard tests had3f64*u64 type errors and an OLD-time
+  append after now. Correct types and a truly chronological latest30 fixture keep
+  both original numeric assertions AND both bursts; add a chronological assertion.
+  Both guard tests pass. Production rate logic changed only an equivalent parity
+  spelling required by Clippy. Prior compile/behavior/lint failures remain raw.
+
+Pinned actual DEBUG helper: excluded-restore-pinned-helper-path.txt (immutable
+external copy; not Cargo's mutable output). Source/helper hashes and bounded
+results: excluded-restore-source-checkpoint.json. Design and limitations:
+../../docs/design/excluded-worktree-optin-2026-10-25.md.
+
+NEXT INSIDE THIS MECHANISM: qualify cancellation while leases are ACTUALLY held,
+new-writer/lease-break races, and interrupted/multi-file partial exchanges. Add
+visible recovery/diagnosis so incomplete retained transactions cannot disappear
+into a subsequent healthy/idle result. A recovery JSON/tree alone does not prove
+that! Also verify truthful empty-candidate follow-up on later writes. Do NOT
+claim this mechanism deployment-safe from the8current controls or Clippy alone.
+
+Other disabled policy integration remains in scope: normal version/release bump,
+unmerged resolution before capture, build-artifact cleanup and large-untracked
+hygiene. Reconcile safely, not by disabling features or relaxing assertions.
+Still require a fresh coherent COMPLETE workspace suite, release/deny, affected
+original product gates, independent review, installed/loaded runtime proof,
+authorized zero-batch migration with the supporting qualified daemon, and actual
+ALL37 raw-clean/idle plus autonomous publication. No deployment, service change,
+live policy migration or manual real-repository commit/push performed here.
+
+## Full-workspace reassessment — historical revision evidence
 
 Re-read the active goal after compaction: do NOT follow the unrelated handoff
 brief. No implementation, policy migration, deployment or real-repository Git
