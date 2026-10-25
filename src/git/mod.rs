@@ -1346,8 +1346,8 @@ pub(crate) mod multi_remote;
 mod ops;
 pub(crate) use ops::*;
 pub(crate) mod push_resources;
-mod status;
 pub(crate) mod staged_intent;
+mod status;
 pub(crate) use status::*;
 mod inspection;
 #[cfg(test)]

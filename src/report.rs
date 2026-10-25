@@ -4111,7 +4111,12 @@ pub(crate) async fn run_repos_report(
         let policy = &policy;
         let cache_lookup = std::sync::Arc::clone(&cache_lookup);
         let cache_record = std::sync::Arc::clone(&cache_record);
-        let status_coverage = std::sync::Arc::new(repos.iter().cloned().collect::<std::collections::BTreeSet<_>>());
+        let status_coverage = std::sync::Arc::new(
+            repos
+                .iter()
+                .cloned()
+                .collect::<std::collections::BTreeSet<_>>(),
+        );
         futures::stream::iter(repos)
             .map(move |repo| {
                 let cache_lookup = std::sync::Arc::clone(&cache_lookup);
