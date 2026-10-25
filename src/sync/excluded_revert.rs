@@ -104,6 +104,12 @@ async fn restore_inner(repo: &Path, paths: &[dracon_git::types::DiffFile], deadl
         let mode = snapshot.entries[entry.path.as_os_str().as_bytes()].mode;
         ensure!(mode == 0o100644 || mode == 0o100755, "excluded restore requires regular tracked file");
     }
+    let mut sources = Vec::new();
+    for entry in &tracked {
+        let source = Location::open(repo, &entry.path)?;
+        let before = source.fingerprint().await?;
+        sources.push((entry.path.clone(), source, before));
+    }
     let gitdir = staged_epoch::git(repo, &["rev-parse", "--absolute-git-dir"], None).await?;
     let gitdir = PathBuf::from(std::str::from_utf8(&gitdir.stdout)?.trim_end_matches('\n'));
     let scratch = tempfile::Builder::new().prefix("dracon-excluded-recovery-").tempdir_in(gitdir)?;
@@ -121,14 +127,12 @@ async fn restore_inner(repo: &Path, paths: &[dracon_git::types::DiffFile], deadl
     // the actual index or working files; the private scratch is disposable here.
     staged_epoch::run_index_git(repo, &args, 3600, "excluded smudge target", Some(&index)).await?;
     let mut targets = Vec::new();
-    for entry in tracked {
-        let source = Location::open(repo, &entry.path)?;
-        let before = source.fingerprint().await?;
-        let desired = Location::open(&tree, &entry.path)?;
+    for (path, source, before) in sources {
+        let desired = Location::open(&tree, &path)?;
         ensure!(desired.fingerprint().await?.is_some(), "missing excluded restore target");
-        targets.push(Target { path: entry.path.clone(), source, before, desired });
+        targets.push(Target { path, source, before, desired });
     }
-    let lock = match crate::git::IndexLock::try_acquire_path(crate::git::git_index_path(repo).with_extension("lock")) {
+    let lock = match crate::git::IndexLock::try_acquire_path(crate::git::index_lock_path(repo)) {
         Ok(lock) => lock,
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => return Ok(false),
         Err(error) => return Err(error.into()),

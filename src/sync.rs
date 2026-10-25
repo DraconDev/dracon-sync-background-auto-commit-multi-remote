@@ -14,6 +14,10 @@ mod owned_commit_tests;
 #[path = "sync/staged_epoch.rs"]
 mod staged_epoch;
 
+#[cfg(target_os = "linux")]
+#[path = "sync/excluded_revert.rs"]
+mod excluded_revert;
+
 #[path = "sync/publication.rs"]
 mod publication;
 
@@ -4203,6 +4207,15 @@ async fn stage_commit_and_push(
         };
         let deadline = baseline.deadline();
         let prepared = tokio::time::timeout_at(deadline, async {
+            if !to_restore.is_empty() && load_repo_override(repo).revert_excluded_to_head == Some(true) {
+                #[cfg(target_os = "linux")]
+                if !excluded_revert::restore(repo, to_restore, deadline).await? {
+                    eprintln!("⏳ {} excluded restore deferred; uncertain content/index retained", repo.display());
+                    return Ok(None);
+                }
+                #[cfg(not(target_os = "linux"))]
+                anyhow::bail!("explicit excluded restore needs atomic no-replace/exchange support; files retained");
+            }
             let staging = staged_epoch::Staging::new(repo, baseline).await?;
 
             // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): auto-resolve
@@ -4589,7 +4602,8 @@ async fn stage_commit_and_push(
         }
     }
 
-    let _ = to_restore; // excluded content is never reset after publication.
+    // Excluded opt-in restoration ran before staging. NEVER reset after hooks
+    // or publication: later producer edits belong to the next epoch.
 
     // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3): track push
     // failure and surface it as `SyncOutcome::PushFailed` instead of
@@ -5801,7 +5815,9 @@ async fn sync_repo_local_with_ownership(
                 to_restore.len()
             );
         }
-        if !to_stage.is_empty() {
+        if !to_stage.is_empty()
+            || (!to_restore.is_empty() && repo_override.revert_excluded_to_head == Some(true))
+        {
             if debug_enabled() {
                 eprintln!(
                     "scheduler: stage_enter repo={} thread={:?} unix_ms={}",
