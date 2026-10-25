@@ -1,0 +1,9 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 2 tests
+test sync::tests::test_excluded_tracked_file_edits_preserved_by_default ... ok
+test sync::tests::test_excluded_tracked_file_reverted_when_opted_in ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1467 filtered out; finished in 0.86s
+
