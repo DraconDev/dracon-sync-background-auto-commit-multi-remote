@@ -1,5 +1,4 @@
 use super::*;
-use std::os::unix::ffi::OsStringExt;
 
 fn git(repo: &Path, args: &[&str]) -> Vec<u8> {
     let out = crate::git::git_cmd().arg("--no-optional-locks").current_dir(repo).args(args).output().unwrap();
@@ -91,7 +90,7 @@ async fn excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer
     let start=Instant::now(); let mut observed=false;
     while start.elapsed()<Duration::from_secs(8) {
         let locks=std::fs::read_to_string("/proc/locks").unwrap();
-        if locks.lines().any(|line| line.contains("LEASE") && line.split_whitespace().any(|field| field==expected)) { observed=true; break; }
+        if locks.lines().any(|line| line.contains("LEASE") && line.contains("ACTIVE") && line.contains("READ") && line.split_whitespace().any(|field| field==expected)) { observed=true; break; }
         if running.is_finished() { break; }
         tokio::time::sleep(Duration::from_millis(2)).await;
     }

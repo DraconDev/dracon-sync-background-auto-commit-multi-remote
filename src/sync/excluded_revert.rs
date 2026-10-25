@@ -1,5 +1,8 @@
 //! Explicit destructive opt-in, applied BEFORE staging/hooks, never afterwards.
 //! Linux exchange retains displaced bytes in a private durable recovery directory.
+#[cfg(test)]
+#[path = "excluded_revert_recovery_tests.rs"]
+mod recovery_tests;
 use super::*;
 use crate::git::staged_intent::{CapturedHead, StagedIntentSnapshot};
 use anyhow::{bail, ensure};
