@@ -1,0 +1,56 @@
+{
+  "status": "INCOMPLETE; frozen bounded checkpoint, not accepted or deployable",
+  "headObserved": "84ac4fc147b9cdc3dab66781453b9d376deff926",
+  "sourceSha256": {
+    "build.rs": "3e2f94117d4d5ead4596cf18aad96ed2adca0d13179c063d31094e0c5ae8d63b",
+    "Cargo.toml": "18a24cce27b357cd664af6500ab845b5e48b73296cc6f4f2d8f13b19758cd65b",
+    "src/sync.rs": "2dee60401a49a4ffe420c89ba7e9cc5088df71b992a9fa1de9f55e19d49bb9c4",
+    "src/sync/staged_epoch.rs": "c054de0ed72185d51ed054126cbac3bc37269f41f1f97a7f00b385c926445d77",
+    "src/git/status.rs": "03c3abaf37b16a676fb272c20c2e3e7089569feb410538aa448db0910e32be53",
+    "src/storage/mod.rs": "e64c1b56538a060ae21b3b32957150c58317f174d29e5efdb432db7cb6292c28",
+    "src/daemon.rs": "49c6818cb5f404ff8d45464becef6545ce0c6a4b5edd6bd6f18329e80c50184a",
+    "src/policy.rs": "132a6a1f8b754f4f8a5958c3256df974405ad99cb2414435eed9a1e7956ff708",
+    "src/main.rs": "6d03817a587614d88050f90e549b13c9f09292d38b4dbf956cfd4873544966ba",
+    "src/report.rs": "c87fc699e8f543c8101b8ea0152d67b0cbe7ef7bfd151933c53f28bb893a8195",
+    "tests/report_json_detail.rs": "d7f5dca84607c92899cbf3f68389c24d48ba0a1366bdbf9bf31001e888590888"
+  },
+  "logs": {
+    "timeout-assessment-check.log": "2232bf6649f049929942850dbd0e4b73d0cb21687c3be429f4ad3de1753ad369",
+    "continuation-check.log": "8af07e27e6ea471346b0815d11c06e9b9e81152da8141fe92ca6d50e41877810",
+    "continuation-boundary-tests.log": "be1243e381aa30e526c8b64afd993a84d63ce0d171e1f9ff7b0ddcaa596d074b"
+  },
+  "implemented": [
+    "Production private-index add/rm/gitlink runner and actual conditional index installation; full baseline snapshot+parent+branch verified under owned actual lock.",
+    "Private candidate pack retained on tested same-path/child install refusals; actual index/worktree preserved.",
+    "Returned commit epoch retains proven private candidate identities; later same-path/child staging fails unchanged gate.",
+    "Post-commit releases actual lock after CAS and logs nonzero hook exit as published/pending, not commit refusal.",
+    "Storage helper distinguishes ordinary from bound and has stricter require-binding recheck around hooks; no installed-old/harness fallback in tests.",
+    "Build source identity tolerates absent lock and only selects enclosing lock for identified workspace. Parent TokioGitCommand conversion and StagedPending CLI fixes preserved."
+  ],
+  "validation": [
+    "cargo check passed in 13.10s with 20 unsuppressed production warnings.",
+    "One jobs2 targeted serial test attempt: 3 passed, 0 failed; 1431 filtered; 49.37s build + 0.62s tests; 8 test-build warnings.",
+    "git diff --check and rustfmt checks passed.",
+    "No matching helper build requested; no functional commit/storage/hook qualification or broad tests run."
+  ],
+  "remainingGaps": [
+    "src/sync/staged_epoch.rs:486 Staging::finish: configured build_artifact_cleanup is unfinished: explicit refusal for excluded baseline entries instead of original .gitignore reconciliation. Additional original build-output-name heuristic is not yet ported. This is a regression requiring implementation, not an external blocker or approved behavior disable.",
+    "src/sync.rs:4517: to_restore is discarded; revert_excluded_to_head destructive opt-in, handle_large_untracked .gitignore updates, and excluded hygiene authority need exact ownership/content-checked private reconciliation. Old functions remain unused; no dead_code suppression added.",
+    "src/sync.rs:5157 Epoch::capture refuses unsupported/unmerged flags before prior auto-resolution. src/sync.rs:4188 still calls old live-index auto_resolve_unmerged_if_safe inside private staging. It must not remain a live-index mutation seam; private full-unmerged baseline support/conditional install remains unfinished.",
+    "src/sync.rs standard-file ensure still uses existing synchronous IndexLock::acquire and does not revalidate the original empty baseline under its lock before writing worktree standard files. Actual staging is private, but worktree reconciliation needs review.",
+    "src/sync.rs auto_pull_merge changes parent after initial baseline; finish correctly refuses mismatched parent but no approved refresh/coordinator exists for intentional pulls; cold bootstrap has similar stale outer baseline risk.",
+    "src/sync/staged_epoch.rs:224 Epoch::commit returns pending before normal push path when unstaged follow-up remains; src/sync.rs root captured branch returns PushPaused without attempting publication. Independent backlog publication/accounting needs completion.",
+    "Post-publication absolute deadline can still produce transaction Err if timeout occurs during post-hook/status rather than explicit pending published result; successful ref update followed by cancellation requires truthful publication-state result.",
+    "Durable candidate pack is created only in Staging::finish. Cancellation/refusal before packing retains private index/loose objects but does not yet guarantee pruning-independent preservation. Pack files are not explicitly fsynced. Successful install removes private workspace before commit; actual index retains candidate, but later conflicting replacement requires retention review.",
+    "Required storage binding is observed before hooks but after private preparation, not at cycle entry. Disappearance during earlier preparation is not fully bound. No same-revision executable has exercised verifier, authentication/provenance/readback or signing/ref/hook transactions.",
+    "Native commit.cleanup/message semantics, original hook lifecycle assertions, cached strict limits, root/bootstrap, signing refusal, guard bindings, bounded cancellation and publication isolation need actual-production-path regressions; the three passing tests only qualify private staging/install primitives.",
+    "Twenty production warnings explicitly retained in continuation-check.log: unused import git_name_status_entries; exclude can_restore_entry/append_to_gitignore/handle_large_untracked/is_build_output_dir_name/remove_tracked_excluded_paths; git diff git_name_status_entries; git staging unstage_excluded_paths/unstage_oversized_paths/restore_paths/is_excluded_change_path; storage has_configured_storage_guard/PreparedStorageCommit/prepare_storage_commit_inner; sync staged_extra_paths/stage_existing_files_filtered/stage_existing_files_suppressing/stage_gitlink_updates/git_rm_missing/unstage_paths_git."
+  ],
+  "preservedParentEdits": [
+    "src/policy.rs TokioGitCommand::into_tokio",
+    "src/main.rs StagedPending CLI arm",
+    "src/report.rs and tests/report_json_detail.rs hashes unchanged from worker entry"
+  ],
+  "noStagedFiles": true,
+  "recommendedNextStep": "Parent review frozen checkpoint and finish ordinary policy authority/reconciliation before matching-helper build and actual commit-path qualification. No deployment."
+}
