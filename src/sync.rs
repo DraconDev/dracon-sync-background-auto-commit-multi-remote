@@ -1033,10 +1033,11 @@ async fn maybe_auto_harden_with_warden(repo: &Path, policy: &SyncPolicy, dry_run
         .lock()
         .expect("warden harden state poisoned")
         .insert(key.clone(), (false, std::time::Instant::now()));
-    let run = tokio::process::Command::new("dracon-warden")
-        .args(["once", &key.to_string_lossy()])
-        .kill_on_drop(true)
-        .output();
+    let mut command = tokio::process::Command::new("dracon-warden");
+    command.args(["once", &key.to_string_lossy()]);
+    let run = crate::git::run_command_captured_output(
+        command, WARDEN_HARDEN_TIMEOUT_SECS, "warden auto-harden", None,
+    );
     match tokio::time::timeout(
         std::time::Duration::from_secs(WARDEN_HARDEN_TIMEOUT_SECS),
         run,
@@ -4185,6 +4186,8 @@ async fn stage_commit_and_push(
             Some(epoch) => epoch,
             None => staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?,
         };
+        let deadline = baseline.deadline();
+        let prepared = tokio::time::timeout_at(deadline, async {
         let staging = staged_epoch::Staging::new(repo, baseline).await?;
 
         // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): auto-resolve
@@ -4336,7 +4339,7 @@ async fn stage_commit_and_push(
                     "⏸️ {} staging blocked by index.lock contention (retry next cycle)",
                     repo.display()
                 );
-                return Ok(Some(SyncOutcome::Blocked));
+                return Ok(None);
             }
             Err(e) => return Err(e),
         }
@@ -4375,15 +4378,20 @@ async fn stage_commit_and_push(
             )
             .await
         {
-            Ok(epoch) => epoch,
+            Ok(epoch) => Ok(Some(epoch)),
             Err(error) if staged_epoch::is_conflict(&error) => {
                 eprintln!(
                     "⏳ {} private staging deferred; concurrent intent retained: {error:#}",
                     repo.display()
                 );
-                return Ok(Some(SyncOutcome::Blocked));
+                Ok(None)
             }
-            Err(error) => return Err(error),
+            Err(error) => Err(error),
+        }
+        }).await.context("ordinary staging absolute deadline expired; candidate retained")??;
+        match prepared {
+            Some(epoch) => epoch,
+            None => return Ok(Some(SyncOutcome::Blocked)),
         }
     };
     let committed_entries = epoch.entries()?;
@@ -4818,6 +4826,8 @@ async fn bootstrap_empty_repo_commit_owned(
         if paths.is_empty() || dry_run {
             return Ok(false);
         }
+        let deadline = epoch.deadline();
+        tokio::time::timeout_at(deadline, async {
         let staging = staged_epoch::Staging::new(repo, epoch).await?;
         stage_existing_files_in_index(
             repo,
@@ -4840,7 +4850,8 @@ async fn bootstrap_empty_repo_commit_owned(
                     .unwrap_or(policy.build_artifact_cleanup),
                 false,
             )
-            .await?
+            .await
+        }).await.context("bootstrap staging absolute deadline expired; candidate retained")??
     };
     if !epoch.has_intent() || dry_run {
         return Ok(false);

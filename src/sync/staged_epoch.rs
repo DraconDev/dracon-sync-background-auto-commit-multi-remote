@@ -126,6 +126,10 @@ impl Epoch {
         .context("epoch capture deadline expired")?
     }
 
+    pub(super) fn deadline(&self) -> Instant {
+        self.deadline
+    }
+
     pub(super) fn has_intent(&self) -> bool {
         !self.snapshot.changed.is_empty()
     }
