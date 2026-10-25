@@ -1,0 +1,17 @@
+{
+  "capturedAt": "2026-10-25T22:35:10.070033+00:00",
+  "scope": "workspace release-build/deny follow-up, NOT installed/deployed/final full-contract qualification",
+  "changedSourceFiles": [],
+  "pinnedHelperUnchanged": true,
+  "releaseArtifacts": {
+    "target/release/dracon-sync": "8c1066dd22855e7111415ce900f0f59fceec26f10f5be7e6d3d6e1d176a1ad60",
+    "target/release/dracon-system": "5cc5a609b52ae59256ba9c4b29bf50d194f1570e41af241440ead48cd63c7dbb",
+    "target/release/dracon-warden": "44175cf23aa1e7f981fa6d7dff2235b83e021f116c6da747e7650fd2080b512a"
+  },
+  "logSha256": {
+    "excluded-recovery-v2-release-build.log": "da2da32995f27d9f2fb2f8c8443a9f2eb8c8ccfcca9ed741d734fb99ab77ef07",
+    "excluded-recovery-v2-cargo-deny.log": "f1a0fca39d4280363937aabd77783990ea6480bd9ca257816de3b68fc8efa845"
+  },
+  "deployed": false,
+  "liveBatchMigrationApplied": false
+}
