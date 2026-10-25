@@ -620,4 +620,6 @@ test daemon::scheduler_evidence::tests::phase_stamps_report_real_execution_and_e
 test daemon::scheduler_evidence::tests::scheduler_evidence_builder_keeps_confidence_and_gate_precedence ... ok
 test daemon::scheduler_evidence::tests::scheduler_evidence_distinguishes_admission_execution_cancel_and_retry ... ok
 test daemon::scheduler_evidence::tests::scheduler_evidence_freshness_and_roundtrip_are_fail_closed ... ok
-test daemon::submodule_materialize_tests::materialize_pending_submodules_does_not_create_standalone_worktrees ... 
+test daemon::submodule_materialize_tests::materialize_pending_submodules_does_not_create_standalone_worktrees ... ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_leaves_existing_dirs_untouched ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_respects_total ... 
