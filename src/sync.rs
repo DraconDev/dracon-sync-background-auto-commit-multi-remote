@@ -11915,7 +11915,8 @@ trusted_authors = ["test"]
     async fn captured_epoch_commits_partial_index_and_keeps_unstaged_work() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = init_test_repo(&tmp, "captured-partial-epoch");
-        let mut policy: SyncPolicy = toml::from_str(r#"
+        let mut policy: SyncPolicy = toml::from_str(
+            r#"
             auto_commit = true
             auto_push = false
             auto_pull = false
@@ -11923,24 +11924,55 @@ trusted_authors = ["test"]
             auto_bump_versions = false
             standard_files_auto = false
             build_artifact_cleanup = false
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
         policy.watch_roots = vec![tmp.path().to_string_lossy().into_owned()];
         std::fs::write(repo.join("partial.txt"), b"captured staged payload\n").unwrap();
-        assert!(git_cmd(&repo, &["add", "--", "partial.txt"]).status.success());
+        assert!(git_cmd(&repo, &["add", "--", "partial.txt"])
+            .status
+            .success());
         let staged = git_cmd(&repo, &["rev-parse", ":partial.txt"]).stdout;
         std::fs::write(repo.join("partial.txt"), b"later unstaged payload\n").unwrap();
         std::fs::write(repo.join("unrelated.txt"), b"untracked follow-up\n").unwrap();
         // Commit-only disables remote provisioning/publication in this fixture.
         // It still executes the actual epoch, hooks, verifier and ref update.
-        let result = tokio::time::timeout(Duration::from_secs(30),
-            sync_repo_with_ahead_since(&repo, &policy, &BTreeSet::new(), 5,
-                None, false, None, None, true)).await.expect("bounded real epoch");
+        let result = tokio::time::timeout(
+            Duration::from_secs(30),
+            sync_repo_with_ahead_since(
+                &repo,
+                &policy,
+                &BTreeSet::new(),
+                5,
+                None,
+                false,
+                None,
+                None,
+                true,
+            ),
+        )
+        .await
+        .expect("bounded real epoch");
         assert!(matches!(result, Ok(SyncOutcome::PushPaused)), "{result:?}");
-        assert_eq!(git_cmd(&repo, &["rev-parse", "HEAD:partial.txt"]).stdout, staged);
-        assert_eq!(git_cmd(&repo, &["show", "HEAD:partial.txt"]).stdout, b"captured staged payload\n");
-        assert_eq!(std::fs::read(repo.join("partial.txt")).unwrap(), b"later unstaged payload\n");
-        assert_eq!(std::fs::read(repo.join("unrelated.txt")).unwrap(), b"untracked follow-up\n");
-        assert!(!git_cmd(&repo, &["cat-file", "-e", "HEAD:unrelated.txt"]).status.success());
+        assert_eq!(
+            git_cmd(&repo, &["rev-parse", "HEAD:partial.txt"]).stdout,
+            staged
+        );
+        assert_eq!(
+            git_cmd(&repo, &["show", "HEAD:partial.txt"]).stdout,
+            b"captured staged payload\n"
+        );
+        assert_eq!(
+            std::fs::read(repo.join("partial.txt")).unwrap(),
+            b"later unstaged payload\n"
+        );
+        assert_eq!(
+            std::fs::read(repo.join("unrelated.txt")).unwrap(),
+            b"untracked follow-up\n"
+        );
+        assert!(!git_cmd(&repo, &["cat-file", "-e", "HEAD:unrelated.txt"])
+            .status
+            .success());
         assert!(!repo.join(".git/index.lock").exists());
     }
 
