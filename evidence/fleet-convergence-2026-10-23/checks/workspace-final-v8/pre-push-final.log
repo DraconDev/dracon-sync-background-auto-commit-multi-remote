@@ -3,3 +3,12 @@
 ✔ the unchanged secret phase rejects both quote styles even with the existing emergency gate flag (661.277816ms)
 ✔ the gate caps the vitest worker fan-out (1773.241131ms)
 ✔ the worker cap can be overridden (1149.596353ms)
+✔ the worker cap can be disabled (1108.782134ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9782.263488
