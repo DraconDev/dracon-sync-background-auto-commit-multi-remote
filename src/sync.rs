@@ -4277,7 +4277,7 @@ async fn stage_commit_and_push(
         // non-recursive index entries that drive the parent's submodule-
         // gitlink convergence); regular files fill the remainder. Deferred
         // entries stay dirty and are picked up by the next cycle.
-        let max_batch = policy.max_stage_batch_files;
+        let max_batch = policy.stage_batch_limit();
         let total_to_stage = regular_paths.len() + gitlink_paths.len();
         let (regular_paths, gitlink_paths) = if total_to_stage > max_batch {
             eprintln!(
@@ -4812,7 +4812,7 @@ async fn bootstrap_empty_repo_commit_owned(
                         &excludes,
                     )
             })
-            .take(policy.max_stage_batch_files)
+            .take(policy.stage_batch_limit())
             .map(|e| e.path.to_string_lossy().to_string())
             .collect();
         if paths.is_empty() || dry_run {

@@ -163,7 +163,7 @@ impl Epoch {
         excluded: &BTreeSet<String>,
     ) -> Result<()> {
         ensure!(
-            self.snapshot.changed.len() <= policy.max_stage_batch_files,
+            self.snapshot.changed.len() <= policy.stage_batch_limit(),
             "captured staged intent exceeds strict batch limit"
         );
         let overrides = load_repo_override(repo);

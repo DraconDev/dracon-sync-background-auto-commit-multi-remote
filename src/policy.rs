@@ -1411,6 +1411,16 @@ fn default_codeberg_public_only() -> bool {
 }
 
 impl SyncPolicy {
+    /// Resolve zero once for every selection/eligibility path. Keeping the
+    /// stored zero preserves explicit unlimited policy in diagnostics/TOML.
+    pub(crate) fn stage_batch_limit(&self) -> usize {
+        if self.max_stage_batch_files == 0 {
+            usize::MAX
+        } else {
+            self.max_stage_batch_files
+        }
+    }
+
     pub(crate) fn load(path: &Path) -> Result<Self> {
         let content = std::fs::read_to_string(path)
             .with_context(|| format!("failed to read policy {}", path.display()))?;
