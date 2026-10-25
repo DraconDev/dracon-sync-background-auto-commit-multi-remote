@@ -77,7 +77,10 @@
           "attempted_at": 1792919119,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "9324d7643df8b28db07a79464364ed4a1aced83e",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.378325
     },
     {
       "repo": "/home/dracon/Dev/pi-plugins",
@@ -151,7 +154,10 @@
           "attempted_at": 1792919126,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "4f3e759865dda4ad741f17d443d6bfc6348ca2ea",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.393569
     },
     {
       "repo": "/home/dracon/.dracon",
@@ -227,7 +233,10 @@
           "attempted_at": 1792919111,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "99f45283a47bc6b1bb5416fb720f95d3156f783e",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.402725
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform",
@@ -304,7 +313,10 @@
           "attempted_at": 1792918758,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "be7bb2b331e54637715ba512b5c0ef3770034cb1",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.4093647
     },
     {
       "repo": "/home/dracon/Dev/browser-extensions-shared",
@@ -380,7 +392,10 @@
           "attempted_at": 1792917808,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "e8c889d0fe114693399dba7ab60b7f76931f1a34",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.4122105
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/freeport",
@@ -446,7 +461,10 @@
           "attempted_at": 1792918986,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "9f7ec885b64686fa8ad60c5efbc7a9607d8f026f",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.4229066
     },
     {
       "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
@@ -522,7 +540,10 @@
           "attempted_at": 1792918846,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "4170d6b46e225bc89e73b2081f4b9108ddf7ad78",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.4381096
     },
     {
       "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
@@ -588,7 +609,10 @@
           "attempted_at": 1792918429,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "e9f0fe2c2198638869bcff9753abffc497b0e29a",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.4459987
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner",
@@ -664,7 +688,10 @@
           "attempted_at": 1792918423,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "2e255dfea5ee2cf03061290a7006926ea6c02ce4",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.482908
     },
     {
       "repo": "/home/dracon/Dev/dracon-utilities/dracon-system",
@@ -738,7 +765,10 @@
           "attempted_at": 1792915765,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "3895137355df7e36f8446ff7cf99b3b330663e6c",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.5169747
     },
     {
       "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
@@ -802,7 +832,10 @@
           "attempted_at": 1792914074,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "82dedaf1fe7cc2197eccd8ab84341c6bde9b3b01",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.5280488
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls",
@@ -868,7 +901,10 @@
           "attempted_at": 1792907448,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "0583e18e39ab99e5deae7dc0677681f40eb66298",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.54019
     },
     {
       "repo": "/home/dracon/Dev/dracon-strategy",
@@ -934,7 +970,10 @@
           "attempted_at": 1792906836,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "7f0a5bbabcacebfd61658c2ed15a5e6e7ec417a9",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.548016
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
@@ -1000,7 +1039,10 @@
           "attempted_at": 1792906727,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "a215d774b98733d00271a733bdcbfde45d78aaa9",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.5717378
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
@@ -1066,7 +1108,10 @@
           "attempted_at": 1792902730,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "69f04d68eb4b48548c0b1c02f491ecf930b15b9f",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.5963647
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
@@ -1142,7 +1187,10 @@
           "attempted_at": 1792899527,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "dfde54163c26778d1506fbaae7d4b6bfb31445b5",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.6086545
     },
     {
       "repo": "/home/dracon/Dev/empire",
@@ -1218,7 +1266,10 @@
           "attempted_at": 1792891681,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "7dcebd2b7b8652ae2baa5f3f56cce3e995c56352",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.6239622
     },
     {
       "repo": "/home/dracon/Dev/db-gateway",
@@ -1294,7 +1345,10 @@
           "attempted_at": 1792888944,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "25d29e2dcd649a615c94d058e087badf98ae2a50",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.6316454
     },
     {
       "repo": "/home/dracon/Dev/dracon-utilities",
@@ -1358,7 +1412,10 @@
           "attempted_at": 1792888944,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "3c6f952965eeb2029bfccfe52e27b27a62cf92ef",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.6460288
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
@@ -1434,7 +1491,10 @@
           "attempted_at": 1792841843,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "0049fa55fd75c4b87b0586093dcf91d4bd909a7e",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.6658914
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/released/come-get-me",
@@ -1510,7 +1570,10 @@
           "attempted_at": 1792841375,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "de5c80aa86f83119a3dfe0b2775df991019b17c2",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.7084029
     },
     {
       "repo": "/home/dracon/Dev/dracon-utilities/dracon-warden",
@@ -1584,7 +1647,10 @@
           "attempted_at": 1792812673,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "9c8bc8a7020efde9de62f7a7395801440a30e103",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.7122784
     },
     {
       "repo": "/home/dracon/.dracon/convos",
@@ -1650,7 +1716,10 @@
           "attempted_at": 1792795565,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "758a1a0cc6ba4f003000a2b4b408800c525c256e",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.724107
     },
     {
       "repo": "/home/dracon/Dev/terhub",
@@ -1724,7 +1793,10 @@
           "attempted_at": 1792759388,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "b5036f5eacaf72339e3595661e83c461412248e2",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.7299502
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/football-forever",
@@ -1800,7 +1872,10 @@
           "attempted_at": 1792737415,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "44be560b828de3968c5d7b7850b038cac11d8f6c",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.7363584
     },
     {
       "repo": "/home/dracon/Dev/dracon-strategy/DraconDev",
@@ -1874,7 +1949,10 @@
           "attempted_at": 1792702668,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "7694af975ddee528b37d1201f92f5440ba102f4e",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.7426965
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/hellhunter",
@@ -1950,7 +2028,10 @@
           "attempted_at": 1792694631,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "0881c940df47a24a886e10bb899f310ae995e99e",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.7503452
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/neonbreak",
@@ -2026,7 +2107,10 @@
           "attempted_at": 1792694649,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "8d801a03b5643ab99febb1a2c143a444ef7323fa",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.7551804
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/space-trucker",
@@ -2102,7 +2186,10 @@
           "attempted_at": 1792694620,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "00ba2e8733f5e4ab8b11d0f69945dd7f6cf1e3c7",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.765267
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/darklord",
@@ -2178,7 +2265,10 @@
           "attempted_at": 1792694613,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "265cf188876495d1ef4e92c19563633a84f47237",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.772191
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/released/one-mil-girls",
@@ -2254,7 +2344,10 @@
           "attempted_at": 1792694586,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "e0979d91a717177442de0c11ef7235d16e95c300",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.785341
     },
     {
       "repo": "/home/dracon/dracon/bridge-fixture",
@@ -2330,7 +2423,10 @@
           "attempted_at": 1792454396,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "cf0a8c0b24dda654cc5ead731edab12f558f1e97",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.7932255
     },
     {
       "repo": "/home/dracon/Dev/mcode-plugins",
@@ -2404,7 +2500,10 @@
           "attempted_at": 1792454420,
           "succeeded": true
         }
-      }
+      },
+      "baseline_head": "30fb82c38444ef4f311f671e10f274064f765be4",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.8031836
     },
     {
       "repo": "/home/dracon/Dev/pi-plugins/pi-agnes-tools",
@@ -2462,7 +2561,10 @@
         "current": "converged",
         "observed_at": 1792919162,
         "mode": "running"
-      }
+      },
+      "baseline_head": "bfc3a2246d8d38f33b86b643640da3f26ee4ea4d",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.815339
     },
     {
       "repo": "/home/dracon/Dev/pi-plugins/pi-use-last-selected-thinking-level",
@@ -2520,7 +2622,10 @@
         "current": "converged",
         "observed_at": 1792919162,
         "mode": "running"
-      }
+      },
+      "baseline_head": "69604e8b2d6f8fddd33906bd7156be3b228e8c81",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.8309262
     },
     {
       "repo": "/home/dracon/Dev/pi-plugins/pi-codebuddy-sdk",
@@ -2588,7 +2693,10 @@
         },
         "observed_at": 1792919162,
         "mode": "running"
-      }
+      },
+      "baseline_head": "b510604a85287eda7800f9d4712ed222a259e4a9",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.8409083
     },
     {
       "repo": "/home/dracon/Dev/warden-vid",
@@ -2658,7 +2766,10 @@
         },
         "observed_at": 1792919162,
         "mode": "running"
-      }
+      },
+      "baseline_head": "71944891949539edf2fb767e5df4f5dbf5349b3a",
+      "baseline_head_query_exit": 0,
+      "baseline_head_observed_at": 1792919821.846564
     }
   ],
   "expected_repository_count": 37,
