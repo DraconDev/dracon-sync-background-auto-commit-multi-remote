@@ -2152,3 +2152,37 @@ test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (r
 To /tmp/.tmp4K5h9z/origin.git
  * [new branch]      master -> master
 branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) bebe336] init
+ok
+test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-commit) 845d281] init
+ok
+test sync::tests::test_sync_repo_not_git_repo_returns_false ... ok
+test sync::tests::test_sync_repo_partial_deletion_allowed ... [master (root-commit) c2d4d40] init
+ok
+test sync::tests::test_sync_repo_pull_skip_when_no_origin ... [master (root-commit) 79715bb] init
+ok
+test sync::tests::test_sync_repo_pushes_detached_head_ahead_commit ... [main (root-commit) 79715bb] init
+[main bdb5f1c] ahead
+HEAD is now at bdb5f1c ahead
+ok
+test sync::tests::test_sync_repo_single_deleted_file_committed ... [master (root-commit) d875ff3] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_dirty ... [master (root-commit) 02c999b] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_not_behind ... [master (root-commit) 08c61bb] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_origin ... [master (root-commit) 08c61bb] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_upstream ... [master (root-commit) 293f215] init
+ok
+test sync::tests::test_sync_repo_skips_bisect_in_progress ... [master (root-commit) 293f215] init
+ok
+test sync::tests::test_sync_repo_skips_cherry_pick_in_progress ... [master (root-commit) 293f215] init
+ok
+test sync::tests::test_sync_repo_skips_merge_in_progress ... [master (root-commit) 293f215] init
+ok
+test sync::tests::test_sync_repo_skips_rebase_in_progress ... [master (root-commit) 293f215] init
+ok
+test sync::tests::test_sync_repo_skips_revert_in_progress ... [master (root-commit) 293f215] init
