@@ -76,7 +76,10 @@ impl Location {
             return Ok(None);
         };
         let before = file.metadata()?;
-        ensure!(before.is_file() && before.nlink() == 1, "excluded path must be a single-link regular file; alias bytes retained");
+        ensure!(
+            before.is_file() && before.nlink() == 1,
+            "excluded path must be a single-link regular file; alias bytes retained"
+        );
         let mut file = tokio::fs::File::from_std(file);
         let mut hash = Sha256::new();
         let mut buffer = vec![0u8; 64 * 1024];
@@ -418,15 +421,29 @@ pub(super) async fn settle_pending(repo: &Path, deadline: Instant) -> Result<boo
     let gitdir = crate::git::path_gitdir(repo).context("cannot locate recovery Git directory")?;
     match std::fs::symlink_metadata(crate::git::index_lock_path(repo)) {
         Ok(_) => return Ok(!super::has_pending_excluded_recovery(repo)?),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {},
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(error.into()),
     }
     for entry in std::fs::read_dir(gitdir)? {
-        ensure!(Instant::now() < deadline, "excluded recovery inspection deadline expired");
+        ensure!(
+            Instant::now() < deadline,
+            "excluded recovery inspection deadline expired"
+        );
         let entry = entry?;
-        if !entry.file_name().as_bytes().starts_with(b"dracon-excluded-recovery-") { continue; }
-        ensure!(entry.file_type()?.is_dir(), "non-directory excluded recovery record");
-        if !settle_directory(repo, &entry.path(), deadline).await? { return Ok(false); }
+        if !entry
+            .file_name()
+            .as_bytes()
+            .starts_with(b"dracon-excluded-recovery-")
+        {
+            continue;
+        }
+        ensure!(
+            entry.file_type()?.is_dir(),
+            "non-directory excluded recovery record"
+        );
+        if !settle_directory(repo, &entry.path(), deadline).await? {
+            return Ok(false);
+        }
     }
     Ok(!super::has_pending_excluded_recovery(repo)?)
 }

@@ -33,7 +33,11 @@ pub(crate) fn has_pending_excluded_recovery(repo: &Path) -> Result<bool> {
     let gitdir = crate::git::path_gitdir(repo).context("cannot locate recovery Git directory")?;
     for entry in std::fs::read_dir(gitdir)? {
         let entry = entry?;
-        if entry.file_name().to_string_lossy().starts_with("dracon-excluded-recovery-") {
+        if entry
+            .file_name()
+            .to_string_lossy()
+            .starts_with("dracon-excluded-recovery-")
+        {
             return Ok(true);
         }
     }
@@ -5484,15 +5488,20 @@ async fn sync_repo_local_with_ownership(
 
     #[cfg(target_os = "linux")]
     if has_pending_excluded_recovery(repo)? {
-        let deadline = tokio::time::Instant::now() + Duration::from_secs(policy.stage_op_timeout_secs.max(1));
+        let deadline =
+            tokio::time::Instant::now() + Duration::from_secs(policy.stage_op_timeout_secs.max(1));
         if !excluded_revert::settle_pending(repo, deadline).await? {
             eprintln!("⚠️ {} unresolved excluded recovery; preserved private and canonical bytes; inspect Git-directory dracon-excluded-recovery-* records", repo.display());
-            return Ok(publish_backlog_after_index_deferral(&svc, &mut ctx).await?.unwrap_or(SyncOutcome::Blocked));
+            return Ok(publish_backlog_after_index_deferral(&svc, &mut ctx)
+                .await?
+                .unwrap_or(SyncOutcome::Blocked));
         }
     }
     #[cfg(not(target_os = "linux"))]
     if has_pending_excluded_recovery(repo)? {
-        return Ok(publish_backlog_after_index_deferral(&svc, &mut ctx).await?.unwrap_or(SyncOutcome::Blocked));
+        return Ok(publish_backlog_after_index_deferral(&svc, &mut ctx)
+            .await?
+            .unwrap_or(SyncOutcome::Blocked));
     }
 
     if entry_epoch.as_ref().is_some_and(|epoch| epoch.has_intent()) {

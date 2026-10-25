@@ -9201,7 +9201,10 @@ pub(crate) async fn run_daemon(
             let recovery_pending = match crate::sync::has_pending_excluded_recovery(&repo) {
                 Ok(pending) => pending,
                 Err(error) => {
-                    eprintln!("⚠️ {} excluded recovery inspection failed: {error:#}", repo.display());
+                    eprintln!(
+                        "⚠️ {} excluded recovery inspection failed: {error:#}",
+                        repo.display()
+                    );
                     true
                 }
             };
@@ -9223,10 +9226,7 @@ pub(crate) async fn run_daemon(
                 // Persistent metadata work must dispatch even with raw Git clean
                 // and after restart; never clear activity as healthy/idle here.
                 (true, Vec::new())
-            } else if status.is_clean
-                && status.ahead == 0
-                && status.behind == 0
-            {
+            } else if status.is_clean && status.ahead == 0 && status.behind == 0 {
                 // Clean and synced — skip all expensive git calls
                 let has_remote_issues = !has_origin || !has_upstream;
                 if !has_remote_issues {
