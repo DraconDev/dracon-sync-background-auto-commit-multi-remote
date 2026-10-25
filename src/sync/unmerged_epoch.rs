@@ -2,6 +2,9 @@
 //! Keep the exact original index AND independent cached payloads before clearing
 //! any slot; derive the returned epoch from the private view, never a later read.
 use super::*;
+#[cfg(test)]
+#[path = "unmerged_epoch_tests.rs"]
+mod tests;
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::CString;
 use std::fs::{File, OpenOptions};
@@ -162,8 +165,10 @@ async fn private_read(repo: &Path, index: &Path, args: &[&str]) -> Result<Vec<u8
     ensure!(out.status.success(), "unmerged private read refused");
     Ok(out.stdout)
 }
-fn slots(raw: &[u8], deadline: Instant) -> Result<BTreeMap<Vec<u8>, Vec<(u32, String, u8)>>> {
-    let mut paths: BTreeMap<Vec<u8>, Vec<(u32, String, u8)>> = BTreeMap::new();
+type Slot = (u32, String, u8); // native mode, object ID, stage (0..3)
+type Slots = BTreeMap<Vec<u8>, Vec<Slot>>;
+fn slots(raw: &[u8], deadline: Instant) -> Result<Slots> {
+    let mut paths = Slots::new();
     ensure!(
         raw.is_empty() || raw.ends_with(&[0]),
         "unterminated unmerged observation"
@@ -264,7 +269,10 @@ pub(super) async fn reconcile(
             ensure!(out.status.success(),"private conflict selection failed");
             sources.push((path,source));
         }
-        if sources.is_empty(){return Ok(None)}
+        if sources.is_empty(){
+            eprintln!("⚠️ {} unresolved conflict content retained; original index/payload backup: {}",repo.display(),directory.display());
+            return Ok(None)
+        }
         // Remaining uncertain slots deliberately refuse the whole install.
         let snapshot=StagedIntentSnapshot::capture_index(repo,Some(&candidate),deadline).await?;
         ensure!(snapshot.head==CapturedHead::Commit(head.clone()),"parent changed during conflict selection");
