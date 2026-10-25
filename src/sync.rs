@@ -48,7 +48,11 @@ pub(crate) fn has_pending_excluded_recovery(repo: &Path) -> Result<bool> {
     }
     #[cfg(not(target_os = "linux"))]
     {
-        Ok(gitdir.join("dracon-excluded-archive").try_exists()?)
+        match std::fs::symlink_metadata(gitdir.join("dracon-excluded-archive")) {
+            Ok(_) => Ok(true),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+            Err(error) => Err(error.into()),
+        }
     }
 }
 
