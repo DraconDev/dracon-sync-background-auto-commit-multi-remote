@@ -34,10 +34,29 @@ impl StagedIntentSnapshot {
     /// Nonzero flags (including intent-to-add, skip-worktree and split-index
     /// bookkeeping) and sparse directory entries conservatively refuse.
     pub(crate) async fn capture(repo: &Path, deadline: Instant) -> Result<Self> {
+        Self::capture_index(repo, None, deadline).await
+    }
+
+    /// Capture a caller-owned private view without installing it or changing the
+    /// actual index. HEAD/ref identity still comes from the real repository.
+    pub(crate) async fn capture_index(repo: &Path, index: Option<&Path>, deadline: Instant) -> Result<Self> {
         tokio::time::timeout_at(deadline, async {
             ensure!(Instant::now() < deadline, "staged intent deadline expired");
             let head = read_head(repo).await?;
-            let raw = read(repo, &["ls-files", "--stage", "--debug", "--sparse", "-z"]).await?;
+            let args = ["ls-files", "--stage", "--debug", "--sparse", "-z"];
+            let raw = if let Some(index) = index {
+                ensure!(index.is_absolute(), "private staged index must be absolute");
+                let mut command = crate::policy::tokio_git_command();
+                for (key, _) in std::env::vars_os() {
+                    if key.to_string_lossy().starts_with("GIT_") { command.env_remove(key); }
+                }
+                command.current_dir(repo).env("GIT_INDEX_FILE", index)
+                    .env("GIT_NO_LAZY_FETCH", "1").env("GIT_OPTIONAL_LOCKS", "0")
+                    .args(["--no-optional-locks", "-c", "core.fsmonitor=false"]).args(args);
+                let out = super::run_command_captured_output(command.into_tokio(), 3600, "private staged observation", None).await?;
+                ensure!(out.status.success(), "private staged observation refused");
+                out.stdout
+            } else { read(repo, &args).await? }; 
             let entries = parse_index_observation(&raw, deadline)?;
             let base = match &head {
                 CapturedHead::Commit(oid) => {
@@ -331,7 +350,7 @@ async fn read_head(repo: &Path) -> Result<CapturedHead> {
     })
 }
 
-fn parse_entries(
+pub(crate) fn parse_entries(
     bytes: &[u8],
     index: bool,
     deadline: Instant,
