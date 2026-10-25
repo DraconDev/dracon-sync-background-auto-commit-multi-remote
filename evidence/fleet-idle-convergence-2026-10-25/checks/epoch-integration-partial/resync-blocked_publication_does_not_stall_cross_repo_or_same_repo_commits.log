@@ -2,4 +2,9 @@
      Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
 
 running 1 test
-test sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits ... 
+test sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits ... branch 'main' set up to track 'origin/main'.
+branch 'main' set up to track 'origin/main'.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1442 filtered out; finished in 18.14s
+
