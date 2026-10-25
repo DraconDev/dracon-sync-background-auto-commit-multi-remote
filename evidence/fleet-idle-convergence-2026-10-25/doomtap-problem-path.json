@@ -1,0 +1,14 @@
+{
+  "status": {
+    "exit": 0,
+    "stdout": "M  docs/screenshots/states/minion-burst-die.png\u0000"
+  },
+  "staged": {
+    "exit": 0,
+    "stdout": "M\u0000docs/screenshots/states/minion-burst-die.png\u0000"
+  },
+  "stage-entry": {
+    "exit": 0,
+    "stdout": "100644 bbb838bc04782b4fe46143895717ee5cec6f9e56 0\tdocs/screenshots/states/minion-burst-die.png\n"
+  }
+}
