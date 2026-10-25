@@ -124,3 +124,5 @@ warning: function `unstage_paths_git` is never used
 1965 | async fn unstage_paths_git(repo: &Path, paths: &[String]) -> Result<()> {
      |          ^^^^^^^^^^^^^^^^^
 
+warning: `dracon-sync` (bin "dracon-sync") generated 20 warnings (run `cargo fix --bin "dracon-sync" -p dracon-sync` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 16s
