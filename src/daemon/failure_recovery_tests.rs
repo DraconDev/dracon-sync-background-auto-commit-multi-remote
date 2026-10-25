@@ -70,6 +70,10 @@ impl Fleet {
         let email = Self::git(&repos[0], &["config", "user.email"]);
         // Deserialize as production does: derive(Default) deliberately has
         // zero numeric limits, whereas serde supplies operational defaults.
+        // One 10s budget now covers the ENTIRE immutable staging/guard/commit
+        // epoch, not 3s per subprocess. The episode still has its original
+        // 60s cap and all fault-entry/teardown deadlines below are unchanged;
+        // dedicated 1s staging controls assert hardener-tree cancellation.
         let mut policy: SyncPolicy = toml::from_str(
             r#"
 auto_github_private = false
@@ -77,7 +81,7 @@ auto_pull = false
 auto_push = false
 auto_bump_versions = false
 auto_commit = true
-stage_op_timeout_secs = 3
+stage_op_timeout_secs = 10
 "#,
         )
         .unwrap();
@@ -131,7 +135,7 @@ stage_op_timeout_secs = 3
             ),
         )
         .await
-        .unwrap()
+        .unwrap_or_else(|error| panic!("fixture sync {} failed: {error:#}", repo.display()))
     }
     fn script(repo: &Path, path: &str, body: &str) {
         let path = repo.join(".git").join(path);
