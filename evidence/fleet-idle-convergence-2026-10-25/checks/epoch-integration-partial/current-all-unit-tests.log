@@ -1461,3 +1461,14 @@ test sync::tests::test_extension_histogram_top3_order ... ok
 test sync::tests::test_failing_remote_names_formats_sorted ... ok
 test sync::tests::test_file_extension_cases ... ok
 test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) 48e0779] init
+FAILED
+test sync::tests::test_filter_only_skip_still_pushes_ahead ... FAILED
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) b00745f] init
+ok
+test sync::tests::test_forge_incident_declares_and_shields ... [master (root-commit) 9bc35ea] init
+[master (root-commit) 9bc35ea] init
+ok
+test sync::tests::test_goal_metrics_multibyte_utf8_no_panic ... ok
+test sync::tests::test_index_lock_contention_preserves_work_and_recovers ... [master (root-commit) e43e6b9] init
+FAILED
+test sync::tests::test_index_lock_contention_retries_then_succeeds ... [master (root-commit) e43e6b9] init
