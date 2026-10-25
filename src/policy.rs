@@ -68,6 +68,12 @@ pub(crate) struct TokioGitCommand {
 }
 
 impl TokioGitCommand {
+    /// Preserve the command's sealed prompt environment when handing ownership
+    /// to the cancellable captured-process runner.
+    pub(crate) fn into_tokio(self) -> TokioCommand {
+        self.inner
+    }
+
     pub(crate) fn new() -> Self {
         // Poisoned means a previous git-command thread panicked while holding
         // the lock; continuing would risk overlapping git operations.

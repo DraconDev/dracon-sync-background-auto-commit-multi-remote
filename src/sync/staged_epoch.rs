@@ -28,7 +28,7 @@ pub(super) async fn git(
         .args(args)
         .current_dir(repo);
     let output =
-        crate::git::run_command_captured_output(command, 3600, "staged epoch", input).await?;
+        crate::git::run_command_captured_output(command.into_tokio(), 3600, "staged epoch", input).await?;
     ensure!(
         output.status.success(),
         "staged epoch Git {:?} refused: {}",
@@ -265,7 +265,7 @@ impl Epoch {
             // commit-tree doesn't honor commit.gpgSign by itself.
             let mut config = crate::policy::tokio_git_command();
             config.args(["config", "--bool", "--get", "commit.gpgSign"]).current_dir(repo);
-            let signing = crate::git::run_command_captured_output(config, policy.stage_op_timeout_secs, "epoch signing config", None).await?;
+            let signing = crate::git::run_command_captured_output(config.into_tokio(), policy.stage_op_timeout_secs, "epoch signing config", None).await?;
             if signing.status.success() {
                 ensure!(matches!(signing.stdout.as_slice(), b"true\n" | b"false\n"), "invalid signing policy");
                 if signing.stdout == b"true\n" { args.push("-S"); }
@@ -324,7 +324,7 @@ async fn verify_storage(repo: &Path, tree: &str, timeout_secs: u64) -> Result<()
         .env("GIT_INDEX_FILE", &index)
         .current_dir(repo);
     let result =
-        crate::git::run_command_captured_output(command, timeout_secs, "epoch private view", None)
+        crate::git::run_command_captured_output(command.into_tokio(), timeout_secs, "epoch private view", None)
             .await?;
     ensure!(
         result.status.success(),
