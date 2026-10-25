@@ -1,0 +1,25 @@
+{
+  "capturedAt": "2026-10-25T22:37:55.793292+00:00",
+  "scope": "v2 Rust recovery/workspace assembly gates; NOT final implementation, deployment, installed execution or fleet-idle proof",
+  "sourceInventory": "excluded-recovery-v2-workspace-source-before.json",
+  "workspaceSourceAfter": "excluded-recovery-v2-workspace-source-after.json",
+  "releaseSourceAfter": "excluded-recovery-v2-release-source-after.json",
+  "logSha256": {
+    "excluded-recovery-v2-excluded_recovery.log": "d0c9d31f25034bd260a97b5cec136be8ea31581336c9f3bcd839ff07b192b4c8",
+    "excluded-recovery-v2-excluded_restore.log": "688a9f5b9c8c8327accb474e5a2487b61638ea0761c952dfb8290bd21756c363",
+    "excluded-recovery-v2-test_filter_only.log": "ab4744fd48e3c7ebf0163858e655db2d8565a773d113b672899b711a1db27cb5",
+    "excluded-recovery-v2-test_excluded_tracked_file.log": "49d7afa2b875e3b7ddda0bba6456708d445b8c8bcadb3618c1bb3ee4b40d0043",
+    "excluded-recovery-v2-json-report.log": "2b50077aaf9239eb0420a1c8818a0c1ae316390ea8344edcc2cc080d5f0c3087",
+    "excluded-recovery-v2-strict-clippy.log": "a5815b5819c58a2d734cc077e1430239bb66556cace06d191c4703321d24da13",
+    "excluded-recovery-v2-workspace-tests.log": "69271ee413e5a582e0c255228dc8007d209d2e9cc8813e5ea9f9d5da5e58487c",
+    "excluded-recovery-v2-release-build.log": "da2da32995f27d9f2fb2f8c8443a9f2eb8c8ccfcca9ed741d734fb99ab77ef07",
+    "excluded-recovery-v2-cargo-deny.log": "f1a0fca39d4280363937aabd77783990ea6480bd9ca257816de3b68fc8efa845"
+  },
+  "noInstallOrLiveMigrationPerformed": true,
+  "stillOpen": [
+    "queued-open/lease-break and exact-exchange cancellation/crash interleavings",
+    "actual daemon restart/admission rehearsal",
+    "disabled version/release bump, unmerged, artifact and large-untracked integration",
+    "fresh original product gates, independent review, qualified installed/loaded observation, authorized zero-batch migration and ALL37 raw-clean idle/autonomous-publication evidence"
+  ]
+}
