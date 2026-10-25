@@ -42,6 +42,24 @@ no result was accepted and no automatic retry or alternate CLI was used. The
 operator's unlimited-count decision removes the need for artificial subset commits
 on this fleet. Independent final review remains required after implementation.
 
+Latest broad unit run: current-all-unit-tests.log exited101 with1419passed,
+20failed,3ignored (496.08s). This is NOT qualification. Failures include sealed
+hook message-path expectations, guarded storage bootstrap/decommission cases,
+bucket materialization/pending accounting, publisher/staged-intent expectations,
+explicit excluded-worktree reversion, staged-blob size sweeps, filter-only/ahead
+publication, lock admission, retired prefix-guard expectations and ordinary
+first-pass pending metadata. Diagnose them; do not simply accept Pending everywhere
+or weaken storage assertions. Some old expectations restage partially staged data
+or call newly generated untracked metadata clean; replacements must strengthen
+exact-byte and eventual clean/idle proofs, not conceal regressions.
+
+After that run, actual lock admission gained an I/O-kind-preserving API:
+AlreadyExists is typed contention/defer; missing-parent/permission/inspection errors
+remain genuine failures. typed-lock-admission-test.log passes1negative-control test.
+Real full commit-path contention recovery is not yet rerun on this revision.
+Source changed since the last matching helper build: rebuild a real matching helper
+before further functional epochs; no installed-old or fake verifier fallback.
+
 Next: finish ordinary-path policy/metadata/cleanup authority reconciliation,
 retain all old policy behavior or diagnose an explicit conflict, remove unused
 legacy code only after its behavior is integrated, run final strict workspace and
