@@ -1,1 +1,10 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.06s
+     Running tests/excluded_recovery_report.rs (target/debug/deps/excluded_recovery_report-3a6ff74c8d83efdc)
+
+running 2 tests
+test late_archive_write_is_visible_in_real_json_even_with_same_size_and_restored_mtime ... ok
+test unresolved_private_recovery_is_a_machine_readable_concern_even_when_git_is_clean ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
+
