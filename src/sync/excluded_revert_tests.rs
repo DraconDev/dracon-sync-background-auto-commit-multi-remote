@@ -47,7 +47,7 @@ async fn restore(repo: &Path) -> Result<bool> {
     .await
 }
 fn recovery_contains(repo: &Path, bytes: &[u8]) -> bool {
-    std::fs::read_dir(repo.join(".git"))
+    std::fs::read_dir(repo.join(".git/dracon-excluded-archive"))
         .unwrap()
         .filter_map(|e| e.ok())
         .any(|e| {
