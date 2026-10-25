@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "repo": "/home/dracon/Dev/browser-extensions-shared",
+  "runnerSha256": "012459268fe5c6a93500455e8940bbbabd016587f77f20b06318c17cb7db1cb3",
+  "resourceEnvironment": {
+    "TOKIO_WORKER_THREADS": "2",
+    "RAYON_NUM_THREADS": "2",
+    "ROLLDOWN_WORKER_THREADS": "2",
+    "ROLLDOWN_MAX_BLOCKING_THREADS": "8",
+    "GOMAXPROCS": "2"
+  },
+  "started": "2026-10-25T07:03:52.636Z",
+  "ownerPid": 1439365,
+  "tuples": [
+    [
+      "4b955e45fd6ae7df9324486da99dcdf3c088e2ad",
+      "4b955e45fd6ae7df9324486da99dcdf3c088e2ad",
+      "refs/heads/main",
+      "0926aa530698260f1397e28cc145998bf3314e57"
+    ]
+  ],
+  "revisions": [
+    {
+      "sha": "4b955e45fd6ae7df9324486da99dcdf3c088e2ad",
+      "changed": [
+        "docs/design/workspace-library-output-publication-2026-10-25.md",
+        "packages/brand-icon/.gitignore",
+        "packages/brand-icon/package.json",
+        "packages/extension-forms/.gitignore",
+        "packages/extension-forms/package.json",
+        "packages/extension-react/.gitignore",
+        "packages/extension-react/package.json",
+        "packages/extension-react/scripts/build.check.mjs",
+        "scripts/build-library.mjs"
+      ],
+      "gates": [],
+      "status": "failed",
+      "workspaces": [
+        "extensions/collections/new-tab/bookmarks-new-tab",
+        "extensions/collections/new-tab/dark-new-tab",
+        "extensions/collections/new-tab/infinite-new-tab",
+        "extensions/collections/new-tab/minimalist-new-tab",
+        "extensions/collections/new-tab/new-tab-ultimate",
+        "extensions/collections/new-tab/speed-dial-new-tab",
+        "extensions/collections/new-tab/virtual-pet-new-tab",
+        "extensions/standalones/auto-form-filler",
+        "extensions/standalones/bugkit",
+        "extensions/standalones/clean-web",
+        "extensions/standalones/SamAI",
+        "extensions/standalones/youtube-filter",
+        "packages/brand-icon",
+        "packages/extension-forms",
+        "packages/extension-react",
+        "packages/new-tab-core",
+        "wxt-starter"
+      ],
+      "executionRoot": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad",
+      "toolchain": {
+        "bun": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/toolchains/1.3.14/bin/bun",
+        "pin": "bun@1.3.14",
+        "sha256": "9fd36f87e4b90b07632b987a2e4ec81ca15a62c81bf983190cea6d715be2ad74"
+      },
+      "lockSha256": "9d797c57db238570fd2846f8bfee2cfddf51e00478c2b67dcbcb939fcaaf8943",
+      "provisioning": {
+        "scope": "0adbb94636edbc906b24afa0fbfb7b89c46136f01ddd0940bf94765a03812978",
+        "status": "released",
+        "waitBudgetSecs": 300,
+        "started": "2026-10-25T07:04:36.530Z",
+        "acquired": "2026-10-25T07:04:36.605Z",
+        "finished": "2026-10-25T07:04:53.244Z"
+      },
+      "dependencyBuild": [
+        {
+          "workspace": "packages/affiliate-deals",
+          "script": "build",
+          "log": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/4b955e45fd6a-DEPS-packages_affiliate-deals.log",
+          "started": "2026-10-25T07:04:48.070Z",
+          "status": "passed",
+          "exitCode": 0,
+          "finished": "2026-10-25T07:04:48.948Z"
+        },
+        {
+          "workspace": "packages/brand-icon",
+          "script": "build",
+          "log": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/4b955e45fd6a-DEPS-packages_brand-icon.log",
+          "started": "2026-10-25T07:04:48.948Z",
+          "status": "passed",
+          "exitCode": 0,
+          "finished": "2026-10-25T07:04:49.983Z"
+        },
+        {
+          "workspace": "packages/extension-core",
+          "script": "build",
+          "log": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/4b955e45fd6a-DEPS-packages_extension-core.log",
+          "started": "2026-10-25T07:04:49.983Z",
+          "status": "passed",
+          "exitCode": 0,
+          "finished": "2026-10-25T07:04:51.361Z"
+        },
+        {
+          "workspace": "packages/extension-forms",
+          "script": "build",
+          "log": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/4b955e45fd6a-DEPS-packages_extension-forms.log",
+          "started": "2026-10-25T07:04:51.362Z",
+          "status": "failed",
+          "exitCode": 1,
+          "finished": "2026-10-25T07:04:53.243Z"
+        }
+      ],
+      "error": "Error: dependency workspace packages/extension-forms failed to build (exit 1); see /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/4b955e45fd6a-DEPS-packages_extension-forms.log\n$ node ../../scripts/build-library.mjs\nsrc/utils/smartFill.ts(13,36): error TS2307: Cannot find module '@dracon/extension-forms' or its corresponding type declarations.\nsrc/utils/smartFill.ts(14,36): error TS2307: Cannot find module '@dracon/extension-forms' or its corresponding type declarations.\nsrc/utils/smartFill.ts(100,38): error TS2345: Argument of type 'unknown[]' is not assignable to parameter of type 'string[]'.\n  Type 'unknown' is not assignable to type 'string'.\nfile:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad/scripts/build-library.mjs:57\n    if (child.status !== 0) throw new Error(`TypeScript compilation failed (${child.signal || child.status})`);\n                                  ^\n\nError: TypeScript compilation failed (2)\n    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad/scripts/build-library.mjs:57:35\n    at buildLibrary (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad/scripts/build-library.mjs:29:11)\n    at async file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad/scripts/build-library.mjs:53:3\n\nNode.js v24.18.0\nerror: script \"build\" exited with code 1\n"
+    }
+  ],
+  "status": "failed",
+  "error": "Error: dependency workspace packages/extension-forms failed to build (exit 1); see /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/4b955e45fd6a-DEPS-packages_extension-forms.log\n$ node ../../scripts/build-library.mjs\nsrc/utils/smartFill.ts(13,36): error TS2307: Cannot find module '@dracon/extension-forms' or its corresponding type declarations.\nsrc/utils/smartFill.ts(14,36): error TS2307: Cannot find module '@dracon/extension-forms' or its corresponding type declarations.\nsrc/utils/smartFill.ts(100,38): error TS2345: Argument of type 'unknown[]' is not assignable to parameter of type 'string[]'.\n  Type 'unknown' is not assignable to type 'string'.\nfile:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad/scripts/build-library.mjs:57\n    if (child.status !== 0) throw new Error(`TypeScript compilation failed (${child.signal || child.status})`);\n                                  ^\n\nError: TypeScript compilation failed (2)\n    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad/scripts/build-library.mjs:57:35\n    at buildLibrary (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad/scripts/build-library.mjs:29:11)\n    at async file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad/scripts/build-library.mjs:53:3\n\nNode.js v24.18.0\nerror: script \"build\" exited with code 1\n",
+  "finished": "2026-10-25T07:04:54.447Z"
+}

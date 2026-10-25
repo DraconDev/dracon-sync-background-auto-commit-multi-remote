@@ -1,0 +1,16 @@
+$ node ../../scripts/build-library.mjs
+src/utils/smartFill.ts(13,36): error TS2307: Cannot find module '@dracon/extension-forms' or its corresponding type declarations.
+src/utils/smartFill.ts(14,36): error TS2307: Cannot find module '@dracon/extension-forms' or its corresponding type declarations.
+src/utils/smartFill.ts(100,38): error TS2345: Argument of type 'unknown[]' is not assignable to parameter of type 'string[]'.
+  Type 'unknown' is not assignable to type 'string'.
+file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad/scripts/build-library.mjs:57
+    if (child.status !== 0) throw new Error(`TypeScript compilation failed (${child.signal || child.status})`);
+                                  ^
+
+Error: TypeScript compilation failed (2)
+    at file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad/scripts/build-library.mjs:57:35
+    at buildLibrary (file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad/scripts/build-library.mjs:29:11)
+    at async file:///home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.7slg7G/snapshot-4b955e45fd6ae7df9324486da99dcdf3c088e2ad/scripts/build-library.mjs:53:3
+
+Node.js v24.18.0
+error: script "build" exited with code 1

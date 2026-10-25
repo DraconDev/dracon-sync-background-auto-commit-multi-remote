@@ -1,0 +1,16 @@
+[0.13ms] ".env"
+bun install v1.3.14 (0d9b296a)
+
++ @eslint/js@9.39.4 (v10.0.1 available)
++ adm-zip@0.5.17 (v0.6.1 available)
++ eslint@9.39.4 (v10.13.0 available)
++ eslint-plugin-react-hooks@7.1.1
++ eslint-plugin-svelte@3.20.0 (v3.23.1 available)
++ globals@17.7.0 (v17.13.0 available)
++ playwright@1.61.1 (v1.64.1 available)
++ prettier@3.9.0 (v3.9.10 available)
++ prettier-plugin-tailwindcss@0.6.11 (v0.8.1 available)
++ svelte-eslint-parser@1.8.0
++ typescript-eslint@8.62.0 (v8.72.0 available)
+
+2220 packages installed [11.36s]

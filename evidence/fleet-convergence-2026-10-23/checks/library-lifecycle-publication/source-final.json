@@ -1,5 +1,5 @@
 {
-  "daemon_commit_anchor": "4b955e45fd6ae7df9324486da99dcdf3c088e2ad",
+  "daemon_commit_anchor": "ad856e90708ef4a83e1930d7b254c8db5c0a941a",
   "files": {
     "scripts/build-library.mjs": "a524467afa04b36349d146884040d3491ad69440ebfe46f4d6241efe32ad828d",
     "packages/extension-react/package.json": "e13c9bbf95c94f4ae087b66e5431dbd68bb5ce325427840a5e36a548a2602c96",
@@ -7,8 +7,10 @@
     "packages/extension-react/.gitignore": "9a5eca109590440b5904279bed8b374b3e494248c87daaef8e203cd5625ec4d1",
     "packages/brand-icon/package.json": "9f348b5c8a3259a213736d830d1ef4eaf69d2c6e2f0a3f21f245e42e4e3f8939",
     "packages/brand-icon/.gitignore": "890acbcfc0a59f7af43c5e9a90d9b38d583a089c231ecf565af2009fe87c60cd",
-    "packages/extension-forms/package.json": "71e0afdd8df7aa99dfbe6aa1e542e35e85c8ebeb09029d72d7019fc96d5447ab",
-    "packages/extension-forms/.gitignore": "890acbcfc0a59f7af43c5e9a90d9b38d583a089c231ecf565af2009fe87c60cd"
+    "packages/extension-forms/package.json": "700eebcb54d8b11f5ecfdd125d523b627693fb4dbcd94922ae362306bc68907a",
+    "packages/extension-forms/.gitignore": "890acbcfc0a59f7af43c5e9a90d9b38d583a089c231ecf565af2009fe87c60cd",
+    "packages/extension-forms/src/utils/smartFill.ts": "31a3a67ac43b6db86d1d364837cc6ddefb8e29b6f2686b947374f33475d77c02",
+    "packages/extension-forms/scripts/clean-build.check.mjs": "4f3816553f98f9e9fad51646df5f48bb2391fe47661b7dc10ad9ec216516d184"
   },
   "all_required_filters_unchanged": true
 }
