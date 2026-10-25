@@ -314,6 +314,7 @@ async fn restore_inner(
     command
         .arg("--dracon-excluded-restore-helper")
         .arg(&journal_path)
+        .arg(std::process::id().to_string())
         .env("TOKIO_WORKER_THREADS", "2")
         .current_dir(repo);
     for (key, _) in std::env::vars_os() {
@@ -338,6 +339,11 @@ async fn restore_inner(
         response.0 == env!("DRACON_EPOCH_SOURCE_ID"),
         "excluded helper source identity mismatch"
     );
+    // A completed/deferred helper is NOT sufficient proof of recovery. Inspect
+    // retained bytes while this parent still owns the actual index lock.
+    if !settle_directory(repo, &retained, deadline).await? {
+        return Ok(false);
+    }
     Ok(response.1)
 }
 
