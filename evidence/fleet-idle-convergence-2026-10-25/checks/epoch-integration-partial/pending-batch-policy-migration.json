@@ -1,0 +1,18 @@
+{
+  "status": "authorized-pending-qualified-deployment",
+  "operatorDecision": "Disable file-count cap (Recommended)",
+  "target": "/home/dracon/.dracon/utilities/sync/dracon-sync.toml",
+  "field": "max_stage_batch_files",
+  "observedCurrentValue": 100,
+  "authorizedValue": 0,
+  "meaning": "0 = unlimited file count; positive values remain optional batching",
+  "mustNotApplyBefore": "qualified supporting daemon installed and loaded/executed identity verified; old loaded binary treats zero as an empty batch",
+  "preconditions": [
+    "single-source real-helper ordinary/staged/unborn >100-file tests pass",
+    "positive-count opt-in and size/exclusion negative controls pass",
+    "normal release qualification and preservation/security/guard cohorts pass",
+    "at application time re-read field; do not overwrite a distinct intervening operator value"
+  ],
+  "unchangedSafeguards": ["max_stage_file_bytes", "publication size and highwater guards", "ownership", "storage authority and verification", "original hooks", "finite operation deadlines"],
+  "applied": false
+}

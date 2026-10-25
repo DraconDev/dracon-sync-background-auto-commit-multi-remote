@@ -1,5 +1,56 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## Latest executor continuation (supersedes historical Next/research notes below)
+
+NOT final qualification; no new daemon deployment or canonical-index recovery.
+The implementation worker's partial result was assessed, not accepted as done.
+Ordinary staging now uses a private index, a retained/fsynced delta pack and
+expected-state installation. Parent boundary regressions passed3tests. A real
+matching debug-helper test committed exact captured staged bytes while retaining
+both later unstaged bytes and unrelated untracked content. Native Git2.51 rejected
+two attempted HEAD-symref+referent transaction forms; their RED logs are retained.
+The repaired path CAS-updates the explicit captured branch with its expected old
+OID, under the owned index lock and immediate HEAD/index checks; detached HEAD
+uses no-deref. A post-publication branch change remains pending, not clean.
+
+Known publication no longer becomes a failed commit when post-commit inspection
+or its absolute deadline fails; the real slow-post-hook regression passed1test.
+Remaining local work no longer returns before publishing the known immutable
+commit. A four-case outcome regression passed1test. Expected index/branch/lock
+conflicts are typed nonfailure deferrals; arbitrary inspection errors are NOT
+classified by message text (1test passed). The original concurrent-add fixture now
+explicitly unsets GIT_INDEX_FILE for its FOREIGN add: cycle1 retains the private
+candidate and foreign staging, cycle2 commits only captured staging, cycle3 commits
+remaining worktree intent. Exact intermediate/final data assertions passed1test;
+this is intentionally not a blanket next-cycle whole-worktree absorption.
+Logs: checks/epoch-integration-partial/parent-*.log. These runs span source revisions,
+not a fresh single-source complete suite or a guarded SDK qualification cohort.
+
+**Operator decision:** disable the 100-file count cap; make batching opt-in with
+0 meaning unlimited. Source default/example and all three consumer paths now use
+that convention. New >100-file, positive-limit and size/exclusion negative controls
+are being tested. Do not raise/remove size, ownership, storage, hook or deadline
+safeguards. The effective live global policy is STILL100 intentionally: the old
+loaded binary interprets zero as an empty batch. Apply the authorized zero-value
+migration only together with a qualified supporting daemon, never to the old
+runtime first. See checks/epoch-integration-partial/pending-batch-policy-migration.json.
+
+The read-only strict-subset design scout failed at its provider usage limit;
+no result was accepted and no automatic retry or alternate CLI was used. The
+operator's unlimited-count decision removes the need for artificial subset commits
+on this fleet. Independent final review remains required after implementation.
+
+Next: finish ordinary-path policy/metadata/cleanup authority reconciliation,
+retain all old policy behavior or diagnose an explicit conflict, remove unused
+legacy code only after its behavior is integrated, run final strict workspace and
+actual guarded/ordinary/index-race/signing/hook/cancellation/deadline cohorts from
+one frozen source with real matching helpers, qualify Warden runtime changes,
+deploy with loaded/executed evidence plus the authorized policy migration, then
+obtain fresh ALL-watched clean-and-idle/ref/publication receipts. No all-idle claim
+is supported yet; do not stop producers, reset indices or weaken gates to get one.
+
+## Historical baseline and research (retained context)
+
 Goal: .pi-glla/goals/20261025090441-ya0tp4.md. Strong final requirement is ALL
 watched repositories clean AND idle in a fresh observation, not merely previously
 published ancestors. Do not hide eligible work or stop editors/producers to obtain
