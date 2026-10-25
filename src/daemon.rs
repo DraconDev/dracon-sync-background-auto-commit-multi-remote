@@ -7840,6 +7840,7 @@ pub(crate) async fn run_daemon(
         // synced once at cycle end, so the tray shows live conditions
         // with no flap and the content-hash gate suppresses re-shows.
         let mut summary_issues: Vec<(String, String)> = Vec::new();
+        let status_coverage = Arc::new(repos.iter().cloned().collect::<BTreeSet<_>>());
         for repo in repos {
             // Clone policy at each repo iteration for a consistent snapshot.
             // If the policy is reloaded mid-cycle (SIGHUP), this repo still
@@ -8719,10 +8720,12 @@ pub(crate) async fn run_daemon(
                 status_pending.insert(repo.clone());
                 status_spawned_at.insert(repo.clone(), now);
                 probe_admitted.insert(repo.clone(), now);
+                let status_coverage = Arc::clone(&status_coverage);
                 let status_handle = tokio::spawn(async move {
-                    let outcome = crate::git::inspect_status(
+                    let outcome = crate::git::inspect_status_with_coverage(
                         &repo_for_status,
                         Duration::from_secs(STATUS_TASK_TIMEOUT_SECS),
+                        &status_coverage,
                     )
                     .await;
                     (repo_for_status, outcome)

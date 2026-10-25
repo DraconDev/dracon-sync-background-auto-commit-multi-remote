@@ -1349,7 +1349,7 @@ pub(crate) mod push_resources;
 mod status;
 pub(crate) use status::*;
 mod inspection;
-pub(crate) use inspection::{inspect_status, STATUS_INSPECTION_BUDGET};
+pub(crate) use inspection::{inspect_status, inspect_status_with_coverage, STATUS_INSPECTION_BUDGET};
 mod urls;
 pub(crate) use urls::*;
 

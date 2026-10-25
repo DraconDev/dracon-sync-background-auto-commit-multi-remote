@@ -4111,15 +4111,17 @@ pub(crate) async fn run_repos_report(
         let policy = &policy;
         let cache_lookup = std::sync::Arc::clone(&cache_lookup);
         let cache_record = std::sync::Arc::clone(&cache_record);
+        let status_coverage = std::sync::Arc::new(repos.iter().cloned().collect::<std::collections::BTreeSet<_>>());
         futures::stream::iter(repos)
             .map(move |repo| {
                 let cache_lookup = std::sync::Arc::clone(&cache_lookup);
                 let cache_record = std::sync::Arc::clone(&cache_record);
+                let status_coverage = std::sync::Arc::clone(&status_coverage);
                 async move {
                 // Use the same owned-process inspection as the scheduler.
                 // A timed-out detail/report must cancel Git and its filter
                 // descendants, not leave an uncancellable blocking task behind.
-                let status = match crate::git::inspect_status(&repo, crate::git::STATUS_INSPECTION_BUDGET).await {
+                let status = match crate::git::inspect_status_with_coverage(&repo, crate::git::STATUS_INSPECTION_BUDGET, &status_coverage).await {
                     Ok(status) => status,
                     Err(e) => {
                         init_status_failures.lock().unwrap().push((repo.clone(), e.to_string()));

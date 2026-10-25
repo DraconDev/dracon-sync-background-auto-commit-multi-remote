@@ -6,13 +6,79 @@
 
 use anyhow::{bail, Context, Result};
 use dracon_git::types::RepoStatus;
-use std::{path::Path, time::Duration};
+use std::{collections::BTreeSet, path::{Path, PathBuf}, time::Duration};
 
 /// Shared by scheduler and reports: a healthy filtered/nested worktree may
 /// exceed a short UI deadline. Keep cancellation and the finite ceiling alike.
 pub(crate) const STATUS_INSPECTION_BUDGET: Duration = Duration::from_secs(60);
 
 pub(crate) async fn inspect_status(repo: &Path, budget: Duration) -> Result<RepoStatus> {
+    inspect_status_inner(repo, budget, None).await
+}
+
+/// Avoid recursively re-inspecting child worktrees only when every indexed
+/// gitlink is independently present in this observation's watched inventory.
+/// Uncovered children retain ordinary Git status semantics. Child HEAD changes
+/// and staged gitlink changes remain visible in either mode.
+pub(crate) async fn inspect_status_with_coverage(
+    repo: &Path,
+    budget: Duration,
+    watched: &BTreeSet<PathBuf>,
+) -> Result<RepoStatus> {
+    if watched.is_empty() {
+        return inspect_status(repo, budget).await;
+    }
+    inspect_status_inner(repo, budget, Some(watched)).await
+}
+
+async fn indexed_gitlinks(repo: &Path) -> Result<Option<BTreeSet<PathBuf>>> {
+    let child = super::spawn_git_command_cancellable(
+        repo, &["--no-optional-locks", "ls-files", "--stage", "-z"],
+        "status gitlink coverage",
+    )?;
+    let (exit, stdout, stderr) =
+        super::run_git_captured_output(child, repo, "status gitlink coverage").await?;
+    if !exit.success() {
+        bail!("status gitlink coverage failed: {}", String::from_utf8_lossy(&stderr));
+    }
+    parse_gitlinks(repo, &stdout)
+}
+
+fn parse_gitlinks(repo: &Path, bytes: &[u8]) -> Result<Option<BTreeSet<PathBuf>>> {
+    let mut paths = BTreeSet::new();
+    for record in bytes.split(|b| *b == 0).filter(|r| r.starts_with(b"160000 ")) {
+        let tab = record.iter().position(|b| *b == b'\t')
+            .context("malformed indexed gitlink")?;
+        let (header, tail) = record.split_at(tab);
+        let name = &tail[1..];
+        let fields: Vec<_> = header.split(|b| *b == b' ').collect();
+        if fields.len() != 3 || !matches!(fields[1].len(), 40 | 64)
+            || !fields[1].iter().all(u8::is_ascii_hexdigit) {
+            bail!("malformed indexed gitlink identity");
+        }
+        if fields[2] != b"0" {
+            return Ok(None); // Conflicted gitlinks require full inspection.
+        }
+        #[cfg(unix)]
+        let path = {
+            use std::os::unix::ffi::OsStrExt;
+            Path::new(std::ffi::OsStr::from_bytes(name))
+        };
+        #[cfg(not(unix))]
+        let path = Path::new(std::str::from_utf8(name)?);
+        if name.is_empty() || path.components().any(|c| !matches!(c, std::path::Component::Normal(_))) {
+            bail!("invalid indexed gitlink path");
+        }
+        paths.insert(repo.join(path));
+    }
+    Ok(Some(paths))
+}
+
+async fn inspect_status_inner(
+    repo: &Path,
+    budget: Duration,
+    watched: Option<&BTreeSet<PathBuf>>,
+) -> Result<RepoStatus> {
     tokio::time::timeout(budget, async {
         // A copied submodule .git file may still name another checkout via
         // core.worktree. Never inspect or schedule that neighbor as this repo.
@@ -38,9 +104,13 @@ pub(crate) async fn inspect_status(repo: &Path, budget: Duration) -> Result<Repo
         if std::fs::canonicalize(root)? != std::fs::canonicalize(repo)? {
             bail!("Git metadata resolves to a different worktree: {} (requested {}); inspect checkout wiring before recovery", root.display(), repo.display());
         }
-        let child = super::spawn_git_command_cancellable(
-            repo,
-            &[
+        let covered_gitlinks = if let Some(watched) = watched {
+            indexed_gitlinks(repo).await?.filter(|paths|
+                !paths.is_empty() && paths.is_subset(watched))
+        } else {
+            None
+        };
+        let mut args = vec![
                 "--no-optional-locks",
                 // A service task limit includes push-hook workers too. Do not
                 // fan out index/preload threads for each of four inspections.
@@ -53,9 +123,11 @@ pub(crate) async fn inspect_status(repo: &Path, budget: Duration) -> Result<Repo
                 "--branch",
                 "-z",
                 "--untracked-files=all",
-            ],
-            "status inspection",
-        )?;
+        ];
+        if covered_gitlinks.is_some() {
+            args.push("--ignore-submodules=dirty");
+        }
+        let child = super::spawn_git_command_cancellable(repo, &args, "status inspection")?;
         let (exit, stdout, stderr) =
             super::run_git_captured_output(child, repo, "status inspection").await?;
         if !exit.success() {
@@ -64,6 +136,11 @@ pub(crate) async fn inspect_status(repo: &Path, budget: Duration) -> Result<Repo
                 repo.display(),
                 String::from_utf8_lossy(&stderr)
             );
+        }
+        if let Some(expected) = covered_gitlinks {
+            if indexed_gitlinks(repo).await? != Some(expected) {
+                bail!("status gitlink coverage changed during inspection; retry with a fresh inventory");
+            }
         }
         parse_status(&stdout)
     })
