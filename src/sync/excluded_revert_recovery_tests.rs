@@ -382,8 +382,13 @@ async fn excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_res
     assert_eq!(std::fs::metadata(&archive).unwrap().mode() & 0o777, 0o755);
     let index = std::fs::read(r.join(".git/index")).unwrap();
     let policy: SyncPolicy = toml::from_str("auto_github_private=false\nauto_commit=true\nauto_pull=false\nauto_push=false\nauto_bump_versions=false\ntrusted_emails=['test@test']\ntrusted_authors=['test']\nremotes=[]\n").unwrap();
-    assert_eq!(super::super::sync_repo(r, &policy, &BTreeSet::new(), 0, None, false, None).await.unwrap(),
-        SyncOutcome::NothingToDo, "the real worker must admit repair after probe failure, not loop on it");
+    assert_eq!(
+        super::super::sync_repo(r, &policy, &BTreeSet::new(), 0, None, false, None)
+            .await
+            .unwrap(),
+        SyncOutcome::NothingToDo,
+        "the real worker must admit repair after probe failure, not loop on it"
+    );
     assert_eq!(std::fs::read(r.join(".git/index")).unwrap(), index);
     assert_eq!(std::fs::metadata(&archive).unwrap().mode() & 0o777, 0o700);
     assert!(!super::super::has_pending_excluded_recovery(r).unwrap());

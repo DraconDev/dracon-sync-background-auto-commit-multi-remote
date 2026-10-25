@@ -5517,17 +5517,25 @@ async fn sync_repo_local_with_ownership(
 
     #[cfg(target_os = "linux")]
     let recovery_pending = has_pending_excluded_recovery(repo).unwrap_or_else(|error| {
-        eprintln!("⚠️ {} recovery inspection unresolved; admitting diagnostic worker: {error:#}", repo.display());
+        eprintln!(
+            "⚠️ {} recovery inspection unresolved; admitting diagnostic worker: {error:#}",
+            repo.display()
+        );
         true
     });
     #[cfg(target_os = "linux")]
     if recovery_pending {
         let deadline =
             tokio::time::Instant::now() + Duration::from_secs(policy.stage_op_timeout_secs.max(1));
-        let settled = excluded_revert::settle_pending(repo, deadline).await.unwrap_or_else(|error| {
-            eprintln!("⚠️ {} recovery settlement unverified; all data retained: {error:#}", repo.display());
-            false
-        });
+        let settled = excluded_revert::settle_pending(repo, deadline)
+            .await
+            .unwrap_or_else(|error| {
+                eprintln!(
+                    "⚠️ {} recovery settlement unverified; all data retained: {error:#}",
+                    repo.display()
+                );
+                false
+            });
         if !settled {
             eprintln!("⚠️ {} unresolved excluded recovery; preserved private and canonical bytes; inspect Git-directory dracon-excluded-recovery-* records and dracon-excluded-archive/", repo.display());
             return Ok(publish_backlog_after_index_deferral(&svc, &mut ctx)
