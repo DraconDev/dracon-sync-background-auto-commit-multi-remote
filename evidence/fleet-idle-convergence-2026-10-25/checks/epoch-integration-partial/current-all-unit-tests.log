@@ -991,4 +991,12 @@ test report::tests::build_daemon_last_action_map_missing_ledger_returns_none ...
 test report::tests::build_recent_push_failure_map_missing_ledger ... ok
 test report::tests::build_recent_push_failure_map_populated ... ok
 test report::tests::compute_cold_size_entry_populates_cache_record ... ok
-test report::tests::concerns_ledger_insert_if_absent ... 
+test report::tests::concerns_ledger_insert_if_absent ... ok
+test report::tests::concerns_retry_softening ... ok
+test report::tests::concerns_retry_softening_really_gone ... ok
+test report::tests::ever_pushed_reads_linked_worktree_common_gitdir ... ok
+test report::tests::ever_pushed_reads_resolved_nested_gitdir ... ok
+test report::tests::exhausted_push_hint_requires_cause_repair_before_a_targeted_retry ... ok
+test report::tests::probe_history_retry_still_reports_genuinely_invalid_head_as_failed ... ok
+test report::tests::read_tail_lines_empty_file ... ok
+test report::tests::read_tail_lines_handles_oversized_line ... 
