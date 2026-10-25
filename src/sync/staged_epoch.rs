@@ -865,10 +865,13 @@ mod tests {
     #[tokio::test]
     async fn zero_batch_limit_accepts_all_captured_files_without_relaxing_positive_limit() {
         let (root, mut policy) = fixture().await;
-        for number in 0..120 {
-            std::fs::write(root.path().join(format!("related-{number:03}")), b"related\n").unwrap();
+        let names: Vec<_> = (0..120).map(|number| format!("related-{number:03}")).collect();
+        for name in &names {
+            std::fs::write(root.path().join(name), b"related\n").unwrap();
         }
-        git(root.path(), &["add", "--", "."], None).await.unwrap();
+        let mut args = vec!["add", "--"];
+        args.extend(names.iter().map(String::as_str));
+        git(root.path(), &args, None).await.unwrap();
         let epoch = Epoch::capture(root.path(), 30).await.unwrap();
         assert_eq!(epoch.snapshot.changed.len(), 120);
         policy.max_stage_batch_files = 100;
@@ -876,6 +879,13 @@ mod tests {
         policy.max_stage_batch_files = 0;
         assert_eq!(policy.stage_batch_limit(), usize::MAX);
         epoch.eligible(root.path(), &policy, &BTreeSet::new()).await.unwrap();
+        policy.max_stage_file_bytes = 1;
+        assert!(epoch.eligible(root.path(), &policy, &BTreeSet::new()).await.is_err(),
+            "unlimited file count must still enforce blob size");
+        policy.max_stage_file_bytes = 1024;
+        policy.auto_commit_exclude_patterns = vec!["related-000".into()];
+        assert!(epoch.eligible(root.path(), &policy, &BTreeSet::new()).await.is_err(),
+            "unlimited file count must still enforce exclusions");
         assert_eq!(git(root.path(), &["diff", "--cached", "--name-only", "-z"], None)
             .await.unwrap().stdout.iter().filter(|byte| **byte == 0).count(), 120);
     }
