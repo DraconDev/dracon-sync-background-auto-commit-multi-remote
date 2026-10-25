@@ -258,8 +258,14 @@ async fn another_publication_owner_allows_a_real_commit_without_a_push_or_failur
         "staged content",
         "publication contention must not re-stage and absorb unstaged bytes"
     );
-    assert_eq!(git(&fixture.repo, &["rev-parse", "HEAD:file"]).await, staged_before);
-    assert_eq!(git(&fixture.repo, &["rev-parse", ":file"]).await, staged_before);
+    assert_eq!(
+        git(&fixture.repo, &["rev-parse", "HEAD:file"]).await,
+        staged_before
+    );
+    assert_eq!(
+        git(&fixture.repo, &["rev-parse", ":file"]).await,
+        staged_before
+    );
     assert_eq!(
         std::fs::read_to_string(fixture.repo.join("file")).unwrap(),
         "unstaged content"

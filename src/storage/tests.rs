@@ -934,15 +934,32 @@ trusted_authors = ["DraconDev"]
     );
     // Exact vectors still matter. The message is deliberately private so a
     // concurrent operator's canonical COMMIT_EDITMSG cannot be overwritten.
-    let msgfile = std::path::PathBuf::from(log.lines().nth(1).unwrap()
-        .strip_prefix("prepare-commit-msg argv=[").unwrap()
-        .strip_suffix(" message]").unwrap());
+    let msgfile = std::path::PathBuf::from(
+        log.lines()
+            .nth(1)
+            .unwrap()
+            .strip_prefix("prepare-commit-msg argv=[")
+            .unwrap()
+            .strip_suffix(" message]")
+            .unwrap(),
+    );
     assert_eq!(msgfile.file_name().unwrap(), "COMMIT_EDITMSG");
     let private = msgfile.parent().unwrap();
     assert_eq!(private.parent().unwrap(), gitdir);
-    assert!(private.file_name().unwrap().to_str().unwrap().starts_with("dracon-epoch-message-"));
-    assert!(!private.exists(), "only the owned message directory must be cleaned up");
-    assert_eq!(std::fs::read_to_string(&operator_message).unwrap(), "operator draft must survive\n");
+    assert!(private
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .starts_with("dracon-epoch-message-"));
+    assert!(
+        !private.exists(),
+        "only the owned message directory must be cleaned up"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&operator_message).unwrap(),
+        "operator draft must survive\n"
+    );
     assert_eq!(
         log.lines().map(str::to_owned).collect::<Vec<_>>(),
         vec![
