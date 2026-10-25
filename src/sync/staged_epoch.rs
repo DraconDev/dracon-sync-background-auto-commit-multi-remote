@@ -184,8 +184,10 @@ impl Epoch {
         );
         let rejected = self.ineligible_paths(repo, policy, excluded).await?;
         if let Some(path) = rejected.first() {
-            anyhow::bail!("captured staged path is excluded or oversized: {}",
-                path_from_git_bytes(path)?.display());
+            anyhow::bail!(
+                "captured staged path is excluded or oversized: {}",
+                path_from_git_bytes(path)?.display()
+            );
         }
         Ok(())
     }

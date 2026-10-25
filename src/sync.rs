@@ -970,11 +970,18 @@ static WARDEN_HARDEN_STATE: std::sync::OnceLock<
 /// actually run at `git add` time. Extracted for unit tests.
 pub(crate) async fn repo_has_warden_filter(repo: &Path) -> bool {
     let mut command = crate::policy::tokio_git_command();
-    command.args(["config", "--local", "--get", "filter.dracon.clean"])
+    command
+        .args(["config", "--local", "--get", "filter.dracon.clean"])
         .current_dir(repo);
-    crate::git::run_command_captured_output(command.into_tokio(),
-        WARDEN_HARDEN_TIMEOUT_SECS, "warden filter probe", None)
-        .await.map(|o| o.status.success()).unwrap_or(false)
+    crate::git::run_command_captured_output(
+        command.into_tokio(),
+        WARDEN_HARDEN_TIMEOUT_SECS,
+        "warden filter probe",
+        None,
+    )
+    .await
+    .map(|o| o.status.success())
+    .unwrap_or(false)
 }
 
 /// ADDED 2026-09-15 (warden-showcase probe): sync-hook auto-harden.
@@ -1034,7 +1041,10 @@ async fn maybe_auto_harden_with_warden(repo: &Path, policy: &SyncPolicy, dry_run
     let mut command = tokio::process::Command::new("dracon-warden");
     command.args(["once", &key.to_string_lossy()]);
     let run = crate::git::run_command_captured_output(
-        command, WARDEN_HARDEN_TIMEOUT_SECS, "warden auto-harden", None,
+        command,
+        WARDEN_HARDEN_TIMEOUT_SECS,
+        "warden auto-harden",
+        None,
     );
     match tokio::time::timeout(
         std::time::Duration::from_secs(WARDEN_HARDEN_TIMEOUT_SECS),
@@ -4186,207 +4196,210 @@ async fn stage_commit_and_push(
         };
         let deadline = baseline.deadline();
         let prepared = tokio::time::timeout_at(deadline, async {
-        let staging = staged_epoch::Staging::new(repo, baseline).await?;
+            let staging = staged_epoch::Staging::new(repo, baseline).await?;
 
-        // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): auto-resolve
-        // unmerged index entries so the commit loop is never blocked.
-        // See `auto_resolve_unmerged_if_safe` for the full rationale.
-        let prepare_started = std::time::Instant::now();
-        let resolved = auto_resolve_unmerged_if_safe(repo, policy.auto_resolve_unmerged).await?;
-        if debug_enabled() {
-            eprintln!(
-                "scheduler: stage_prepare repo={} phase=unmerged elapsed_ms={}",
-                repo.display(),
-                prepare_started.elapsed().as_millis()
-            );
-        }
-        if resolved > 0 {
-            eprintln!(
-                "🔧 {} auto-resolved {} unmerged entries",
-                repo.display(),
-                resolved
-            );
-        }
-
-        // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): emit a warning
-        // when the untracked-file count exceeds the policy threshold.
-        let _untracked_count =
-            check_untracked_threshold(repo, policy.untracked_warn_threshold).await?;
-        if debug_enabled() {
-            eprintln!(
-                "scheduler: stage_prepare repo={} phase=untracked elapsed_ms={}",
-                repo.display(),
-                prepare_started.elapsed().as_millis()
-            );
-        }
-
-        // FIX (goal mr0xseig-fn9bbd): split `to_stage` into gitlink
-        // pointer updates vs regular files. Gitlink entries are staged
-        // without recursion (`git add <path>`) so the parent's index
-        // records the new submodule SHA without walking into the
-        // submodule's working tree. Regular files keep their existing
-        // recursion-and-`git add -A` path.
-        //
-        // CHANGED 2026-09-17 (sync-convergence follow-up): the partition
-        // previously called per-path `is_gitlink` — one `git ls-tree HEAD`
-        // subprocess PER FILE. Measured on this box (20-file fixture,
-        // load ~70-90): stage_enter → first add_spawn took ~5.7s for 20
-        // files; a 100-file commit never reached `git add` within the
-        // 20s probe window. `tracked_gitlink_set` resolves the same
-        // classification with ONE `git ls-tree HEAD -- <all candidates>`
-        // call (already used by the commit-subject path). Paths absent
-        // from HEAD (new untracked files) cannot be gitlinks, so only
-        // paths present in the returned set partition as gitlinks —
-        // identical semantics, O(1) spawns instead of O(N).
-        let candidates: Vec<String> = to_stage
-            .iter()
-            .map(|e| e.path.to_string_lossy().to_string())
-            .collect();
-        let gitlink_set = tracked_gitlink_set(repo, &candidates);
-        let (gitlink_entries, regular_entries): (
-            Vec<dracon_git::types::DiffFile>,
-            Vec<dracon_git::types::DiffFile>,
-        ) = to_stage
-            .iter()
-            .cloned()
-            .partition(|e| gitlink_set.contains(&e.path.to_string_lossy().to_string()));
-        let gitlink_paths: Vec<String> = gitlink_entries
-            .iter()
-            .map(|e| e.path.to_string_lossy().to_string())
-            .collect();
-        let regular_paths: Vec<String> = regular_entries
-            .iter()
-            .map(|e| e.path.to_string_lossy().to_string())
-            .collect();
-
-        // FIX (2026-06-19, goal mqli43u6-tg3lcf): limit the number of files
-        // staged in a single commit batch to avoid lock contention and large
-        // commit overhead. When a repo has more untracked files than the
-        // batch limit, the daemon commits them in multiple smaller batches.
-        //
-        // FIX (goal mr0xseig-fn9bbd): batch-limit applies to the union of
-        // regular and gitlink paths; gitlinks are NOT subject to the
-        // recursion-skip behavior so they don't contribute to the
-        // subdir-expansion that would otherwise inflate counts (a single
-        // gitlink path is one entry, not many).
-        //
-        // CHANGED 2026-08-11 (audit find, stage_commit_and_push batch
-        // union): the cap is now enforced on the UNION — the previous code
-        // truncated each list independently to `max_batch`, so a commit
-        // could stage up to 2×max_batch entries whenever both entry classes
-        // were present. Gitlink pointer updates get priority (single
-        // non-recursive index entries that drive the parent's submodule-
-        // gitlink convergence); regular files fill the remainder. Deferred
-        // entries stay dirty and are picked up by the next cycle.
-        let max_batch = policy.stage_batch_limit();
-        let total_to_stage = regular_paths.len() + gitlink_paths.len();
-        let (regular_paths, gitlink_paths) = if total_to_stage > max_batch {
-            eprintln!(
-                "📦 batching {} entries into chunks of {}",
-                total_to_stage, max_batch
-            );
-            cap_batch_union(regular_paths, gitlink_paths, max_batch)
-        } else {
-            (regular_paths, gitlink_paths)
-        };
-
-        let (existing, missing): (Vec<_>, Vec<_>) = regular_paths
-            .into_iter()
-            .partition(|p| repo.join(p).exists());
-
-        // FIX (goal mr0xseig-fn9bbd): gitlink pointer updates are
-        // staged WITHOUT recursion via `git add <path>` (no `-A`).
-        // `stage_existing_files` recurses-and-skips for anything in
-        // `existing` whose `.git` exists; for gitlinks we want the
-        // OPPOSITE — do not recurse, but DO emit the `git add`.
-        let (gitlink_existing, gitlink_missing): (Vec<_>, Vec<_>) = gitlink_paths
-            .into_iter()
-            .partition(|p| repo.join(p).exists());
-
-        // CHANGED 2026-07-21 (v0.112.31, audit H6/F1.5): filtered
-        // variant so files discovered by the directory-expansion
-        // recursion get the per-file staging policy re-applied (size
-        // limit + exclude patterns) — previously a 500 MiB file nested
-        // in a new untracked dir bypassed the 100 MiB hard exclusion.
-        // The `auto_commit_exclude_patterns` value uses the SAME
-        // effective (per-repo-override-aware) resolution as the
-        // partition in `sync_repo_with_ahead_since`.
-        let staging_repo_override = load_repo_override(repo);
-        // R3-M2: per-repo entries EXTEND the global list (union helper).
-        let auto_commit_exclude_for_staging =
-            crate::policy::effective_auto_commit_excludes(ctx.policy, &staging_repo_override);
-        // ADDED 2026-10-03 (audit R4-SC-15): a STILL-contended index
-        // after the add-site retries maps to Blocked (non-failure, work
-        // retained for next cycle) instead of Err (failure budget burn +
-        // MAX_FAILURES backoff for a healthy repo).
-        match stage_existing_files_in_index(
-            repo,
-            &existing,
-            dry_run,
-            ctx.policy.stage_op_timeout_secs,
-            ctx.excluded_dir_names,
-            Some((ctx.policy, &auto_commit_exclude_for_staging)),
-            private_assets.map(|prepared| &prepared.materialized_paths),
-            Some(staging.index()),
-        )
-        .await
-        {
-            Ok(()) => {}
-            Err(e) if is_index_lock_failure(&e.to_string()) => {
+            // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): auto-resolve
+            // unmerged index entries so the commit loop is never blocked.
+            // See `auto_resolve_unmerged_if_safe` for the full rationale.
+            let prepare_started = std::time::Instant::now();
+            let resolved =
+                auto_resolve_unmerged_if_safe(repo, policy.auto_resolve_unmerged).await?;
+            if debug_enabled() {
                 eprintln!(
-                    "⏸️ {} staging blocked by index.lock contention (retry next cycle)",
-                    repo.display()
+                    "scheduler: stage_prepare repo={} phase=unmerged elapsed_ms={}",
+                    repo.display(),
+                    prepare_started.elapsed().as_millis()
                 );
-                return Ok(None);
             }
-            Err(e) => return Err(e),
-        }
+            if resolved > 0 {
+                eprintln!(
+                    "🔧 {} auto-resolved {} unmerged entries",
+                    repo.display(),
+                    resolved
+                );
+            }
 
-        stage_gitlink_updates_in_index(
-            repo,
-            &gitlink_existing,
-            dry_run,
-            ctx.policy.stage_op_timeout_secs,
-            Some(staging.index()),
-        )
-        .await?;
+            // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): emit a warning
+            // when the untracked-file count exceeds the policy threshold.
+            let _untracked_count =
+                check_untracked_threshold(repo, policy.untracked_warn_threshold).await?;
+            if debug_enabled() {
+                eprintln!(
+                    "scheduler: stage_prepare repo={} phase=untracked elapsed_ms={}",
+                    repo.display(),
+                    prepare_started.elapsed().as_millis()
+                );
+            }
 
-        let missing_iter = missing.into_iter().chain(gitlink_missing);
-        let missing: Vec<_> = missing_iter.collect();
-        if !missing.is_empty() && !dry_run {
-            let quoted = crate::git::literal_pathspecs(&missing);
-            let mut args = vec!["rm", "--cached", "--ignore-unmatch", "--"];
-            args.extend(quoted.iter().map(String::as_str));
-            staged_epoch::run_index_git(
+            // FIX (goal mr0xseig-fn9bbd): split `to_stage` into gitlink
+            // pointer updates vs regular files. Gitlink entries are staged
+            // without recursion (`git add <path>`) so the parent's index
+            // records the new submodule SHA without walking into the
+            // submodule's working tree. Regular files keep their existing
+            // recursion-and-`git add -A` path.
+            //
+            // CHANGED 2026-09-17 (sync-convergence follow-up): the partition
+            // previously called per-path `is_gitlink` — one `git ls-tree HEAD`
+            // subprocess PER FILE. Measured on this box (20-file fixture,
+            // load ~70-90): stage_enter → first add_spawn took ~5.7s for 20
+            // files; a 100-file commit never reached `git add` within the
+            // 20s probe window. `tracked_gitlink_set` resolves the same
+            // classification with ONE `git ls-tree HEAD -- <all candidates>`
+            // call (already used by the commit-subject path). Paths absent
+            // from HEAD (new untracked files) cannot be gitlinks, so only
+            // paths present in the returned set partition as gitlinks —
+            // identical semantics, O(1) spawns instead of O(N).
+            let candidates: Vec<String> = to_stage
+                .iter()
+                .map(|e| e.path.to_string_lossy().to_string())
+                .collect();
+            let gitlink_set = tracked_gitlink_set(repo, &candidates);
+            let (gitlink_entries, regular_entries): (
+                Vec<dracon_git::types::DiffFile>,
+                Vec<dracon_git::types::DiffFile>,
+            ) = to_stage
+                .iter()
+                .cloned()
+                .partition(|e| gitlink_set.contains(&e.path.to_string_lossy().to_string()));
+            let gitlink_paths: Vec<String> = gitlink_entries
+                .iter()
+                .map(|e| e.path.to_string_lossy().to_string())
+                .collect();
+            let regular_paths: Vec<String> = regular_entries
+                .iter()
+                .map(|e| e.path.to_string_lossy().to_string())
+                .collect();
+
+            // FIX (2026-06-19, goal mqli43u6-tg3lcf): limit the number of files
+            // staged in a single commit batch to avoid lock contention and large
+            // commit overhead. When a repo has more untracked files than the
+            // batch limit, the daemon commits them in multiple smaller batches.
+            //
+            // FIX (goal mr0xseig-fn9bbd): batch-limit applies to the union of
+            // regular and gitlink paths; gitlinks are NOT subject to the
+            // recursion-skip behavior so they don't contribute to the
+            // subdir-expansion that would otherwise inflate counts (a single
+            // gitlink path is one entry, not many).
+            //
+            // CHANGED 2026-08-11 (audit find, stage_commit_and_push batch
+            // union): the cap is now enforced on the UNION — the previous code
+            // truncated each list independently to `max_batch`, so a commit
+            // could stage up to 2×max_batch entries whenever both entry classes
+            // were present. Gitlink pointer updates get priority (single
+            // non-recursive index entries that drive the parent's submodule-
+            // gitlink convergence); regular files fill the remainder. Deferred
+            // entries stay dirty and are picked up by the next cycle.
+            let max_batch = policy.stage_batch_limit();
+            let total_to_stage = regular_paths.len() + gitlink_paths.len();
+            let (regular_paths, gitlink_paths) = if total_to_stage > max_batch {
+                eprintln!(
+                    "📦 batching {} entries into chunks of {}",
+                    total_to_stage, max_batch
+                );
+                cap_batch_union(regular_paths, gitlink_paths, max_batch)
+            } else {
+                (regular_paths, gitlink_paths)
+            };
+
+            let (existing, missing): (Vec<_>, Vec<_>) = regular_paths
+                .into_iter()
+                .partition(|p| repo.join(p).exists());
+
+            // FIX (goal mr0xseig-fn9bbd): gitlink pointer updates are
+            // staged WITHOUT recursion via `git add <path>` (no `-A`).
+            // `stage_existing_files` recurses-and-skips for anything in
+            // `existing` whose `.git` exists; for gitlinks we want the
+            // OPPOSITE — do not recurse, but DO emit the `git add`.
+            let (gitlink_existing, gitlink_missing): (Vec<_>, Vec<_>) = gitlink_paths
+                .into_iter()
+                .partition(|p| repo.join(p).exists());
+
+            // CHANGED 2026-07-21 (v0.112.31, audit H6/F1.5): filtered
+            // variant so files discovered by the directory-expansion
+            // recursion get the per-file staging policy re-applied (size
+            // limit + exclude patterns) — previously a 500 MiB file nested
+            // in a new untracked dir bypassed the 100 MiB hard exclusion.
+            // The `auto_commit_exclude_patterns` value uses the SAME
+            // effective (per-repo-override-aware) resolution as the
+            // partition in `sync_repo_with_ahead_since`.
+            let staging_repo_override = load_repo_override(repo);
+            // R3-M2: per-repo entries EXTEND the global list (union helper).
+            let auto_commit_exclude_for_staging =
+                crate::policy::effective_auto_commit_excludes(ctx.policy, &staging_repo_override);
+            // ADDED 2026-10-03 (audit R4-SC-15): a STILL-contended index
+            // after the add-site retries maps to Blocked (non-failure, work
+            // retained for next cycle) instead of Err (failure budget burn +
+            // MAX_FAILURES backoff for a healthy repo).
+            match stage_existing_files_in_index(
                 repo,
-                &args,
-                policy.stage_op_timeout_secs,
-                "epoch missing",
+                &existing,
+                dry_run,
+                ctx.policy.stage_op_timeout_secs,
+                ctx.excluded_dir_names,
+                Some((ctx.policy, &auto_commit_exclude_for_staging)),
+                private_assets.map(|prepared| &prepared.materialized_paths),
+                Some(staging.index()),
+            )
+            .await
+            {
+                Ok(()) => {}
+                Err(e) if is_index_lock_failure(&e.to_string()) => {
+                    eprintln!(
+                        "⏸️ {} staging blocked by index.lock contention (retry next cycle)",
+                        repo.display()
+                    );
+                    return Ok(None);
+                }
+                Err(e) => return Err(e),
+            }
+
+            stage_gitlink_updates_in_index(
+                repo,
+                &gitlink_existing,
+                dry_run,
+                ctx.policy.stage_op_timeout_secs,
                 Some(staging.index()),
             )
             .await?;
-        }
-        match staging
-            .finish(
-                repo,
-                policy,
-                ctx.excluded_dir_names,
-                ctx.build_artifact_cleanup,
-                dry_run,
-            )
-            .await
-        {
-            Ok(epoch) => Ok(Some(epoch)),
-            Err(error) if staged_epoch::is_conflict(&error) => {
-                eprintln!(
-                    "⏳ {} private staging deferred; concurrent intent retained: {error:#}",
-                    repo.display()
-                );
-                Ok(None)
+
+            let missing_iter = missing.into_iter().chain(gitlink_missing);
+            let missing: Vec<_> = missing_iter.collect();
+            if !missing.is_empty() && !dry_run {
+                let quoted = crate::git::literal_pathspecs(&missing);
+                let mut args = vec!["rm", "--cached", "--ignore-unmatch", "--"];
+                args.extend(quoted.iter().map(String::as_str));
+                staged_epoch::run_index_git(
+                    repo,
+                    &args,
+                    policy.stage_op_timeout_secs,
+                    "epoch missing",
+                    Some(staging.index()),
+                )
+                .await?;
             }
-            Err(error) => Err(error),
-        }
-        }).await.context("ordinary staging absolute deadline expired; candidate retained")??;
+            match staging
+                .finish(
+                    repo,
+                    policy,
+                    ctx.excluded_dir_names,
+                    ctx.build_artifact_cleanup,
+                    dry_run,
+                )
+                .await
+            {
+                Ok(epoch) => Ok(Some(epoch)),
+                Err(error) if staged_epoch::is_conflict(&error) => {
+                    eprintln!(
+                        "⏳ {} private staging deferred; concurrent intent retained: {error:#}",
+                        repo.display()
+                    );
+                    Ok(None)
+                }
+                Err(error) => Err(error),
+            }
+        })
+        .await
+        .context("ordinary staging absolute deadline expired; candidate retained")??;
         match prepared {
             Some(epoch) => epoch,
             None => return Ok(Some(SyncOutcome::Blocked)),
@@ -4826,30 +4839,32 @@ async fn bootstrap_empty_repo_commit_owned(
         }
         let deadline = epoch.deadline();
         tokio::time::timeout_at(deadline, async {
-        let staging = staged_epoch::Staging::new(repo, epoch).await?;
-        stage_existing_files_in_index(
-            repo,
-            &paths,
-            false,
-            policy.stage_op_timeout_secs,
-            excluded_dir_names,
-            Some((policy, &excludes)),
-            None,
-            Some(staging.index()),
-        )
-        .await?;
-        staging
-            .finish(
+            let staging = staged_epoch::Staging::new(repo, epoch).await?;
+            stage_existing_files_in_index(
                 repo,
-                policy,
-                excluded_dir_names,
-                repo_override
-                    .build_artifact_cleanup
-                    .unwrap_or(policy.build_artifact_cleanup),
+                &paths,
                 false,
+                policy.stage_op_timeout_secs,
+                excluded_dir_names,
+                Some((policy, &excludes)),
+                None,
+                Some(staging.index()),
             )
-            .await
-        }).await.context("bootstrap staging absolute deadline expired; candidate retained")??
+            .await?;
+            staging
+                .finish(
+                    repo,
+                    policy,
+                    excluded_dir_names,
+                    repo_override
+                        .build_artifact_cleanup
+                        .unwrap_or(policy.build_artifact_cleanup),
+                    false,
+                )
+                .await
+        })
+        .await
+        .context("bootstrap staging absolute deadline expired; candidate retained")??
     };
     if !epoch.has_intent() || dry_run {
         return Ok(false);
@@ -7730,15 +7745,27 @@ trusted_authors = ["test"]
         let index_before = std::fs::read(repo.join(".git/index")).unwrap();
         let policy = bootstrap_test_policy("max_stage_file_bytes = 1024");
         let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
-        assert!(format!("{:#}", result.unwrap_err()).contains("excluded or oversized"),
-            "the cached 2KiB blob must be refused despite the tiny worktree copy");
-        assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), index_before,
-            "operator staging is not an owned candidate to prune");
+        assert!(
+            format!("{:#}", result.unwrap_err()).contains("excluded or oversized"),
+            "the cached 2KiB blob must be refused despite the tiny worktree copy"
+        );
+        assert_eq!(
+            std::fs::read(repo.join(".git/index")).unwrap(),
+            index_before,
+            "operator staging is not an owned candidate to prune"
+        );
         assert_eq!(std::fs::read(repo.join("big.bin")).unwrap(), b"tiny");
         assert_eq!(std::fs::read(repo.join("small.txt")).unwrap(), b"ok\n");
-        assert!(!crate::git::git_cmd().args(["rev-parse", "--verify", "HEAD"])
-            .current_dir(&repo).output().unwrap().status.success(),
-            "neither an oversized root nor a partial replacement root may be published");
+        assert!(
+            !crate::git::git_cmd()
+                .args(["rev-parse", "--verify", "HEAD"])
+                .current_dir(&repo)
+                .output()
+                .unwrap()
+                .status
+                .success(),
+            "neither an oversized root nor a partial replacement root may be published"
+        );
     }
 
     /// ADDED 2026-10-03 (audit R4-SC-05): steady state had no
