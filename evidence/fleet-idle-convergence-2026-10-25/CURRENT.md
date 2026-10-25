@@ -28,8 +28,10 @@ not a fresh single-source complete suite or a guarded SDK qualification cohort.
 
 **Operator decision:** disable the 100-file count cap; make batching opt-in with
 0 meaning unlimited. Source default/example and all three consumer paths now use
-that convention. New >100-file, positive-limit and size/exclusion negative controls
-are being tested. Do not raise/remove size, ownership, storage, hook or deadline
+that convention. zero-batch-policy-tests.log passes2tests: omitted/explicit zero
+and positive parsing, plus120 captured files and size/exclusion negative controls.
+zero-batch-production-epochs.log passes2real matching-helper tests: normal worktree
+and unborn bootstrap each commit all120related files together (one new commit). Do not raise/remove size, ownership, storage, hook or deadline
 safeguards. The effective live global policy is STILL100 intentionally: the old
 loaded binary interprets zero as an empty batch. Apply the authorized zero-value
 migration only together with a qualified supporting daemon, never to the old
