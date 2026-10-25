@@ -31,7 +31,8 @@ impl StagedIntentSnapshot {
     /// this future kills its owned Git process group. No index lock is acquired.
     /// Git reads identities and flags together from one index observation; later
     /// integration must conditionally validate at an actual atomic commit boundary.
-    /// Unsupported index flags (including intent-to-add/sparse entries) refuse.
+    /// Nonzero flags (including intent-to-add, skip-worktree and split-index
+    /// bookkeeping) and sparse directory entries conservatively refuse.
     pub(crate) async fn capture(repo: &Path, deadline: Instant) -> Result<Self> {
         tokio::time::timeout_at(deadline, async {
             ensure!(Instant::now() < deadline, "staged intent deadline expired");
@@ -317,8 +318,14 @@ mod tests {
         std::fs::write(repo.join(".gitattributes"), b"* filter=refuse\n").unwrap();
         cmd(repo, &["config", "filter.refuse.clean", "false"]);
         cmd(repo, &["config", "filter.refuse.required", "true"]);
+        let foreign_lock = repo.join(".git/index.lock");
+        std::fs::write(&foreign_lock, b"foreign lock preserved").unwrap();
         let before = preserved(repo);
         let snapshot = capture(repo).await;
+        assert_eq!(
+            std::fs::read(&foreign_lock).unwrap(),
+            b"foreign lock preserved"
+        );
         assert_eq!(before, preserved(repo));
         assert_eq!(snapshot.changed.get(b"deleted".as_slice()), Some(&None));
         assert_eq!(snapshot.entries[b"file".as_slice()].mode, 0o100755);
@@ -540,7 +547,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn unsupported_flags_sparse_index_and_supported_split_index() {
+    async fn unsupported_flags_sparse_and_split_index_refuse() {
         let dir = fixture();
         let repo = dir.path();
         std::fs::create_dir(repo.join("outside")).unwrap();
@@ -569,14 +576,22 @@ mod tests {
         }
         std::fs::write(repo.join("file"), b"staged content").unwrap();
         cmd(repo, &["add", "--", "file"]);
-        let ordinary = capture(repo).await;
+        assert!(capture(repo).await.changed.contains_key(b"file".as_slice()));
         cmd(repo, &["update-index", "--split-index"]);
         assert!(std::fs::read_dir(repo.join(".git"))
             .unwrap()
             .flatten()
             .any(|e| e.file_name().to_string_lossy().starts_with("sharedindex.")));
         let before = preserved(repo);
-        assert_eq!(ordinary, capture(repo).await);
+        // Git supports split indexes, but its nonzero internal flags are not
+        // admitted by this deliberately conservative observation API.
+        let error = StagedIntentSnapshot::capture(repo, Instant::now() + Duration::from_secs(5))
+            .await
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("unsupported index flags"),
+            "{error:#}"
+        );
         assert_eq!(before, preserved(repo));
         cmd(repo, &["update-index", "--no-split-index"]);
         cmd(
