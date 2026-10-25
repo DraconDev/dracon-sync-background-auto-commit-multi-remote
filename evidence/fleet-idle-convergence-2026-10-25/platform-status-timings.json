@@ -1,0 +1,49 @@
+[
+  {
+    "mode": "normal",
+    "elapsed_seconds": 13.256092304363847,
+    "exit_code": 0,
+    "command": [
+      "timeout",
+      "--kill-after=5s",
+      "60s",
+      "git",
+      "-C",
+      "/home/dracon/Dev/dracon-platform",
+      "--no-optional-locks",
+      "-c",
+      "index.threads=1",
+      "-c",
+      "core.preloadIndex=false",
+      "status",
+      "--porcelain=v2",
+      "--branch",
+      "-z",
+      "--untracked-files=all"
+    ]
+  },
+  {
+    "mode": "ignore-child-worktree",
+    "elapsed_seconds": 2.804371142294258,
+    "exit_code": 0,
+    "command": [
+      "timeout",
+      "--kill-after=5s",
+      "60s",
+      "git",
+      "-C",
+      "/home/dracon/Dev/dracon-platform",
+      "--no-optional-locks",
+      "-c",
+      "index.threads=1",
+      "-c",
+      "core.preloadIndex=false",
+      "status",
+      "--porcelain=v2",
+      "--branch",
+      "-z",
+      "--untracked-files=all",
+      "--ignore-submodules=dirty"
+    ]
+  }
+]
