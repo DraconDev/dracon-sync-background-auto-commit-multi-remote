@@ -1,0 +1,8 @@
+{
+  "observed_at": 1792890162.9674928,
+  "failed_prefix": "460947e77d73fcd8e0bbb086fa9a4e079557e81e",
+  "failure": "first staging batch omitted site-rules module; original normal dependency lifecycle refused publication",
+  "cause_assessment": "module now committed in complete HEAD and normal current WXT preparation passes",
+  "retry": "cleared only browser entry after both old attempts terminal; daemon owns next source selection",
+  "manual_push": false
+}
