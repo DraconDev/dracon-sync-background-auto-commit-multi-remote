@@ -135,11 +135,27 @@ def observe(initial):
     return row
 
 
+def initial_inventory(baseline):
+    # Legacy ten-repository receipts retain their original cardinality guard.
+    # Full-fleet captures supply the independent discovery count explicitly;
+    # never infer an expected count from a possibly truncated row list.
+    expected = baseline.get('expected_repository_count', 10)
+    initial = baseline.get('initial_repositories')
+    if type(expected) is not int or expected <= 0 or not isinstance(initial, list):
+        raise RuntimeError('invalid expected repository inventory')
+    if any(not isinstance(row, dict) or not isinstance(row.get('repo'), str)
+           or not row['repo'].strip() or not Path(row['repo']).is_absolute()
+           for row in initial):
+        raise RuntimeError('invalid repository path in inventory')
+    identities = {str(Path(row['repo']).resolve()) for row in initial}
+    if len(initial) != expected or len(identities) != expected:
+        raise RuntimeError(f'expected all {expected} distinct initially affected repositories')
+    return initial
+
+
 def main():
     baseline, label, output = sys.argv[1:]
-    initial = json.loads(Path(baseline).read_text())['initial_repositories']
-    if len(initial) != 10 or len({r['repo'] for r in initial}) != 10:
-        raise RuntimeError('expected all ten distinct initially affected repositories')
+    initial = initial_inventory(json.loads(Path(baseline).read_text()))
     before = identity()
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
         rows = list(pool.map(observe, initial))

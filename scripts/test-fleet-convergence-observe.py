@@ -12,6 +12,28 @@ spec.loader.exec_module(observer)
 
 
 class ObservationTests(unittest.TestCase):
+    def test_inventory_requires_independent_count_and_distinct_paths(self):
+        rows = [{'repo': '/repos/a'}, {'repo': '/repos/b'}]
+        baseline = {'expected_repository_count': 2, 'initial_repositories': rows}
+        self.assertEqual(observer.initial_inventory(baseline), rows)
+        # A declared additional repository is harmless when it is captured too.
+        extended = rows + [{'repo': '/repos/c', 'extra_metadata': 'allowed'}]
+        self.assertEqual(observer.initial_inventory({
+            'expected_repository_count': 3, 'initial_repositories': extended}), extended)
+        for invalid in [
+            {**baseline, 'initial_repositories': rows[:1]},
+            {**baseline, 'initial_repositories': rows + rows[:1]},
+            {**baseline, 'initial_repositories': [rows[0], {'repo': '/repos/a/../a'}]},
+            {**baseline, 'expected_repository_count': True},
+            {**baseline, 'expected_repository_count': 0},
+            {**baseline, 'initial_repositories': [{'repo': ''}, rows[1]]},
+            {'initial_repositories': rows},  # Legacy receipts still require ten.
+        ]:
+            with self.assertRaises(RuntimeError):
+                observer.initial_inventory(invalid)
+        legacy = [{'repo': f'/repos/legacy-{i}'} for i in range(10)]
+        self.assertEqual(observer.initial_inventory({'initial_repositories': legacy}), legacy)
+
     def test_primary_origin_is_required_even_without_mirror_targets(self):
         self.assertEqual(observer.required_remotes({'push_to_remotes': []}), ['origin'])
         self.assertEqual(observer.required_remotes({'push_to_remotes': ['origin', 'gitlab']}), ['origin', 'gitlab'])
