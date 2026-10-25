@@ -43,10 +43,18 @@ HEAD includes the module and normal current WXT preparation passes. Both old
 attempts alrsIE/qoO76V failed; their records are retained, not relabelled passed.
 Only the browser stuck entry was re-enabled afterward. No manual push/commit.
 
-At 2026-10-25T01:03UTC the daemon had selected complete source
+At 2026-10-25T01:34UTC the daemon was validating complete source
 `9ddc4c869ac63b6cab04b2c7c69c2f409a636a43` in normal attempt
 `/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.H8jZa3/manifest.json`.
-It was running, zero gates yet registered, no failure recorded. Not a pass.
+It was running:51gates registered,50passed,one active,no failure recorded.
+This is not a whole-gate pass or remote acknowledgment.
+
+During this assessment the8contract,5observer,8witness,13isolated-hook and6shell
+regressions passed freshly. Hook sources/tests match9ddc4c8 under normal required
+filters; loaded PID/hash still match deployment. See workspace-final-v8 final
+logs/source-match JSON. An initial180second suite envelope expired after12passing
+cases (no assertion failed); complete replay used a bounded600second batch
+envelope, kept internal deadlines unchanged, passed all13 and left no remnants.
 
 Next: inspect actual terminal/failure evidence for this candidate. Do not bypass,
 skip, weaken or replace the original whole gate with selected local diagnostics.
