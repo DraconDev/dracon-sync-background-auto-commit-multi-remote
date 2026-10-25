@@ -10,3 +10,12 @@
 ✔ library workspaces are built before a dependent lifecycle script resolves them (59123.821105ms)
 ✔ same-repository preparation is exclusive but product gates still overlap (43953.900038ms)
 ✔ native pool budgets bound lifecycle, library and gate workers (48572.502775ms)
+✔ native pool budgets preserve stricter caller limits (41088.149206ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 308060.242535

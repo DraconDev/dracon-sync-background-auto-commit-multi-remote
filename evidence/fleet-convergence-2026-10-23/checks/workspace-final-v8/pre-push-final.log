@@ -1,0 +1,3 @@
+✔ concurrent failures retain separate evidence and the exact gate exit code (2830.038665ms)
+✔ successful gates remain required and pass normally (2038.574362ms)
+✔ the unchanged secret phase rejects both quote styles even with the existing emergency gate flag (661.277816ms)
