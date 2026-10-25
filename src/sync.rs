@@ -8430,30 +8430,58 @@ if [ \"$1\" = \"once\" ] && [ -n \"$2\" ]; then\n\
         std::fs::write(&script, "#!/bin/sh\nsleep 30 &\nchild=$!\nprintf '%s %s\\n' \"$$\" \"$child\" > \"$2/.git/hardener-pids\"\nwait\n").unwrap();
         let policy = bootstrap_test_policy("stage_op_timeout_secs = 1");
         let started = std::time::Instant::now();
-        let error = tokio::time::timeout(Duration::from_secs(5),
-            bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false))
-            .await.expect("whole staging must be bounded").unwrap_err();
-        assert!(format!("{error:#}").contains("bootstrap staging absolute deadline expired"), "{error:#}");
+        let error = tokio::time::timeout(
+            Duration::from_secs(5),
+            bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false),
+        )
+        .await
+        .expect("whole staging must be bounded")
+        .unwrap_err();
+        assert!(
+            format!("{error:#}").contains("bootstrap staging absolute deadline expired"),
+            "{error:#}"
+        );
         assert!(started.elapsed() < Duration::from_secs(5));
         let pids: Vec<u32> = std::fs::read_to_string(repo.join(".git/hardener-pids"))
-            .expect("the hardener actually executed").split_whitespace()
-            .map(|pid| pid.parse().unwrap()).collect();
+            .expect("the hardener actually executed")
+            .split_whitespace()
+            .map(|pid| pid.parse().unwrap())
+            .collect();
         assert_eq!(pids.len(), 2);
         tokio::time::timeout(Duration::from_secs(3), async {
             loop {
-                let stopped = pids.iter().all(|pid| match std::fs::read_to_string(format!("/proc/{pid}/stat")) {
-                    Ok(stat) => stat.rsplit_once(") ").is_some_and(|(_, rest)| rest.starts_with('Z')),
-                    Err(error) => error.kind() == std::io::ErrorKind::NotFound,
+                let stopped = pids.iter().all(|pid| {
+                    match std::fs::read_to_string(format!("/proc/{pid}/stat")) {
+                        Ok(stat) => stat
+                            .rsplit_once(") ")
+                            .is_some_and(|(_, rest)| rest.starts_with('Z')),
+                        Err(error) => error.kind() == std::io::ErrorKind::NotFound,
+                    }
                 });
-                if stopped { break; }
+                if stopped {
+                    break;
+                }
                 tokio::time::sleep(Duration::from_millis(20)).await;
             }
-        }).await.expect("owned hardener leader AND descendant must stop");
-        assert_eq!(std::fs::read(repo.join("data")).unwrap(), b"local bytes must survive\n");
-        assert!(!repo.join(".git/index").exists(), "private candidate must not install on timeout");
+        })
+        .await
+        .expect("owned hardener leader AND descendant must stop");
+        assert_eq!(
+            std::fs::read(repo.join("data")).unwrap(),
+            b"local bytes must survive\n"
+        );
+        assert!(
+            !repo.join(".git/index").exists(),
+            "private candidate must not install on timeout"
+        );
         assert!(!repo.join(".git/index.lock").exists());
-        assert!(!crate::git::git_cmd().args(["rev-parse", "--verify", "HEAD"])
-            .current_dir(&repo).output().unwrap().status.success());
+        assert!(!crate::git::git_cmd()
+            .args(["rev-parse", "--verify", "HEAD"])
+            .current_dir(&repo)
+            .output()
+            .unwrap()
+            .status
+            .success());
     }
 
     /// ADDED 2026-09-15: the knob gates the fork — disabled means the
