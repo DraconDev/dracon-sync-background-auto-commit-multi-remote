@@ -1,0 +1,27 @@
+✖ readers retain complete output throughout a rebuild and receive the new output (7.284266ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 57.747055
+
+✖ failing tests:
+
+test at ../../../../tmp/library-output-red-7nwc8ybq/packages/extension-react/scripts/build.check.mjs:19:1
+✖ readers retain complete output throughout a rebuild and receive the new output (7.284266ms)
+  Error: ENOENT: no such file or directory, open '/tmp/extension-react-build-JcIufZ/dist/components/index.js'
+      at async open (node:internal/fs/promises:640:25)
+      at async readFile (node:internal/fs/promises:1290:14)
+      at async file:///tmp/library-output-red-7nwc8ybq/packages/extension-react/scripts/build.check.mjs:34:20
+      at async fixture (file:///tmp/library-output-red-7nwc8ybq/packages/extension-react/scripts/build.check.mjs:13:5)
+      at async TestContext.<anonymous> (file:///tmp/library-output-red-7nwc8ybq/packages/extension-react/scripts/build.check.mjs:20:3)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/tmp/extension-react-build-JcIufZ/dist/components/index.js'
+  }
