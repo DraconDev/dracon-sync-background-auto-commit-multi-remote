@@ -3127,4 +3127,21 @@ ok
 test tests::tests::harden_repos_fails_when_global_refresh_fails ... ok
 test tests::tests::hook_replacement_is_atomic_and_executable ... ok
 test tests::tests::index_batch_lock_skips_and_recovers ... ok
-test tests::tests::index_batch_respawns_after_stage ... 
+test tests::tests::index_batch_respawns_after_stage ... ok
+test tests::tests::index_batch_returns_staged_blob_not_worktree ... ok
+test tests::tests::install_hooks_for_repo_skips_shadowed_git_hooks ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_shadowed_Mkm2i7/repo/.git/
+ok
+test tests::tests::is_encrypted_env_content_detects_markers ... ok
+test tests::tests::is_env_file_name_detects_common_variants ... ok
+test tests::tests::is_legacy_warden_hook_matrix ... ok
+test tests::tests::is_marker_string_detects_both_markers ... ok
+test tests::tests::is_marker_string_edge_cases ... ok
+test tests::tests::linked_worktree_gitfile_uses_real_gitdir_for_checkout_lock ... ok
+test tests::tests::marker_prefix_at_edge_cases ... ok
+test tests::tests::marker_prefix_at_finds_correct_positions ... ok
+test tests::tests::media_protected_patterns_default_off_and_parse ... ok
+test tests::tests::merge_driver_decrypt_failure_is_err_with_current_untouched ... ok
+test tests::tests::merge_driver_encrypted_roundtrip_clean_merge ... ok
+test tests::tests::merge_driver_merge_file_error_is_not_a_conflict ... ok
+test tests::tests::merge_driver_text_merge_clean_and_conflict ... ok
+test tests::tests::merge_driver_untagged_files_clean_and_conflict ... 
