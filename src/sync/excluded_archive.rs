@@ -83,6 +83,36 @@ fn directories(repo: &Path, deadline: std::time::Instant) -> Result<Vec<PathBuf>
     }
     Ok(paths)
 }
+/// Reversible metadata repair in the WORKER only, never the read-only report.
+/// Older tempfile defaults left inner records 0755. Prove a private owned archive
+/// container and owned nonsymlink child first; restrict directory permissions
+/// without adopting content, touching canonical files or changing any seal.
+pub(super) fn tighten_legacy(repo: &Path) -> Result<()> {
+    use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    let gitdir = crate::git::path_gitdir(repo).context("cannot locate archive Git directory")?;
+    let root = gitdir.join("dracon-excluded-archive");
+    match std::fs::symlink_metadata(&root) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e.into()),
+        Ok(_) => private_directory(&root)?,
+    }
+    for entry in std::fs::read_dir(&root)? {
+        ensure!(std::time::Instant::now() < deadline, "excluded archive privacy repair deadline expired");
+        let entry = entry?;
+        if !entry.file_name().as_bytes().starts_with(b"dracon-excluded-recovery-") { continue; }
+        let file = OpenOptions::new().read(true).custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC).open(entry.path())?;
+        let meta = file.metadata()?;
+        ensure!(meta.is_dir() && meta.uid() == unsafe { libc::geteuid() }, "foreign archive directory; permissions/content retained");
+        if meta.mode() & 0o077 != 0 {
+            file.set_permissions(std::fs::Permissions::from_mode(meta.mode() & !0o077))?;
+            file.sync_all()?;
+            eprintln!("🛟 restricted owned archived recovery directory permissions: {}", entry.path().display());
+        }
+    }
+    Ok(())
+}
+
 /// Missing seals from an older revision may be classified exactly once using
 /// original recovery identities. A CHANGED sealed record is never resealed here.
 pub(super) fn unsealed(repo: &Path) -> Result<Vec<PathBuf>> {
