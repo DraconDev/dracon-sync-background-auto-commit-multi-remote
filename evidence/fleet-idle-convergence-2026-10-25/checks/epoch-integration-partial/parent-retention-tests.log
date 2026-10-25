@@ -56,3 +56,14 @@ warning: function `unstage_paths_git` is never used
 1965 | async fn unstage_paths_git(repo: &Path, paths: &[String]) -> Result<()> {
      |          ^^^^^^^^^^^^^^^^^
 
+warning: `dracon-sync` (bin "dracon-sync" test) generated 8 warnings (run `cargo fix --bin "dracon-sync" -p dracon-sync --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3m 18s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 3 tests
+test sync::staged_epoch::tests::installed_epoch_keeps_proven_identity_and_rejects_late_replacement ... ok
+test sync::staged_epoch::tests::private_staging_foreign_child_is_not_a_prefix_waiver ... ok
+test sync::staged_epoch::tests::private_staging_same_path_conflict_retains_both_payloads ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1431 filtered out; finished in 5.31s
+
