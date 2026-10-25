@@ -118,14 +118,19 @@ async fn restore_inner(repo: &Path, paths: &[dracon_git::types::DiffFile], deadl
     let tree = scratch.path().join("files");
     std::fs::create_dir(&tree)?;
     let prefix = format!("--prefix={}/", tree.display());
-    let strings: Vec<_> = tracked.iter().map(|entry| entry.path.to_str()
-        .context("non-UTF8 excluded restore path retained").map(str::to_owned)).collect::<Result<_>>()?;
-    let literal = crate::git::literal_pathspecs(&strings);
-    let mut args = vec!["checkout-index", "--force", &prefix, "--"];
-    args.extend(literal.iter().map(String::as_str));
-    // Required smudge filters are NOT bypassed. Failed checkout cannot mutate
-    // the actual index or working files; the private scratch is disposable here.
-    staged_epoch::run_index_git(repo, &args, 3600, "excluded smudge target", Some(&index)).await?;
+    let mut input = Vec::new();
+    for entry in &tracked { input.extend_from_slice(entry.path.as_os_str().as_bytes()); input.push(0); }
+    let mut command = crate::policy::tokio_git_command();
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") { command.env_remove(key); }
+    }
+    command.current_dir(repo).env("GIT_INDEX_FILE", &index).env("GIT_NO_LAZY_FETCH", "1")
+        .args(["checkout-index", "--force", &prefix, "--stdin", "-z"]);
+    // Required smudge filters are NOT bypassed. NUL stdin uses exact filenames,
+    // not pathspecs or lossy Unicode, and avoids argv-size expansion.
+    let output = crate::git::run_command_captured_output(command.into_tokio(), 3600,
+        "excluded smudge target", Some(&input)).await?;
+    ensure!(output.status.success(), "excluded smudge target refused: {}", String::from_utf8_lossy(&output.stderr));
     let mut targets = Vec::new();
     for (path, source, before) in sources {
         let desired = Location::open(&tree, &path)?;
