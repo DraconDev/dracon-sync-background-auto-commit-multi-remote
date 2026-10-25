@@ -1,0 +1,38 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.85s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 4 tests
+test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) 5417635] init
+FAILED
+test sync::tests::test_filter_only_skip_still_pushes_ahead ... FAILED
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) 2348320] init
+ok
+test sync::tests::test_m2_filter_only_bypass_decision ... ok
+
+failures:
+
+---- sync::tests::test_filter_only_reset_failure_is_non_fatal stdout ----
+🛡️ /tmp/.tmp3AT79R/filter-only-reset-fail-repo auto-hardened with warden before staging
+⏳ /tmp/.tmp3AT79R/filter-only-reset-fail-repo private staging deferred; concurrent intent retained: private staging retained at /tmp/.tmp3AT79R/filter-only-reset-fail-repo/.git/dracon-staging-Qo5xMT: epoch index lock held by another operation
+
+thread 'sync::tests::test_filter_only_reset_failure_is_non_fatal' (4046440) panicked at dracon-sync/src/sync.rs:11852:9:
+filter-only reset failure should be non-fatal, got Ok(Blocked)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- sync::tests::test_filter_only_skip_still_pushes_ahead stdout ----
+🛡️ /tmp/.tmp5OWDim/filter-only-push-ahead auto-hardened with warden before staging
+⏳ /tmp/.tmp5OWDim/filter-only-push-ahead private staging deferred; concurrent intent retained: private staging retained at /tmp/.tmp5OWDim/filter-only-push-ahead/.git/dracon-staging-R2S1QV: epoch index lock held by another operation
+
+thread 'sync::tests::test_filter_only_skip_still_pushes_ahead' (4047453) panicked at dracon-sync/src/sync.rs:11955:9:
+assertion `left == right` failed: ahead must push even when the commit is skipped as filter-only
+  left: "975a58a5ddfed54a75748d7ea4dc34493a881b0e\n"
+ right: "855dd4a14dd0da254693f65e70db31c51c7bf8ba\n"
+
+
+failures:
+    sync::tests::test_filter_only_reset_failure_is_non_fatal
+    sync::tests::test_filter_only_skip_still_pushes_ahead
+
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 1443 filtered out; finished in 2.73s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
