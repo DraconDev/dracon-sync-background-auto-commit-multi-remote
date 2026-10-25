@@ -931,6 +931,20 @@ mod tests {
     }
 
     #[test]
+    fn lock_contention_is_deferred_but_filesystem_failure_is_not() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("index.lock");
+        let owner = acquire_epoch_lock(path.clone()).unwrap();
+        let busy = acquire_epoch_lock(path.clone()).err().expect("held lock");
+        assert!(is_conflict(&busy));
+        let failed = acquire_epoch_lock(root.path().join("missing/index.lock"))
+            .err().expect("missing parent must be an I/O failure");
+        assert!(!is_conflict(&failed), "real I/O failure cannot be hidden as contention");
+        drop(owner);
+        drop(acquire_epoch_lock(path).expect("owner cleanup permits retry"));
+    }
+
+    #[test]
     fn only_typed_intent_conflicts_are_nonfailure_deferrals() {
         let changed =
             anyhow::Error::new(EpochConflict::IndexChanged).context("retained candidate fixture");
