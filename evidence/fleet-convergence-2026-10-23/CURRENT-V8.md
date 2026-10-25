@@ -1,4 +1,4 @@
-# Active checkpoint — V8 deployed, browser publication pending
+# Active checkpoint — V8 deployed, all-ten witnessed, final library repair pending
 
 The goal is not complete. Current loaded/installed artifact is
 `8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad`,
@@ -30,8 +30,10 @@ full commit lifecycle, refused-work preservation/recovery and joined cleanup.
 Canonical checks/final-* inputs now refer to v8. V6 historical nine-of-ten proof
 is archived under checks/epoch-59-before-v8 and is NOT proof for the new PID.
 Fresh v8 baseline, appended meaningful runtime notes, actual new-PID journal and
-read-only advertised refs prove NINE of TEN initial repositories. Writer and
-platform have now advanced too. Browser is the only nonhealthy/unproven row.
+read-only advertised refs now prove ALL TEN initial repositories. Browser's
+original complete sourcee6f93db passed147/147gates in AC9JDj. Its complete raw logs
+are retained under checks/browser-whole-e6f93db/. The all-ten ledger does not waive
+qualification/publication of the later library-output race repair below.
 No external blocker has been accepted.
 
 ## Browser normal gate
@@ -66,6 +68,32 @@ filters; loaded PID/hash still match deployment. See workspace-final-v8 final
 logs/source-match JSON. An initial180second suite envelope expired after12passing
 cases (no assertion failed); complete replay used a bounded600second batch
 envelope, kept internal deadlines unchanged, passed all13 and left no remnants.
+
+## Final library-output race repair — active at06:43UTC
+
+cBfjZa failed normal scripted install @dracon/extension-react/components even
+though all seven prebuilds passed; identical-source AC9JDj subsequently passed147.
+A private verified Bun1.3.14 fixture proves prepare can erase dist during a
+consumer import even with concurrency1. Retry success did not cure that race.
+The three destructive TypeScript builds now use scripts/build-library.mjs:
+compile into sibling staging, preserve readable dist until compilation succeeds,
+atomically rename completed files, then prune only obsolete compiler outputs.
+Original lifecycle/scripts/type checks remain. Exact per-package .dist-build-*/
+ignores exclude only disposable compiler output; negative source/test probes pass.
+All three build/typecheck/test gates pass, deterministic reader/failure/prune
+regressions pass, the destructive mutant fails, and three actual Bun rounds pass.
+A fresh independent narrow reviewer found no issue; final committed source/diff
+are now captured (review did not independently assess that exact commit range).
+Review runa923c34b settled successfully; no active owned child remains.
+Evidence: checks/library-lifecycle-publication/; source-final.json records exact
+repair anchor4b955e45fd6ae7df9324486da99dcdf3c088e2ad and file fingerprints.
+
+Current normal attemptJWBEHh selects0926aa530698260f1397e28cc145998bf3314e57:
+that queued source predates the final repair (all fingerprint comparisons false).
+Do not cancel valid work merely because it is older or use it as repair proof.
+The daemon's next upload must select/contain the final repair, pass its applicable
+normal gates and advance every intended browser remote to contain that repair.
+All-ten witness row proof is present, but this additional repair remains open.
 
 Next: inspect actual terminal/failure evidence for this candidate. Do not bypass,
 skip, weaken or replace the original whole gate with selected local diagnostics.
