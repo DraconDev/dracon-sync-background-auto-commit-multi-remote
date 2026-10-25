@@ -862,6 +862,24 @@ mod tests {
         assert!(!repo.join(".git/index.lock").exists());
     }
 
+    #[tokio::test]
+    async fn zero_batch_limit_accepts_all_captured_files_without_relaxing_positive_limit() {
+        let (root, mut policy) = fixture().await;
+        for number in 0..120 {
+            std::fs::write(root.path().join(format!("related-{number:03}")), b"related\n").unwrap();
+        }
+        git(root.path(), &["add", "--", "."], None).await.unwrap();
+        let epoch = Epoch::capture(root.path(), 30).await.unwrap();
+        assert_eq!(epoch.snapshot.changed.len(), 120);
+        policy.max_stage_batch_files = 100;
+        assert!(epoch.eligible(root.path(), &policy, &BTreeSet::new()).await.is_err());
+        policy.max_stage_batch_files = 0;
+        assert_eq!(policy.stage_batch_limit(), usize::MAX);
+        epoch.eligible(root.path(), &policy, &BTreeSet::new()).await.unwrap();
+        assert_eq!(git(root.path(), &["diff", "--cached", "--name-only", "-z"], None)
+            .await.unwrap().stdout.iter().filter(|byte| **byte == 0).count(), 120);
+    }
+
     #[test]
     fn only_typed_intent_conflicts_are_nonfailure_deferrals() {
         let changed =
