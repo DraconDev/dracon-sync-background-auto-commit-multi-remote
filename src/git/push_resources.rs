@@ -5,6 +5,9 @@
 //! Push commands retain owned cancellation and low child priority, but have no
 //! process-global admission gate. Repository ownership is enforced separately.
 #[cfg(test)]
+#[path = "push_resources_round_tests.rs"]
+mod round_tests;
+#[cfg(test)]
 #[path = "push_resources_tests.rs"]
 mod tests;
 
@@ -73,6 +76,49 @@ pub(crate) async fn push_phase<T>(work: impl Future<Output = Result<T>>) -> Resu
         *local.permit.borrow_mut() = Some(permit);
     });
     result
+}
+
+/// Coordinate one upload with optional local refreshes. Delay and refresh
+/// factories keep the completion/admission ordering directly testable.
+pub(crate) async fn publication_round<T, P, R, W>(
+    publication: std::pin::Pin<Box<P>>,
+    mut refresh_work: impl FnMut() -> R,
+    mut wait: impl FnMut(bool) -> W,
+) -> Result<T>
+where
+    P: Future<Output = Result<T>>,
+    R: Future<Output = bool>,
+    W: Future<Output = ()>,
+{
+    // Upload completion must not restore the outer permit before a queued
+    // refresh drains: that refresh may already be waiting on the same FIFO
+    // semaphore. Keep the whole coordination/drain inside the yielded scope.
+    push_phase(async move {
+        // Box at the CALL boundary as well: storing a large upload future
+        // inline in this async function can overflow debug worker stacks
+        // before the first poll ever reaches an internal Box::pin.
+        let mut publication = publication;
+        let mut refresh: Option<std::pin::Pin<Box<R>>> = None;
+        let mut active = true;
+        let report = loop {
+            tokio::select! {
+                result = &mut publication => break result,
+                result = async { refresh.as_mut().expect("guarded refresh").await }, if refresh.is_some() => {
+                    active = result;
+                    refresh = None;
+                }
+                () = wait(active), if refresh.is_none() => {
+                    refresh = Some(Box::pin(refresh_work()));
+                }
+            }
+        };
+        drop(publication);
+        if let Some(pending) = refresh {
+            pending.await;
+        }
+        report
+    })
+    .await
 }
 
 /// Admit a fresh local pass while the enclosing actor has yielded its local

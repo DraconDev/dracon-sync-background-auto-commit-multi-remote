@@ -1,0 +1,192 @@
+
+> youtube-filter@1.0.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/youtube-filter
+
+ ❯ tests/sections.test.ts (61 tests | 1 failed) 5083ms
+     × covers exactly the twenty-six section flags 61ms
+ ❯ tests/rules.test.ts (41 tests | 2 failed) 205ms
+     × hides a card YouTube marks as watched, with a reason 37ms
+     × reports alongside the other reasons when several rules match 11ms
+stderr | tests/options.test.tsx > options page (dashboard) tabs > filter toggles persist immediately and render every toggle, sidebar group included
+An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | tests/options.test.tsx > the Rules tab has a Show-why toggle bound to settings.mode
+An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | tests/options.test.tsx > the Focus group (2026-10-22 competitor enrichment) > renders one switch per focus behaviour, all off by default
+An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ❯ tests/options.test.tsx (91 tests | 3 failed) 34294ms
+     × filter toggles persist immediately and render every toggle, sidebar group included 160ms
+   × the Rules tab has a Show-why toggle bound to settings.mode 271ms
+     × renders one switch per focus behaviour, all off by default 157ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/options.test.tsx > options page (dashboard) tabs > filter toggles persist immediately and render every toggle, sidebar group included
+AssertionError: expected [ …(60) ] to have a length of 58 but got 60
+
+- Expected
++ Received
+
+- 58
++ 60
+
+ ❯ tests/options.test.tsx:1346:19
+    1344|     // channel menu group (6: Live, Podcasts, Posts, Store, Shows,
+    1345|     // Shorts) = 58.
+    1346|     expect(boxes).toHaveLength(58);
+       |                   ^
+    1347|     expect(host!.innerHTML).toMatch(/Hide Up next/);
+    1348|     expect(host!.innerHTML).toMatch(/Hide comments/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/options.test.tsx > the Rules tab has a Show-why toggle bound to settings.mode
+AssertionError: the Show-why toggle must be present on the Rules tab: expected null to be truthy
+
+- Expected:
+true
+
++ Received:
+null
+
+ ❯ tests/options.test.tsx:1910:73
+    1908|
+    1909|     const box = host!.querySelector<HTMLInputElement>('[data-testid="r…
+    1910|     expect(box, 'the Show-why toggle must be present on the Rules tab'…
+       |                                                                         ^
+    1911|     expect(box.checked, 'default mode is hard (reflow)').toBe(false);
+    1912|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/options.test.tsx > the Focus group (2026-10-22 competitor enrichment) > renders one switch per focus behaviour, all off by default
+AssertionError: expected [ 'filter-hideWatchedVideos', …(5) ] to deeply equal [ 'filter-hideWatchedVideos', …(4) ]
+
+- Expected
++ Received
+
+  [
+    "filter-hideWatchedVideos",
++   "filter-hideWatchedInHome",
+    "filter-blurThumbnails",
+    "filter-disablePlayOnHover",
+    "filter-hideSearchSuggestions",
+    "filter-hidePlayerNavButtons",
+  ]
+
+ ❯ tests/options.test.tsx:2194:17
+    2192|       el.getAttribute('data-testid'),
+    2193|     );
+    2194|     expect(ids).toEqual([
+       |                 ^
+    2195|       'filter-hideWatchedVideos',
+    2196|       'filter-blurThumbnails',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/rules.test.ts > the watched rule (hideWatchedVideos) > hides a card YouTube marks as watched, with a reason
+AssertionError: expected null to deeply equal { code: 'declutter', …(1) }
+
+- Expected:
+{
+  "code": "declutter",
+  "detail": "Already watched",
+}
+
++ Received:
+null
+
+ ❯ tests/rules.test.ts:377:55
+    375|   it('hides a card YouTube marks as watched, with a reason', () => {
+    376|     const s = watched();
+    377|     expect(watchedReason(card({ watched: true }), s)).toEqual({
+       |                                                       ^
+    378|       code: 'declutter',
+    379|       detail: 'Already watched',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/rules.test.ts > the watched rule (hideWatchedVideos) > reports alongside the other reasons when several rules match
+AssertionError: expected [ { code: 'keyword', …(1) } ] to have a length of 2 but got 1
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ tests/rules.test.ts:414:23
+    412|     const d = evaluateRules(card({ watched: true, title: 'Crypto hype'…
+    413|     expect(d.hide).toBe(true);
+    414|     expect(d.reasons).toHaveLength(2);
+       |                       ^
+    415|     expect(d.reasons[1]).toEqual({ code: 'declutter', detail: 'Already…
+    416|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  tests/sections.test.ts > SECTIONS map shape > covers exactly the twenty-six section flags
+AssertionError: expected [ 'ads', 'channelHeader', …(25) ] to deeply equal [ 'ads', 'channelHeader', …(24) ]
+
+- Expected
++ Received
+
+@@ -21,8 +21,9 @@
+    "profilePhotos",
+    "recommended",
+    "searchSuggestions",
+    "shortsShelfSection",
+    "topHeader",
++   "topicShelves",
+    "videoInfo",
+    "watchActions",
+  ]
+
+ ❯ tests/sections.test.ts:47:18
+     45|   it('covers exactly the twenty-six section flags', () => {
+     46|     const keys = Object.keys(SECTIONS).sort();
+     47|     expect(keys).toEqual(
+       |                  ^
+     48|       [
+     49|         'ads',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  3 failed | 51 passed (54)
+      Tests  6 failed | 963 passed (969)
+   Start at  18:27:06
+   Duration  106.85s (transform 22.46s, setup 3.11s, import 30.27s, tests 57.12s, environment 75.31s)
+

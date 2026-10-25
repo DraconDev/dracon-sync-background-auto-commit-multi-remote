@@ -1,0 +1,89 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+warning: struct `LocalWork` is never constructed
+  --> src/push_resources.rs:20:8
+   |
+20 | struct LocalWork {
+   |        ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `with_local_work` is never used
+  --> src/push_resources.rs:30:21
+   |
+30 | pub(crate) async fn with_local_work<T>(
+   |                     ^^^^^^^^^^^^^^^
+
+warning: function `push_phase` is never used
+  --> src/push_resources.rs:50:21
+   |
+50 | pub(crate) async fn push_phase<T>(work: impl Future<Output = Result<T>>) -> Result<T> {
+   |                     ^^^^^^^^^^
+
+warning: function `publication_round` is never used
+  --> src/push_resources.rs:83:21
+   |
+83 | pub(crate) async fn publication_round<T, P, R, W>(
+   |                     ^^^^^^^^^^^^^^^^^
+
+warning: function `local_phase` is never used
+   --> src/push_resources.rs:126:21
+    |
+126 | pub(crate) async fn local_phase<T>(work: impl Future<Output = Result<T>>) -> Result<T> {
+    |                     ^^^^^^^^^^^
+
+warning: function `background_pushes` is never used
+   --> src/push_resources.rs:147:21
+    |
+147 | pub(crate) async fn background_pushes<T>(work: impl Future<Output = T>) -> T {
+    |                     ^^^^^^^^^^^^^^^^^
+
+warning: function `isolated_push` is never used
+   --> src/push_resources.rs:151:4
+    |
+151 | fn isolated_push(args: &[&str]) -> bool {
+    |    ^^^^^^^^^^^^^
+
+warning: function `command` is never used
+   --> src/push_resources.rs:158:21
+    |
+158 | pub(super) async fn command<T>(_args: &[&str], work: impl Future<Output = Result<T>>) -> Result<T> {
+    |                     ^^^^^^^
+
+warning: function `configure_child` is never used
+   --> src/push_resources.rs:166:15
+    |
+166 | pub(super) fn configure_child(cmd: &mut tokio::process::Command, args: &[&str]) {
+    |               ^^^^^^^^^^^^^^^
+
+warning: `fleet-publication-round-repro` (lib) generated 9 warnings
+   Compiling fleet-publication-round-repro v0.1.0 (/tmp/fleet-publication-round-repro-9qxdq242)
+warning: function `background_pushes` is never used
+   --> src/push_resources.rs:147:21
+    |
+147 | pub(crate) async fn background_pushes<T>(work: impl Future<Output = T>) -> T {
+    |                     ^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `fleet-publication-round-repro` (lib test) generated 3 warnings (2 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.95s
+     Running unittests src/lib.rs (target/debug/deps/fleet_publication_round_repro-ae4172d24d7acde0)
+
+running 7 tests
+test push_resources::round_tests::started_refresh_finishes_before_outer_capacity_is_restored ... ok
+test push_resources::tests::cancelled_local_refresh_drops_work_before_releasing_its_capacity ... ok
+test push_resources::tests::push_phase_restores_local_capacity_on_error_and_nested_mirror_work ... ok
+test push_resources::round_tests::failed_upload_cannot_hold_capacity_while_draining_a_queued_refresh ... ok
+test push_resources::tests::push_commands_overlap_and_cancellation_drops_only_owned_work ... ok
+test push_resources::tests::local_refresh_is_bounded_and_leaves_publication_yielded ... ok
+test push_resources::round_tests::completed_upload_cannot_hold_capacity_while_draining_a_queued_refresh ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests fleet_publication_round_repro
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

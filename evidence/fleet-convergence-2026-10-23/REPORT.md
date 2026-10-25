@@ -2,12 +2,15 @@
 
 ## Result status
 
-Implementation and final-binary qualification are established; fleet completion
-is **not yet claimed**. The current ledger proves autonomous eligible commits and
+Fleet completion is **not claimed**. A newly proven publication-completion
+semaphore deadlock is repaired and undergoing fresh qualification; see
+[qualification-v7-checkpoint.md](qualification-v7-checkpoint.md). The prior v6
+qualification and ledger below remain historical evidence for the still-loaded
+artifact, not final proof for the proposed replacement. The current ledger proves autonomous eligible commits and
 advertised descendant refs for nine of the ten initial repositories on loaded
 artifact `59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc`,
-PID3046262. Browser extensions is still explicitly nonhealthy/unproven while its
-normal whole pre-push gate runs. No external blocker has been accepted.
+PID3046262. Browser extensions is still explicitly nonhealthy/unproven, awaiting
+normal whole-gate success and publication. No external blocker has been accepted.
 
 Authoritative current evidence is `checks/live-convergence-ledger.json` and its
 referenced before/after snapshots and journal. The earlier8be epoch is retained
@@ -155,6 +158,10 @@ ownership policy relaxation was introduced.
 
 ## Qualification and actual execution
 
+The following v6 results predate the new completion/drain race correction.
+V7's four required gates, candidate/installed receipts, deployment and all-ten
+fresh-runtime witnesses remain open; do not reuse these counts as v7 success.
+
 `checks/workspace-final-v6/` contains exact private source refs, unchanged required
 smudge-filter configuration, normal locked Node SDK provisioning, raw commands
 and results. Private bare refs/checkouts do not mutate canonical repositories;
@@ -240,6 +247,38 @@ so normal publication can select repaired source; it was never relabelled passed
 The refreshed browser eligible marker follows the actual repair anchor.
 Evidence: `checks/gemini-canonical-defaults/`. Original full gates and remote
 acknowledgments for the replacement source remain required.
+
+Later pinned428ea/6f3318 cycles retained real failures from concurrent feature
+work, not synthetic successes. VidPro's measurement lint was repaired without
+rule changes; its owner subsequently rewrote/removed that temporary script.
+A stale layout assertion pinned an abandoned flex-column card: semantic helper,
+association, cell and label-order checks now retain the original regressions,
+including anti-bottom-alignment. A harmless wrapper change passes; broken
+association, helper placement and bottom alignment fail. Actual built-extension
+browser geometry independently verifies separate columns/aligned control edges
+and rejects a deliberate offset. No production layout was changed. Current
+VidPro lint/typecheck/build,1376unit tests and1browser test pass; an earlier local
+240second qualification timeout is rejected, with per-test budgets unchanged.
+
+YouTube Filter's owner had explicitly changed Shorts/sidebar/collaboration/topic
+defaults, watched-card surface scope and hard/collapse/dim treatment. Production
+comments record the specific operator requests. Tests now preserve that policy,
+all other fresh flags OFF, stored explicit OFF, empty-import no-op behavior,
+mutually exclusive mode persistence, and real allow/exception protection on an
+otherwise eligible subscriptions surface. Declared UI registries drive rendering
+coverage instead of repeatedly changing an incidental checkbox total; required
+baseline controls/sections remain checked. Nonmatching topic shelves remain
+visible. Production filtering/default behavior was not changed; only existing
+UI registries were exported. Current typecheck,971tests,lint/build pass, followed
+by42watched-rule tests restoring non-vacuous OFF/unwatched guards. Independent
+review found no issue in these narrow reconciliations. Evidence:
+`checks/vidpro-measurement-repair/` and `checks/late-product-gate-reconciliation/`.
+
+At19:35UTC the daemon was actively paused by a distinct dracon-system maintenance
+wrapper (marker created19:23UTC; live owner1232776). That owner was not signalled
+or its marker removed. Pending source edits and retry recovery must proceed
+normally after that separate operation releases its pause; this is not accepted
+as a final external blocker or evidence of publication.
 
 **Still required:** terminal success of the original browser whole gates and
 observed final-runtime eligible-tip advancement on all its intended remotes.

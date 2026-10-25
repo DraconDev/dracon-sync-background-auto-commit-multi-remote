@@ -1,0 +1,24 @@
+diff --git a/extensions/standalones/vidpro-extension/scripts/measure-dashboard.mjs b/extensions/standalones/vidpro-extension/scripts/measure-dashboard.mjs
+index 019afc24f6..95f1415aab 100644
+--- a/extensions/standalones/vidpro-extension/scripts/measure-dashboard.mjs
++++ b/extensions/standalones/vidpro-extension/scripts/measure-dashboard.mjs
+@@ -101,8 +101,8 @@ const data = await page.evaluate(() => {
+     // Measure the name text only: the label's first child is the text node.
+     const nameRect = (() => {
+       const range = document.createRange();
+-      range.setStart(l.firstChild, 0);
+-      range.setEnd(l.firstChild, l.firstChild.length ?? 0);
++      range.setStart(nameNode, 0);
++      range.setEnd(nameNode, nameNode.length ?? 0);
+       const b = range.getBoundingClientRect();
+       return { x: +b.x.toFixed(1), right: +b.right.toFixed(1), w: +b.width.toFixed(1), cy: +(b.y + b.height / 2).toFixed(1) };
+     })();
+@@ -156,7 +156,7 @@ const clip = await page.evaluate(() => {
+     x.textContent?.trim().startsWith("Publishing Defaults")
+   );
+   const b = h?.getBoundingClientRect();
+-  return b ? { x: 0, y: Math.max(0, b.y - 30), width: innerWidth, height: 700 } : null;
++  return b ? { x: 0, y: Math.max(0, b.y - 30), width: window.innerWidth, height: 700 } : null;
+ });
+ if (clip) await page.screenshot({ path: ".pi/measure-dash-pub.png", clip });
+ 

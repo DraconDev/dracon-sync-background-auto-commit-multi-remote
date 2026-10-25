@@ -1,0 +1,5 @@
+   Compiling dracon-sync v0.113.95 (/tmp/fleet-worktree-qualified-5o0l71pf/source/dracon-sync)
+   Compiling dracon-security v0.4.0 (/tmp/fleet-worktree-qualified-5o0l71pf/source/dracon-warden/src/security)
+   Compiling dracon-system v0.112.47 (/tmp/fleet-worktree-qualified-5o0l71pf/source/dracon-system)
+   Compiling dracon-warden v0.113.16 (/tmp/fleet-worktree-qualified-5o0l71pf/source/dracon-warden)
+    Finished `release` profile [optimized] target(s) in 9m 28s

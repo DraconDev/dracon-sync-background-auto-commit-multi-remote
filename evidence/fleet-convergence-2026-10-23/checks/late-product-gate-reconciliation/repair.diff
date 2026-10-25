@@ -1,0 +1,706 @@
+diff --git a/extensions/standalones/vidpro-extension/scripts/measure-dashboard.mjs b/extensions/standalones/vidpro-extension/scripts/measure-dashboard.mjs
+index 95f1415aab..96a70c6eb5 100644
+--- a/extensions/standalones/vidpro-extension/scripts/measure-dashboard.mjs
++++ b/extensions/standalones/vidpro-extension/scripts/measure-dashboard.mjs
+@@ -51,24 +51,33 @@ const data = await page.evaluate(() => {
+ 
+   const kids = document.querySelector('[data-testid="kids-state"]');
+   const kidsLabel = kids?.closest("label");
++  const kidsBox = kids?.parentElement;
+   out.madeForKids = {
+     label: r(kidsLabel),
+-    toggle: r(kidsLabel?.querySelector("div.w-11")),
+-    text: r(kidsLabel?.querySelector("span.text-xs")),
++    heading: r(kidsBox?.previousElementSibling),
++    box: r(kidsBox),
++    toggle: r(kidsBox?.querySelector(".w-11")),
+     state: r(kids),
+-    gridCell: r(kidsLabel?.parentElement),
+   };
+ 
+   const paid = document.querySelector('[data-testid="paid-state"]');
+   const paidLabel = paid?.closest("label");
++  const paidBox = paid?.parentElement;
+   out.paid = {
+     label: r(paidLabel),
+-    toggle: r(paidLabel?.querySelector("div.w-11")),
+-    text: r(paidLabel?.querySelector("span.text-xs")),
++    heading: r(paidBox?.previousElementSibling),
++    box: r(paidBox),
++    toggle: r(paidBox?.querySelector(".w-11")),
+     state: r(paid),
+   };
+ 
+-  // The Language input and the Category select, for column comparison.
++  const alteredBtn = document.querySelector('[data-testid="altered-no"]');
++  out.alteredControl = {
++    no: r(alteredBtn),
++    group: r(alteredBtn?.parentElement),
++    heading: r(alteredBtn?.parentElement?.previousElementSibling),
++  };
++
+   const langLabel = Array.from(document.querySelectorAll("label")).find((l) =>
+     l.textContent?.trim().startsWith("Language")
+   );
+@@ -76,73 +85,75 @@ const data = await page.evaluate(() => {
+     label: r(langLabel),
+     input: r(langLabel?.parentElement?.querySelector("input")),
+   };
+-  const catLabel = Array.from(document.querySelectorAll("label")).find((l) =>
+-    l.textContent?.trim().startsWith("Category")
+-  );
++  const catLabel = document.querySelector('label[for="category-input"]');
+   out.category = {
+     label: r(catLabel),
+-    select: r(catLabel?.parentElement?.querySelector("select")),
++    select: r(document.getElementById("category-input")),
+   };
+-  const altered = Array.from(document.querySelectorAll("div")).find(
+-    (d) => d.textContent?.trim().startsWith("Altered content") && d.className.includes("rounded-lg")
+-  );
+-  out.altered = { card: r(altered) };
+-
+-  // Grids: parent grid of each of the two rows.
+-  out.kidsGrid = r(kidsLabel?.closest(".grid"));
+-  out.alteredGrid = r(altered?.closest(".grid"));
+ 
+-  // Variable labels: name text vs token pill.
+   out.variables = Array.from(document.querySelectorAll('label[for^="thumbnail-var-"]')).map((l) => {
+     const pill = l.querySelector("span");
+-    const nameNode = l.firstChild;
+-    const nameRange = document.createRange();
+-    nameRange.selectNodeContents(l);
+-    // Measure the name text only: the label's first child is the text node.
+     const nameRect = (() => {
+       const range = document.createRange();
+-      range.setStart(nameNode, 0);
+-      range.setEnd(nameNode, nameNode.length ?? 0);
++      range.setStart(l.firstChild, 0);
++      range.setEnd(l.firstChild, l.firstChild.length ?? 0);
+       const b = range.getBoundingClientRect();
+-      return { x: +b.x.toFixed(1), right: +b.right.toFixed(1), w: +b.width.toFixed(1), cy: +(b.y + b.height / 2).toFixed(1) };
++      return {
++        x: +b.x.toFixed(1),
++        right: +b.right.toFixed(1),
++        w: +b.width.toFixed(1),
++        cy: +(b.y + b.height / 2).toFixed(1),
++      };
+     })();
+     const pr = pill?.getBoundingClientRect();
++    const input = document.getElementById(l.getAttribute("for"));
+     return {
+       for: l.getAttribute("for"),
+-      text: l.textContent?.trim(),
+       name: nameRect,
+       pill: pr
+-        ? {
+-            x: +pr.x.toFixed(1),
+-            w: +pr.width.toFixed(1),
+-            h: +pr.height.toFixed(1),
+-            cy: +(pr.y + pr.height / 2).toFixed(1),
+-          }
++        ? { x: +pr.x.toFixed(1), w: +pr.width.toFixed(1), h: +pr.height.toFixed(1), cy: +(pr.y + pr.height / 2).toFixed(1) }
+         : null,
+       gapPx: pr ? +(pr.x - nameRect.right).toFixed(1) : null,
+       label: r(l),
+-      input: r(document.getElementById(l.getAttribute("for"))),
+-      pillClass: pill?.className,
++      input: r(input),
+     };
+   });
+ 
+-  // Library chip row.
+-  const chipRow = document.querySelector('[aria-label="Variable library"]');
+-  out.chipRow = { rect: r(chipRow), chips: Array.from(chipRow?.children ?? []).map(r) };
+-
+-  // Sidebar bottom.
+   const sidebar = document.querySelector("aside[role='navigation']");
+   out.sidebar = {
+     rect: r(sidebar),
+     bottomZone: r(sidebar?.lastElementChild),
+-    html: sidebar?.lastElementChild?.innerHTML?.slice(0, 400),
++    card: r(sidebar?.lastElementChild?.firstElementChild),
+   };
+-  const support = Array.from(document.querySelectorAll("a")).find((a) =>
+-    a.textContent?.includes("Support VidPro")
+-  );
+-  out.support = { rect: r(support), parentRect: r(support?.parentElement) };
+-  const status = Array.from(document.querySelectorAll("span")).find((s) => s.textContent?.trim() === "AI Ready");
+-  out.status = { rect: r(status), parentRect: r(status?.parentElement?.parentElement) };
++
++  // THE ALIGNMENT VERDICT: every control in a grid row must share its
++  // row's top and bottom edges, and the two label lines must share a top.
++  const box = (el) => el?.getBoundingClientRect();
++  const verdict = [];
++  const row = (name, a, b) => {
++    const ra = box(a);
++    const rb = box(b);
++    if (!ra || !rb) {
++      verdict.push({ name, missing: true });
++      return;
++    }
++    verdict.push({
++      name,
++      aTop: +ra.top.toFixed(1),
++      bTop: +rb.top.toFixed(1),
++      topDelta: +(ra.top - rb.top).toFixed(1),
++      aBottom: +ra.bottom.toFixed(1),
++      bBottom: +rb.bottom.toFixed(1),
++      bottomDelta: +(ra.bottom - rb.bottom).toFixed(1),
++      aH: +ra.height.toFixed(1),
++      bH: +rb.height.toFixed(1),
++    });
++  };
++  row("row2 control: category select vs kids box", document.getElementById("category-input"), kidsBox);
++  row("row2 label: category label vs kids heading", catLabel, kidsBox?.previousElementSibling);
++  row("row3 control: altered No button vs paid box", alteredBtn, paidBox);
++  row("row3 label: altered heading vs paid heading", alteredBtn?.parentElement?.previousElementSibling, paidBox?.previousElementSibling);
++  out.gapChecks = verdict;
+ 
+   return out;
+ });
+@@ -156,7 +167,7 @@ const clip = await page.evaluate(() => {
+     x.textContent?.trim().startsWith("Publishing Defaults")
+   );
+   const b = h?.getBoundingClientRect();
+-  return b ? { x: 0, y: Math.max(0, b.y - 30), width: window.innerWidth, height: 700 } : null;
++  return b ? { x: 0, y: Math.max(0, b.y - 30), width: innerWidth, height: 700 } : null;
+ });
+ if (clip) await page.screenshot({ path: ".pi/measure-dash-pub.png", clip });
+ 
+
+diff --git a/extensions/standalones/vidpro-extension/test/components.test.ts b/extensions/standalones/vidpro-extension/test/components.test.ts
+index c7ae4df4f2..7a32b92aa2 100644
+--- a/extensions/standalones/vidpro-extension/test/components.test.ts
++++ b/extensions/standalones/vidpro-extension/test/components.test.ts
+@@ -382,17 +382,58 @@ describe("PublishingDefaultsSettings component", () => {
+     expect(screen.queryByText(/Made for Kids \(default\)/i)).not.toBeInTheDocument();
+   });
+ 
+-  it("keeps the category helper outside the two-column row and top-aligns the kids control", () => {
+-    render(PublishingDefaultsSettings, { props: { settings, onUpdate } });
+-    const category = screen.getByLabelText(/Category/i);
++  function assertPublishingRowStructure() {
++    const category = screen.getByLabelText(/Category/i) as HTMLSelectElement;
+     const help = screen.getByText(/AI suggests a category per video/i);
+-    const kidsRow = screen.getByText(/Made for Kids/i).closest("div.flex.flex-col");
+-
+-    expect(category.getAttribute("aria-describedby")).toBe("category-help");
++    const kids = screen.getByRole("checkbox", { name: /Made for Kids/i }) as HTMLInputElement;
++    const row = category.closest(".grid");
++    expect(row).not.toBeNull();
++    expect(category.getAttribute("aria-describedby")).toBe(help.id);
+     expect(help.id).toBe("category-help");
+-    expect(category.closest(".grid")?.contains(help)).toBe(false);
+-    expect(kidsRow?.className).toContain("justify-start");
+-    expect(kidsRow?.className).not.toContain("justify-end");
++    expect(row?.contains(help)).toBe(false);
++    const cell = (element: Element): Element => {
++      let result = element;
++      while (result.parentElement && result.parentElement !== row) result = result.parentElement;
++      expect(result.parentElement).toBe(row);
++      return result;
++    };
++    const categoryCell = cell(category);
++    const kidsCell = cell(kids);
++    expect(kidsCell).not.toBe(categoryCell);
++    expect(category.labels?.[0]).toBeTruthy();
++    expect(category.labels?.[0].compareDocumentPosition(category) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
++    const kidsLine = screen.getByText(/Made for Kids/i);
++    expect(kids.labels?.[0]?.contains(kidsLine)).toBe(true);
++    expect(kidsLine.compareDocumentPosition(kids) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
++    // Preserve the old bottom-alignment regression without requiring its
++    // abandoned div.flex.flex-col implementation. Browser geometry covers
++    // the actual control edges, which happy-dom cannot measure.
++    expect(kidsCell.classList.contains("justify-end")).toBe(false);
++    return { category, help, row: row!, categoryCell, kidsCell };
++  }
++
++  it("keeps the helper associated outside the shared row and labels before both controls", () => {
++    render(PublishingDefaultsSettings, { props: { settings, onUpdate } });
++    assertPublishingRowStructure();
++  });
++
++  it("accepts a harmless cell-wrapper refactor without pinning its tag or class spelling", () => {
++    render(PublishingDefaultsSettings, { props: { settings, onUpdate } });
++    const { categoryCell } = assertPublishingRowStructure();
++    const replacement = document.createElement("section");
++    replacement.className = categoryCell.className;
++    replacement.append(...categoryCell.childNodes);
++    categoryCell.replaceWith(replacement);
++    assertPublishingRowStructure();
++  });
++
++  it.each(["association", "helper-inside-row", "bottom-alignment"])("rejects a meaningful row regression: %s", (mutation) => {
++    render(PublishingDefaultsSettings, { props: { settings, onUpdate } });
++    const { category, help, row, kidsCell } = assertPublishingRowStructure();
++    if (mutation === "association") category.removeAttribute("aria-describedby");
++    if (mutation === "helper-inside-row") row.append(help);
++    if (mutation === "bottom-alignment") kidsCell.classList.add("flex", "flex-col", "justify-end");
++    expect(() => assertPublishingRowStructure()).toThrow();
+   });
+ 
+   it("shows an explicit Off state for Made for Kids by default", () => {
+
+diff --git a/extensions/standalones/vidpro-extension/e2e/publishing-row-layout.spec.ts b/extensions/standalones/vidpro-extension/e2e/publishing-row-layout.spec.ts
+new file mode 100644
+index 0000000000..eea85012b0
+--- /dev/null
++++ b/extensions/standalones/vidpro-extension/e2e/publishing-row-layout.spec.ts
+@@ -0,0 +1,36 @@
++import { test, expect } from "@playwright/test";
++import { createExtensionContext } from "./extensionHelpers";
++
++test("publishing control edges align and an actual vertical offset is detected", async () => {
++  // This is a local built-extension check. The qualification command unsets
++  // VIDPRO_LIVE_USER_DATA_DIR so no signed-in operator profile is involved.
++  const { context, extensionId } = await createExtensionContext();
++  try {
++    await context.route(/^https?:\/\//, (route) => route.fulfill({
++      status: 200, contentType: "application/json", body: "{}",
++    }));
++    const page = await context.newPage();
++    await page.setViewportSize({ width: 1920, height: 1080 });
++    await page.goto(`chrome-extension://${extensionId}/dashboard.html?tab=settings`);
++    const category = page.getByLabel("Category", { exact: true });
++    const kidsBox = page.getByTestId("kids-state").locator("..");
++    await expect(category).toBeVisible();
++    await expect(kidsBox).toBeVisible();
++    const difference = async () => {
++      const [select, box] = await Promise.all([category.boundingBox(), kidsBox.boundingBox()]);
++      if (!select || !box) throw new Error("publishing control geometry unavailable");
++      return Math.abs(select.y - box.y);
++    };
++    // A desktop two-column row must share a control top edge. One CSS pixel
++    // permits subpixel rounding, not the former visibly offset card layout.
++    expect(await difference()).toBeLessThanOrEqual(1);
++    await kidsBox.evaluate((box) => box.classList.add("harmless-layout-wrapper-name"));
++    expect(await difference()).toBeLessThanOrEqual(1);
++    // A disposable DOM mutation proves the metric detects real misalignment;
++    // no source, stored settings or actual user data is changed.
++    await kidsBox.evaluate((box) => { box.style.marginTop = "24px"; });
++    expect(await difference()).toBeGreaterThan(1);
++  } finally {
++    await context.close();
++  }
++});
+
+diff --git a/extensions/standalones/youtube-filter/tests/blocklist.test.ts b/extensions/standalones/youtube-filter/tests/blocklist.test.ts
+index cd3d436a04..ba3604ebaf 100644
+--- a/extensions/standalones/youtube-filter/tests/blocklist.test.ts
++++ b/extensions/standalones/youtube-filter/tests/blocklist.test.ts
+@@ -117,26 +117,14 @@ describe('importRules (external blocklist-style payloads)', () => {
+   });
+ 
+   it('imports an empty object as empty lists (no-op merge)', () => {
+-    // Lists only: every boolean flag stays OFF (never the fresh-install
+-    // noise defaults), so merging an import never flips prefs.
+-    // Eager-noise set (2026-10-18) is explicit OFF here too so the
+-    // shape stays "no flag accidentally true".
++    // Import semantics are independent of fresh-install defaults: every
++    // flag is OFF and every list empty, including future noise defaults.
+     const back = importRules('{}');
+-    expect(back).toEqual(
+-      rules({
+-        hideShorts: false,
+-        hideMixes: false,
+-        hideEndScreens: false,
+-        hideMerchShelf: false,
+-        hideFundraiser: false,
+-        hideLiveChat: false,
+-        hideMoreFromYouTube: false,
+-        disableAutoplay: false,
+-        // The section flags are OFF on an import too, new ones included.
+-        hideShortsShelfSection: false,
+-        hideAds: false,
+-      }),
+-    );
++    for (const [key, value] of Object.entries(back)) {
++      expect(value, `empty import must not enable ${key}`).toEqual(Array.isArray(value) ? [] : false);
++    }
++    const original = rules({ keywords: ['kept'], hideShorts: false, hideCollabs: false });
++    expect(mergeRules(original, back)).toEqual(original);
+   });
+ });
+ 
+
+diff --git a/extensions/standalones/youtube-filter/tests/settings.test.ts b/extensions/standalones/youtube-filter/tests/settings.test.ts
+index a4f22cdee6..aa1a787967 100644
+--- a/extensions/standalones/youtube-filter/tests/settings.test.ts
++++ b/extensions/standalones/youtube-filter/tests/settings.test.ts
+@@ -128,13 +128,19 @@ describe('getSettings / saveSettings', () => {
+     // flag stays OFF and every list stays empty.
+     delete store[s.SETTINGS_KEY];
+     const s1 = await s.getSettings();
+-    // 7-ON set after the same-day re-evaluation (see NOTE.md
+-    // "Defaults evaluation"): hideLiveChat stays OFF for consistency
++    // Explicit eager-noise policy, not a copy of the implementation's values
++    // (see NOTE.md "Defaults evaluation"): hideLiveChat stays OFF for consistency
+     // with hideLivestreams, disableAutoplay stays OFF so the default
+     // never silently reverts YouTube's own toggle.
+     const onByDefault = [
+       'hideShorts',
+       'hideMixes',
++      // Operator-requested additions, documented in DEFAULT_RULES (2026-10-24).
++      'hideCollabs',
++      'hideTopicShelves',
++      'hideShortsFeed',
++      'hideShortsInSearch',
++      'hideSidebarShorts',
+       'hideEndScreens',
+       'hideMerchShelf',
+       'hideFundraiser',
+@@ -149,12 +155,10 @@ describe('getSettings / saveSettings', () => {
+     for (const key of onByDefault) {
+       expect(s1.rules[key as keyof typeof s1.rules], `${key} must be ON on fresh install`).toBe(true);
+     }
+-    // The per-entry sidebar switches are NOT part of the eager set:
+-    // removing a navigation entry changes the page's shape, so every
+-    // one of them ships OFF (operator direction, 2026-10-21).
++    // Navigation still defaults OFF except the separately requested Shorts
++    // entry. Other content/navigation decisions must not become eager.
+     for (const key of [
+       'hideSidebarHome',
+-      'hideSidebarShorts',
+       'hideSidebarSubscriptions',
+       'hideSidebarExplore',
+       'hideSidebarTrending',
+@@ -190,6 +194,11 @@ describe('getSettings / saveSettings', () => {
+         hideShorts: false,
+         hideMixes: false,
+         hideMerchShelf: false,
++        hideCollabs: false,
++        hideTopicShelves: false,
++        hideShortsFeed: false,
++        hideShortsInSearch: false,
++        hideSidebarShorts: false,
+         hideLiveChat: false,
+         disableAutoplay: false,
+       },
+@@ -197,6 +206,9 @@ describe('getSettings / saveSettings', () => {
+     const s1 = await s.getSettings();
+     expect(s1.rules.hideShorts).toBe(false);
+     expect(s1.rules.hideMixes).toBe(false);
++    for (const key of ['hideCollabs', 'hideTopicShelves', 'hideShortsFeed', 'hideShortsInSearch', 'hideSidebarShorts'] as const) {
++      expect(s1.rules[key], `${key}: an existing explicit OFF must survive`).toBe(false);
++    }
+     expect(s1.rules.hideMerchShelf).toBe(false);
+     expect(s1.rules.hideLiveChat).toBe(false);
+     expect(s1.rules.disableAutoplay).toBe(false);
+
+diff --git a/extensions/standalones/youtube-filter/tests/sidebar.test.ts b/extensions/standalones/youtube-filter/tests/sidebar.test.ts
+index 1a16de05c8..51097fb008 100644
+--- a/extensions/standalones/youtube-filter/tests/sidebar.test.ts
++++ b/extensions/standalones/youtube-filter/tests/sidebar.test.ts
+@@ -89,12 +89,12 @@ describe('the sidebar entry list', () => {
+     }
+   });
+ 
+-  it('ships every switch OFF (a nav removal changes the page\'s shape)', () => {
++  it('ships only the explicitly requested Shorts entry ON; other navigation remains OFF', () => {
+     for (const entryDef of SIDEBAR_ENTRIES) {
+       expect(
+         DEFAULT_SETTINGS.rules[entryDef.flag],
+-        `${entryDef.flag} must default to OFF`,
+-      ).toBe(false);
++        `${entryDef.flag}: only the operator-requested Shorts entry may default ON`,
++      ).toBe(entryDef.flag === 'hideSidebarShorts');
+     }
+     expect(DEFAULT_SETTINGS.rules[REDIRECT_FLAG]).toBe(false);
+   });
+
+diff --git a/extensions/standalones/youtube-filter/tests/options.test.tsx b/extensions/standalones/youtube-filter/tests/options.test.tsx
+index 75ee34b5b2..cfcab51e1b 100644
+--- a/extensions/standalones/youtube-filter/tests/options.test.tsx
++++ b/extensions/standalones/youtube-filter/tests/options.test.tsx
+@@ -1348,18 +1348,17 @@ describe('options page (dashboard) tabs', () => {
+     expect(host!.innerHTML).toMatch(/Hide comments/);
+     expect(host!.innerHTML).toMatch(/Hide description/);
+     // The Sidebar group: one switch per guide entry plus the start
+-    // page, all OFF by default (a nav removal changes the page's
+-    // shape).
++    // page, OFF except the explicitly requested Shorts entry (other nav
++    // removals still change the page's shape).
+     const sidebar = host!.querySelector('[data-testid="sidebar-group"]')!;
+     expect(sidebar, 'the Sidebar group must render in the Filter tab').toBeTruthy();
+     const entryBoxes = [...sidebar.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')];
+     expect(entryBoxes).toHaveLength(17);
+     for (const box of entryBoxes) {
+-      // Every per-entry switch and the start-page switch are OFF by
+-      // default; the grouped nav switch keeps the default it has always
+-      // had (the eager-noise set).
++      // Only Shorts is an eager per-entry default; the grouped noise
++      // switch retains its existing default. Profiles must not change these.
+       const label = box.closest('label')?.textContent?.trim() ?? '';
+-      const onByDefault = label === 'More from YouTube';
++      const onByDefault = label === 'More from YouTube' || label === 'Shorts';
+       expect(box.checked, `sidebar switch "${label}" default`).toBe(onByDefault);
+     }
+     // The retired nav rows are gone from the legacy list: they are
+@@ -2482,7 +2481,7 @@ describe('the profile picker (the Filter section)', () => {
+     const sidebar = host!.querySelector('[data-testid="sidebar-group"]')!;
+     for (const box of sidebar.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')) {
+       const label = box.closest('label')?.textContent?.trim() ?? '';
+-      const onByDefault = label === 'More from YouTube';
++      const onByDefault = label === 'More from YouTube' || label === 'Shorts';
+       expect(box.checked, `navigation switch "${label}" must not be profile-driven`).toBe(
+         onByDefault,
+       );
+
+diff --git a/extensions/standalones/youtube-filter/tests/options.test.tsx b/extensions/standalones/youtube-filter/tests/options.test.tsx
+index cfcab51e1b..05dc62f175 100644
+--- a/extensions/standalones/youtube-filter/tests/options.test.tsx
++++ b/extensions/standalones/youtube-filter/tests/options.test.tsx
+@@ -175,7 +175,9 @@ function resolveLastExceptions(map: Exceptions): void {
+   r!(map);
+ }
+ 
+-import App from '@/entrypoints/options/App';
++import App, { HOME_EXPLORE_SWITCHES, WHOLE_PARTS_SWITCHES, FOCUS_SWITCHES } from '@/entrypoints/options/App';
++import { SIDEBAR_ENTRIES, SIDEBAR_GROUPS } from '@/lib/sidebar';
++import { CHANNEL_NAV_ENTRIES } from '@/lib/channel-nav';
+ import { STATUS_KEY, AI_CACHE_KEY, EXCEPTIONS_KEY, SETTINGS_KEY, saveAICache } from '@/lib/settings';
+ import { DEFAULT_SETTINGS } from '@/lib/types';
+ import type { AIVerdict, FilterSettings, LearnedException } from '@/lib/types';
+@@ -1336,14 +1338,15 @@ describe('options page (dashboard) tabs', () => {
+     await flush();
+     await clickTab('Filter');
+     const boxes = [...host!.querySelectorAll<HTMLInputElement>('#panel-filter input[type="checkbox"]')];
+-    // 26 legacy switches (surface/section removals + the 2 playback
+-    // behaviors) + the Sidebar group: 15 per-entry guide switches, the
+-    // grouped nav switch and the start-page switch (41) + the Home &
+-    // Explore segment group (4) + the Focus group (5: watched, blur,
+-    // play-on-hover, search suggestions, player nav buttons) + the
+-    // channel menu group (6: Live, Podcasts, Posts, Store, Shows,
+-    // Shorts) = 58.
+-    expect(boxes).toHaveLength(58);
++    // Every declared switch must render; adding a legitimate registry
++    // entry is harmless, silently dropping one from the UI is not.
++    const declared = WHOLE_PARTS_SWITCHES.length + HOME_EXPLORE_SWITCHES.length +
++      FOCUS_SWITCHES.length + SIDEBAR_ENTRIES.length + SIDEBAR_GROUPS.length +
++      CHANNEL_NAV_ENTRIES.length + 1; // The start-page redirect is separate.
++    expect(boxes).toHaveLength(declared);
++    for (const [, label] of [...WHOLE_PARTS_SWITCHES, ...HOME_EXPLORE_SWITCHES, ...FOCUS_SWITCHES]) {
++      expect(boxes.some((box) => box.closest('label')?.textContent?.includes(label)), `declared control ${label} must render`).toBe(true);
++    }
+     expect(host!.innerHTML).toMatch(/Hide Up next/);
+     expect(host!.innerHTML).toMatch(/Hide comments/);
+     expect(host!.innerHTML).toMatch(/Hide description/);
+@@ -1896,39 +1899,27 @@ describe('options page (dashboard) [tab] cache/exception fetch: stale-response g
+   });
+ });
+ 
+-  it('the Rules tab has a Show-why toggle bound to settings.mode', async () => {
+-    // The hide mode (reflow vs dim) used to live only in the popup pills -
+-    // the dashboard section that owns the filtering rules had no control
+-    // for it. The toggle flips settings.mode and persists it.
++  it('the Rules tab persists each supported treatment without losing the existing reflow and dim choices', async () => {
++    // The dashboard owns this choice. The third treatment expands the
++    // existing hard/dim contract; every choice must persist and be exclusive.
+     await act(async () => {
+       root!.render(React.createElement(App));
+     });
+     await flush();
+     await clickTab('Rules');
+ 
+-    const box = host!.querySelector<HTMLInputElement>('[data-testid="rules-show-why"]')!;
+-    expect(box, 'the Show-why toggle must be present on the Rules tab').toBeTruthy();
+-    expect(box.checked, 'default mode is hard (reflow)').toBe(false);
+-
+-    await act(async () => {
+-      box.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+-    });
+-    await flush();
+-    expect(
+-      (store[SETTINGS_KEY] as { mode?: string } | undefined)?.mode,
+-      'checking Show-why must persist mode dim',
+-    ).toBe('dim');
+-
+-    await act(async () => {
+-      host!.querySelector<HTMLInputElement>('[data-testid="rules-show-why"]')!.dispatchEvent(
+-        new MouseEvent('click', { bubbles: true }),
+-      );
+-    });
+-    await flush();
+-    expect(
+-      (store[SETTINGS_KEY] as { mode?: string } | undefined)?.mode,
+-      'unchecking Show-why must persist mode hard',
+-    ).toBe('hard');
++    expect(host!.querySelector('[role="radiogroup"][aria-label="How filtered cards are treated"]')).toBeTruthy();
++    expect(host!.querySelector<HTMLInputElement>('[data-testid="filter-style-hard"]')?.checked).toBe(true);
++    for (const mode of ['dim', 'collapse', 'hard'] as const) {
++      const radio = host!.querySelector<HTMLInputElement>(`[data-testid="filter-style-${mode}"]`);
++      expect(radio, `${mode} must remain selectable`).toBeTruthy();
++      await act(async () => { radio!.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
++      await flush();
++      expect((store[SETTINGS_KEY] as { mode?: string } | undefined)?.mode).toBe(mode);
++      for (const choice of ['hard', 'dim', 'collapse']) {
++        expect(host!.querySelector<HTMLInputElement>(`[data-testid="filter-style-${choice}"]`)?.checked).toBe(choice === mode);
++      }
++    }
+   });
+ 
+ /**
+@@ -2191,13 +2182,14 @@ describe('the Focus group (2026-10-22 competitor enrichment)', () => {
+     const ids = [...group.querySelectorAll('input[type="checkbox"]')].map((el) =>
+       el.getAttribute('data-testid'),
+     );
+-    expect(ids).toEqual([
++    expect(ids).toEqual(FOCUS_SWITCHES.map(([flag]) => `filter-${flag}`));
++    expect(ids).toEqual(expect.arrayContaining([
+       'filter-hideWatchedVideos',
+       'filter-blurThumbnails',
+       'filter-disablePlayOnHover',
+       'filter-hideSearchSuggestions',
+       'filter-hidePlayerNavButtons',
+-    ]);
++    ]));
+     // Every one of them starts OFF: they change what you see, and the
+     // user has to ask for that.
+     for (const el of group.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')) {
+
+diff --git a/extensions/standalones/youtube-filter/tests/rules.test.ts b/extensions/standalones/youtube-filter/tests/rules.test.ts
+index f00c3a7d60..9864bb3716 100644
+--- a/extensions/standalones/youtube-filter/tests/rules.test.ts
++++ b/extensions/standalones/youtube-filter/tests/rules.test.ts
+@@ -374,15 +374,24 @@ describe('the watched rule (hideWatchedVideos)', () => {
+ 
+   it('hides a card YouTube marks as watched, with a reason', () => {
+     const s = watched();
+-    expect(watchedReason(card({ watched: true }), s)).toEqual({
++    expect(watchedReason(card({ watched: true, surface: 'subscriptions' }), s)).toEqual({
+       code: 'declutter',
+       detail: 'Already watched',
+     });
+-    const d = evaluateRules(card({ watched: true }), s, null);
++    const d = evaluateRules(card({ watched: true, surface: 'subscriptions' }), s, null);
+     expect(d.hide).toBe(true);
+     expect(d.reasons).toEqual([{ code: 'declutter', detail: 'Already watched' }]);
+   });
+ 
++  it('keeps watched Home recommendations unless explicitly opted in, and never filters search/sidebar by watch history', () => {
++    const s = watched();
++    expect(watchedReason(card({ watched: true, surface: 'home' }), s)).toBeNull();
++    expect(watchedReason(card({ watched: true, surface: 'home' }), watched({ hideWatchedInHome: true }))).toEqual({ code: 'declutter', detail: 'Already watched' });
++    for (const surface of ['search', 'watch-sidebar'] as const) {
++      expect(watchedReason(card({ watched: true, surface }), watched({ hideWatchedInHome: true }))).toBeNull();
++    }
++  });
++
+   it('leaves an unwatched card alone', () => {
+     const s = watched();
+     expect(watchedReason(card({ watched: false }), s)).toBeNull();
+@@ -409,7 +418,7 @@ describe('the watched rule (hideWatchedVideos)', () => {
+ 
+   it('reports alongside the other reasons when several rules match', () => {
+     const s = watched({ keywords: ['crypto'] });
+-    const d = evaluateRules(card({ watched: true, title: 'Crypto hype' }), s, null);
++    const d = evaluateRules(card({ watched: true, surface: 'subscriptions', title: 'Crypto hype' }), s, null);
+     expect(d.hide).toBe(true);
+     expect(d.reasons).toHaveLength(2);
+     expect(d.reasons[1]).toEqual({ code: 'declutter', detail: 'Already watched' });
+
+diff --git a/extensions/standalones/youtube-filter/tests/rules.test.ts b/extensions/standalones/youtube-filter/tests/rules.test.ts
+index 9864bb3716..903faacf95 100644
+--- a/extensions/standalones/youtube-filter/tests/rules.test.ts
++++ b/extensions/standalones/youtube-filter/tests/rules.test.ts
+@@ -403,7 +403,7 @@ describe('the watched rule (hideWatchedVideos)', () => {
+ 
+   it('an allowed channel still wins over the watched rule', () => {
+     const s = watched({ channelsAllow: ['somechannel'] });
+-    const d = evaluateRules(card({ watched: true }), s, null);
++    const d = evaluateRules(card({ watched: true, surface: 'subscriptions' }), s, null);
+     expect(d.hide).toBe(false);
+     expect(d.reasons).toHaveLength(0);
+   });
+@@ -411,7 +411,7 @@ describe('the watched rule (hideWatchedVideos)', () => {
+   it('a learned exception still wins over the watched rule', () => {
+     const s = watched();
+     const exception = { videoId: 'v1', reason: 'user undid watched hide', at: 0 };
+-    const d = evaluateRules(card({ watched: true }), s, exception);
++    const d = evaluateRules(card({ watched: true, surface: 'subscriptions' }), s, exception);
+     expect(d.hide).toBe(false);
+     expect(d.reasons).toHaveLength(0);
+   });
+
+diff --git a/extensions/standalones/youtube-filter/tests/sections.test.ts b/extensions/standalones/youtube-filter/tests/sections.test.ts
+index f88a032349..2301c14c6c 100644
+--- a/extensions/standalones/youtube-filter/tests/sections.test.ts
++++ b/extensions/standalones/youtube-filter/tests/sections.test.ts
+@@ -42,9 +42,9 @@ function mount(): HTMLElement {
+ 
+ /** Every section key must have a distinct settings flag (no two keys share). */
+ describe('SECTIONS map shape', () => {
+-  it('covers exactly the twenty-six section flags', () => {
++  it('retains every required section while allowing additional declared sections', () => {
+     const keys = Object.keys(SECTIONS).sort();
+-    expect(keys).toEqual(
++    expect(keys).toEqual(expect.arrayContaining(
+       [
+         'ads',
+         'channelHeader',
+@@ -70,10 +70,11 @@ describe('SECTIONS map shape', () => {
+         'searchSuggestions',
+         'shortsShelfSection',
+         'topHeader',
++        'topicShelves',
+         'videoInfo',
+         'watchActions',
+       ].sort(),
+-    );
++    ));
+   });
+ 
+   it('every entry has a flag, at least one selector, and an Unhook mirror', () => {
+@@ -110,6 +111,19 @@ describe('applySections', () => {
+     expect(root.querySelector('#description')!.hasAttribute(SECTION_ATTR)).toBe(false);
+   });
+ 
++  it('hides the requested topic shelf, not other shelves sharing its renderer, and restores it', () => {
++    document.body.innerHTML = `<ytd-browse>
++      <ytd-rich-section-renderer id="topic"><h2>Go all in on a topic</h2></ytd-rich-section-renderer>
++      <ytd-rich-section-renderer id="ordinary"><h2>Subscriptions</h2></ytd-rich-section-renderer>
++      <ytd-rich-section-renderer id="shorts"><h2>Shorts</h2></ytd-rich-section-renderer>
++    </ytd-browse>`;
++    applySections(document.body, settingsWith({ hideTopicShelves: true }));
++    expect(document.querySelector('#topic')?.getAttribute(SECTION_ATTR)).toBe('topicShelves');
++    for (const id of ['ordinary', 'shorts']) expect(document.getElementById(id)?.hasAttribute(SECTION_ATTR)).toBe(false);
++    applySections(document.body, settingsWith({ hideTopicShelves: false }));
++    expect(document.querySelector('#topic')?.hasAttribute(SECTION_ATTR)).toBe(false);
++  });
++
+   it('never touches an element the sidebar layer already hid', () => {
+     // The two hiding layers keep their ownership (lib/hidden-attrs.ts):
+     // an element the sidebar layer hid stays the sidebar layer's, so
+
+diff --git a/extensions/standalones/youtube-filter/entrypoints/options/App.tsx b/extensions/standalones/youtube-filter/entrypoints/options/App.tsx
+index 446865283d..ce92fe1a46 100644
+--- a/extensions/standalones/youtube-filter/entrypoints/options/App.tsx
++++ b/extensions/standalones/youtube-filter/entrypoints/options/App.tsx
+@@ -73,7 +73,7 @@ function textToList(text: string): string[] {
+  * The tuple is [rule flag, the switch's label, the one-line hint] -
+  * the same three things SwitchRow takes.
+  */
+-const HOME_EXPLORE_SWITCHES = [
++export const HOME_EXPLORE_SWITCHES = [
+   [
+     'hideHomeFeedChips',
+     'Hide home page category chips',
+@@ -96,7 +96,7 @@ const HOME_EXPLORE_SWITCHES = [
+   ],
+ ] as const;
+ 
+-const WHOLE_PARTS_SWITCHES = [
++export const WHOLE_PARTS_SWITCHES = [
+   [
+     'hideShortsShelf',
+     'Hide the Shorts shelf',
+@@ -218,7 +218,7 @@ const WHOLE_PARTS_SWITCHES = [
+   ],
+ ] as const;
+ 
+-const FOCUS_SWITCHES = [
++export const FOCUS_SWITCHES = [
+   [
+     'hideWatchedVideos',
+     'Hide videos you already watched',

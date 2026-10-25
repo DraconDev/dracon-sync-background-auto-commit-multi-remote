@@ -1,0 +1,8 @@
+{
+  "status": "rejected-interrupted",
+  "workspace": "failed: debug stack overflow",
+  "clippy": "failed: unused CapRefusal.at",
+  "release": "unknown; original executor timeout stopped owner, no remaining build process observed",
+  "deployment": "not attempted",
+  "next": "corrected inputs require coherent fresh capture/gates"
+}

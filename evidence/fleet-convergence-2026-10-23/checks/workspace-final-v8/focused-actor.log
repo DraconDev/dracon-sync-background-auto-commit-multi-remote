@@ -1,0 +1,70 @@
+   Compiling syn v2.0.119
+   Compiling zerovec v0.11.8
+   Compiling tinystr v0.8.4
+   Compiling crossbeam-utils v0.8.23
+   Compiling icu_locale_core v2.3.0
+   Compiling potential_utf v0.1.6
+   Compiling icu_collections v2.3.0
+   Compiling icu_provider v2.3.1
+   Compiling tracing-attributes v0.1.31
+   Compiling enumflags2_derive v0.7.12
+   Compiling concurrent-queue v2.5.0
+   Compiling icu_properties v2.3.0
+   Compiling tracing v0.1.44
+   Compiling icu_normalizer v2.3.0
+   Compiling enumflags2 v0.7.12
+   Compiling idna_adapter v1.2.2
+   Compiling typenum v1.20.1
+   Compiling idna v1.1.0
+   Compiling generic-array v0.14.7
+   Compiling openssl-macros v0.1.1
+   Compiling async-io v2.6.0
+   Compiling openssl v0.10.81
+   Compiling h2 v0.4.19
+   Compiling url v2.5.8
+   Compiling zvariant v5.15.0
+   Compiling async-channel v2.5.0
+   Compiling native-tls v0.2.18
+   Compiling hyper v1.11.1
+   Compiling zbus_names v4.3.4
+   Compiling async-signal v0.2.14
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling subtle v2.6.1
+   Compiling hyper-util v0.1.20
+   Compiling digest v0.10.7
+   Compiling blocking v1.7.0
+   Compiling async-process v2.5.0
+   Compiling zbus_macros v5.19.0
+   Compiling tokio-native-tls v0.3.1
+   Compiling async-executor v1.14.0
+   Compiling async-recursion v1.1.1
+   Compiling thiserror-impl v1.0.69
+   Compiling uuid v1.26.1
+   Compiling zeroize v1.9.0
+   Compiling git2 v0.21.0
+   Compiling thiserror v1.0.69
+   Compiling zbus v5.19.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling hyper-tls v0.6.0
+   Compiling ppv-lite86 v0.2.21
+   Compiling tower-http v0.6.11
+   Compiling sha2 v0.10.9
+   Compiling reqwest v0.12.28
+   Compiling chrono v0.4.45
+   Compiling notify-rust v4.18.0
+   Compiling dracon-git v94.7.2
+   Compiling rand_chacha v0.9.0
+   Compiling hmac v0.12.1
+   Compiling proptest v1.11.0
+   Compiling dracon-sync v0.113.95 (/tmp/fleet-worktree-qualified-5o0l71pf/source/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4m 31s
+     Running unittests src/main.rs (/tmp/fleet-worktree-qualified-w0vnvauf/target/debug/deps/dracon_sync-57355c10ae49de9a)
+
+running 1 test
+test sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits ... branch 'main' set up to track 'origin/main'.
+branch 'main' set up to track 'origin/main'.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1418 filtered out; finished in 10.09s
+

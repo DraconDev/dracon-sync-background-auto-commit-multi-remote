@@ -1,0 +1,6 @@
+{
+  "src/sync.rs": "de3b432a5bdb4bf9c660b570768e97e2c33046cef3371e1653c002d9fc421480",
+  "src/git/push_resources.rs": "f6c7c0e0bdee41aeacee7326308d46a66bd9ebf4d247a08ce024f4833ae73398",
+  "scripts/isolated-publication-receipt.py": "7a222b42fd9dfb69f5a0abdfa6b1420c0ce6f5871a8ec63c24ee1ecd55108c95",
+  "src/git/push_resources_round_tests.rs": "66472c723e7be99089d5b7863a83936956123b2d88642e4600f56e3cb18e1411"
+}

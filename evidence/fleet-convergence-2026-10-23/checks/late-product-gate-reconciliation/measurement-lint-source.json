@@ -1,0 +1,6 @@
+{
+  "repaired_commit": "d3014efbe6583f480139e32f3d25b6179f4dc40e",
+  "path": "extensions/standalones/vidpro-extension/scripts/measure-dashboard.mjs",
+  "current_file_exists": false,
+  "scope": "historical actual lint repair; later owner changes are not this repair"
+}

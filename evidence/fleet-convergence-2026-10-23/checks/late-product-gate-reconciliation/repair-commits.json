@@ -1,0 +1,50 @@
+[
+  {
+    "path": "extensions/standalones/vidpro-extension/scripts/measure-dashboard.mjs",
+    "commit": "fa2deadb9bcc6ce31a9a1a40a865ce4a694f5657"
+  },
+  {
+    "path": "extensions/standalones/vidpro-extension/test/components.test.ts",
+    "commit": "3307e19f80dac8bbfc267237d58661fd94737b02"
+  },
+  {
+    "path": "extensions/standalones/vidpro-extension/e2e/publishing-row-layout.spec.ts",
+    "commit": "e54c9e0ea2a7fb90f2d5625fb0c638701edbe1e3"
+  },
+  {
+    "path": "extensions/standalones/youtube-filter/tests/blocklist.test.ts",
+    "commit": "240efa6b2d9971b13ac942d87f137329681e2f4c"
+  },
+  {
+    "path": "extensions/standalones/youtube-filter/tests/settings.test.ts",
+    "commit": "9861ef783e614a0213a7a166d25bb2643189b3cc"
+  },
+  {
+    "path": "extensions/standalones/youtube-filter/tests/sidebar.test.ts",
+    "commit": "72d648b4b7e13218cb4e463faf96b53121632b64"
+  },
+  {
+    "path": "extensions/standalones/youtube-filter/tests/options.test.tsx",
+    "commit": "c99530cb599a9a64ae072c0aee748468a035a5a2"
+  },
+  {
+    "path": "extensions/standalones/youtube-filter/tests/options.test.tsx",
+    "commit": "de4b107665fa4b8642093247e5f73db304ffef7d"
+  },
+  {
+    "path": "extensions/standalones/youtube-filter/tests/rules.test.ts",
+    "commit": "37be140f95386895118459c20c4e476faacba2ad"
+  },
+  {
+    "path": "extensions/standalones/youtube-filter/tests/rules.test.ts",
+    "commit": "148e78aad2448e2c56f00062cd6f33a2d9608266"
+  },
+  {
+    "path": "extensions/standalones/youtube-filter/tests/sections.test.ts",
+    "commit": "03025a9f96c8c0a541f4b7de9a0e0ed8e49314ec"
+  },
+  {
+    "path": "extensions/standalones/youtube-filter/entrypoints/options/App.tsx",
+    "commit": "89bbd82b151ff4f94a385e7c5178710c4641c8d1"
+  }
+]

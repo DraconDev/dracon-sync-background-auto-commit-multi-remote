@@ -1,0 +1,8 @@
+{
+  "owner_exit": 143,
+  "cancelled_by_signal": 15,
+  "joined": true,
+  "fixture_orphans": [],
+  "real_service_unchanged": true,
+  "scope": "receipt-owner cancellation control only; not new-binary behavioral qualification"
+}

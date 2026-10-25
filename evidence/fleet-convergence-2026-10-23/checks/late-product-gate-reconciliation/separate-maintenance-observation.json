@@ -1,0 +1,12 @@
+{
+  "observed_at": "2026-10-24T19:37:30.723578+00:00",
+  "condition": "separate active maintenance; do not remove marker or signal owner",
+  "marker": "/home/dracon/.dracon/dracon-sync.freeze",
+  "marker_mtime": 1792869789.6623683,
+  "owner_pid": 1232776,
+  "owner_live": true,
+  "owner_cwd": "/home/dracon/Dev/dracon-utilities/dracon-system",
+  "daemon_pid": 3046262,
+  "loaded_sha256": "59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc",
+  "completion_claim": false
+}

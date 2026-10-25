@@ -1,0 +1,5 @@
+{
+  "observed_head": "12f82be5325950e99cfe4990f3c15d35a6fa6f99",
+  "qualification_scope": "current diagnostic product gates; normal daemon immutable-source whole hook remains required",
+  "production_feature_changes": "none to filtering behavior or defaults; only UI registry exports and test integration; collapse implementation predates these edits"
+}

@@ -1,0 +1,13 @@
+
+> youtube-filter@1.0.0 test
+> vitest run --passWithNoTests tests/rules.test.ts
+
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/youtube-filter
+
+
+ Test Files  1 passed (1)
+      Tests  42 passed (42)
+   Start at  20:31:55
+   Duration  2.91s (transform 438ms, setup 210ms, import 307ms, tests 93ms, environment 1.85s)
+

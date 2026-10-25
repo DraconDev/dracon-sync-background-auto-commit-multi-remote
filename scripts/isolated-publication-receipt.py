@@ -24,6 +24,7 @@ The receipt proves, against Git commit objects and bare-remote refs:
 Usage: isolated-publication-receipt.py <path-to-installed-dracon-sync> <outdir>
 """
 
+import fcntl
 import json
 import os
 import shutil
@@ -120,7 +121,7 @@ def main():
                 "min_commit_interval_secs = 0",
                 "push_op_timeout_secs = 300",
                 "push_retries = 0",
-                "sem_max_concurrent_sync = 8",
+                "sem_max_concurrent_sync = 1",
                 "alert_unpushed_threshold = 100",
                 "",
             ]
@@ -256,6 +257,15 @@ def main():
             "remotes": "filesystem bare repositories only",
         },
     }
+    def cancel_receipt(number, frame):
+        # The fixture owns its separate daemon process group. An enclosing
+        # qualification deadline must enter our bounded finally, not abandon it.
+        receipt['cancelled_by_signal'] = number
+        receipt['ok'] = False
+        raise SystemExit(128 + number)
+
+    signal.signal(signal.SIGTERM, cancel_receipt)
+    signal.signal(signal.SIGINT, cancel_receipt)
     try:
         # ---- 1. A's publication blocks in a real pre-push hook -------------
         wait_for(lambda: (a / ".git/receipt/hook-entered").exists(), 120, "A's pre-push hook")
@@ -313,6 +323,39 @@ def main():
         if a_published != a_tip:
             raise AssertionError(f"A did not converge on its newest tip: {a_published} != {a_tip}")
         receipt["a_published_object"] = git(a_bare, "cat-file", "-t", a_published)
+        # ---- 4a. Completed worker retires; a new edit redispatches --------
+        # Not just a second edit during an active upload: the old reservation
+        # must actually retire before subsequent independent work is admitted.
+        def publication_retired():
+            lease = a / '.git/dracon-sync.publication-lease'
+            if not lease.exists():
+                return False
+            with lease.open('r+b') as handle:
+                try:
+                    fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    return False
+                fcntl.flock(handle, fcntl.LOCK_UN)
+            return True
+        wait_for(publication_retired, 180, 'completed A publication worker retirement')
+        receipt['a_completed_worker_retired'] = True
+        (a / 'a-after-round.txt').write_text('A new edit after worker retirement\n')
+        def post_round_published():
+            tip = ref_or_empty(a_bare, 'refs/heads/main')
+            if not tip or tip == a_tip:
+                return None
+            content = git(a_bare, 'show', f'{tip}:a-after-round.txt', check=False)
+            return tip if content == 'A new edit after worker retirement' else None
+        post_round = wait_for(post_round_published, 180, 'A redispatch after completed publication')
+        if run(['git', 'merge-base', '--is-ancestor', a_tip, post_round], cwd=a_bare, check=False).returncode != 0:
+            raise AssertionError('post-round publication did not retain the earlier tip')
+        if ref_or_empty(a_bare, 'refs/heads/main') != git(a, 'rev-parse', 'HEAD'):
+            raise AssertionError('post-round remote did not reach the current local tip')
+        receipt['a_pre_redispatch_tip'] = a_tip
+        receipt['a_post_round_tip'] = post_round
+        receipt['a_newest_tip'] = post_round
+        receipt['a_remote_tip'] = post_round
+        receipt['a_post_round_work_published'] = True
         # ---- 4b. The configured COMMIT hook chain really runs -------------
         # An accepting hook must be seen to RUN on the daemon's own commit.
         receipt["b_precommit_hook_ran"] = (b / ".git/receipt/precommit-ran").exists()

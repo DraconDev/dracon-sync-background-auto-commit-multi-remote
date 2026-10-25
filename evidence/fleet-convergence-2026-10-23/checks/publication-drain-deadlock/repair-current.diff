@@ -1,0 +1,269 @@
+diff --git a/scripts/isolated-publication-receipt.py b/scripts/isolated-publication-receipt.py
+index d0727c6..c804b9d 100755
+--- a/scripts/isolated-publication-receipt.py
++++ b/scripts/isolated-publication-receipt.py
+@@ -24,6 +24,7 @@ The receipt proves, against Git commit objects and bare-remote refs:
+ Usage: isolated-publication-receipt.py <path-to-installed-dracon-sync> <outdir>
+ """
+ 
++import fcntl
+ import json
+ import os
+ import shutil
+@@ -120,7 +121,7 @@ def main():
+                 "min_commit_interval_secs = 0",
+                 "push_op_timeout_secs = 300",
+                 "push_retries = 0",
+-                "sem_max_concurrent_sync = 8",
++                "sem_max_concurrent_sync = 1",
+                 "alert_unpushed_threshold = 100",
+                 "",
+             ]
+@@ -256,6 +257,15 @@ def main():
+             "remotes": "filesystem bare repositories only",
+         },
+     }
++    def cancel_receipt(number, frame):
++        # The fixture owns its separate daemon process group. An enclosing
++        # qualification deadline must enter our bounded finally, not abandon it.
++        receipt['cancelled_by_signal'] = number
++        receipt['ok'] = False
++        raise SystemExit(128 + number)
++
++    signal.signal(signal.SIGTERM, cancel_receipt)
++    signal.signal(signal.SIGINT, cancel_receipt)
+     try:
+         # ---- 1. A's publication blocks in a real pre-push hook -------------
+         wait_for(lambda: (a / ".git/receipt/hook-entered").exists(), 120, "A's pre-push hook")
+@@ -313,6 +323,39 @@ def main():
+         if a_published != a_tip:
+             raise AssertionError(f"A did not converge on its newest tip: {a_published} != {a_tip}")
+         receipt["a_published_object"] = git(a_bare, "cat-file", "-t", a_published)
++        # ---- 4a. Completed worker retires; a new edit redispatches --------
++        # Not just a second edit during an active upload: the old reservation
++        # must actually retire before subsequent independent work is admitted.
++        def publication_retired():
++            lease = a / '.git/dracon-sync.publication-lease'
++            if not lease.exists():
++                return False
++            with lease.open('r+b') as handle:
++                try:
++                    fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
++                except BlockingIOError:
++                    return False
++                fcntl.flock(handle, fcntl.LOCK_UN)
++            return True
++        wait_for(publication_retired, 180, 'completed A publication worker retirement')
++        receipt['a_completed_worker_retired'] = True
++        (a / 'a-after-round.txt').write_text('A new edit after worker retirement\n')
++        def post_round_published():
++            tip = ref_or_empty(a_bare, 'refs/heads/main')
++            if not tip or tip == a_tip:
++                return None
++            content = git(a_bare, 'show', f'{tip}:a-after-round.txt', check=False)
++            return tip if content == 'A new edit after worker retirement' else None
++        post_round = wait_for(post_round_published, 180, 'A redispatch after completed publication')
++        if run(['git', 'merge-base', '--is-ancestor', a_tip, post_round], cwd=a_bare, check=False).returncode != 0:
++            raise AssertionError('post-round publication did not retain the earlier tip')
++        if ref_or_empty(a_bare, 'refs/heads/main') != git(a, 'rev-parse', 'HEAD'):
++            raise AssertionError('post-round remote did not reach the current local tip')
++        receipt['a_pre_redispatch_tip'] = a_tip
++        receipt['a_post_round_tip'] = post_round
++        receipt['a_newest_tip'] = post_round
++        receipt['a_remote_tip'] = post_round
++        receipt['a_post_round_work_published'] = True
+         # ---- 4b. The configured COMMIT hook chain really runs -------------
+         # An accepting hook must be seen to RUN on the daemon's own commit.
+         receipt["b_precommit_hook_ran"] = (b / ".git/receipt/precommit-ran").exists()
+diff --git a/src/git/push_resources.rs b/src/git/push_resources.rs
+index 24d85dd..8ea109f 100644
+--- a/src/git/push_resources.rs
++++ b/src/git/push_resources.rs
+@@ -5,6 +5,9 @@
+ //! Push commands retain owned cancellation and low child priority, but have no
+ //! process-global admission gate. Repository ownership is enforced separately.
+ #[cfg(test)]
++#[path = "push_resources_round_tests.rs"]
++mod round_tests;
++#[cfg(test)]
+ #[path = "push_resources_tests.rs"]
+ mod tests;
+ 
+@@ -75,6 +78,49 @@ pub(crate) async fn push_phase<T>(work: impl Future<Output = Result<T>>) -> Resu
+     result
+ }
+ 
++/// Coordinate one upload with optional local refreshes. Delay and refresh
++/// factories keep the completion/admission ordering directly testable.
++pub(crate) async fn publication_round<T, P, R, W>(
++    publication: std::pin::Pin<Box<P>>,
++    mut refresh_work: impl FnMut() -> R,
++    mut wait: impl FnMut(bool) -> W,
++) -> Result<T>
++where
++    P: Future<Output = Result<T>>,
++    R: Future<Output = bool>,
++    W: Future<Output = ()>,
++{
++    // Upload completion must not restore the outer permit before a queued
++    // refresh drains: that refresh may already be waiting on the same FIFO
++    // semaphore. Keep the whole coordination/drain inside the yielded scope.
++    push_phase(async move {
++        // Box at the CALL boundary as well: storing a large upload future
++        // inline in this async function can overflow debug worker stacks
++        // before the first poll ever reaches an internal Box::pin.
++        let mut publication = publication;
++        let mut refresh: Option<std::pin::Pin<Box<R>>> = None;
++        let mut active = true;
++        let report = loop {
++            tokio::select! {
++                result = &mut publication => break result,
++                result = async { refresh.as_mut().expect("guarded refresh").await }, if refresh.is_some() => {
++                    active = result;
++                    refresh = None;
++                }
++                () = wait(active), if refresh.is_none() => {
++                    refresh = Some(Box::pin(refresh_work()));
++                }
++            }
++        };
++        drop(publication);
++        if let Some(pending) = refresh {
++            pending.await;
++        }
++        report
++    })
++    .await
++}
++
+ /// Admit a fresh local pass while the enclosing actor has yielded its local
+ /// permit for publication. The nested scope owns only this pass's permit;
+ /// finishing it must leave the enclosing publication scope yielded. Nested
+diff --git a/src/sync.rs b/src/sync.rs
+index cb554f4..99b1d5f 100644
+--- a/src/sync.rs
++++ b/src/sync.rs
+@@ -2393,79 +2393,56 @@ async fn run_publication_actor<'a>(
+     // `push_phase` yields bounded local-work capacity for exactly the life of
+     // the upload, and `publish_phase` stamps the real command execution so the
+     // report distinguishes "pushing" from "committed successfully".
+-    let mut publication = Box::pin(crate::git::push_resources::push_phase(
+-        crate::daemon::scheduler_evidence::publish_phase(
++    let refresh_repo = ctx.repo;
++    let refresh_policy = ctx.policy;
++    let refresh_excludes = ctx.excluded_dir_names;
++    let refresh_idle = ctx.idle_seconds;
++    let refresh_policy_path = ctx.policy_path;
++    let ok_report = crate::git::push_resources::publication_round(
++        Box::pin(crate::daemon::scheduler_evidence::publish_phase(
+             ctx.repo,
+             upload_publication(ctx.repo, ctx.policy, &mut plan, ctx.commit_only),
+-        ),
+-    ));
+-    let mut refresh: Option<RefreshFuture<'_>> = None;
+-    let mut refresh_delay = PUBLICATION_REFRESH_ACTIVE;
+-    let ok_report = loop {
+-        tokio::select! {
+-            report = &mut publication => break report,
+-            result = async { refresh.as_mut().expect("guarded by is_some").await }, if refresh.is_some() => {
+-                match result {
+-                    Ok(SyncOutcome::Synced) | Ok(SyncOutcome::PublicationPending) => {
+-                        refresh_delay = PUBLICATION_REFRESH_ACTIVE;
+-                        eprintln!("🆕 {} committed a newer tip while its earlier publication was still running", ctx.repo.display());
+-                    }
+-                    Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::FilterOnly) => {
+-                        refresh_delay = PUBLICATION_REFRESH_IDLE;
+-                    }
+-                    // A refresh must never erase publication evidence, and a
+-                    // local failure is the next round's problem: the current
+-                    // upload still owns its own result accounting.
+-                    Ok(other) => {
+-                        refresh_delay = PUBLICATION_REFRESH_IDLE;
+-                        if crate::policy::debug_enabled() {
+-                            eprintln!("🐛 {} refresh pass ended as {:?} during publication", ctx.repo.display(), other);
+-                        }
+-                    }
+-                    Err(error) => {
+-                        refresh_delay = PUBLICATION_REFRESH_IDLE;
+-                        eprintln!("⚠️ {} local commit during publication failed (publication unaffected): {error:#}", ctx.repo.display());
++        )),
++        move || async move {
++            // A refresh cannot erase the upload result. Its owned mutation
++            // must finish even if the upload completes first; the coordinator
++            // retains yielded capacity until that final refresh has drained.
++            match refresh_round(
++                refresh_repo,
++                refresh_policy,
++                refresh_excludes,
++                refresh_idle,
++                refresh_policy_path,
++                None,
++            )
++            .await
++            {
++                Ok(SyncOutcome::Synced) | Ok(SyncOutcome::PublicationPending) => {
++                    eprintln!("🆕 {} committed a newer tip while its earlier publication was still running", refresh_repo.display());
++                    true
++                }
++                Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::FilterOnly) => false,
++                Ok(other) => {
++                    if crate::policy::debug_enabled() {
++                        eprintln!("🐛 {} refresh pass ended as {:?} during publication", refresh_repo.display(), other);
+                     }
++                    false
+                 }
+-                refresh = None;
+-            }
+-            () = tokio::time::sleep(refresh_delay), if refresh.is_none() => {
+-                refresh = Some(refresh_round(
+-                    ctx.repo,
+-                    ctx.policy,
+-                    ctx.excluded_dir_names,
+-                    ctx.idle_seconds,
+-                    ctx.policy_path,
+-                    None,
+-                ));
+-            }
+-            else => break Err(anyhow::anyhow!("publication actor lost all progress branches")),
+-        }
+-    };
+-    // Release the publication future's borrow of the plan before reading the
+-    // round's failure memory back out.
+-    drop(publication);
+-    // Any still-running refresh is deliberately NOT cancelled: dropping a
+-    // commit future mid-operation would abandon index mutation. Let it finish.
+-    if let Some(pending) = refresh.take() {
+-        match pending.await {
+-            Ok(outcome) => {
+-                if debug_enabled() {
+-                    eprintln!(
+-                        "🐛 {} final refresh pass: {:?}",
+-                        ctx.repo.display(),
+-                        outcome
+-                    );
++                Err(error) => {
++                    eprintln!("⚠️ {} local commit during publication failed (publication unaffected): {error:#}", refresh_repo.display());
++                    false
+                 }
+             }
+-            Err(error) => {
+-                eprintln!(
+-                    "⚠️ {} final local commit during publication failed: {error:#}",
+-                    ctx.repo.display()
+-                );
+-            }
+-        }
+-    }
++        },
++        |active| {
++            tokio::time::sleep(if active {
++                PUBLICATION_REFRESH_ACTIVE
++            } else {
++                PUBLICATION_REFRESH_IDLE
++            })
++        },
++    )
++    .await;
+     // Hand the publication's remote-failure memory back to the caller. Only
+     // this owner writes those counters; local refreshes above passed `None`.
+     let round_failures = plan.remote_failures.clone();

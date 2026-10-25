@@ -2393,79 +2393,56 @@ async fn run_publication_actor<'a>(
     // `push_phase` yields bounded local-work capacity for exactly the life of
     // the upload, and `publish_phase` stamps the real command execution so the
     // report distinguishes "pushing" from "committed successfully".
-    let mut publication = Box::pin(crate::git::push_resources::push_phase(
-        crate::daemon::scheduler_evidence::publish_phase(
+    let refresh_repo = ctx.repo;
+    let refresh_policy = ctx.policy;
+    let refresh_excludes = ctx.excluded_dir_names;
+    let refresh_idle = ctx.idle_seconds;
+    let refresh_policy_path = ctx.policy_path;
+    let ok_report = crate::git::push_resources::publication_round(
+        Box::pin(crate::daemon::scheduler_evidence::publish_phase(
             ctx.repo,
             upload_publication(ctx.repo, ctx.policy, &mut plan, ctx.commit_only),
-        ),
-    ));
-    let mut refresh: Option<RefreshFuture<'_>> = None;
-    let mut refresh_delay = PUBLICATION_REFRESH_ACTIVE;
-    let ok_report = loop {
-        tokio::select! {
-            report = &mut publication => break report,
-            result = async { refresh.as_mut().expect("guarded by is_some").await }, if refresh.is_some() => {
-                match result {
-                    Ok(SyncOutcome::Synced) | Ok(SyncOutcome::PublicationPending) => {
-                        refresh_delay = PUBLICATION_REFRESH_ACTIVE;
-                        eprintln!("🆕 {} committed a newer tip while its earlier publication was still running", ctx.repo.display());
-                    }
-                    Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::FilterOnly) => {
-                        refresh_delay = PUBLICATION_REFRESH_IDLE;
-                    }
-                    // A refresh must never erase publication evidence, and a
-                    // local failure is the next round's problem: the current
-                    // upload still owns its own result accounting.
-                    Ok(other) => {
-                        refresh_delay = PUBLICATION_REFRESH_IDLE;
-                        if crate::policy::debug_enabled() {
-                            eprintln!("🐛 {} refresh pass ended as {:?} during publication", ctx.repo.display(), other);
-                        }
-                    }
-                    Err(error) => {
-                        refresh_delay = PUBLICATION_REFRESH_IDLE;
-                        eprintln!("⚠️ {} local commit during publication failed (publication unaffected): {error:#}", ctx.repo.display());
-                    }
+        )),
+        move || async move {
+            // A refresh cannot erase the upload result. Its owned mutation
+            // must finish even if the upload completes first; the coordinator
+            // retains yielded capacity until that final refresh has drained.
+            match refresh_round(
+                refresh_repo,
+                refresh_policy,
+                refresh_excludes,
+                refresh_idle,
+                refresh_policy_path,
+                None,
+            )
+            .await
+            {
+                Ok(SyncOutcome::Synced) | Ok(SyncOutcome::PublicationPending) => {
+                    eprintln!("🆕 {} committed a newer tip while its earlier publication was still running", refresh_repo.display());
+                    true
                 }
-                refresh = None;
-            }
-            () = tokio::time::sleep(refresh_delay), if refresh.is_none() => {
-                refresh = Some(refresh_round(
-                    ctx.repo,
-                    ctx.policy,
-                    ctx.excluded_dir_names,
-                    ctx.idle_seconds,
-                    ctx.policy_path,
-                    None,
-                ));
-            }
-            else => break Err(anyhow::anyhow!("publication actor lost all progress branches")),
-        }
-    };
-    // Release the publication future's borrow of the plan before reading the
-    // round's failure memory back out.
-    drop(publication);
-    // Any still-running refresh is deliberately NOT cancelled: dropping a
-    // commit future mid-operation would abandon index mutation. Let it finish.
-    if let Some(pending) = refresh.take() {
-        match pending.await {
-            Ok(outcome) => {
-                if debug_enabled() {
-                    eprintln!(
-                        "🐛 {} final refresh pass: {:?}",
-                        ctx.repo.display(),
-                        outcome
-                    );
+                Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::FilterOnly) => false,
+                Ok(other) => {
+                    if crate::policy::debug_enabled() {
+                        eprintln!("🐛 {} refresh pass ended as {:?} during publication", refresh_repo.display(), other);
+                    }
+                    false
+                }
+                Err(error) => {
+                    eprintln!("⚠️ {} local commit during publication failed (publication unaffected): {error:#}", refresh_repo.display());
+                    false
                 }
             }
-            Err(error) => {
-                eprintln!(
-                    "⚠️ {} final local commit during publication failed: {error:#}",
-                    ctx.repo.display()
-                );
-            }
-        }
-    }
+        },
+        |active| {
+            tokio::time::sleep(if active {
+                PUBLICATION_REFRESH_ACTIVE
+            } else {
+                PUBLICATION_REFRESH_IDLE
+            })
+        },
+    )
+    .await;
     // Hand the publication's remote-failure memory back to the caller. Only
     // this owner writes those counters; local refreshes above passed `None`.
     let round_failures = plan.remote_failures.clone();
