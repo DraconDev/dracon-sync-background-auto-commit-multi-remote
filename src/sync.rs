@@ -12134,16 +12134,40 @@ trusted_authors = ["test"]
         )
         .await
         .expect("cycle 2 must be bounded");
-        assert!(matches!(captured, Ok(SyncOutcome::StagedPending)), "{captured:?}");
-        assert_eq!(git_cmd(&repo, &["show", "HEAD:extra.txt"]).stdout, b"v1\nconcurrent\n");
-        assert_eq!(git_cmd(&repo, &["show", "HEAD:pending.txt"]).stdout, b"pending work\n");
-        assert_eq!(std::fs::read(repo.join("pending.txt")).unwrap(), b"pending work v2\n");
-        let converged = tokio::time::timeout(Duration::from_secs(20),
-            sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None))
-            .await.expect("worktree follow-up epoch must be bounded");
-        assert!(matches!(converged, Ok(SyncOutcome::Synced)), "{converged:?}");
-        assert_eq!(git_cmd(&repo, &["show", "HEAD:pending.txt"]).stdout, b"pending work v2\n");
-        assert_eq!(git_cmd(&repo, &["show", "HEAD:extra.txt"]).stdout, b"v1\nconcurrent\n");
+        assert!(
+            matches!(captured, Ok(SyncOutcome::StagedPending)),
+            "{captured:?}"
+        );
+        assert_eq!(
+            git_cmd(&repo, &["show", "HEAD:extra.txt"]).stdout,
+            b"v1\nconcurrent\n"
+        );
+        assert_eq!(
+            git_cmd(&repo, &["show", "HEAD:pending.txt"]).stdout,
+            b"pending work\n"
+        );
+        assert_eq!(
+            std::fs::read(repo.join("pending.txt")).unwrap(),
+            b"pending work v2\n"
+        );
+        let converged = tokio::time::timeout(
+            Duration::from_secs(20),
+            sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None),
+        )
+        .await
+        .expect("worktree follow-up epoch must be bounded");
+        assert!(
+            matches!(converged, Ok(SyncOutcome::Synced)),
+            "{converged:?}"
+        );
+        assert_eq!(
+            git_cmd(&repo, &["show", "HEAD:pending.txt"]).stdout,
+            b"pending work v2\n"
+        );
+        assert_eq!(
+            git_cmd(&repo, &["show", "HEAD:extra.txt"]).stdout,
+            b"v1\nconcurrent\n"
+        );
     }
 
     #[tokio::test]
