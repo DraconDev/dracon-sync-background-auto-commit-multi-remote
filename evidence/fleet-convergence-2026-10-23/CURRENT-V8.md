@@ -1,126 +1,64 @@
-# Active checkpoint — V8 deployed, all-ten witnessed, final library repair pending
+# Current checkpoint — executor verification ready for independent audit
 
-The goal is not complete. Current loaded/installed artifact is
-`8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad`,
-PID3906273, deployed safely 2026-10-25T00:41UTC. All four required Rust gates and
-candidate/installed execution receipts passed; required inputs stayed unchanged.
-The queued-refresh completion deadlock is repaired and actual newly admitted
-work is committing again. See REPORT.md and checks/workspace-final-v8/.
+No completion approval is claimed. The full objective and contract remain in
+.pi-glla/goals/20261023154754-ofnb5c.md. REPORT.md and COMPLETION-CHECKLIST.md map
+the evidence; historical failed/cancelled attempts remain retained.
 
-## Artifact/qualification facts
+## Qualified runtime
 
-V7 was rejected (debug stack overflow + unused unrelated system timestamp).
-V8 requires a boxed upload at the coordinator API boundary; actual formerly
-failing integration test and full workspace pass with unchanged debug stack.
-No warning/advisory exception, dropped mutation or weakened hook was used.
-The v8 worker stopped after its four gates finished. A follow-up reviewer hit a
-usage limit: that run did not approve anything, and was not automatically retried.
-Earlier independent ordering review was clean; final independent audit is still
-required, with actual gate/runtime evidence supplied.
+V8 artifact8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad,
+PID3906273, remains the loaded daemon. All four required Rust commands passed on
+its captured coherent assembly. Candidate/installed execution receipts actually
+exercise independence, commit lifecycle/environment, refusal/preservation/retry,
+same-repository worker retirement and new follow-up publication, joined cleanup.
+Deployment used maintenance/atomic replacement/pidfd SIGTERM, not service stop or
+manual repository publication. See checks/workspace-final-v8/.
 
-The old temporary target disappeared after qualification. Rebuilding the exact
-unchanged captured source produced the IDENTICAL qualified hash. Recovery
-receipt and durable executable location are in artifact-recovery.json. Candidate
-and deployment read the durable artifact, not missing temporary bytes. Both
-executions verified worker retirement, a new later edit/push, independence,
-full commit lifecycle, refused-work preservation/recovery and joined cleanup.
+## Latest normal product and publication evidence
 
-## Current live proof
+Original complete browser sourcee6f93db passed147/147gates in AC9JDj. A distinct
+same-source bootstrap race was reproduced despite Bun concurrency1 and repaired
+with sibling compilation and atomic completed-file publication, preserving real
+prepare/install. Exact compiler staging ignores are documented and tested.
 
-Canonical checks/final-* inputs now refer to v8. V6 historical nine-of-ten proof
-is archived under checks/epoch-59-before-v8 and is NOT proof for the new PID.
-Fresh v8 baseline, appended meaningful runtime notes, actual new-PID journal and
-read-only advertised refs now prove ALL TEN initial repositories. Browser's
-original complete sourcee6f93db passed147/147gates in AC9JDj. Its complete raw logs
-are retained under checks/browser-whole-e6f93db/. The all-ten ledger does not waive
-qualification/publication of the later library-output race repair below.
-No external blocker has been accepted.
+Normal4b955e45 exposed forms' compiled-output self-import under staging outDir;
+local warm output had masked it. Direct internal imports and a mandatory bounded
+actual-source cold-build regression repair it. The regression accepts a harmless
+added module and rejects injected dist self-import. Original failures retained.
 
-## Browser normal gate
+Final repairad856e90708ef4a83e1930d7b254c8db5c0a941a passed ALL64 applicable normal
+gates in BOTH2BxpB2 andSEsqdY. Both terminal manifests and every log are archived
+under checks/library-lifecycle-publication/. All10filtered repair fingerprints
+match that selected source. Fresh advertised commit refs at all THREE intended
+browser destinations contain its descendants; final-repair-publication.json
+records per-destination proof. No local diagnostic is substituted for these gates.
 
-First new-runtime source460947e was selected from the first 100-file staging
-batch and lacked Clean Web's site-rules module. Normal mandatory scripted install
-correctly refused it. Remaining batches committed during the upload; current
-HEAD includes the module and normal current WXT preparation passes. Both old
-attempts alrsIE/qoO76V failed; their records are retained, not relabelled passed.
-Only the browser stuck entry was re-enabled afterward. No manual push/commit.
+A fresh read-only all-ten observer had zero repository/query errors and the same
+qualified daemon before/after. Canonical checks/live-convergence-ledger.json now
+proves ALL TEN initial eligible witnesses via actual Git objects, post-baseline
+advancing advertised refs and service-PID/time-correlated journal events. The
+journal and exact before/after inputs are named in that ledger. Final stuck-list
+query reports no stuck repositories. Continuing later edits are not failures.
 
-Source9ddc4c8 completed146/147 gates; TabMon TEST failed four60second audio
-case deadlines. Thresholds/audio were NOT defective observations. Positive key,
-tempo,seam cases traversed all24themes per case; the mix counterexample launched
-two identical volumedetect probes per file. The fix uses per-theme cases under
-the unchanged60second deadline and one fresh combined mean/peak measurement.
-All original assertions and off-tempo/broken-seam/louder-sample plus harmless
-reencode controls remain. Full current typecheck,lint,test(1093),build pass;
-standaloneSFX119pass. Raw logs/source anchor and cancellation records:
-checks/tabmon-audio-budgets/. Actual source anchor9e62ef2 was daemon committed.
-Both old9dd mirror families were identity-revalidated and pidfd-cancelled with
-no live family members left; manifests remain cancelled, not passed. Only browser
-retry was re-enabled after the repair. No manual Git publication.
+## Independent assessment
 
-At2026-10-25T02:43UTC normal daemon attemptcBfjZa had selected repaired source
-`e6f93db771998453c6577201f2585b31f7e3254a`; it was running with zero gates yet.
-It is not a whole-gate pass or remote acknowledgment.
+Fresh full-contract reviewer cc1a3647 settled; checks/final-rehearsal-0715/review.md
+maps actual underlying runtime/qualification/ledger data and names no additional
+inspected source defect. Its sole P1 was final normal repair qualification and
+remote containment, now observed above. Its inability to run shell/live queries
+or reconstruct committed ranges stays explicit. Executor freshly replayed8/5/8
+Python tests and1forms cold-build test, with raw passing logs beside the review.
+The final committed diff is archived separately. No active owned child remains.
 
-During this assessment the8contract,5observer,8witness,13isolated-hook and6shell
-regressions passed freshly. Hook sources/tests match9ddc4c8 under normal required
-filters; loaded PID/hash still match deployment. See workspace-final-v8 final
-logs/source-match JSON. An initial180second suite envelope expired after12passing
-cases (no assertion failed); complete replay used a bounded600second batch
-envelope, kept internal deadlines unchanged, passed all13 and left no remnants.
+## Scope bounds and next action
 
-## Final library-output race repair — active at06:43UTC
+Subsequent unrelated dracon-system06237eb/e75c926 scratch ETA/disk-alarm changes
+are NOT part of V8's qualified assembly or deployment claim. The repaired daemon
+publication source and Warden main still match qualified input bytes. Other
+concurrent feature changes remain outside this task. Witness correlation is
+observational, not cryptographic authorship; atomic library publication is
+per-file within frozen same-source gates, not cross-version whole-tree atomicity.
 
-cBfjZa failed normal scripted install @dracon/extension-react/components even
-though all seven prebuilds passed; identical-source AC9JDj subsequently passed147.
-A private verified Bun1.3.14 fixture proves prepare can erase dist during a
-consumer import even with concurrency1. Retry success did not cure that race.
-The three destructive TypeScript builds now use scripts/build-library.mjs:
-compile into sibling staging, preserve readable dist until compilation succeeds,
-atomically rename completed files, then prune only obsolete compiler outputs.
-Original lifecycle/scripts/type checks remain. Exact per-package .dist-build-*/
-ignores exclude only disposable compiler output; negative source/test probes pass.
-All three build/typecheck/test gates pass, deterministic reader/failure/prune
-regressions pass, the destructive mutant fails, and three actual Bun rounds pass.
-A fresh independent narrow reviewer found no issue; final committed source/diff
-are now captured (review did not independently assess that exact commit range).
-Review runa923c34b settled successfully; no active owned child remains.
-Evidence: checks/library-lifecycle-publication/; source-final.json records exact
-repair anchor4b955e45fd6ae7df9324486da99dcdf3c088e2ad and file fingerprints.
-
-## Cold-build follow-up
-
-JWBEHh was older queued source, not final-repair proof. Subsequent normal4b955e45
-attempts CTqkJ3/rCGHQP/C24EJO/7slg7G failed at forms prebuild. TypeScript staging
-outDir removed the implicit dist-to-src remapping for its internal self-import;
-warm dist had hidden this. Direct source imports now repair the dependency.
-A mandatory forms test cold-compiles copied real source, accepts a harmless new
-module, rejects a deliberate dist self-import. Bounded forms build/typecheck/lint/
-tests pass; raw original failure and new regressions are retained. Only browser's
-stuck entry was cleared after those checks. No manual Git operations.
-Final filtered source anchor nowad856e90708ef4a83e1930d7b254c8db5c0a941a,
-with10fingerprinted source inputs in library-lifecycle-publication/source-final.json.
-The old4b source capture is retained as source-before-cold-fix.json.
-Full-contract read-only reviewer cc1a3647-8ee3-4cc8-9d90-7990406d5640 settled.
-Raw rehearsal: checks/final-rehearsal-0715/review.md. It found no additional
-source-proven defect, inspected underlying Rust/runtime/all-ten evidence, and
-correctly BLOCKED completion solely on final normal qualification/publication.
-Its read-only toolset could not run checks; executor freshly ran the8/5/8Python
-regressions and1forms cold-build test; raw logs are beside that review.
-The reviewer did not independently run live refs/hash checks or reconstruct Git
-ranges. Final committed-repair-final.diff now captures the complete cold fix.
-At07:13UTC normal attempt2BxpB2 selectedad856e9; every one of10filtered source
-fingerprints matches final repair. The qualified loaded PID/hash was rechecked.
-This is selection, NOT a gate pass or publication. No active owned child remains.
-Next require applicable gates and actual repair containment at all browser remotes.
-All-ten eligible witness proof already exists, but this additional repair remains open.
-
-Next: inspect actual terminal/failure evidence for this candidate. Do not bypass,
-skip, weaken or replace the original whole gate with selected local diagnostics.
-On success require all actual intended remote refs to contain the exact v8
-eligible blob and advance from the recorded baseline. Refresh journal and the
-read-only all-ten observer, then run scripts/fleet-convergence-ledger.py. It now
-validates exact inventory equality and destination identity continuity; its
-contract/observer/witness regressions pass. Do not call complete_goal while any
-required gate, remote proof or committed task is unfinished. Product diagnosis
-milestone3 and live-witness5.2 are recorded; tasks4.1,5.3 and their parents remain open.
+Next: reconcile final task tracking and submit complete_goal with the report,
+checklist, raw qualification/runtime evidence, normal gates and all-ten ledger.
+Do not claim auditor approval before its separate outcome. No human action needed.
