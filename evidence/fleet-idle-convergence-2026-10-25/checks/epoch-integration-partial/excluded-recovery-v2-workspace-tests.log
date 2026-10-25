@@ -409,4 +409,14 @@ test storage_core::journal::tests::cancelled_and_changed_sources_do_not_overwrit
 test storage_core::journal::tests::complete_capture_recovers_after_death_before_or_after_snapshot_publish ... ok
 test storage_core::journal::tests::corrupt_unknown_or_unsafe_records_are_retained_and_not_green ... ok
 test storage_core::journal::tests::crash_child ... ignored, subprocess helper, invoked by the crash recovery test
-test storage_core::journal::tests::enrolled_clean_selection_refuses_ambiguous_sources_and_catalog_over_budget ... 
+test storage_core::journal::tests::enrolled_clean_selection_refuses_ambiguous_sources_and_catalog_over_budget ... ok
+test storage_core::journal::tests::exact_version_identity_separates_source_policy_path_and_repository ... ok
+test storage_core::journal::tests::exclusive_leases_and_revision_checks_refuse_stale_updates ... ok
+test storage_core::journal::tests::forged_regression_and_plaintext_encryption_are_rejected ... ok
+test storage_core::journal::tests::payload_crash_child ... ignored, subprocess helper, invoked by payload crash recovery test
+test storage_core::journal::tests::payload_spools_resume_matching_prefix_and_have_independent_byte_budget ... ok
+test storage_core::journal::tests::prepared_payload_is_retained_once_and_cannot_change_across_restart ... ok
+test storage_core::journal::tests::prepared_payload_recovers_process_death_without_repeating_security_processing ... ok
+test storage_core::journal::tests::previously_tracked_runtime_and_changed_ignore_fail_before_private_capture ... ok
+test storage_core::journal::tests::private_runtime_inside_watched_repo_is_ignored_and_cannot_be_the_repo_root ... ok
+test storage_core::journal::tests::process_death_releases_lease_and_atomic_write_has_old_or_new_record ... 
