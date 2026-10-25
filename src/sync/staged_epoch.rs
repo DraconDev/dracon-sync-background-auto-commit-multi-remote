@@ -752,6 +752,13 @@ impl Staging {
             let selected = epoch.snapshot.materialize_tree(repo, deadline).await?;
             run_index_git(repo, &["read-tree", &selected], 3600,
                 "select eligible private candidate", Some(&self.index)).await?;
+            // No candidate delta means there is NOTHING to install or commit.
+            // Requiring the actual index lock here starves already committed
+            // publication behind an unrelated editor/Git index owner. Return
+            // only the empty epoch; foreign actual staging remains untouched.
+            if !epoch.has_intent() {
+                return Ok(epoch);
+            }
             let actual_index = git(repo, &["rev-parse", "--path-format=absolute", "--git-path", "index"], None).await?;
             let actual_index = PathBuf::from(std::str::from_utf8(&actual_index.stdout)?.trim_end_matches('\n'));
             let mut lock = acquire_epoch_lock(actual_index.with_extension("lock"))?;
@@ -909,6 +916,24 @@ mod tests {
             "candidate payload must survive outside Git's loose-object GC reachability"
         );
         assert!(!repo.join(".git/index.lock").exists());
+    }
+
+    #[tokio::test]
+    async fn empty_candidate_does_not_install_or_require_foreign_index_admission() {
+        let (root, policy) = fixture().await;
+        let repo = root.path();
+        let baseline = Epoch::capture(repo, 60).await.unwrap();
+        let staging = Staging::new(repo, baseline).await.unwrap();
+        std::fs::write(repo.join("file"), b"foreign staged bytes\n").unwrap();
+        git(repo, &["add", "--", "file"], None).await.unwrap();
+        std::fs::write(repo.join("file"), b"foreign unstaged bytes\n").unwrap();
+        let foreign_index = std::fs::read(repo.join(".git/index")).unwrap();
+        std::fs::write(repo.join(".git/index.lock"), b"foreign lock owner").unwrap();
+        let epoch = staging.finish(repo, &policy, &BTreeSet::new(), false, false).await.unwrap();
+        assert!(!epoch.has_intent(), "foreign staging must not be absorbed");
+        assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), foreign_index);
+        assert_eq!(std::fs::read(repo.join(".git/index.lock")).unwrap(), b"foreign lock owner");
+        assert_eq!(std::fs::read(repo.join("file")).unwrap(), b"foreign unstaged bytes\n");
     }
 
     #[tokio::test]
