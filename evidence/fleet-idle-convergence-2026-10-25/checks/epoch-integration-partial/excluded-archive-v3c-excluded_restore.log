@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.67s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 9 tests
+test sync::excluded_revert_pipeline_tests::excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_push_hook_work ... ok
+test sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes ... ok
+test sync::excluded_revert_pipeline_tests::excluded_restore_only_excluded_work_needs_no_commit_and_dry_run_preserves_bytes ... ok
+test sync::excluded_revert_tests::excluded_restore_deadline_kills_required_filter_descendants_without_mutation ... 
