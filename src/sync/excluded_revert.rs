@@ -165,6 +165,8 @@ async fn restore_inner(
     paths: &[dracon_git::types::DiffFile],
     deadline: Instant,
 ) -> Result<bool> {
+    let canonical_repo = std::fs::canonicalize(repo)?;
+    let repo = canonical_repo.as_path();
     let lock = match crate::git::IndexLock::try_acquire_path(crate::git::index_lock_path(repo)) {
         Ok(lock) => lock,
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => return Ok(false),
