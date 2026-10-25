@@ -1,1 +1,83 @@
     Blocking waiting for file lock on build directory
+warning: unused import: `git_name_status_entries`
+  --> dracon-sync/src/sync.rs:39:23
+   |
+39 |     cli_diff_entries, git_name_status_entries, has_origin_remote, has_tracking_upstream,
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `handle_large_untracked` is never used
+    --> dracon-sync/src/exclude.rs:1917:15
+     |
+1917 | pub(crate) fn handle_large_untracked(
+     |               ^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `git_name_status_entries` is never used
+   --> dracon-sync/src/git/diff.rs:226:21
+    |
+226 | pub(crate) async fn git_name_status_entries(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `unstage_excluded_paths` is never used
+  --> dracon-sync/src/git/staging.rs:10:21
+   |
+10 | pub(crate) async fn unstage_excluded_paths(
+   |                     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_excluded_change_path` is never used
+   --> dracon-sync/src/git/staging.rs:887:4
+    |
+887 | fn is_excluded_change_path(path: &Path, excluded_dir_names: &BTreeSet<String>) -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `commit_id` and `previous_id` are never read
+    --> dracon-sync/src/storage/mod.rs:2808:9
+     |
+2807 | pub(crate) struct PreparedStorageCommit {
+     |                   --------------------- fields in this struct
+2808 |     pub commit_id: String,
+     |         ^^^^^^^^^
+2809 |     pub previous_id: String,
+     |         ^^^^^^^^^^^
+
+warning: function `git_rm_missing` is never used
+    --> dracon-sync/src/sync.rs:1881:10
+     |
+1881 | async fn git_rm_missing(repo: &Path, missing: &[String], dry_run: bool) -> Result<()> {
+     |          ^^^^^^^^^^^^^^
+
+warning: function `unstage_paths_git` is never used
+    --> dracon-sync/src/sync.rs:1965:10
+     |
+1965 | async fn unstage_paths_git(repo: &Path, paths: &[String]) -> Result<()> {
+     |          ^^^^^^^^^^^^^^^^^
+
+warning: `dracon-sync` (bin "dracon-sync" test) generated 8 warnings (run `cargo fix --bin "dracon-sync" -p dracon-sync --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.85s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 1 test
+test sync::tests::test_concurrent_staging_defers_one_cycle_then_converges ... [master (root-commit) 70f9372] init
+FAILED
+
+failures:
+
+---- sync::tests::test_concurrent_staging_defers_one_cycle_then_converges stdout ----
+🛡️ /tmp/.tmpN4uugW/concurrent-stage-repo auto-hardened with warden before staging
+⏳ /tmp/.tmpN4uugW/concurrent-stage-repo private staging deferred; concurrent intent retained: private staging retained at /tmp/.tmpN4uugW/concurrent-stage-repo/.git/dracon-staging-axfD2a: candidate backup: None: epoch index or parent changed; actual staged/worktree data retained
+📝 committed 1 file(s) in /tmp/.tmpN4uugW/concurrent-stage-repo
+
+thread 'sync::tests::test_concurrent_staging_defers_one_cycle_then_converges' (3963668) panicked at dracon-sync/src/sync.rs:12134:9:
+commit-all must converge next cycle, got: Ok(StagedPending)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sync::tests::test_concurrent_staging_defers_one_cycle_then_converges
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1437 filtered out; finished in 1.36s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
