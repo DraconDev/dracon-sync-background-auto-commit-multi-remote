@@ -9,3 +9,51 @@ warning: unused import: `git_name_status_entries`
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
+warning: function `handle_large_untracked` is never used
+    --> dracon-sync/src/exclude.rs:1917:15
+     |
+1917 | pub(crate) fn handle_large_untracked(
+     |               ^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `git_name_status_entries` is never used
+   --> dracon-sync/src/git/diff.rs:226:21
+    |
+226 | pub(crate) async fn git_name_status_entries(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `unstage_excluded_paths` is never used
+  --> dracon-sync/src/git/staging.rs:10:21
+   |
+10 | pub(crate) async fn unstage_excluded_paths(
+   |                     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_excluded_change_path` is never used
+   --> dracon-sync/src/git/staging.rs:887:4
+    |
+887 | fn is_excluded_change_path(path: &Path, excluded_dir_names: &BTreeSet<String>) -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `commit_id` and `previous_id` are never read
+    --> dracon-sync/src/storage/mod.rs:2808:9
+     |
+2807 | pub(crate) struct PreparedStorageCommit {
+     |                   --------------------- fields in this struct
+2808 |     pub commit_id: String,
+     |         ^^^^^^^^^
+2809 |     pub previous_id: String,
+     |         ^^^^^^^^^^^
+
+warning: function `git_rm_missing` is never used
+    --> dracon-sync/src/sync.rs:1881:10
+     |
+1881 | async fn git_rm_missing(repo: &Path, missing: &[String], dry_run: bool) -> Result<()> {
+     |          ^^^^^^^^^^^^^^
+
+warning: function `unstage_paths_git` is never used
+    --> dracon-sync/src/sync.rs:1965:10
+     |
+1965 | async fn unstage_paths_git(repo: &Path, paths: &[String]) -> Result<()> {
+     |          ^^^^^^^^^^^^^^^^^
+
