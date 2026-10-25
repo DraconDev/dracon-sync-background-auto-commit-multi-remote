@@ -89,8 +89,11 @@ async fn excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untr
     let archive = repo.join(".git/dracon-excluded-archive");
     assert_eq!(std::fs::metadata(&archive).unwrap().mode() & 0o077, 0);
     for entry in std::fs::read_dir(&archive).unwrap() {
-        assert_eq!(entry.unwrap().metadata().unwrap().mode() & 0o077, 0,
-            "raw retained bytes must never rely on permissive tempfile defaults");
+        assert_eq!(
+            entry.unwrap().metadata().unwrap().mode() & 0o077,
+            0,
+            "raw retained bytes must never rely on permissive tempfile defaults"
+        );
     }
     std::fs::remove_file(repo.join("excluded.log")).unwrap();
     assert!(

@@ -30,7 +30,10 @@ async fn fixture() -> (tempfile::TempDir, PathBuf, Vec<RestoreTarget>) {
     git(r, &["commit", "-q", "-m", "initial"]);
     let pending = tempfile::Builder::new()
         .prefix("dracon-excluded-recovery-")
-        .permissions({ use std::os::unix::fs::PermissionsExt; std::fs::Permissions::from_mode(0o700) })
+        .permissions({
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::Permissions::from_mode(0o700)
+        })
         .tempdir_in(r.join(".git"))
         .unwrap()
         .keep();
@@ -370,7 +373,10 @@ async fn excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_res
     std::fs::remove_file(archive.join("archive-state.json")).unwrap();
     assert!(super::super::has_pending_excluded_recovery(r).unwrap());
     std::fs::set_permissions(&archive, std::fs::Permissions::from_mode(0o755)).unwrap();
-    assert!(super::super::has_pending_excluded_recovery(r).is_err(), "read-only probe cannot adopt or repair weak permissions");
+    assert!(
+        super::super::has_pending_excluded_recovery(r).is_err(),
+        "read-only probe cannot adopt or repair weak permissions"
+    );
     assert_eq!(std::fs::metadata(&archive).unwrap().mode() & 0o777, 0o755);
     assert!(settle_pending(r, Instant::now() + Duration::from_secs(5))
         .await

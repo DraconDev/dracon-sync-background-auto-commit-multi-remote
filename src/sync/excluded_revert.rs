@@ -12,7 +12,10 @@ use sha2::{Digest, Sha256};
 use std::ffi::CString;
 use std::fs::{File, OpenOptions};
 use std::os::fd::{AsRawFd, FromRawFd};
-use std::os::unix::{ffi::OsStrExt, fs::{MetadataExt, PermissionsExt}};
+use std::os::unix::{
+    ffi::OsStrExt,
+    fs::{MetadataExt, PermissionsExt},
+};
 use tokio::io::AsyncReadExt;
 use tokio::time::Instant;
 
