@@ -498,6 +498,8 @@ pub(crate) enum StorageCommand {
         tree: String,
         #[arg(long)]
         index: PathBuf,
+        #[arg(long)]
+        require_binding: bool,
     },
     /// Check indexed enrolled references against locally verified protected metadata.
     /// Independent of Git's stat cache; no backend availability claim.
@@ -1216,9 +1218,20 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
         );
         return Ok(());
     }
-    if let StorageCommand::VerifyConfiguredTree { repo, tree, index } = command {
-        verify_configured_tree(repo, tree, index)?;
-        println!("{} {}", env!("DRACON_EPOCH_SOURCE_ID"), tree);
+    if let StorageCommand::VerifyConfiguredTree {
+        repo,
+        tree,
+        index,
+        require_binding,
+    } = command
+    {
+        let guarded = verify_configured_tree(repo, tree, index, *require_binding)?;
+        println!(
+            "{} {} {}",
+            env!("DRACON_EPOCH_SOURCE_ID"),
+            tree,
+            if guarded { "bound" } else { "ordinary" }
+        );
         return Ok(());
     }
     if let StorageCommand::VerifyConfiguredIndex { repo } = command {
@@ -2733,7 +2746,12 @@ pub(crate) fn verify_configured_index(repo: &Path, honor_git_index: bool) -> Res
 
 /// Verify a caller-owned private index populated exclusively from an immutable
 /// tree. This never writes the real index, creates commits or updates refs.
-fn verify_configured_tree(repo: &Path, tree: &str, index_path: &Path) -> Result<()> {
+fn verify_configured_tree(
+    repo: &Path,
+    tree: &str,
+    index_path: &Path,
+    require_binding: bool,
+) -> Result<bool> {
     if !crate::git::is_valid_object_id(tree) || !index_path.is_absolute() {
         bail!("invalid immutable storage view");
     }
@@ -2749,7 +2767,10 @@ fn verify_configured_tree(repo: &Path, tree: &str, index_path: &Path) -> Result<
     // checks inspect this explicit private view, including portable attributes.
     std::env::set_var("GIT_INDEX_FILE", index_path);
     let Some(binding) = configured_guard(repo, true)? else {
-        return Ok(());
+        if require_binding {
+            bail!("required storage guard binding vanished");
+        }
+        return Ok(false);
     };
     let indexed = indexed_manifest_at(
         repo,
@@ -2758,7 +2779,8 @@ fn verify_configured_tree(repo: &Path, tree: &str, index_path: &Path) -> Result<
         &binding.manifest_path,
         Some(index_path.to_path_buf()),
     )?;
-    verify_guard_entries(&indexed)
+    verify_guard_entries(&indexed)?;
+    Ok(true)
 }
 
 /// Whether this repository has a bound storage guard, i.e. whether a commit

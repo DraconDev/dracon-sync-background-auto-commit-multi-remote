@@ -33,15 +33,13 @@ use anyhow::Context;
 use anyhow::Result;
 use dracon_git::GitService;
 
-use crate::exclude::{
-    should_stage_entry,
-};
+use crate::exclude::should_stage_entry;
 use crate::git::origin_url;
 use crate::git::{
     cli_diff_entries, git_name_status_entries, has_origin_remote, has_tracking_upstream,
     is_bisect_in_progress, is_cherry_pick_in_progress, is_merge_in_progress, is_rebase_in_progress,
-    is_repo_ready, is_revert_in_progress, prune_other_default_branch,
-    run_git_capture_output, run_git_with_timeout, untracked_entries,
+    is_repo_ready, is_revert_in_progress, prune_other_default_branch, run_git_capture_output,
+    run_git_with_timeout, untracked_entries,
 };
 use crate::policy::{debug_enabled, load_repo_override, SyncPolicy};
 use crate::visibility::{
@@ -1177,15 +1175,29 @@ async fn stage_existing_files_suppressing(
     filter: Option<(&SyncPolicy, &[String])>,
     suppressed: Option<&HashSet<PathBuf>>,
 ) -> Result<()> {
-    stage_existing_files_in_index(repo, existing, dry_run, stage_timeout_secs,
-        excluded_dir_names, filter, suppressed, None).await
+    stage_existing_files_in_index(
+        repo,
+        existing,
+        dry_run,
+        stage_timeout_secs,
+        excluded_dir_names,
+        filter,
+        suppressed,
+        None,
+    )
+    .await
 }
 
 #[allow(clippy::too_many_arguments)]
 async fn stage_existing_files_in_index(
-    repo: &Path, existing: &[String], dry_run: bool, stage_timeout_secs: u64,
-    excluded_dir_names: &BTreeSet<String>, filter: Option<(&SyncPolicy, &[String])>,
-    suppressed: Option<&HashSet<PathBuf>>, index: Option<&Path>,
+    repo: &Path,
+    existing: &[String],
+    dry_run: bool,
+    stage_timeout_secs: u64,
+    excluded_dir_names: &BTreeSet<String>,
+    filter: Option<(&SyncPolicy, &[String])>,
+    suppressed: Option<&HashSet<PathBuf>>,
+    index: Option<&Path>,
 ) -> Result<()> {
     if existing.is_empty() {
         return Ok(());
@@ -1536,7 +1548,9 @@ async fn stage_existing_files_in_index(
             // still-held lock propagates and maps to Blocked below.
             let mut add_attempts = 0u32;
             loop {
-                match staged_epoch::run_index_git(repo, &add_args, stage_timeout_secs, "add", index).await {
+                match staged_epoch::run_index_git(repo, &add_args, stage_timeout_secs, "add", index)
+                    .await
+                {
                     Ok(()) => break,
                     Err(e) if add_attempts < 2 && is_index_lock_failure(&e.to_string()) => {
                         add_attempts += 1;
@@ -1569,9 +1583,15 @@ async fn stage_existing_files_in_index(
             for p in &quoted {
                 add_args.push(p.as_str());
             }
-            if staged_epoch::run_index_git(repo, &add_args, stage_timeout_secs, "add (force-tracked)", index)
-                .await
-                .is_err()
+            if staged_epoch::run_index_git(
+                repo,
+                &add_args,
+                stage_timeout_secs,
+                "add (force-tracked)",
+                index,
+            )
+            .await
+            .is_err()
             {
                 eprintln!(
                     "⚠️ {} git add -f failed for {} tracked gitignored paths: {:?}",
@@ -1641,8 +1661,13 @@ async fn stage_gitlink_updates(
     stage_gitlink_updates_in_index(repo, gitlinks, dry_run, stage_timeout_secs, None).await
 }
 
-async fn stage_gitlink_updates_in_index(repo: &Path, gitlinks: &[String], dry_run: bool,
-    stage_timeout_secs: u64, index: Option<&Path>) -> Result<()> {
+async fn stage_gitlink_updates_in_index(
+    repo: &Path,
+    gitlinks: &[String],
+    dry_run: bool,
+    stage_timeout_secs: u64,
+    index: Option<&Path>,
+) -> Result<()> {
     if gitlinks.is_empty() {
         return Ok(());
     }
@@ -1683,7 +1708,8 @@ async fn stage_gitlink_updates_in_index(repo: &Path, gitlinks: &[String], dry_ru
                 repo,
                 &["update-index", "--add", "--cacheinfo", &cacheinfo],
                 stage_timeout_secs,
-                "update-index (gitlink -> shared canonical head)", index,
+                "update-index (gitlink -> shared canonical head)",
+                index,
             )
             .await
             {
@@ -1706,7 +1732,8 @@ async fn stage_gitlink_updates_in_index(repo: &Path, gitlinks: &[String], dry_ru
                 repo,
                 &["add", "--", p.as_str()],
                 stage_timeout_secs,
-                "add (gitlink)", index,
+                "add (gitlink)",
+                index,
             )
             .await
             {
@@ -4323,10 +4350,24 @@ async fn stage_commit_and_push(
             let quoted = crate::git::literal_pathspecs(&missing);
             let mut args = vec!["rm", "--cached", "--ignore-unmatch", "--"];
             args.extend(quoted.iter().map(String::as_str));
-            staged_epoch::run_index_git(repo, &args, policy.stage_op_timeout_secs,
-                "epoch missing", Some(staging.index())).await?;
+            staged_epoch::run_index_git(
+                repo,
+                &args,
+                policy.stage_op_timeout_secs,
+                "epoch missing",
+                Some(staging.index()),
+            )
+            .await?;
         }
-        staging.finish(repo, policy, ctx.excluded_dir_names, ctx.build_artifact_cleanup, dry_run).await?
+        staging
+            .finish(
+                repo,
+                policy,
+                ctx.excluded_dir_names,
+                ctx.build_artifact_cleanup,
+                dry_run,
+            )
+            .await?
     };
     let committed_entries = epoch.entries()?;
 
@@ -4737,23 +4778,29 @@ async fn bootstrap_empty_repo_commit_owned(
         if paths.is_empty() || dry_run {
             return Ok(false);
         }
-        stage_existing_files_filtered(
+        let staging = staged_epoch::Staging::new(repo, epoch).await?;
+        stage_existing_files_in_index(
             repo,
             &paths,
             false,
             policy.stage_op_timeout_secs,
             excluded_dir_names,
             Some((policy, &excludes)),
+            None,
+            Some(staging.index()),
         )
         .await?;
-        let fresh = staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?;
-        let intended: HashSet<_> = paths.iter().map(PathBuf::from).collect();
-        if fresh.entries()?.iter().any(|e| !intended.contains(&e.path)) {
-            anyhow::bail!(
-                "root staging epoch contains foreign extra paths; retained for next capture"
-            );
-        }
-        fresh
+        staging
+            .finish(
+                repo,
+                policy,
+                excluded_dir_names,
+                repo_override
+                    .build_artifact_cleanup
+                    .unwrap_or(policy.build_artifact_cleanup),
+                false,
+            )
+            .await?
     };
     if !epoch.has_intent() || dry_run {
         return Ok(false);

@@ -96,11 +96,16 @@ impl IndexLock {
         use std::io::{Read, Write};
         anyhow::ensure!(self.is_owned(), "index lock replaced before install");
         let source = std::fs::File::open(source)?;
-        anyhow::ensure!(source.metadata()?.is_file() && source.metadata()?.len() <= 64 * 1024 * 1024,
-            "private index exceeds installation budget");
+        anyhow::ensure!(
+            source.metadata()?.is_file() && source.metadata()?.len() <= 64 * 1024 * 1024,
+            "private index exceeds installation budget"
+        );
         let mut bytes = Vec::new();
         source.take(64 * 1024 * 1024 + 1).read_to_end(&mut bytes)?;
-        anyhow::ensure!(bytes.len() <= 64 * 1024 * 1024, "private index grew past budget");
+        anyhow::ensure!(
+            bytes.len() <= 64 * 1024 * 1024,
+            "private index grew past budget"
+        );
         self.file.write_all(&bytes)?;
         self.file.sync_all()?;
         anyhow::ensure!(self.is_owned(), "index lock replaced during install");

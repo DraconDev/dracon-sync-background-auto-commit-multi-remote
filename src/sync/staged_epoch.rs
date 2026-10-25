@@ -251,12 +251,13 @@ impl Epoch {
             self.unchanged(repo, &lock).await?;
             // Original hook order/arguments/editor semantics; hook edits are
             // read back, refusals propagate, and no hook runs twice.
+            let required_binding = verify_storage(repo, &tree, policy.stage_op_timeout_secs, false).await?;
             let approved = run_sealed_commit_hooks(repo, message, policy.stage_op_timeout_secs).await?;
             self.unchanged(repo, &lock).await?;
             if let Some(prepared) = prepared { prepared.verify_staged(repo, policy.stage_op_timeout_secs).await?; }
             crate::bucket_guard::check_staged_forward_only(repo, policy.stage_op_timeout_secs,
                 std::env::var("DRACON_BUCKET_GUARD").ok().as_deref()).await?;
-            verify_storage(repo, &tree, policy.stage_op_timeout_secs).await?;
+            verify_storage(repo, &tree, policy.stage_op_timeout_secs, required_binding).await?;
             self.eligible(repo, policy, excluded).await?;
             self.unchanged(repo, &lock).await?;
             ensure!(commit_allowed_by_ownership(repo, policy), "epoch ownership changed");
@@ -313,7 +314,12 @@ pub(super) async fn prepare_private(
     }
 }
 
-async fn verify_storage(repo: &Path, tree: &str, timeout_secs: u64) -> Result<()> {
+async fn verify_storage(
+    repo: &Path,
+    tree: &str,
+    timeout_secs: u64,
+    require_binding: bool,
+) -> Result<bool> {
     // Parent owns the private directory, including cancellation cleanup.
     let workspace = tempfile::tempdir()?;
     let index = workspace.path().join("candidate.index");
@@ -368,6 +374,9 @@ async fn verify_storage(repo: &Path, tree: &str, timeout_secs: u64) -> Result<()
         .arg("--index")
         .arg(&index)
         .current_dir(repo);
+    if require_binding {
+        command.arg("--require-binding");
+    }
     let result = crate::git::run_command_captured_output(
         command,
         timeout_secs,
@@ -380,11 +389,14 @@ async fn verify_storage(repo: &Path, tree: &str, timeout_secs: u64) -> Result<()
         "immutable storage verifier refused: {}",
         String::from_utf8_lossy(&result.stderr)
     );
+    let bound = format!("{} {} bound\n", env!("DRACON_EPOCH_SOURCE_ID"), tree);
+    let ordinary = format!("{} {} ordinary\n", env!("DRACON_EPOCH_SOURCE_ID"), tree);
     ensure!(
-        result.stdout == format!("{} {}\n", env!("DRACON_EPOCH_SOURCE_ID"), tree).as_bytes(),
-        "immutable storage verifier executable/source identity mismatch"
+        result.stdout == bound.as_bytes()
+            || (!require_binding && result.stdout == ordinary.as_bytes()),
+        "immutable storage verifier executable/source identity or binding mismatch"
     );
-    Ok(())
+    Ok(result.stdout == bound.as_bytes())
 }
 
 /// All Git mutations on this view are child-scoped. This runner never changes
@@ -527,14 +539,12 @@ impl Staging {
             let mut lock = crate::git::IndexLock::acquire_path(actual_index.with_extension("lock"), repo).map_err(anyhow::Error::msg)?;
             self.baseline.unchanged(repo, &lock).await?;
             lock.install_index(&self.index, &actual_index)?;
+            // The returned identities are the proven private candidate, not
+            // a read-after-install observation of a concurrently replaced index.
+            // Commit's unchanged check must reject any later delta intact.
             drop(lock);
-            // Close staging BEFORE a fresh commit capture. Exact full identity
-            // equality refuses same-path payloads and directory-child extras.
-            let fresh = Epoch::capture(repo, policy.stage_op_timeout_secs).await?;
-            ensure!(fresh.snapshot == epoch.snapshot && fresh.reference == epoch.reference,
-                "staged epoch changed after install; actual intent and private view retained");
             std::fs::remove_dir_all(&self.directory)?;
-            Ok(fresh)
+            Ok(epoch)
         }).await.context("private staging deadline expired")?
             .with_context(|| format!("private staging retained at {}", retained.display()))
     }
