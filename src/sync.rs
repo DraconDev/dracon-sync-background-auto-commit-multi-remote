@@ -26,6 +26,20 @@ mod excluded_revert_tests;
 #[path = "sync/excluded_revert_pipeline_tests.rs"]
 mod excluded_revert_pipeline_tests;
 
+/// Cheap persistent concern probe, independent of raw Git dirt and NOW-enabled
+/// policy. Pending records survive daemon restart; archives are never scanned as
+/// dispatch work. Inspection errors are not healthy/idle evidence.
+pub(crate) fn has_pending_excluded_recovery(repo: &Path) -> Result<bool> {
+    let gitdir = crate::git::path_gitdir(repo).context("cannot locate recovery Git directory")?;
+    for entry in std::fs::read_dir(gitdir)? {
+        let entry = entry?;
+        if entry.file_name().to_string_lossy().starts_with("dracon-excluded-recovery-") {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 #[cfg(target_os = "linux")]
 pub(crate) async fn excluded_restore_helper(path: &Path) -> Result<()> {
     excluded_revert::helper(path).await
@@ -5467,6 +5481,19 @@ async fn sync_repo_local_with_ownership(
         publication_owned_elsewhere,
         local_work_deferred: false,
     };
+
+    #[cfg(target_os = "linux")]
+    if has_pending_excluded_recovery(repo)? {
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(policy.stage_op_timeout_secs.max(1));
+        if !excluded_revert::settle_pending(repo, deadline).await? {
+            eprintln!("⚠️ {} unresolved excluded recovery; preserved private and canonical bytes; inspect Git-directory dracon-excluded-recovery-* records", repo.display());
+            return Ok(publish_backlog_after_index_deferral(&svc, &mut ctx).await?.unwrap_or(SyncOutcome::Blocked));
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    if has_pending_excluded_recovery(repo)? {
+        return Ok(publish_backlog_after_index_deferral(&svc, &mut ctx).await?.unwrap_or(SyncOutcome::Blocked));
+    }
 
     if entry_epoch.as_ref().is_some_and(|epoch| epoch.has_intent()) {
         let epoch = entry_epoch.take().context("missing entry epoch")?;
