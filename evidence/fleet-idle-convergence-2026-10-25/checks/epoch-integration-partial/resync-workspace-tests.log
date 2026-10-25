@@ -1875,4 +1875,26 @@ test sync::staged_epoch::tests::only_typed_intent_conflicts_are_nonfailure_defer
 test sync::staged_epoch::tests::ordinary_size_rejection_prunes_only_private_delta_but_refuses_captured_intent ... ok
 test sync::staged_epoch::tests::private_staging_foreign_child_is_not_a_prefix_waiver ... ok
 test sync::staged_epoch::tests::private_staging_same_path_conflict_retains_both_payloads ... ok
-test sync::staged_epoch::tests::published_epoch_deadline_is_pending_not_a_failed_commit ... 
+test sync::staged_epoch::tests::published_epoch_deadline_is_pending_not_a_failed_commit ... ok
+test sync::staged_epoch::tests::zero_batch_limit_accepts_all_captured_files_without_relaxing_positive_limit ... ok
+test sync::tests::bootstrap_absolute_staging_deadline_cancels_hardener_descendants ... ok
+test sync::tests::captured_epoch_commits_partial_index_and_keeps_unstaged_work ... [master (root-commit) 481dd3a] init
+ok
+test sync::tests::committed_epoch_outcome_keeps_local_pending_and_transport_failure_distinct ... ok
+test sync::tests::github_mirror_comparison_accepts_transport_variants ... ok
+test sync::tests::github_mirror_comparison_uses_repository_identity_not_host_only ... ok
+test sync::tests::ordinary_absolute_staging_deadline_cancels_hardener_descendants ... [main (root-commit) 8248dd5] disposable fixture baseline
+ok
+test sync::tests::parent_gitlink_propagates_after_standalone_commit ... ok
+test sync::tests::test_alert_unpushed_threshold ... [master (root-commit) c9d16f2] init
+ok
+test sync::tests::test_alert_unpushed_threshold_not_triggered ... [master (root-commit) c9d16f2] init
+ok
+test sync::tests::test_auto_commit_excludes_union_global_and_per_repo ... ok
+test sync::tests::test_auto_resolve_no_unmerged ... ok
+test sync::tests::test_auto_resolve_unmerged_disabled ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_matches_head ... ok
+test sync::tests::test_bootstrap_empty_repo_all_oversized_returns_false ... ok
+test sync::tests::test_bootstrap_empty_repo_auto_commit_disabled ... ok
+test sync::tests::test_bootstrap_empty_repo_creates_root_commit ... 
