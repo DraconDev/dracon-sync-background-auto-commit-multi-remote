@@ -1953,3 +1953,7 @@ To /tmp/.tmpEHEMxZ/mirror.git
  * [new branch]      master -> master
 ok
 test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) 552ed4a] init
+ok
+test sync::tests::test_doc_lock_predicates ... ok
+test sync::tests::test_docsonly_mirror_and_negative ... ok
+test sync::tests::test_excluded_tracked_file_edits_preserved_by_default ... 
