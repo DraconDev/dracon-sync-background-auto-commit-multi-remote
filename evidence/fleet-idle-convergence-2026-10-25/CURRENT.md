@@ -1,6 +1,44 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Storage accounting continuation — newest checkpoint
+## Full-workspace reassessment — newest checkpoint
+
+Re-read the active goal after compaction: do NOT follow the unrelated handoff
+brief. No implementation, policy migration, deployment or real-repository Git
+mutation was performed in this reassessment. Qualification task4/4.1 is in progress,
+NOT passed; unfinished implementation tasks remain unfinished.
+
+Fresh `cargo test --workspace --locked` returned101. The sync binary now has
+1446passed,1failed,3ignored: the SOLE failing test is
+`sync::tests::test_excluded_tracked_file_reverted_when_opted_in`. The opted-in
+excluded file is still edited instead of restored. Keep that positive assertion;
+do not turn it into an expected refusal or permit a blanket post-hook restore.
+Earlier workspace security suites passed, but later workspace members are NOT
+fully qualified because Cargo stopped at this failure. Raw outcome:
+checks/epoch-integration-partial/materialization-full-workspace-tests.log.
+
+`cargo deny check` passed (advisories, bans, licenses and sources all ok), with
+no configuration/security waivers. Raw outcome: materialization-cargo-deny.log.
+All source files compared against materialization-source-checkpoint.json are
+unchanged. HOWEVER target/debug/dracon-sync changed identity during the workspace
+attempt; do not reuse the previous helper SHA as execution proof for this run.
+materialization-full-workspace-attempt.json records this mismatch honestly. Before
+FINAL qualification, pin a built helper in an immutable external artifact path,
+verify source identity AND executable hash, and use that exact path throughout
+behavioral qualification; a mutable Cargo output is not an installed receipt.
+This failed attempt is not a release/runtime/installed qualification.
+
+Next fix: restore explicit excluded-worktree opt-in safely, while keeping default
+edits, unknown staging and later hook/producer edits intact. Merely re-enabling
+`restore_paths_git` after publication is NOT safe: the existing candidate records
+exclude paths but do not yet record ownership/content snapshots for resetting
+their working files. A proper restore needs captured content/identity checks,
+index/ref refusal controls, required-smudge correctness and durable recovery of
+any bytes displaced during a race, with bounded cancellation. Do not implement
+an unchecked overwrite or filename-prefix ownership waiver just to pass this test.
+The other source-known disabled policy behavior below also remains in scope;
+a green unit suite alone would not justify leaving it disabled or deploying.
+
+## Storage accounting continuation — historical revision evidence
 
 No deployment, canonical index recovery, manual real-repository commit/push,
 service change or live zero-batch migration was performed in this continuation.
