@@ -1,0 +1,10 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.69s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 2 tests
+test sync::tests::unlimited_batch_bootstraps_all_related_unborn_files ... ok
+test sync::tests::unlimited_batch_commits_all_related_worktree_files_in_one_epoch ... [master (root-commit) 46ea09f] init
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1440 filtered out; finished in 11.00s
+
