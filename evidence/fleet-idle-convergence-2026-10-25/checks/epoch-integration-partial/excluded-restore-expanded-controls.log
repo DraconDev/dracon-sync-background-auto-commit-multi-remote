@@ -1,1 +1,6 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 08s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 8 tests
+test sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes ... 
