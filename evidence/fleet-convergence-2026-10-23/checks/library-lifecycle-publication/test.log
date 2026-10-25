@@ -1,0 +1,24 @@
+
+> @dracon/extension-react@1.0.0 test
+> node --test scripts/build.check.mjs && vitest run --passWithNoTests
+
+✔ readers retain complete output throughout a rebuild and receive the new output (8.74137ms)
+✔ failed compilation preserves readable output and cleans staging (2.529311ms)
+✔ successful publication prunes stale compiler output but preserves other files (2.626975ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 59.484925
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/packages/extension-react
+
+
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+   Start at  06:34:57
+   Duration  1.19s (transform 210ms, setup 0ms, import 456ms, tests 121ms, environment 1.53s)
+

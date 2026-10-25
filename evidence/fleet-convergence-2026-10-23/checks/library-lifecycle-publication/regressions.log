@@ -1,0 +1,11 @@
+✔ readers retain complete output throughout a rebuild and receive the new output (72.290552ms)
+✔ failed compilation preserves readable output and cleans staging (8.965362ms)
+✔ successful publication prunes stale compiler output but preserves other files (6.226956ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 152.59945
