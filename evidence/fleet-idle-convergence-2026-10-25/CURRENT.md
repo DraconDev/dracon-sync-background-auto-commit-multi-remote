@@ -1,6 +1,74 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Explicit excluded-worktree opt-in — newest checkpoint, NOT deployment-ready
+## Recovery/follow-up v2 — newest checkpoint; Rust gates PASS, NOT final/deployed
+
+The active fleet-convergence goal remains authoritative, NOT the stale bucket
+handoff. No installation, service change, real-repository manual commit/push or
+live batch-policy migration was performed. The observed live service executable
+was /home/dracon/.local/bin/dracon-sync; workspace release outputs were checked
+not to alias installed utilities before building. This is NOT a loaded-v2 claim.
+
+Persistent pending recovery now survives raw Git cleanliness and opt-in disable.
+The daemon admits this metadata work independently of dirty classification.
+Read-only diagnosis of every retained target recognizes exact untouched/rolled-
+back desired bytes or exact displaced originals. Known partial/complete records
+are fsynced and moved atomically without replacement to a private archive; no old
+restore is replayed, no canonical file/index is changed. Unknown retained bytes
+remain visibly blocked with a concrete recovery path. Foreign locks are retained.
+Archives stay out of the pending dispatch scan to avoid rehashing history forever.
+
+A real JSON test initially EXPOSED a false-healthy rendering path: the recovery
+flag was present but current-health rendering overwrote concern=false/idle.
+Current-health classification now treats that flag as an actual blocker and the
+hint cannot be overridden by generic path-owner warnings. Passing real CLI proof
+requires concern=true, health.current=blocked, non-idle cause and recovery hint,
+with zero raw Git counts and byte-exact unmodified index/recovery. The RED report
+artifact is retained as excluded-recovery-real-json-report.log.
+
+Actual kernel-lease cancellation is now observed (ACTIVE READ lease in /proc/locks,
+not an executor marker), followed by finite writer reopening of the canonical
+inode and preserved later bytes. Private helper startup binds parent death to
+SIGKILL before runtime threads; parent-crash edge interleavings are still NOT
+fully qualified. Existing writable FDs and hardlinked sources are not silently
+relocated. New empty-candidate follow-up detects unknown staged/ref updates and
+later restored-path edits without resetting them. A real pre-push producer leaves
+local bytes pending while the pre-existing backlog actually reaches its intended
+disposable bare remote; no extra commit or stopped hook. The first fixture lacked
+an upstream and correctly did not authorize bootstrap pushing: its failed log is
+retained; the corrected fixture configures the EXISTING bootstrap gate, not a
+weakened no-unwanted-push rule.
+
+Identified v2 Rust assembly gates ALL passed:
+- cargo test --workspace --locked: exit0; sync1461pass/0fail/3ignored,
+  system616pass/0fail, warden233pass/0fail plus security/integration suites.
+- cargo build --release --locked: exit0; NOT installed or executed-release proof.
+- cargo clippy --workspace --locked --all-targets -- -D warnings: exit0.
+- cargo deny check: exit0, no security/dependency waiver.
+- Targeted controls: recovery5, restore9, original exclusions2, filter-only3,
+  real JSON1, all0failed. These overlap the full suite; do NOT sum as extra tests.
+The entire captured Rust workspace remained unchanged across tests and release
+build, and the external pinned DEBUG helper SHA stayed unchanged. Assembly proof:
+checks/epoch-integration-partial/excluded-recovery-v2-workspace-source-before.json,
+*-workspace-source-after.json, *-release-source-after.json and
+excluded-recovery-v2-checkpoint.json. Raw logs use excluded-recovery-v2-*.
+Earlier failed builds/tests/report and original workspace failures remain intact.
+
+DO NOT DEPLOY YET. Remaining source-known policy integration is still disabled:
+normal version/release bump (version_bumped=false), unmerged resolution before
+capture, build-artifact cleanup and large-untracked hygiene. Restore behavior
+safely; green unit tests do NOT authorize silent feature removal. Further code
+changes require a fresh coherent four-gate run; task4.1 remains in-progress for
+the FINAL assembly, not waived by this intermediate green assembly.
+
+Still require queued-open/lease-break and exact-exchange cancellation/crash
+interleavings (including possible late displaced-writer activity after archival),
+actual daemon restart/admission rehearsal, unsupported-platform/filesystem checks,
+affected ORIGINAL product gates, independent review, qualified installed/loaded
+execution, authorized zero-batch migration with its supporting daemon, and fresh
+ALL37 autonomous-publication/raw-clean/idle proof with NO outstanding concerns.
+Design: ../../docs/design/excluded-worktree-optin-2026-10-25.md.
+
+## Explicit excluded-worktree opt-in — historical revision evidence
 
 The original failing opt-in positive now passes WITHOUT changing its expected
 HEAD-content assertion. Default preservation also passes. Restoration runs only
