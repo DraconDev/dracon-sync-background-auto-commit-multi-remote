@@ -34,16 +34,14 @@ use anyhow::Result;
 use dracon_git::GitService;
 
 use crate::exclude::{
-    can_restore_entry, handle_large_untracked, is_large_untracked, remove_tracked_excluded_paths,
     should_stage_entry,
 };
 use crate::git::origin_url;
 use crate::git::{
     cli_diff_entries, git_name_status_entries, has_origin_remote, has_tracking_upstream,
     is_bisect_in_progress, is_cherry_pick_in_progress, is_merge_in_progress, is_rebase_in_progress,
-    is_repo_ready, is_revert_in_progress, prune_other_default_branch, restore_paths,
-    run_git_capture_output, run_git_with_timeout, staged_blob_sizes_for, unstage_excluded_paths,
-    unstage_oversized_paths, untracked_entries,
+    is_repo_ready, is_revert_in_progress, prune_other_default_branch,
+    run_git_capture_output, run_git_with_timeout, untracked_entries,
 };
 use crate::policy::{debug_enabled, load_repo_override, SyncPolicy};
 use crate::visibility::{
@@ -693,62 +691,6 @@ async fn auto_pull_merge(
     Ok(())
 }
 
-async fn clean_staged_paths(ctx: &SyncContext<'_>) -> Result<()> {
-    let repo = ctx.repo;
-    let policy = ctx.policy;
-    let excluded_dir_names = ctx.excluded_dir_names;
-    let dry_run = ctx.dry_run;
-    let unstaged = if dry_run {
-        0
-    } else {
-        unstage_excluded_paths(repo, excluded_dir_names).await?
-    };
-    if unstaged > 0 {
-        eprintln!(
-            "🧹 removed {} staged excluded paths in {}",
-            unstaged,
-            repo.display()
-        );
-    }
-    let unstaged_oversized = if dry_run {
-        0
-    } else {
-        unstage_oversized_paths(repo, policy.max_stage_file_bytes).await?
-    };
-    if unstaged_oversized > 0 {
-        eprintln!(
-            "🧹 removed {} oversized staged paths in {}",
-            unstaged_oversized,
-            repo.display()
-        );
-    }
-
-    // v0.113.29: per-repo opt-out for repos where a "build
-    // artifact" dir name is actually content (ai-auto-writer's
-    // output/ = the generated books).
-    // v0.113.33: read the MERGED per-repo value (ctx), not the raw
-    // global policy — the override-file half of v0.113.29 was
-    // missing, so the opt-out never reached this gate.
-    if ctx.build_artifact_cleanup {
-        if let Some(removed_dirs) = if dry_run {
-            None
-        } else {
-            remove_tracked_excluded_paths(repo, excluded_dir_names)?
-        } {
-            if !removed_dirs.is_empty() {
-                eprintln!(
-                    "🧹 removed {} tracked excluded dir(s) from {}: {:?}",
-                    removed_dirs.len(),
-                    repo.display(),
-                    removed_dirs
-                );
-            }
-        }
-    }
-
-    Ok(())
-}
-
 struct DiffResult {
     status: dracon_git::types::RepoStatus,
     entries: Vec<dracon_git::types::DiffFile>,
@@ -1235,6 +1177,16 @@ async fn stage_existing_files_suppressing(
     filter: Option<(&SyncPolicy, &[String])>,
     suppressed: Option<&HashSet<PathBuf>>,
 ) -> Result<()> {
+    stage_existing_files_in_index(repo, existing, dry_run, stage_timeout_secs,
+        excluded_dir_names, filter, suppressed, None).await
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn stage_existing_files_in_index(
+    repo: &Path, existing: &[String], dry_run: bool, stage_timeout_secs: u64,
+    excluded_dir_names: &BTreeSet<String>, filter: Option<(&SyncPolicy, &[String])>,
+    suppressed: Option<&HashSet<PathBuf>>, index: Option<&Path>,
+) -> Result<()> {
     if existing.is_empty() {
         return Ok(());
     }
@@ -1584,7 +1536,7 @@ async fn stage_existing_files_suppressing(
             // still-held lock propagates and maps to Blocked below.
             let mut add_attempts = 0u32;
             loop {
-                match run_git_with_timeout(repo, &add_args, stage_timeout_secs, "add").await {
+                match staged_epoch::run_index_git(repo, &add_args, stage_timeout_secs, "add", index).await {
                     Ok(()) => break,
                     Err(e) if add_attempts < 2 && is_index_lock_failure(&e.to_string()) => {
                         add_attempts += 1;
@@ -1617,7 +1569,7 @@ async fn stage_existing_files_suppressing(
             for p in &quoted {
                 add_args.push(p.as_str());
             }
-            if run_git_with_timeout(repo, &add_args, stage_timeout_secs, "add (force-tracked)")
+            if staged_epoch::run_index_git(repo, &add_args, stage_timeout_secs, "add (force-tracked)", index)
                 .await
                 .is_err()
             {
@@ -1686,6 +1638,11 @@ async fn stage_gitlink_updates(
     dry_run: bool,
     stage_timeout_secs: u64,
 ) -> Result<()> {
+    stage_gitlink_updates_in_index(repo, gitlinks, dry_run, stage_timeout_secs, None).await
+}
+
+async fn stage_gitlink_updates_in_index(repo: &Path, gitlinks: &[String], dry_run: bool,
+    stage_timeout_secs: u64, index: Option<&Path>) -> Result<()> {
     if gitlinks.is_empty() {
         return Ok(());
     }
@@ -1722,11 +1679,11 @@ async fn stage_gitlink_updates(
             // shared gitdir's `main`, not to the nested's
             // own (possibly divergent) state.
             let cacheinfo = format!("160000,{},{}", shared_sha, p);
-            if let Err(e) = run_git_with_timeout(
+            if let Err(e) = staged_epoch::run_index_git(
                 repo,
                 &["update-index", "--add", "--cacheinfo", &cacheinfo],
                 stage_timeout_secs,
-                "update-index (gitlink -> shared canonical head)",
+                "update-index (gitlink -> shared canonical head)", index,
             )
             .await
             {
@@ -1745,11 +1702,11 @@ async fn stage_gitlink_updates(
             // submodule's HEAD (the original behavior before
             // the materialize-submodule-as-standalone-worktree
             // feature).
-            if let Err(e) = run_git_with_timeout(
+            if let Err(e) = staged_epoch::run_index_git(
                 repo,
                 &["add", "--", p.as_str()],
                 stage_timeout_secs,
-                "add (gitlink)",
+                "add (gitlink)", index,
             )
             .await
             {
@@ -1969,76 +1926,6 @@ async fn post_commit_pull(svc: &GitService, repo: &Path, policy: &SyncPolicy) {
             }
         }
     }
-}
-
-async fn restore_excluded_paths(
-    ctx: &SyncContext<'_>,
-    to_restore: &[dracon_git::types::DiffFile],
-) -> Result<()> {
-    let repo = ctx.repo;
-    let policy = ctx.policy;
-    let restorable: Vec<_> = to_restore
-        .iter()
-        .filter(|e| can_restore_entry(repo, e))
-        .filter(|e| {
-            !repo.join(&e.path).is_dir() || !crate::exclude::is_gitlink_unchanged(repo, &e.path)
-        })
-        .collect();
-
-    handle_large_untracked(repo, to_restore, policy)?;
-
-    let other_untracked: Vec<_> = to_restore
-        .iter()
-        .filter(|e| {
-            !can_restore_entry(repo, e) && !is_large_untracked(e, repo, policy.max_stage_file_bytes)
-        })
-        .collect();
-
-    if !other_untracked.is_empty() {
-        eprintln!(
-            "ℹ️ {} has {} small untracked excluded file(s)",
-            repo.display(),
-            other_untracked.len()
-        );
-    }
-
-    if !restorable.is_empty() {
-        let excluded_paths: Vec<String> = restorable
-            .iter()
-            .map(|e| e.path.to_string_lossy().to_string())
-            .collect();
-        // CHANGED 2026-07-22 (v0.112.34, audit F1.16): the default
-        // semantics for `auto_commit_exclude_patterns` is now
-        // "don't auto-commit these" — files are UNSTAGED only
-        // (operator edits preserved). The previous default
-        // (`git restore --staged --worktree`) DELETED the
-        // operator's uncommitted edits after every commit — data
-        // loss as the silent default of a knob named "exclude from
-        // auto-commit". Operators who WANT hygiene enforcement
-        // ("these files must always equal HEAD") opt in per-repo
-        // via `revert_excluded_to_head = true` in
-        // `.dracon/dracon-sync.toml`.
-        let revert = crate::policy::load_repo_override(repo)
-            .revert_excluded_to_head
-            .unwrap_or(false);
-        if revert {
-            eprintln!(
-                "🧹 reverting {} excluded path(s) to HEAD in {} after commit (revert_excluded_to_head)",
-                excluded_paths.len(),
-                repo.display()
-            );
-            restore_paths(repo, &excluded_paths).await?;
-        } else {
-            eprintln!(
-                "🧹 unstaging {} excluded path(s) in {} after commit (edits preserved)",
-                excluded_paths.len(),
-                repo.display()
-            );
-            unstage_paths_git(repo, &excluded_paths).await?;
-        }
-    }
-
-    Ok(())
 }
 
 /// ADDED 2026-07-22 (v0.112.34, audit F1.16): unstage paths
@@ -4257,10 +4144,16 @@ async fn stage_commit_and_push(
     let has_origin = ctx.has_origin;
     let _idle_seconds = ctx.idle_seconds;
 
-    let captured_at_entry = epoch.is_some();
-    let epoch = if let Some(epoch) = epoch {
-        epoch
+    let captured_at_entry = epoch.as_ref().is_some_and(|epoch| epoch.has_intent());
+    let epoch = if captured_at_entry {
+        epoch.context("missing captured epoch")?
     } else {
+        let baseline = match epoch {
+            Some(epoch) => epoch,
+            None => staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?,
+        };
+        let staging = staged_epoch::Staging::new(repo, baseline).await?;
+
         // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): auto-resolve
         // unmerged index entries so the commit loop is never blocked.
         // See `auto_resolve_unmerged_if_safe` for the full rationale.
@@ -4392,7 +4285,7 @@ async fn stage_commit_and_push(
         // after the add-site retries maps to Blocked (non-failure, work
         // retained for next cycle) instead of Err (failure budget burn +
         // MAX_FAILURES backoff for a healthy repo).
-        match stage_existing_files_suppressing(
+        match stage_existing_files_in_index(
             repo,
             &existing,
             dry_run,
@@ -4400,6 +4293,7 @@ async fn stage_commit_and_push(
             ctx.excluded_dir_names,
             Some((ctx.policy, &auto_commit_exclude_for_staging)),
             private_assets.map(|prepared| &prepared.materialized_paths),
+            Some(staging.index()),
         )
         .await
         {
@@ -4414,42 +4308,25 @@ async fn stage_commit_and_push(
             Err(e) => return Err(e),
         }
 
-        stage_gitlink_updates(
+        stage_gitlink_updates_in_index(
             repo,
             &gitlink_existing,
             dry_run,
             ctx.policy.stage_op_timeout_secs,
+            Some(staging.index()),
         )
         .await?;
 
         let missing_iter = missing.into_iter().chain(gitlink_missing);
         let missing: Vec<_> = missing_iter.collect();
-        if !missing.is_empty() {
-            git_rm_missing(repo, &missing, dry_run).await?;
+        if !missing.is_empty() && !dry_run {
+            let quoted = crate::git::literal_pathspecs(&missing);
+            let mut args = vec!["rm", "--cached", "--ignore-unmatch", "--"];
+            args.extend(quoted.iter().map(String::as_str));
+            staged_epoch::run_index_git(repo, &args, policy.stage_op_timeout_secs,
+                "epoch missing", Some(staging.index())).await?;
         }
-
-        // Close the staging epoch without resetting excluded/unknown content.
-        // A separate capture is the sole commit candidate, never a live write-tree.
-        let staged = git_name_status_entries(repo, &["diff", "--cached", "--name-status"]).await?;
-        // ADDED 2026-10-03 (audit R4-SC-16): staged set ⊆ intent.
-        // Foreign-staged paths (manual adds landing mid-cycle) defer the
-        // WHOLE commit one cycle with the index intact — the consent
-        // window. Next cycle they are pre-staged → classified → intended
-        // → committed, so commit-all converges with no wedge. Skipped in
-        // dry-run (nothing stages or commits there).
-        if !dry_run {
-            let extras = staged_extra_paths(repo, &staged, to_stage);
-            if !extras.is_empty() {
-                eprintln!(
-                "⏸️ {} staged set has {} path(s) outside this cycle's intent (concurrent staging?) — deferring to next cycle: {:?}",
-                repo.display(),
-                extras.len(),
-                &extras[..extras.len().min(5)]
-            );
-                return Ok(Some(SyncOutcome::Blocked));
-            }
-        }
-        staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?
+        staging.finish(repo, policy, ctx.excluded_dir_names, ctx.build_artifact_cleanup, dry_run).await?
     };
     let committed_entries = epoch.entries()?;
 
@@ -4596,9 +4473,7 @@ async fn stage_commit_and_push(
         );
     }
 
-    if !captured_at_entry {
-        restore_excluded_paths(ctx, to_restore).await?;
-    }
+    let _ = to_restore; // excluded content is never reset after publication.
 
     // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3): track push
     // failure and surface it as `SyncOutcome::PushFailed` instead of
@@ -5233,7 +5108,7 @@ async fn sync_repo_local_with_ownership(
     }
 
     let entry_epoch = staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?;
-    let mut entry_epoch = entry_epoch.has_intent().then_some(entry_epoch);
+    let mut entry_epoch = Some(entry_epoch);
 
     // ADDED 2026-07-25 (v0.113.0): auto-gc when dangling garbage
     // exceeds the policy threshold — the self-healing fix for the
@@ -5246,7 +5121,7 @@ async fn sync_repo_local_with_ownership(
     // `check_conflict_state` — v0.113.0 gc'd repos mid-merge/
     // rebase/cherry-pick even though the sync itself correctly
     // blocked two statements later.
-    if !dry_run && !commit_only && entry_epoch.is_none() {
+    if !dry_run && !commit_only && !entry_epoch.as_ref().is_some_and(|epoch| epoch.has_intent()) {
         crate::git::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes).await;
         // ADDED 2026-07-29 (v0.113.10): opt-in janitor for stale
         // daemon-created branches + orphaned remote-tracking refs.
@@ -5281,7 +5156,8 @@ async fn sync_repo_local_with_ownership(
             );
             return Ok(SyncOutcome::NothingToDo);
         }
-        if let Some(epoch) = entry_epoch.take() {
+        if entry_epoch.as_ref().is_some_and(|epoch| epoch.has_intent()) {
+            let epoch = entry_epoch.take().context("missing root epoch")?;
             if !policy.auto_commit || dry_run {
                 return Ok(SyncOutcome::StagedPending);
             }
@@ -5434,7 +5310,8 @@ async fn sync_repo_local_with_ownership(
         local_work_deferred: false,
     };
 
-    if let Some(epoch) = entry_epoch {
+    if entry_epoch.as_ref().is_some_and(|epoch| epoch.has_intent()) {
+        let epoch = entry_epoch.take().context("missing entry epoch")?;
         if !policy.auto_commit || dry_run {
             return Ok(SyncOutcome::StagedPending);
         }
@@ -5481,27 +5358,7 @@ async fn sync_repo_local_with_ownership(
         vec![]
     };
 
-    if !copied_standard_files.is_empty() && !dry_run {
-        let paths: Vec<String> = copied_standard_files
-            .iter()
-            .map(|p| p.to_string_lossy().to_string())
-            .collect();
-        // CHANGED 2026-07-21 (v0.112.31, audit H6/F1.5): filtered
-        // variant for consistency with the main staging path.
-        let std_repo_override = load_repo_override(repo);
-        // R3-M2: per-repo entries EXTEND the global list (union helper).
-        let std_auto_commit_exclude =
-            crate::policy::effective_auto_commit_excludes(ctx.policy, &std_repo_override);
-        stage_existing_files_filtered(
-            repo,
-            &paths,
-            dry_run,
-            ctx.policy.stage_op_timeout_secs,
-            ctx.excluded_dir_names,
-            Some((ctx.policy, &std_auto_commit_exclude)),
-        )
-        .await?;
-    }
+    let _ = copied_standard_files; // ordinary staging handles generated paths in its private view.
 
     preparation_phase("before_pull");
     if !commit_only {
@@ -5818,7 +5675,7 @@ async fn sync_repo_local_with_ownership(
                 &to_stage,
                 &to_restore,
                 private_assets.as_ref(),
-                None,
+                entry_epoch.take(),
             )
             .await;
             if debug_enabled() {
