@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-25T00:46:53.944445+00:00",
+  "generated_at": "2026-10-25T00:54:37.803735+00:00",
   "loaded_sha256": "8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad",
   "loaded_pid": 3906273,
   "before_snapshot": "refs-final-loaded-before-work.json",
@@ -19,46 +19,70 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/ai-auto-writer",
           "aliases": [
+            "github",
             "origin"
           ],
           "observations": [
+            {
+              "alias": "github",
+              "before_alias": "github",
+              "before_ref": "2cdd8a74232ca0819cd721c66a25cf5aa0ceaab8",
+              "before_destination": "github.com/dracondev/ai-auto-writer",
+              "after_ref": "fc058ecc3da91c699b1084a85addd4fd750747ed",
+              "query_succeeded": true,
+              "confirmed_at": 1792889658.4778795,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
             {
               "alias": "origin",
               "before_alias": "github",
               "before_ref": "2cdd8a74232ca0819cd721c66a25cf5aa0ceaab8",
               "before_destination": "github.com/dracondev/ai-auto-writer",
-              "after_ref": "90582b1f66866d5a61b5dcf3d6f0392a729ab2d9",
+              "after_ref": "fc058ecc3da91c699b1084a85addd4fd750747ed",
               "query_succeeded": true,
-              "confirmed_at": 1792889199.5248632,
-              "contains_witness": false,
-              "fast_forward_from_before": false
+              "confirmed_at": 1792889661.120974,
+              "contains_witness": true,
+              "fast_forward_from_before": true
             }
           ],
-          "contains_witness": false,
-          "advanced_from_before": false
+          "contains_witness": true,
+          "advanced_from_before": true
         },
         {
           "logical": "github",
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/ai-auto-writer",
           "aliases": [
+            "github",
             "origin"
           ],
           "observations": [
+            {
+              "alias": "github",
+              "before_alias": "github",
+              "before_ref": "2cdd8a74232ca0819cd721c66a25cf5aa0ceaab8",
+              "before_destination": "github.com/dracondev/ai-auto-writer",
+              "after_ref": "fc058ecc3da91c699b1084a85addd4fd750747ed",
+              "query_succeeded": true,
+              "confirmed_at": 1792889658.4778795,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
             {
               "alias": "origin",
               "before_alias": "github",
               "before_ref": "2cdd8a74232ca0819cd721c66a25cf5aa0ceaab8",
               "before_destination": "github.com/dracondev/ai-auto-writer",
-              "after_ref": "90582b1f66866d5a61b5dcf3d6f0392a729ab2d9",
+              "after_ref": "fc058ecc3da91c699b1084a85addd4fd750747ed",
               "query_succeeded": true,
-              "confirmed_at": 1792889199.5248632,
-              "contains_witness": false,
-              "fast_forward_from_before": false
+              "confirmed_at": 1792889661.120974,
+              "contains_witness": true,
+              "fast_forward_from_before": true
             }
           ],
-          "contains_witness": false,
-          "advanced_from_before": false
+          "contains_witness": true,
+          "advanced_from_before": true
         },
         {
           "logical": "gitlab",
@@ -73,18 +97,18 @@
               "before_alias": "gitlab",
               "before_ref": "2cdd8a74232ca0819cd721c66a25cf5aa0ceaab8",
               "before_destination": "gitlab.com/DraconDev/ai-auto-writer",
-              "after_ref": "90582b1f66866d5a61b5dcf3d6f0392a729ab2d9",
+              "after_ref": "fc058ecc3da91c699b1084a85addd4fd750747ed",
               "query_succeeded": true,
-              "confirmed_at": 1792889198.4350617,
-              "contains_witness": false,
-              "fast_forward_from_before": false
+              "confirmed_at": 1792889659.8961406,
+              "contains_witness": true,
+              "fast_forward_from_before": true
             }
           ],
-          "contains_witness": false,
-          "advanced_from_before": false
+          "contains_witness": true,
+          "advanced_from_before": true
         }
       ],
-      "state": "nonhealthy-unproven",
+      "state": "witnessed-autonomous-publication",
       "external_blocker": null,
       "witness_commit": "fc058ecc3da91c699b1084a85addd4fd750747ed",
       "actual_blob": "a6093f574af0979c64f13ff7b603925e1c9f3eab",
@@ -107,7 +131,7 @@
         "fc058ecc3da91c699b1084a85addd4fd750747ed"
       ],
       "commit_event_budget_secs": 60,
-      "reason": "Missing object, loaded-daemon commit correlation, or intended-destination advancement; not classified healthy or external."
+      "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
     },
     {
       "repo": "/home/dracon/Dev/browser-extensions-shared",
@@ -130,7 +154,7 @@
               "before_destination": "github.com/dracondev/browser-extensions-shared",
               "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
               "query_succeeded": true,
-              "confirmed_at": 1792889199.4333112,
+              "confirmed_at": 1792889659.8969474,
               "contains_witness": false,
               "fast_forward_from_before": false
             }
@@ -153,7 +177,7 @@
               "before_destination": "github.com/dracondev/browser-extensions-shared",
               "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
               "query_succeeded": true,
-              "confirmed_at": 1792889199.4333112,
+              "confirmed_at": 1792889659.8969474,
               "contains_witness": false,
               "fast_forward_from_before": false
             }
@@ -176,7 +200,7 @@
               "before_destination": "gitlab.com/DraconDev/browser-extensions-shared",
               "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
               "query_succeeded": true,
-              "confirmed_at": 1792889198.4242563,
+              "confirmed_at": 1792889658.8722985,
               "contains_witness": false,
               "fast_forward_from_before": false
             }
@@ -242,7 +266,7 @@
               "before_destination": "github.com/dracondev/dracon-strategy",
               "after_ref": "108d5cac5e183fbcded88ece92b98f68ec53dd84",
               "query_succeeded": true,
-              "confirmed_at": 1792889198.1068795,
+              "confirmed_at": 1792889658.4839826,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
@@ -253,7 +277,7 @@
               "before_destination": "github.com/dracondev/dracon-strategy",
               "after_ref": "108d5cac5e183fbcded88ece92b98f68ec53dd84",
               "query_succeeded": true,
-              "confirmed_at": 1792889200.5474913,
+              "confirmed_at": 1792889661.0078964,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -277,7 +301,7 @@
               "before_destination": "github.com/dracondev/dracon-strategy",
               "after_ref": "108d5cac5e183fbcded88ece92b98f68ec53dd84",
               "query_succeeded": true,
-              "confirmed_at": 1792889198.1068795,
+              "confirmed_at": 1792889658.4839826,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
@@ -288,7 +312,7 @@
               "before_destination": "github.com/dracondev/dracon-strategy",
               "after_ref": "108d5cac5e183fbcded88ece92b98f68ec53dd84",
               "query_succeeded": true,
-              "confirmed_at": 1792889200.5474913,
+              "confirmed_at": 1792889661.0078964,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -311,7 +335,7 @@
               "before_destination": "gitlab.com/DraconDev/dracon-strategy",
               "after_ref": "108d5cac5e183fbcded88ece92b98f68ec53dd84",
               "query_succeeded": true,
-              "confirmed_at": 1792889199.527475,
+              "confirmed_at": 1792889659.8413393,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -364,9 +388,9 @@
               "before_alias": "origin",
               "before_ref": "f976133c9446f0e6bcec7803f8921381da5073f2",
               "before_destination": "github.com/dracondev/dracon-home",
-              "after_ref": "9d106e8b88a4151d5c91b704ed883ea0f3b11b43",
+              "after_ref": "39368a2c4d0c4c266c97e665e9da42a009b5fd9c",
               "query_succeeded": true,
-              "confirmed_at": 1792889199.433776,
+              "confirmed_at": 1792889659.9621208,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -387,9 +411,9 @@
               "before_alias": "origin",
               "before_ref": "f976133c9446f0e6bcec7803f8921381da5073f2",
               "before_destination": "github.com/dracondev/dracon-home",
-              "after_ref": "9d106e8b88a4151d5c91b704ed883ea0f3b11b43",
+              "after_ref": "39368a2c4d0c4c266c97e665e9da42a009b5fd9c",
               "query_succeeded": true,
-              "confirmed_at": 1792889199.433776,
+              "confirmed_at": 1792889659.9621208,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -410,9 +434,9 @@
               "before_alias": "gitlab",
               "before_ref": "f976133c9446f0e6bcec7803f8921381da5073f2",
               "before_destination": "gitlab.com/DraconDev/dracon-home",
-              "after_ref": "9d106e8b88a4151d5c91b704ed883ea0f3b11b43",
+              "after_ref": "39368a2c4d0c4c266c97e665e9da42a009b5fd9c",
               "query_succeeded": true,
-              "confirmed_at": 1792889198.405583,
+              "confirmed_at": 1792889658.8985097,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -473,7 +497,7 @@
               "before_destination": "github.com/dracondev/ai-auto-video",
               "after_ref": "d88b9a649eb76432952f0398fa9d65aebc0b3877",
               "query_succeeded": true,
-              "confirmed_at": 1792889198.1151927,
+              "confirmed_at": 1792889658.4141479,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
@@ -484,7 +508,7 @@
               "before_destination": "github.com/dracondev/ai-auto-video",
               "after_ref": "d88b9a649eb76432952f0398fa9d65aebc0b3877",
               "query_succeeded": true,
-              "confirmed_at": 1792889200.463886,
+              "confirmed_at": 1792889660.924766,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -508,7 +532,7 @@
               "before_destination": "github.com/dracondev/ai-auto-video",
               "after_ref": "d88b9a649eb76432952f0398fa9d65aebc0b3877",
               "query_succeeded": true,
-              "confirmed_at": 1792889198.1151927,
+              "confirmed_at": 1792889658.4141479,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
@@ -519,7 +543,7 @@
               "before_destination": "github.com/dracondev/ai-auto-video",
               "after_ref": "d88b9a649eb76432952f0398fa9d65aebc0b3877",
               "query_succeeded": true,
-              "confirmed_at": 1792889200.463886,
+              "confirmed_at": 1792889660.924766,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -542,7 +566,7 @@
               "before_destination": "gitlab.com/DraconDev/ai-auto-video",
               "after_ref": "d88b9a649eb76432952f0398fa9d65aebc0b3877",
               "query_succeeded": true,
-              "confirmed_at": 1792889199.4671097,
+              "confirmed_at": 1792889659.8125036,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -598,7 +622,7 @@
               "before_destination": "github.com/dracondev/web-games-endless-td",
               "after_ref": "07554ec51633bacfc40abd9b777c9ed82ca93b3b",
               "query_succeeded": true,
-              "confirmed_at": 1792889198.102335,
+              "confirmed_at": 1792889658.426753,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
@@ -609,7 +633,7 @@
               "before_destination": "github.com/dracondev/web-games-endless-td",
               "after_ref": "07554ec51633bacfc40abd9b777c9ed82ca93b3b",
               "query_succeeded": true,
-              "confirmed_at": 1792889200.4552226,
+              "confirmed_at": 1792889661.0023735,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -633,7 +657,7 @@
               "before_destination": "github.com/dracondev/web-games-endless-td",
               "after_ref": "07554ec51633bacfc40abd9b777c9ed82ca93b3b",
               "query_succeeded": true,
-              "confirmed_at": 1792889198.102335,
+              "confirmed_at": 1792889658.426753,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
@@ -644,7 +668,7 @@
               "before_destination": "github.com/dracondev/web-games-endless-td",
               "after_ref": "07554ec51633bacfc40abd9b777c9ed82ca93b3b",
               "query_succeeded": true,
-              "confirmed_at": 1792889200.4552226,
+              "confirmed_at": 1792889661.0023735,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -667,7 +691,7 @@
               "before_destination": "gitlab.com/DraconDev/web-games-endless-td",
               "after_ref": "07554ec51633bacfc40abd9b777c9ed82ca93b3b",
               "query_succeeded": true,
-              "confirmed_at": 1792889199.4601912,
+              "confirmed_at": 1792889659.8852596,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -722,7 +746,7 @@
               "before_destination": "github.com/dracondev/pi-goal-list-loop-audit",
               "after_ref": "341f910f379d20fc115cfbb75a0da929316d332b",
               "query_succeeded": true,
-              "confirmed_at": 1792889201.1391158,
+              "confirmed_at": 1792889661.969251,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -745,7 +769,7 @@
               "before_destination": "github.com/dracondev/pi-goal-list-loop-audit",
               "after_ref": "341f910f379d20fc115cfbb75a0da929316d332b",
               "query_succeeded": true,
-              "confirmed_at": 1792889201.1391158,
+              "confirmed_at": 1792889661.969251,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -768,7 +792,7 @@
               "before_destination": "gitlab.com/DraconDev/pi-goal-list-loop-audit",
               "after_ref": "341f910f379d20fc115cfbb75a0da929316d332b",
               "query_succeeded": true,
-              "confirmed_at": 1792889200.8505049,
+              "confirmed_at": 1792889661.4534671,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -822,9 +846,9 @@
               "before_alias": "gitlab",
               "before_ref": "64b4d18bae3fa72b913173a6ef78b637e75acbf0",
               "before_destination": "gitlab.com/DraconDev/web-games-polis",
-              "after_ref": "61ce6245d86215cf603fa6a318b96ba34cd79e36",
+              "after_ref": "6b802fec79957d9270eb1753c82d2475e4f8e372",
               "query_succeeded": true,
-              "confirmed_at": 1792889201.7706594,
+              "confirmed_at": 1792889662.4789014,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
@@ -833,9 +857,9 @@
               "before_alias": "gitlab",
               "before_ref": "64b4d18bae3fa72b913173a6ef78b637e75acbf0",
               "before_destination": "gitlab.com/DraconDev/web-games-polis",
-              "after_ref": "61ce6245d86215cf603fa6a318b96ba34cd79e36",
+              "after_ref": "6b802fec79957d9270eb1753c82d2475e4f8e372",
               "query_succeeded": true,
-              "confirmed_at": 1792889203.1423893,
+              "confirmed_at": 1792889663.8629813,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -856,9 +880,9 @@
               "before_alias": "github",
               "before_ref": "64b4d18bae3fa72b913173a6ef78b637e75acbf0",
               "before_destination": "github.com/dracondev/web-games-polis",
-              "after_ref": "61ce6245d86215cf603fa6a318b96ba34cd79e36",
+              "after_ref": "6b802fec79957d9270eb1753c82d2475e4f8e372",
               "query_succeeded": true,
-              "confirmed_at": 1792889200.4339008,
+              "confirmed_at": 1792889661.0960872,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -880,9 +904,9 @@
               "before_alias": "gitlab",
               "before_ref": "64b4d18bae3fa72b913173a6ef78b637e75acbf0",
               "before_destination": "gitlab.com/DraconDev/web-games-polis",
-              "after_ref": "61ce6245d86215cf603fa6a318b96ba34cd79e36",
+              "after_ref": "6b802fec79957d9270eb1753c82d2475e4f8e372",
               "query_succeeded": true,
-              "confirmed_at": 1792889201.7706594,
+              "confirmed_at": 1792889662.4789014,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
@@ -891,9 +915,9 @@
               "before_alias": "gitlab",
               "before_ref": "64b4d18bae3fa72b913173a6ef78b637e75acbf0",
               "before_destination": "gitlab.com/DraconDev/web-games-polis",
-              "after_ref": "61ce6245d86215cf603fa6a318b96ba34cd79e36",
+              "after_ref": "6b802fec79957d9270eb1753c82d2475e4f8e372",
               "query_succeeded": true,
-              "confirmed_at": 1792889203.1423893,
+              "confirmed_at": 1792889663.8629813,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -938,46 +962,70 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-platform",
           "aliases": [
+            "github",
             "origin"
           ],
           "observations": [
+            {
+              "alias": "github",
+              "before_alias": "github",
+              "before_ref": "d5291d71681fbc3aeeb2a6dd08f363e788e96bd3",
+              "before_destination": "github.com/dracondev/dracon-platform",
+              "after_ref": "98318f9f063b6a99a57b5b2ce6c1819fb30ddf1d",
+              "query_succeeded": true,
+              "confirmed_at": 1792889662.0747597,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
             {
               "alias": "origin",
               "before_alias": "github",
               "before_ref": "d5291d71681fbc3aeeb2a6dd08f363e788e96bd3",
               "before_destination": "github.com/dracondev/dracon-platform",
-              "after_ref": "d5291d71681fbc3aeeb2a6dd08f363e788e96bd3",
+              "after_ref": "98318f9f063b6a99a57b5b2ce6c1819fb30ddf1d",
               "query_succeeded": true,
-              "confirmed_at": 1792889201.9608715,
-              "contains_witness": false,
-              "fast_forward_from_before": false
+              "confirmed_at": 1792889664.5142536,
+              "contains_witness": true,
+              "fast_forward_from_before": true
             }
           ],
-          "contains_witness": false,
-          "advanced_from_before": false
+          "contains_witness": true,
+          "advanced_from_before": true
         },
         {
           "logical": "github",
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-platform",
           "aliases": [
+            "github",
             "origin"
           ],
           "observations": [
+            {
+              "alias": "github",
+              "before_alias": "github",
+              "before_ref": "d5291d71681fbc3aeeb2a6dd08f363e788e96bd3",
+              "before_destination": "github.com/dracondev/dracon-platform",
+              "after_ref": "98318f9f063b6a99a57b5b2ce6c1819fb30ddf1d",
+              "query_succeeded": true,
+              "confirmed_at": 1792889662.0747597,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
             {
               "alias": "origin",
               "before_alias": "github",
               "before_ref": "d5291d71681fbc3aeeb2a6dd08f363e788e96bd3",
               "before_destination": "github.com/dracondev/dracon-platform",
-              "after_ref": "d5291d71681fbc3aeeb2a6dd08f363e788e96bd3",
+              "after_ref": "98318f9f063b6a99a57b5b2ce6c1819fb30ddf1d",
               "query_succeeded": true,
-              "confirmed_at": 1792889201.9608715,
-              "contains_witness": false,
-              "fast_forward_from_before": false
+              "confirmed_at": 1792889664.5142536,
+              "contains_witness": true,
+              "fast_forward_from_before": true
             }
           ],
-          "contains_witness": false,
-          "advanced_from_before": false
+          "contains_witness": true,
+          "advanced_from_before": true
         },
         {
           "logical": "gitlab",
@@ -992,18 +1040,18 @@
               "before_alias": "gitlab",
               "before_ref": "d5291d71681fbc3aeeb2a6dd08f363e788e96bd3",
               "before_destination": "gitlab.com/DraconDev/dracon-platform",
-              "after_ref": "d5291d71681fbc3aeeb2a6dd08f363e788e96bd3",
+              "after_ref": "98318f9f063b6a99a57b5b2ce6c1819fb30ddf1d",
               "query_succeeded": true,
-              "confirmed_at": 1792889200.9268951,
-              "contains_witness": false,
-              "fast_forward_from_before": false
+              "confirmed_at": 1792889663.4918694,
+              "contains_witness": true,
+              "fast_forward_from_before": true
             }
           ],
-          "contains_witness": false,
-          "advanced_from_before": false
+          "contains_witness": true,
+          "advanced_from_before": true
         }
       ],
-      "state": "nonhealthy-unproven",
+      "state": "witnessed-autonomous-publication",
       "external_blocker": null,
       "witness_commit": "c0a2ecc4628b0bcf831a839014a79154ce2c4d81",
       "actual_blob": "325b23b772d5827d12beed2c32b1ab82917ff8de",
@@ -1026,7 +1074,7 @@
         "c0a2ecc4628b0bcf831a839014a79154ce2c4d81"
       ],
       "commit_event_budget_secs": 60,
-      "reason": "Missing object, loaded-daemon commit correlation, or intended-destination advancement; not classified healthy or external."
+      "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
@@ -1050,7 +1098,7 @@
               "before_destination": "github.com/dracondev/web-games-deathrun",
               "after_ref": "0220f09aab0c0b2b80645ae01f36a860916dc4e0",
               "query_succeeded": true,
-              "confirmed_at": 1792889201.470646,
+              "confirmed_at": 1792889662.1288638,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
@@ -1061,7 +1109,7 @@
               "before_destination": "github.com/dracondev/web-games-deathrun",
               "after_ref": "0220f09aab0c0b2b80645ae01f36a860916dc4e0",
               "query_succeeded": true,
-              "confirmed_at": 1792889203.8319302,
+              "confirmed_at": 1792889664.562366,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -1085,7 +1133,7 @@
               "before_destination": "github.com/dracondev/web-games-deathrun",
               "after_ref": "0220f09aab0c0b2b80645ae01f36a860916dc4e0",
               "query_succeeded": true,
-              "confirmed_at": 1792889201.470646,
+              "confirmed_at": 1792889662.1288638,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
@@ -1096,7 +1144,7 @@
               "before_destination": "github.com/dracondev/web-games-deathrun",
               "after_ref": "0220f09aab0c0b2b80645ae01f36a860916dc4e0",
               "query_succeeded": true,
-              "confirmed_at": 1792889203.8319302,
+              "confirmed_at": 1792889664.562366,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -1119,7 +1167,7 @@
               "before_destination": "gitlab.com/DraconDev/web-games-deathrun",
               "after_ref": "0220f09aab0c0b2b80645ae01f36a860916dc4e0",
               "query_succeeded": true,
-              "confirmed_at": 1792889202.8209972,
+              "confirmed_at": 1792889663.5285177,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
