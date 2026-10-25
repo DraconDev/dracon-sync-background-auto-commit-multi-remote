@@ -7231,10 +7231,7 @@ trusted_authors = ["test"]
 
         let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
         assert!(result.is_ok(), "sync_repo should succeed: {:?}", result);
-        assert!(
-            matches!(result, Ok(SyncOutcome::Synced)),
-            "dirty repo with auto_commit should sync"
-        );
+        assert_synced_after_metadata_followup(&repo, &policy, result).await;
 
         // Verify commit was made
         let output = crate::git::git_cmd()
@@ -7508,10 +7505,7 @@ trusted_authors = ["test"]
 
         let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
         assert!(result.is_ok(), "sync_repo should succeed: {:?}", result);
-        assert!(
-            matches!(result, Ok(SyncOutcome::Synced)),
-            "untracked file should be staged and committed"
-        );
+        assert_synced_after_metadata_followup(&repo, &policy, result).await;
 
         // Verify file is tracked
         let output = crate::git::git_cmd()
@@ -10801,6 +10795,33 @@ push_url = "{}"
         );
     }
 
+    // Auto-hardening can generate eligible metadata after classification.
+    // A real Pending result is not Synced: require bounded follow-up AND raw
+    // Git cleanliness, rather than accepting a widened outcome list alone.
+    async fn assert_synced_after_metadata_followup(
+        repo: &Path, policy: &SyncPolicy, mut result: Result<SyncOutcome>,
+    ) {
+        for round in 0..3 {
+            let status = tokio::time::timeout(Duration::from_secs(20),
+                staged_epoch::git(repo, &["status", "--porcelain=v1", "--untracked-files=all"], None))
+                .await.expect("bounded fixture status").unwrap().stdout;
+            match result {
+                Ok(SyncOutcome::Synced) => {
+                    assert!(status.is_empty(), "Synced must mean raw Git clean: {}", String::from_utf8_lossy(&status));
+                    return;
+                }
+                Ok(SyncOutcome::StagedPending) => {
+                    assert!(!status.is_empty(), "metadata follow-up must correspond to real work");
+                }
+                other => panic!("unexpected fixture outcome at round {round}: {other:?}"),
+            }
+            result = tokio::time::timeout(Duration::from_secs(30),
+                sync_repo(repo, policy, &BTreeSet::new(), 5, None, false, None))
+                .await.expect("bounded metadata follow-up");
+        }
+        panic!("metadata did not converge within three rounds: {result:?}");
+    }
+
     fn init_test_repo(tmp: &tempfile::TempDir, name: &str) -> std::path::PathBuf {
         let repo = tmp.path().join(name);
         crate::git::git_cmd()
@@ -11213,10 +11234,7 @@ push_url = "{}"
 
         let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
         assert!(result.is_ok(), "sync_repo should succeed");
-        assert!(
-            matches!(result, Ok(SyncOutcome::Synced)),
-            "mixed changes should be committed"
-        );
+        assert_synced_after_metadata_followup(&repo, &policy, result).await;
 
         let output = git_cmd(&repo, &["ls-files"]);
         let tracked = String::from_utf8_lossy(&output.stdout);
