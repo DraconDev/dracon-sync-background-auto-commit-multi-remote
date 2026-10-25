@@ -732,4 +732,9 @@ test git::tests::test_push_to_named_remote_ssh_success ... ok
 test git::tests::test_push_to_named_remote_unsafe_branch_skips_https_fallback ... ok
 test git::tests::test_push_with_retries_both_fail ... ok
 test git::tests::test_push_with_retries_exhausts_retries_and_fails ... ok
-test git::tests::test_push_with_retries_includes_stderr_on_failure ... 
+test git::tests::test_push_with_retries_includes_stderr_on_failure ... ok
+test git::tests::test_push_with_retries_retries_then_succeeds ... ok
+test git::tests::test_push_with_retries_returns_immediately_on_permanent_rejection ... ok
+test git::tests::test_push_with_retries_skips_fallback_on_permanent_rejection ... ok
+test git::tests::test_push_with_retries_ssh_fails_https_fallback_succeeds ... ok
+test git::tests::test_push_with_retries_ssh_succeeds_no_fallback ... 
