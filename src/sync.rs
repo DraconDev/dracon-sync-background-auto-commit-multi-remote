@@ -968,15 +968,13 @@ static WARDEN_HARDEN_STATE: std::sync::OnceLock<
 /// when the local git config has the clean filter (written by
 /// `dracon-warden once`), which is what makes the encryption filter
 /// actually run at `git add` time. Extracted for unit tests.
-pub(crate) fn repo_has_warden_filter(repo: &Path) -> bool {
-    // FIXED 2026-10-03 (audit R4-SC-08): route through the sealed git
-    // constructor (DRACON_SYNC_GIT_BIN + prompt sealing), not raw git.
-    crate::policy::std_git_command()
-        .args(["config", "--local", "--get", "filter.dracon.clean"])
-        .current_dir(repo)
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+pub(crate) async fn repo_has_warden_filter(repo: &Path) -> bool {
+    let mut command = crate::policy::tokio_git_command();
+    command.args(["config", "--local", "--get", "filter.dracon.clean"])
+        .current_dir(repo);
+    crate::git::run_command_captured_output(command.into_tokio(),
+        WARDEN_HARDEN_TIMEOUT_SECS, "warden filter probe", None)
+        .await.map(|o| o.status.success()).unwrap_or(false)
 }
 
 /// ADDED 2026-09-15 (warden-showcase probe): sync-hook auto-harden.
@@ -1018,7 +1016,7 @@ async fn maybe_auto_harden_with_warden(repo: &Path, policy: &SyncPolicy, dry_run
             }
         }
     }
-    if repo_has_warden_filter(repo) {
+    if repo_has_warden_filter(repo).await {
         WARDEN_HARDEN_STATE
             .get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
             .lock()
@@ -8295,13 +8293,13 @@ trusted_authors = ["test"]
     /// ADDED 2026-09-15 (warden-showcase probe): the hardening probe
     /// reads the local git config the same way `dracon-warden once`
     /// writes it.
-    #[test]
-    fn test_repo_has_warden_filter_probe() {
+    #[tokio::test]
+    async fn test_repo_has_warden_filter_probe() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path().join("repo");
         init_empty_repo(&repo);
         assert!(
-            !repo_has_warden_filter(&repo),
+            !repo_has_warden_filter(&repo).await,
             "fresh repo must probe as unhardened"
         );
         crate::git::git_cmd()
@@ -8316,15 +8314,15 @@ trusted_authors = ["test"]
             .status()
             .unwrap();
         assert!(
-            repo_has_warden_filter(&repo),
+            repo_has_warden_filter(&repo).await,
             "repo with local filter.dracon.clean must probe as hardened"
         );
     }
 
-    #[test]
-    fn test_repo_has_warden_filter_honors_git_bin_seam() {
+    #[tokio::test]
+    async fn test_repo_has_warden_filter_honors_git_bin_seam() {
         // ADDED 2026-10-03 (audit R4-SC-08): the probe must route
-        // through std_git_command (DRACON_SYNC_GIT_BIN + prompt
+        // through the sealed Git constructor (DRACON_SYNC_GIT_BIN + prompt
         // sealing), not raw Command::new("git"). A mock git that
         // always fails must flip a hardened repo to unhardened.
         let tmp = tempfile::tempdir().unwrap();
@@ -8341,7 +8339,7 @@ trusted_authors = ["test"]
             ])
             .status()
             .unwrap();
-        assert!(repo_has_warden_filter(&repo));
+        assert!(repo_has_warden_filter(&repo).await);
         let mock = tmp.path().join("mock-git.sh");
         std::fs::write(&mock, "#!/bin/sh\nexit 1\n").unwrap();
         #[cfg(unix)]
@@ -8349,7 +8347,7 @@ trusted_authors = ["test"]
             .unwrap();
         let _git_bin = crate::test_helpers::GitBinRestorer::new(&mock.to_string_lossy());
         assert!(
-            !repo_has_warden_filter(&repo),
+            !repo_has_warden_filter(&repo).await,
             "probe must honor DRACON_SYNC_GIT_BIN (mock git ignored = raw git bypass)"
         );
     }
@@ -8403,7 +8401,7 @@ if [ \"$1\" = \"once\" ] && [ -n \"$2\" ]; then\n\
         maybe_auto_harden_with_warden(&repo, &policy, false).await;
         assert!(!log.exists(), "disabled hook must never fork dracon-warden");
         assert!(
-            !repo_has_warden_filter(&repo),
+            !repo_has_warden_filter(&repo).await,
             "disabled hook must leave the repo unhardened"
         );
     }
@@ -8420,7 +8418,7 @@ if [ \"$1\" = \"once\" ] && [ -n \"$2\" ]; then\n\
         maybe_auto_harden_with_warden(&repo, &policy, true).await;
         assert!(!log.exists(), "dry-run must never fork dracon-warden");
         assert!(
-            !repo_has_warden_filter(&repo),
+            !repo_has_warden_filter(&repo).await,
             "dry-run must leave the repo unhardened"
         );
     }
@@ -8454,7 +8452,7 @@ if [ \"$1\" = \"once\" ] && [ -n \"$2\" ]; then\n\
             first
         );
         assert!(
-            repo_has_warden_filter(&repo),
+            repo_has_warden_filter(&repo).await,
             "repo must probe hardened after the hook"
         );
         maybe_auto_harden_with_warden(&repo, &policy, false).await;
