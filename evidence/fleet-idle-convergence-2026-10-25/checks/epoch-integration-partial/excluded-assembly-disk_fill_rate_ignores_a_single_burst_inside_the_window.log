@@ -1,0 +1,22 @@
+   Compiling dracon-system v0.112.50 (/home/dracon/Dev/dracon-utilities/dracon-system)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.29s
+     Running unittests src/main.rs (target/debug/deps/dracon_system-cfc4d247621d1cd6)
+
+running 1 test
+test guard_tests::disk_fill_rate_ignores_a_single_burst_inside_the_window ... FAILED
+
+failures:
+
+---- guard_tests::disk_fill_rate_ignores_a_single_burst_inside_the_window stdout ----
+
+thread 'guard_tests::disk_fill_rate_ignores_a_single_burst_inside_the_window' (2549708) panicked at dracon-system/src/guard_tests.rs:1793:10:
+the window has a measurable rate
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    guard_tests::disk_fill_rate_ignores_a_single_burst_inside_the_window
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 615 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p dracon-system --bin dracon-system`

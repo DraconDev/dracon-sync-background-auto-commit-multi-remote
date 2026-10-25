@@ -1,0 +1,13 @@
+    Checking dracon-system v0.112.50 (/home/dracon/Dev/dracon-utilities/dracon-system)
+error: manual implementation of `.is_multiple_of()`
+    --> dracon-system/src/main.rs:1812:24
+     |
+1812 |     let slope_bps = if slopes.len() % 2 == 0 {
+     |                        ^^^^^^^^^^^^^^^^^^^^^ help: replace with: `slopes.len().is_multiple_of(2)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+     = note: `-D clippy::manual-is-multiple-of` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::manual_is_multiple_of)]`
+
+error: could not compile `dracon-system` (bin "dracon-system") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
