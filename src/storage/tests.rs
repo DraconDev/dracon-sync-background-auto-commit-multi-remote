@@ -867,6 +867,9 @@ async fn a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order() {
     )
     .unwrap();
     assert!(has_configured_storage_guard(repo).unwrap());
+    let gitdir = git2::Repository::open(repo).unwrap().path().to_owned();
+    let operator_message = gitdir.join("COMMIT_EDITMSG");
+    std::fs::write(&operator_message, "operator draft must survive\n").unwrap();
     let hooks = repo.join(".git/lifecycle-hooks");
     std::fs::create_dir_all(&hooks).unwrap();
     // Every hook appends its own name plus argv so the test can assert ORDER
@@ -929,12 +932,17 @@ trusted_authors = ["DraconDev"]
         ],
         "hooks must run in Git's order, got: {log}"
     );
-    // Exact argument vectors: extra/missing arguments must fail, while the
-    // fixture's absolute temporary path is derived rather than pinned.
-    let msgfile = git2::Repository::open(repo)
-        .unwrap()
-        .path()
-        .join("COMMIT_EDITMSG");
+    // Exact vectors still matter. The message is deliberately private so a
+    // concurrent operator's canonical COMMIT_EDITMSG cannot be overwritten.
+    let msgfile = std::path::PathBuf::from(log.lines().nth(1).unwrap()
+        .strip_prefix("prepare-commit-msg argv=[").unwrap()
+        .strip_suffix(" message]").unwrap());
+    assert_eq!(msgfile.file_name().unwrap(), "COMMIT_EDITMSG");
+    let private = msgfile.parent().unwrap();
+    assert_eq!(private.parent().unwrap(), gitdir);
+    assert!(private.file_name().unwrap().to_str().unwrap().starts_with("dracon-epoch-message-"));
+    assert!(!private.exists(), "only the owned message directory must be cleaned up");
+    assert_eq!(std::fs::read_to_string(&operator_message).unwrap(), "operator draft must survive\n");
     assert_eq!(
         log.lines().map(str::to_owned).collect::<Vec<_>>(),
         vec![
