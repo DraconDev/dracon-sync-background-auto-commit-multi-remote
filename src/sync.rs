@@ -8417,12 +8417,28 @@ if [ \"$1\" = \"once\" ] && [ -n \"$2\" ]; then\n\
     }
 
     #[cfg(target_os = "linux")]
-    #[tokio::test]
-    async fn bootstrap_absolute_staging_deadline_cancels_hardener_descendants() {
+    async fn assert_absolute_staging_deadline_cancels_hardener_descendants(bootstrap: bool) {
         let tmp = tempfile::tempdir().unwrap();
         let (_path, _log, _) = install_fake_warden(&tmp);
         let repo = tmp.path().join("repo");
         init_empty_repo(&repo);
+        if !bootstrap {
+            assert!(crate::git::git_cmd()
+                .args([
+                    "-c",
+                    "core.hooksPath=/dev/null",
+                    "commit",
+                    "--allow-empty",
+                    "-m",
+                    "disposable fixture baseline"
+                ])
+                .current_dir(&repo)
+                .status()
+                .unwrap()
+                .success());
+        }
+        let head_before = head_commit_count(&repo);
+        let index_before = std::fs::read(repo.join(".git/index")).ok();
         std::fs::write(repo.join("data"), b"local bytes must survive\n").unwrap();
         let script = tmp.path().join("bin/dracon-warden");
         // This is a hanging pre-stage producer fixture, NOT a replacement
@@ -8430,15 +8446,22 @@ if [ \"$1\" = \"once\" ] && [ -n \"$2\" ]; then\n\
         std::fs::write(&script, "#!/bin/sh\nsleep 30 &\nchild=$!\nprintf '%s %s\\n' \"$$\" \"$child\" > \"$2/.git/hardener-pids\"\nwait\n").unwrap();
         let policy = bootstrap_test_policy("stage_op_timeout_secs = 1");
         let started = std::time::Instant::now();
-        let error = tokio::time::timeout(
-            Duration::from_secs(5),
-            bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false),
-        )
+        let error = tokio::time::timeout(Duration::from_secs(5), async {
+            if bootstrap {
+                bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false)
+                    .await
+                    .map(|_| ())
+            } else {
+                sync_repo(&repo, &policy, &BTreeSet::new(), 60, None, false, None)
+                    .await
+                    .map(|_| ())
+            }
+        })
         .await
         .expect("whole staging must be bounded")
         .unwrap_err();
         assert!(
-            format!("{error:#}").contains("bootstrap staging absolute deadline expired"),
+            format!("{error:#}").contains("staging absolute deadline expired"),
             "{error:#}"
         );
         assert!(started.elapsed() < Duration::from_secs(5));
@@ -8470,18 +8493,25 @@ if [ \"$1\" = \"once\" ] && [ -n \"$2\" ]; then\n\
             std::fs::read(repo.join("data")).unwrap(),
             b"local bytes must survive\n"
         );
-        assert!(
-            !repo.join(".git/index").exists(),
+        assert_eq!(
+            std::fs::read(repo.join(".git/index")).ok(),
+            index_before,
             "private candidate must not install on timeout"
         );
         assert!(!repo.join(".git/index.lock").exists());
-        assert!(!crate::git::git_cmd()
-            .args(["rev-parse", "--verify", "HEAD"])
-            .current_dir(&repo)
-            .output()
-            .unwrap()
-            .status
-            .success());
+        assert_eq!(head_commit_count(&repo), head_before);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn bootstrap_absolute_staging_deadline_cancels_hardener_descendants() {
+        assert_absolute_staging_deadline_cancels_hardener_descendants(true).await;
+    }
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn ordinary_absolute_staging_deadline_cancels_hardener_descendants() {
+        assert_absolute_staging_deadline_cancels_hardener_descendants(false).await;
     }
 
     /// ADDED 2026-09-15: the knob gates the fork — disabled means the
