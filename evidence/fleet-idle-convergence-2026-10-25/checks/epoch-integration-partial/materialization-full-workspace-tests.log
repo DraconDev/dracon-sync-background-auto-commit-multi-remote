@@ -2132,3 +2132,18 @@ ok
 test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) 7605805] init
 ok
 test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) 7605805] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) 046d6b5] init
+ok
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... ok
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) 80e04e8] init
+ok
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) 5320c6d] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) 1f78838] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) adb8553] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpBMyBTY/origin.git'
