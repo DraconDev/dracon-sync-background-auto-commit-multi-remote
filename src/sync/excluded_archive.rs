@@ -218,7 +218,10 @@ pub(super) fn pending(repo: &Path) -> Result<bool> {
             }
         }
     }
-    ensure!(std::time::Instant::now() < deadline, "excluded archive inspection deadline expired");
+    ensure!(
+        std::time::Instant::now() < deadline,
+        "excluded archive inspection deadline expired"
+    );
     Ok(false)
 }
 
