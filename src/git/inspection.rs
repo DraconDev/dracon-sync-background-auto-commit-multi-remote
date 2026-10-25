@@ -6,7 +6,11 @@
 
 use anyhow::{bail, Context, Result};
 use dracon_git::types::RepoStatus;
-use std::{collections::BTreeSet, path::{Path, PathBuf}, time::Duration};
+use std::{
+    collections::BTreeSet,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 /// Shared by scheduler and reports: a healthy filtered/nested worktree may
 /// exceed a short UI deadline. Keep cancellation and the finite ceiling alike.
@@ -33,27 +37,38 @@ pub(crate) async fn inspect_status_with_coverage(
 
 async fn indexed_gitlinks(repo: &Path) -> Result<Option<BTreeSet<PathBuf>>> {
     let child = super::spawn_git_command_cancellable(
-        repo, &["--no-optional-locks", "ls-files", "--stage", "-z"],
+        repo,
+        &["--no-optional-locks", "ls-files", "--stage", "-z"],
         "status gitlink coverage",
     )?;
     let (exit, stdout, stderr) =
         super::run_git_captured_output(child, repo, "status gitlink coverage").await?;
     if !exit.success() {
-        bail!("status gitlink coverage failed: {}", String::from_utf8_lossy(&stderr));
+        bail!(
+            "status gitlink coverage failed: {}",
+            String::from_utf8_lossy(&stderr)
+        );
     }
     parse_gitlinks(repo, &stdout)
 }
 
 fn parse_gitlinks(repo: &Path, bytes: &[u8]) -> Result<Option<BTreeSet<PathBuf>>> {
     let mut paths = BTreeSet::new();
-    for record in bytes.split(|b| *b == 0).filter(|r| r.starts_with(b"160000 ")) {
-        let tab = record.iter().position(|b| *b == b'\t')
+    for record in bytes
+        .split(|b| *b == 0)
+        .filter(|r| r.starts_with(b"160000 "))
+    {
+        let tab = record
+            .iter()
+            .position(|b| *b == b'\t')
             .context("malformed indexed gitlink")?;
         let (header, tail) = record.split_at(tab);
         let name = &tail[1..];
         let fields: Vec<_> = header.split(|b| *b == b' ').collect();
-        if fields.len() != 3 || !matches!(fields[1].len(), 40 | 64)
-            || !fields[1].iter().all(u8::is_ascii_hexdigit) {
+        if fields.len() != 3
+            || !matches!(fields[1].len(), 40 | 64)
+            || !fields[1].iter().all(u8::is_ascii_hexdigit)
+        {
             bail!("malformed indexed gitlink identity");
         }
         if fields[2] != b"0" {
@@ -66,7 +81,11 @@ fn parse_gitlinks(repo: &Path, bytes: &[u8]) -> Result<Option<BTreeSet<PathBuf>>
         };
         #[cfg(not(unix))]
         let path = Path::new(std::str::from_utf8(name)?);
-        if name.is_empty() || path.components().any(|c| !matches!(c, std::path::Component::Normal(_))) {
+        if name.is_empty()
+            || path
+                .components()
+                .any(|c| !matches!(c, std::path::Component::Normal(_)))
+        {
             bail!("invalid indexed gitlink path");
         }
         paths.insert(repo.join(path));
@@ -235,9 +254,15 @@ mod tests {
     fn gitlink_coverage_parsing_is_exact_and_conflicts_require_full_status() {
         let root = Path::new("/fixture");
         for width in [40, 64] {
-            let bytes = format!("100644 {} 0\tfile\0160000 {} 0\tchild\0", "a".repeat(width), "b".repeat(width));
-            assert_eq!(parse_gitlinks(root, bytes.as_bytes()).unwrap(),
-                Some(BTreeSet::from([root.join("child")])));
+            let bytes = format!(
+                "100644 {} 0\tfile\0160000 {} 0\tchild\0",
+                "a".repeat(width),
+                "b".repeat(width)
+            );
+            assert_eq!(
+                parse_gitlinks(root, bytes.as_bytes()).unwrap(),
+                Some(BTreeSet::from([root.join("child")]))
+            );
             let conflict = format!("160000 {} 2\tchild\0", "b".repeat(width));
             assert_eq!(parse_gitlinks(root, conflict.as_bytes()).unwrap(), None);
         }
@@ -253,10 +278,23 @@ mod tests {
         fn commit_index(repo: &git2::Repository) -> git2::Oid {
             let tree = repo.index().unwrap().write_tree().unwrap();
             let tree = repo.find_tree(tree).unwrap();
-            let parents: Vec<_> = repo.head().ok().map(|h| h.peel_to_commit().unwrap()).into_iter().collect();
+            let parents: Vec<_> = repo
+                .head()
+                .ok()
+                .map(|h| h.peel_to_commit().unwrap())
+                .into_iter()
+                .collect();
             let refs: Vec<_> = parents.iter().collect();
             let signature = git2::Signature::now("Fixture", "fixture@example.invalid").unwrap();
-            repo.commit(Some("HEAD"), &signature, &signature, "fixture", &tree, &refs).unwrap()
+            repo.commit(
+                Some("HEAD"),
+                &signature,
+                &signature,
+                "fixture",
+                &tree,
+                &refs,
+            )
+            .unwrap()
         }
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
@@ -272,9 +310,17 @@ mod tests {
         }
         std::fs::write(root.join(".gitmodules"),
             "[submodule \"child\"]\npath = child\nurl = fixture\n[submodule \"other\"]\npath = other\nurl = fixture\n").unwrap();
-        let added = std::process::Command::new("git").arg("-C").arg(root)
-            .args(["add", "--", ".gitmodules", "child", "other"]).output().unwrap();
-        assert!(added.status.success(), "{}", String::from_utf8_lossy(&added.stderr));
+        let added = std::process::Command::new("git")
+            .arg("-C")
+            .arg(root)
+            .args(["add", "--", ".gitmodules", "child", "other"])
+            .output()
+            .unwrap();
+        assert!(
+            added.status.success(),
+            "{}",
+            String::from_utf8_lossy(&added.stderr)
+        );
         commit_index(&parent);
         for name in ["child", "other"] {
             std::fs::write(root.join(name).join("tracked"), "unstaged child work").unwrap();
@@ -282,27 +328,66 @@ mod tests {
         std::fs::write(root.join("child/untracked"), "new child work").unwrap();
         let partial = BTreeSet::from([root.to_path_buf(), root.join("child")]);
         let full = BTreeSet::from([root.to_path_buf(), root.join("child"), root.join("other")]);
-        let uncovered = inspect_status_with_coverage(root, STATUS_INSPECTION_BUDGET, &partial).await.unwrap();
-        assert_eq!(uncovered.modified_files, 2, "one uncovered child must retain full recursive status");
-        let covered = inspect_status_with_coverage(root, STATUS_INSPECTION_BUDGET, &full).await.unwrap();
-        assert!(covered.is_clean, "child work cannot be staged by its parent");
-        let child_status = inspect_status_with_coverage(&root.join("child"), STATUS_INSPECTION_BUDGET, &full).await.unwrap();
-        assert_eq!((child_status.modified_files, child_status.untracked_files), (1, 1));
-        assert!(!child_status.is_clean, "child work must remain visible in its own row");
+        let uncovered = inspect_status_with_coverage(root, STATUS_INSPECTION_BUDGET, &partial)
+            .await
+            .unwrap();
+        assert_eq!(
+            uncovered.modified_files, 2,
+            "one uncovered child must retain full recursive status"
+        );
+        let covered = inspect_status_with_coverage(root, STATUS_INSPECTION_BUDGET, &full)
+            .await
+            .unwrap();
+        assert!(
+            covered.is_clean,
+            "child work cannot be staged by its parent"
+        );
+        let child_status =
+            inspect_status_with_coverage(&root.join("child"), STATUS_INSPECTION_BUDGET, &full)
+                .await
+                .unwrap();
+        assert_eq!(
+            (child_status.modified_files, child_status.untracked_files),
+            (1, 1)
+        );
+        assert!(
+            !child_status.is_clean,
+            "child work must remain visible in its own row"
+        );
         let child = git2::Repository::open(root.join("child")).unwrap();
         let mut index = child.index().unwrap();
         index.add_path(Path::new("tracked")).unwrap();
         index.write().unwrap();
         commit_index(&child);
-        let advanced = inspect_status_with_coverage(root, STATUS_INSPECTION_BUDGET, &full).await.unwrap();
-        assert_eq!(advanced.modified_files, 1, "advanced child HEAD must stay visible");
-        let added = std::process::Command::new("git").arg("-C").arg(root)
-            .args(["add", "--", "child"]).output().unwrap();
+        let advanced = inspect_status_with_coverage(root, STATUS_INSPECTION_BUDGET, &full)
+            .await
+            .unwrap();
+        assert_eq!(
+            advanced.modified_files, 1,
+            "advanced child HEAD must stay visible"
+        );
+        let added = std::process::Command::new("git")
+            .arg("-C")
+            .arg(root)
+            .args(["add", "--", "child"])
+            .output()
+            .unwrap();
         assert!(added.status.success());
-        let staged = inspect_status_with_coverage(root, STATUS_INSPECTION_BUDGET, &full).await.unwrap();
-        assert_eq!(staged.staged_files, 1, "staged gitlink change must stay visible");
-        assert_eq!(std::fs::read(root.join("other/tracked")).unwrap(), b"unstaged child work");
-        assert_eq!(std::fs::read(root.join("child/untracked")).unwrap(), b"new child work");
+        let staged = inspect_status_with_coverage(root, STATUS_INSPECTION_BUDGET, &full)
+            .await
+            .unwrap();
+        assert_eq!(
+            staged.staged_files, 1,
+            "staged gitlink change must stay visible"
+        );
+        assert_eq!(
+            std::fs::read(root.join("other/tracked")).unwrap(),
+            b"unstaged child work"
+        );
+        assert_eq!(
+            std::fs::read(root.join("child/untracked")).unwrap(),
+            b"new child work"
+        );
     }
 
     #[test]

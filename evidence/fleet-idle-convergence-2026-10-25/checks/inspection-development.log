@@ -1,0 +1,9 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: unused import: `inspect_status`
+    --> dracon-sync/src/git/mod.rs:1352:29
+     |
+1352 | pub(crate) use inspection::{inspect_status, inspect_status_with_coverage, STATUS_INSPECTION_BUDGET};
+     |                             ^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
