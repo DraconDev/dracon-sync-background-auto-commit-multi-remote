@@ -11928,8 +11928,7 @@ auto_bump_versions = false
         let _ = std::fs::remove_file(repo.join(".git").join("index.lock"));
     }
 
-    #[tokio::test]
-    async fn test_filter_only_skip_still_pushes_ahead() {
+    async fn assert_index_deferral_publishes_backlog_without_bypassing_hook(reject: bool) {
         // Deathrun 2026-10-02: the late filter-only branch (staged diff
         // empty after add) returned NothingToDo WITHOUT pushing
         // pre-existing ahead — 8 commits sat 4h+ unpushed with zero push
@@ -11980,6 +11979,15 @@ auto_bump_versions = false
             &["remote", "add", "origin", &origin_bare.to_string_lossy()],
         );
         git_cmd(&repo, &["push", "-q", "-u", "origin", "main"]);
+        let remote_before = git_cmd(&origin_bare, &["rev-parse", "refs/heads/main"]);
+        assert!(remote_before.status.success());
+        if reject {
+            let hook = hooks.join("pre-push");
+            std::fs::write(&hook, "#!/bin/sh\necho invoked > .git/deferred-hook-invoked\necho 'meaningful fixture policy refuses publication' >&2\nexit 1\n").unwrap();
+            #[cfg(unix)]
+            std::fs::set_permissions(&hook, std::os::unix::fs::PermissionsExt::from_mode(0o755))
+                .unwrap();
+        }
         // Two ahead commits with real upstream tracking.
         std::fs::write(repo.join("file.txt"), "v2\n").unwrap();
         git_cmd(&repo, &["commit", "--no-verify", "-am", "ahead one"]);
@@ -12017,16 +12025,25 @@ trusted_authors = ["test"]
             .args(["-C", &repo.to_string_lossy(), "rev-parse", "HEAD"])
             .output()
             .unwrap();
-        assert_eq!(
-            String::from_utf8_lossy(&bare_head.stdout),
-            String::from_utf8_lossy(&local_head.stdout),
-            "ahead must push even when the commit is skipped as filter-only"
-        );
-        assert!(
-            matches!(result, Ok(SyncOutcome::Blocked)),
-            "dirty local work must remain visibly blocked AFTER publishing its existing backlog: {:?}",
-            result
-        );
+        assert!(bare_head.status.success() && local_head.status.success());
+        if reject {
+            assert!(matches!(result, Ok(SyncOutcome::PushFailed)),
+                "actual hook refusal must remain a publication failure, not just local Blocked: {result:?}");
+            assert_eq!(bare_head.stdout, remote_before.stdout);
+            assert!(
+                repo.join(".git/deferred-hook-invoked").is_file(),
+                "the meaningful hook must actually execute"
+            );
+        } else {
+            assert_eq!(
+                bare_head.stdout, local_head.stdout,
+                "existing committed backlog must publish despite unrelated index contention"
+            );
+            assert!(
+                matches!(result, Ok(SyncOutcome::Blocked)),
+                "local intent remains visibly blocked after successful publication: {result:?}"
+            );
+        }
         assert_eq!(std::fs::read(repo.join("file.txt")).unwrap(), b"v4-dirty\n");
         assert_eq!(git_cmd(&repo, &["show", ":file.txt"]).stdout, b"v3\n");
         assert_eq!(
@@ -12035,6 +12052,17 @@ trusted_authors = ["test"]
         );
 
         let _ = std::fs::remove_file(repo.join(".git").join("index.lock"));
+    }
+
+    #[tokio::test]
+    async fn test_filter_only_skip_still_pushes_ahead() {
+        assert_index_deferral_publishes_backlog_without_bypassing_hook(false).await;
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn index_deferral_backlog_publication_preserves_meaningful_hook_refusal() {
+        assert_index_deferral_publishes_backlog_without_bypassing_hook(true).await;
     }
 
     #[tokio::test]

@@ -1,0 +1,24 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.07s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 1 test
+test sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore ... FAILED
+
+failures:
+
+---- sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore stdout ----
+📝 committed 3 file(s) in /tmp/.tmpI8iYAR/repo
+
+thread 'sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore' (197354) panicked at dracon-sync/src/sync/bucket_qualification_tests.rs:249:5:
+assertion `left == right` failed: native untracked after enrollment: "bucket-assets.manifest.json.lock\0public/a.png\0public/b.png\0"
+  left: StagedPending
+ right: Synced
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1446 filtered out; finished in 5.82s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
