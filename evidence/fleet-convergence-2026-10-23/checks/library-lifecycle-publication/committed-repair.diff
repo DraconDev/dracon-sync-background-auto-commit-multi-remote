@@ -1,0 +1,206 @@
+diff --git a/packages/brand-icon/.gitignore b/packages/brand-icon/.gitignore
+new file mode 100644
+index 0000000000..058414b46a
+--- /dev/null
++++ b/packages/brand-icon/.gitignore
+@@ -0,0 +1,2 @@
++# Compiler staging only; never source or persistent build evidence.
++/.dist-build-*/
+diff --git a/packages/brand-icon/package.json b/packages/brand-icon/package.json
+index df2cc9da8d..10bc91b42a 100644
+--- a/packages/brand-icon/package.json
++++ b/packages/brand-icon/package.json
+@@ -17,7 +17,7 @@
+     "README.md"
+   ],
+   "scripts": {
+-    "build": "rm -rf dist && tsc",
++    "build": "node ../../scripts/build-library.mjs",
+     "dev": "tsc --watch",
+     "clean": "rm -rf dist",
+     "typecheck": "tsc --noEmit",
+diff --git a/packages/extension-forms/.gitignore b/packages/extension-forms/.gitignore
+new file mode 100644
+index 0000000000..058414b46a
+--- /dev/null
++++ b/packages/extension-forms/.gitignore
+@@ -0,0 +1,2 @@
++# Compiler staging only; never source or persistent build evidence.
++/.dist-build-*/
+diff --git a/packages/extension-forms/package.json b/packages/extension-forms/package.json
+index 97f3665f4a..1fab8428c9 100644
+--- a/packages/extension-forms/package.json
++++ b/packages/extension-forms/package.json
+@@ -13,7 +13,7 @@
+     }
+   },
+   "scripts": {
+-    "build": "rm -rf dist && tsc",
++    "build": "node ../../scripts/build-library.mjs",
+     "dev": "tsc --watch",
+     "clean": "rm -rf dist",
+     "typecheck": "tsc --noEmit",
+diff --git a/packages/extension-react/.gitignore b/packages/extension-react/.gitignore
+new file mode 100644
+index 0000000000..168c828b46
+--- /dev/null
++++ b/packages/extension-react/.gitignore
+@@ -0,0 +1,2 @@
++# Sibling compiler staging preserves relative source maps and live dist readers.
++/.dist-build-*/
+diff --git a/packages/extension-react/package.json b/packages/extension-react/package.json
+index cf84732122..d31cf759ae 100644
+--- a/packages/extension-react/package.json
++++ b/packages/extension-react/package.json
+@@ -34,12 +34,12 @@
+     "AUDIT_2026-07-07.md"
+   ],
+   "scripts": {
+-    "build": "rm -rf dist && tsc",
++    "build": "node ../../scripts/build-library.mjs",
+     "dev": "tsc --watch",
+     "clean": "rm -rf dist",
+     "typecheck": "tsc --noEmit",
+     "lint": "eslint src/",
+-    "test": "vitest run --passWithNoTests",
++    "test": "node --test scripts/build.check.mjs && vitest run --passWithNoTests",
+     "prepare": "bun run build"
+   },
+   "dependencies": {
+diff --git a/packages/extension-react/scripts/build.check.mjs b/packages/extension-react/scripts/build.check.mjs
+new file mode 100644
+index 0000000000..87c5785cd6
+--- /dev/null
++++ b/packages/extension-react/scripts/build.check.mjs
+@@ -0,0 +1,66 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import { buildLibrary } from '../../../scripts/build-library.mjs';
++
++async function fixture(work) {
++  const root = await mkdtemp(join(tmpdir(), 'extension-react-build-'));
++  try {
++    await mkdir(join(root, 'dist/components'), { recursive: true });
++    await writeFile(join(root, 'dist/components/index.js'), 'export const value = 1;');
++    await work(root);
++  } finally { await rm(root, { recursive: true, force: true }); }
++}
++
++// The compiler pause forces the exact interleaving exposed by Bun1.3.14:
++// a dependent imports while its library's prepare/build is still in flight.
++test('readers retain complete output throughout a rebuild and receive the new output', { timeout: 10000 }, async () => {
++  await fixture(async root => {
++    const path = join(root, 'dist/components/index.js');
++    let release;
++    const blocked = new Promise(resolve => { release = resolve; });
++    let entered;
++    const ready = new Promise(resolve => { entered = resolve; });
++    const build = buildLibrary(root, async staging => {
++      await mkdir(join(staging, 'components'));
++      await writeFile(join(staging, 'components/index.js'), 'export const value = 2;');
++      entered();
++      await blocked;
++    });
++    await ready;
++    try {
++      assert.equal(await readFile(path, 'utf8'), 'export const value = 1;');
++    } finally { release(); }
++    await build;
++    assert.equal(await readFile(path, 'utf8'), 'export const value = 2;');
++    assert.deepEqual((await readdir(root)).filter(x => x.startsWith('.dist-build-')), []);
++  });
++});
++
++test('failed compilation preserves readable output and cleans staging', { timeout: 10000 }, async () => {
++  await fixture(async root => {
++    await assert.rejects(buildLibrary(root, async staging => {
++      await writeFile(join(staging, 'partial.js'), 'partial');
++      throw new Error('type error');
++    }), /type error/);
++    assert.equal(await readFile(join(root, 'dist/components/index.js'), 'utf8'), 'export const value = 1;');
++    assert.deepEqual((await readdir(root)).filter(x => x.startsWith('.dist-build-')), []);
++  });
++});
++
++test('successful publication prunes stale compiler output but preserves other files', { timeout: 10000 }, async () => {
++  await fixture(async root => {
++    await writeFile(join(root, 'dist/obsolete.d.ts'), 'obsolete');
++    await writeFile(join(root, 'dist/NOTICE.txt'), 'keep');
++    await buildLibrary(root, async staging => {
++      await mkdir(join(staging, 'components'));
++      await writeFile(join(staging, 'components/index.js'), 'export const value = 3;');
++      await writeFile(join(staging, 'components/index.js.map'), '{"sources":["../../src/components/index.ts"]}');
++    });
++    await assert.rejects(readFile(join(root, 'dist/obsolete.d.ts')), { code: 'ENOENT' });
++    assert.equal(await readFile(join(root, 'dist/NOTICE.txt'), 'utf8'), 'keep');
++    assert.equal(JSON.parse(await readFile(join(root, 'dist/components/index.js.map'), 'utf8')).sources[0], '../../src/components/index.ts');
++  });
++});
+diff --git a/scripts/build-library.mjs b/scripts/build-library.mjs
+new file mode 100644
+index 0000000000..0cd21ebb74
+--- /dev/null
++++ b/scripts/build-library.mjs
+@@ -0,0 +1,59 @@
++import { mkdtemp, mkdir, readdir, rename, rm } from 'node:fs/promises';
++import { join, relative, resolve } from 'node:path';
++import { spawnSync } from 'node:child_process';
++import { createRequire } from 'node:module';
++import { fileURLToPath } from 'node:url';
++
++async function files(dir) {
++  const result = [];
++  for (const entry of await readdir(dir, { withFileTypes: true }).catch(error => {
++    if (error.code === 'ENOENT') return [];
++    throw error;
++  })) {
++    const path = join(dir, entry.name);
++    if (entry.isDirectory()) result.push(...await files(path));
++    else if (entry.isFile()) result.push(path);
++    else throw new Error(`Unexpected generated-output entry: ${path}`);
++  }
++  return result;
++}
++
++/** Keep prebuilt modules readable while a dependent's lifecycle imports them.
++ * Staging is a sibling of dist so relative source-map paths remain correct.
++ * No failed compilation can erase the last successful output.
++ */
++export async function buildLibrary(cwd, compile) {
++  const staging = await mkdtemp(join(cwd, '.dist-build-'));
++  const dist = join(cwd, 'dist');
++  try {
++    await compile(staging);
++    const output = await files(staging);
++    if (!output.length) throw new Error('Compiler produced no output');
++    const keep = new Set(output.map(path => relative(staging, path)));
++    await mkdir(dist, { recursive: true });
++    for (const source of output) {
++      const target = join(dist, relative(staging, source));
++      await mkdir(resolve(target, '..'), { recursive: true });
++      await rename(source, target);
++    }
++    // Only obsolete compiler outputs are pruned, after every new output exists.
++    for (const path of await files(dist)) {
++      if (!keep.has(relative(dist, path)) && /\.(?:[cm]?jsx?|d\.ts)(?:\.map)?$/.test(path)) {
++        await rm(path);
++      }
++    }
++  } finally {
++    await rm(staging, { recursive: true, force: true });
++  }
++}
++
++if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
++  const cwd = process.cwd();
++  const require = createRequire(join(cwd, 'package.json'));
++  await buildLibrary(cwd, async staging => {
++    const child = spawnSync(process.execPath, [require.resolve('typescript/bin/tsc'), '--outDir', staging],
++      { cwd, stdio: 'inherit' });
++    if (child.error) throw child.error;
++    if (child.status !== 0) throw new Error(`TypeScript compilation failed (${child.signal || child.status})`);
++  });
++}

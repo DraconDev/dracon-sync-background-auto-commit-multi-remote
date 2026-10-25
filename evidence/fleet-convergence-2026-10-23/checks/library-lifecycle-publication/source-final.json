@@ -1,0 +1,14 @@
+{
+  "daemon_commit_anchor": "4b955e45fd6ae7df9324486da99dcdf3c088e2ad",
+  "files": {
+    "scripts/build-library.mjs": "a524467afa04b36349d146884040d3491ad69440ebfe46f4d6241efe32ad828d",
+    "packages/extension-react/package.json": "e13c9bbf95c94f4ae087b66e5431dbd68bb5ce325427840a5e36a548a2602c96",
+    "packages/extension-react/scripts/build.check.mjs": "d3f8c724ff8104251f321f7e09a7f85e3449cc13c4df2ae9024b50de62070d6b",
+    "packages/extension-react/.gitignore": "9a5eca109590440b5904279bed8b374b3e494248c87daaef8e203cd5625ec4d1",
+    "packages/brand-icon/package.json": "9f348b5c8a3259a213736d830d1ef4eaf69d2c6e2f0a3f21f245e42e4e3f8939",
+    "packages/brand-icon/.gitignore": "890acbcfc0a59f7af43c5e9a90d9b38d583a089c231ecf565af2009fe87c60cd",
+    "packages/extension-forms/package.json": "71e0afdd8df7aa99dfbe6aa1e542e35e85c8ebeb09029d72d7019fc96d5447ab",
+    "packages/extension-forms/.gitignore": "890acbcfc0a59f7af43c5e9a90d9b38d583a089c231ecf565af2009fe87c60cd"
+  },
+  "all_required_filters_unchanged": true
+}
