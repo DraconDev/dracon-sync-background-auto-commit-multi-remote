@@ -10155,30 +10155,53 @@ push_url = "{}"
 
         let observe = |path: &Path, args: &[&str]| {
             let output = git_cmd(path, args);
-            assert!(output.status.success(), "Git observation {args:?} failed: {}", String::from_utf8_lossy(&output.stderr));
+            assert!(
+                output.status.success(),
+                "Git observation {args:?} failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
             output.stdout
         };
         let mut result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None)
-            .await.expect("mirror publication must not fail");
+            .await
+            .expect("mirror publication must not fail");
         for round in 0..4 {
-            assert!(matches!(result, SyncOutcome::Synced | SyncOutcome::StagedPending | SyncOutcome::NothingToDo),
-                "transport failure or ownership pause is not mirror success: {result:?}");
+            assert!(
+                matches!(
+                    result,
+                    SyncOutcome::Synced | SyncOutcome::StagedPending | SyncOutcome::NothingToDo
+                ),
+                "transport failure or ownership pause is not mirror success: {result:?}"
+            );
             let head = observe(&repo, &["rev-parse", "HEAD"]);
             let origin = observe(&origin_bare, &["rev-parse", "refs/heads/master"]);
             let mirror = observe(&mirror_bare, &["rev-parse", "refs/heads/master"]);
-            let raw = observe(&repo, &["status", "--porcelain=v1", "--untracked-files=all"]);
+            let raw = observe(
+                &repo,
+                &["status", "--porcelain=v1", "--untracked-files=all"],
+            );
             let converged = raw.is_empty() && origin == head && mirror == head;
             if result != SyncOutcome::StagedPending {
-                assert!(converged, "healthy/no-work must mean BOTH destinations match and raw Git is clean");
+                assert!(
+                    converged,
+                    "healthy/no-work must mean BOTH destinations match and raw Git is clean"
+                );
             }
             if converged {
                 assert_eq!(observe(&repo, &["show", "HEAD:change.txt"]), b"changed\n");
                 return;
             }
-            assert!(round < 3, "mirror publication/metadata did not converge within four rounds");
-            result = tokio::time::timeout(Duration::from_secs(60),
-                sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None))
-                .await.expect("mirror follow-up must be bounded").unwrap();
+            assert!(
+                round < 3,
+                "mirror publication/metadata did not converge within four rounds"
+            );
+            result = tokio::time::timeout(
+                Duration::from_secs(60),
+                sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None),
+            )
+            .await
+            .expect("mirror follow-up must be bounded")
+            .unwrap();
         }
         unreachable!();
     }
