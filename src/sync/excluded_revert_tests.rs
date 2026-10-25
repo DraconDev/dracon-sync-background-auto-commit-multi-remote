@@ -123,6 +123,47 @@ async fn excluded_restore_defers_active_writer_without_relocating_its_future_byt
     assert!(recovery_contains(repo, &later));
 }
 #[tokio::test]
+async fn excluded_restore_foreign_lock_is_not_removed_or_used_as_hygiene_ownership() {
+    let d = fixture(); let repo = d.path();
+    std::fs::write(repo.join("excluded.log"), b"operator bytes").unwrap();
+    std::fs::write(repo.join(".git/index.lock"), b"foreign owner").unwrap();
+    let index = std::fs::read(repo.join(".git/index")).unwrap();
+    assert!(!restore(repo).await.unwrap());
+    assert_eq!(std::fs::read(repo.join(".git/index.lock")).unwrap(), b"foreign owner");
+    assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), index);
+    assert_eq!(std::fs::read(repo.join("excluded.log")).unwrap(), b"operator bytes");
+}
+#[tokio::test]
+async fn excluded_restore_deadline_kills_required_filter_descendants_without_mutation() {
+    let d = fixture(); let repo = d.path();
+    std::fs::write(repo.join("excluded.log"), b"operator bytes").unwrap();
+    std::fs::write(repo.join(".gitattributes"), b"excluded.log filter=restoreprobe\n").unwrap();
+    git(repo, &["config", "filter.restoreprobe.required", "true"]);
+    git(repo, &["config", "filter.restoreprobe.clean", "cat"]);
+    let script = repo.join(".git/hanging-smudge");
+    let pidfile = repo.join(".git/owned-filter-pid");
+    std::fs::write(&script, format!("#!/bin/sh\nsleep 60 &\necho $! > '{}'\nwait\n", pidfile.display())).unwrap();
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+    git(repo, &["config", "filter.restoreprobe.smudge", script.to_str().unwrap()]);
+    let index = std::fs::read(repo.join(".git/index")).unwrap();
+    let start = tokio::time::Instant::now();
+    let result = super::excluded_revert::restore(repo, &paths(), start+Duration::from_secs(3)).await;
+    assert!(result.is_err(), "required filter cannot outlive the absolute deadline");
+    assert!(start.elapsed()<Duration::from_secs(8));
+    let pid: u32 = std::fs::read_to_string(&pidfile).expect("hanging filter actually started").trim().parse().unwrap();
+    for _ in 0..40 {
+        let live = std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|s|
+            !s.rsplit_once(')').unwrap().1.trim_start().starts_with('Z'));
+        if !live { break; }
+        tokio::time::sleep(Duration::from_millis(25)).await;
+    }
+    assert!(!std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|s|
+        !s.rsplit_once(')').unwrap().1.trim_start().starts_with('Z')), "owned descendant still running");
+    assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), index);
+    assert_eq!(std::fs::read(repo.join("excluded.log")).unwrap(), b"operator bytes");
+    assert!(!repo.join(".git/index.lock").exists());
+}
+#[tokio::test]
 async fn excluded_restore_preserves_foreign_staged_intent_exactly() {
     let d = fixture();
     let repo = d.path();
