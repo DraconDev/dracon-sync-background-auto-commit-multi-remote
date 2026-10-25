@@ -11664,19 +11664,15 @@ auto_bump_versions = false
         }
 
         let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
-        assert!(
-            matches!(result, Ok(SyncOutcome::Synced)),
-            "deletions should be committed, not blocked"
-        );
-
-        // Verify the deleted files are gone from tracking
-        let ls = git_cmd(&repo, &["ls-files"]);
-        let ls_str = String::from_utf8_lossy(&ls.stdout);
-        assert!(
-            ls_str.trim() == "file0.txt",
-            "only file0 should remain, got: {:?}",
-            ls_str
-        );
+        assert_eq!(git_cmd(&repo, &["show", "HEAD:file0.txt"]).stdout, b"modified",
+            "the original pass must commit the surviving file");
+        // Check every original path, not a broad metadata-name waiver. Auto-
+        // hardening may also add legitimate configuration/public-key files.
+        for i in 1..7 {
+            assert!(!git_cmd(&repo, &["cat-file", "-e", &format!("HEAD:file{i}.txt")]).status.success(),
+                "the original pass must commit deletion of file{i}.txt");
+        }
+        assert_synced_after_metadata_followup(&repo, &policy, result).await;
     }
 
     /// CR-2 regression test: filter-only changes must NOT be re-detected by
@@ -12098,13 +12094,10 @@ trusted_authors = ["test"]
             tripped.exists(),
             "the first add must have hit the mocked contention"
         );
-        assert!(
-            matches!(result, Ok(SyncOutcome::Synced)),
-            "retry after contention must succeed in the same sync, got: {result:?}"
-        );
         let blob = git_cmd(&repo, &["show", "HEAD:pending.txt"]);
-        assert!(blob.status.success());
+        assert!(blob.status.success(), "retry must commit the intended file in THIS pass: {result:?}");
         assert_eq!(blob.stdout, b"pending work\n");
+        assert_synced_after_metadata_followup(&repo, &policy, result).await;
     }
 
     /// Unit test for R4-SC-16's matcher: exact hits, dir-prefix hits
