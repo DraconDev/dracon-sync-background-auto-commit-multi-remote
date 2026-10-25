@@ -866,4 +866,15 @@ test git::discovery::submodule_tests::list_submodules_returns_empty_sha_when_not
 test git::discovery::submodule_tests::list_submodules_returns_empty_when_no_gitmodules ... ok
 test git::github_pack_tests::a_single_behind_remote_is_not_converged ... ok
 test git::github_pack_tests::async_wrapper_matches_sync_verdict ... ok
-test git::github_pack_tests::cache_hit_performs_no_remeasurement ... 
+test git::github_pack_tests::cache_hit_performs_no_remeasurement ... ok
+test git::github_pack_tests::cache_hit_survives_packed_refs ... ok
+test git::github_pack_tests::compressible_over_limit_clears_via_compressed_second_chance ... ok
+test git::github_pack_tests::converged_repo_short_circuits_a_whole_git_over_the_limit ... ok
+test git::github_pack_tests::converged_verdict_is_cached ... ok
+test git::github_pack_tests::delta_is_empty_when_github_already_has_the_branch ... ok
+test git::github_pack_tests::detached_head_is_not_cached ... ok
+test git::github_pack_tests::different_limit_remeasures ... ok
+test git::github_pack_tests::distinct_github_repos_still_take_the_max_across_scenarios ... ok
+test git::github_pack_tests::duplicate_url_github_remote_without_tracking_ref_does_not_force_whole_branch ... ok
+test git::github_pack_tests::incompressible_over_limit_stays_flagged ... ok
+test git::github_pack_tests::missing_tracking_ref_measures_whole_branch ... 
