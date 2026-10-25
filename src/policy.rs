@@ -578,13 +578,11 @@ pub(crate) struct SyncPolicy {
     pub(crate) auto_github_private_account: String,
     #[serde(default = "default_max_stage_file_bytes")]
     pub(crate) max_stage_file_bytes: u64,
-    /// Maximum number of files to stage in a single commit batch.
-    /// When a repo has more untracked files than this limit, the daemon
-    /// commits them in multiple smaller batches (each ≤ this size) to
-    /// avoid lock contention and large commit overhead.
-    /// Default: 100000. The large default keeps high-volume test/audit
-    /// batches in one commit; operators can lower it when smaller batches
-    /// are preferable.
+    /// Optional file-count batch limit. Zero (the default) is unlimited,
+    /// keeping related changes together. A positive limit is an explicit
+    /// performance choice; it can split new work or defer a larger staged
+    /// batch rather than discard intent. File-size, publication, ownership,
+    /// storage, hook and finite-operation guards are independent.
     #[serde(default = "default_max_stage_batch_files")]
     pub(crate) max_stage_batch_files: usize,
 
@@ -1266,10 +1264,9 @@ pub(crate) fn default_max_stage_file_bytes() -> u64 {
 }
 
 fn default_max_stage_batch_files() -> usize {
-    // CHANGED 2026-06-20: 100 -> 100000. The batch limit was splitting
-    // large Playwright test runs into multiple commits, slowing sync.
-    // With 100000, the daemon commits everything it can in one cycle.
-    100000
+    // Operator decision 2026-10-25: file-count batching is opt-in. Zero
+    // must not become take(0), an empty batch, or a permanent deferral.
+    0
 }
 
 pub(crate) fn default_auto_resolve_unmerged() -> bool {
@@ -2153,7 +2150,7 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
         auto_github_private: false,
         auto_github_private_account: "DraconDev".to_string(),
         max_stage_file_bytes: 100 * 1024 * 1024,
-        max_stage_batch_files: 100000,
+        max_stage_batch_files: default_max_stage_batch_files(),
         auto_resolve_unmerged: default_auto_resolve_unmerged(),
         push_debounce_secs: default_push_debounce_secs(),
         untracked_warn_threshold: default_untracked_warn_threshold(),
