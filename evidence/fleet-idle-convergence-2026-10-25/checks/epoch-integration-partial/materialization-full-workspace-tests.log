@@ -341,4 +341,11 @@ test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 running 2 tests
 test inventory_covers_every_builtin_family_and_tier ... ok
-test promoted_provider_tokens_replace_completely ... 
+test promoted_provider_tokens_replace_completely ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.59s
+
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-ba7d89301df71044)
+
+running 157 tests
+test lfs_classify::tests::large_database_is_refused_not_enrolled ... 
