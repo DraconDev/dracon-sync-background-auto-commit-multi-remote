@@ -1,1 +1,30 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.95s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 3 tests
+test sync::tests::test_auto_resolve_unmerged_disabled ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head ... FAILED
+test sync::tests::test_auto_resolve_unmerged_working_tree_matches_head ... FAILED
+
+failures:
+
+---- sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head stdout ----
+
+thread 'sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head' (3207449) panicked at dracon-sync/src/sync.rs:14548:14:
+auto_resolve should not error: conflict slots changed before lock; retained original index
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- sync::tests::test_auto_resolve_unmerged_working_tree_matches_head stdout ----
+
+thread 'sync::tests::test_auto_resolve_unmerged_working_tree_matches_head' (3207520) panicked at dracon-sync/src/sync.rs:14485:14:
+auto_resolve should not error: conflict slots changed before lock; retained original index
+
+
+failures:
+    sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head
+    sync::tests::test_auto_resolve_unmerged_working_tree_matches_head
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 1466 filtered out; finished in 0.11s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
