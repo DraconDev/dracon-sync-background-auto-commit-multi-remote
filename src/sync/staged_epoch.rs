@@ -1,6 +1,6 @@
 //! Immutable commit epochs. Neither refusal nor publication installs an index.
 use super::*;
-use anyhow::{bail, ensure};
+use anyhow::ensure;
 use crate::git::staged_intent::{CapturedHead, StagedIntentSnapshot};
 use tokio::time::Instant;
 
@@ -211,7 +211,7 @@ async fn verify_storage(repo: &Path, tree: &str, timeout_secs: u64) -> Result<()
     ensure!(executable.is_absolute(), "epoch helper executable must be absolute");
     let mut command = tokio::process::Command::new(executable);
     for (key, _) in std::env::vars_os() { if key.to_string_lossy().starts_with("GIT_") { command.env_remove(key); } }
-    command.arg("storage").arg("verify-configured-tree").arg("--repo").arg(repo)
+    command.env("TOKIO_WORKER_THREADS", "2").arg("storage").arg("verify-configured-tree").arg("--repo").arg(repo)
         .arg("--tree").arg(tree).arg("--index").arg(&index).current_dir(repo);
     let result = crate::git::run_command_captured_output(command, timeout_secs, "epoch storage verifier", None).await?;
     ensure!(result.status.success(), "immutable storage verifier refused: {}", String::from_utf8_lossy(&result.stderr));

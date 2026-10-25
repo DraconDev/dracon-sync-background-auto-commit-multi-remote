@@ -11,6 +11,9 @@ mod push_isolation_tests;
 #[path = "sync/owned_commit_tests.rs"]
 mod owned_commit_tests;
 
+#[path = "sync/staged_epoch.rs"]
+mod staged_epoch;
+
 #[path = "sync/publication.rs"]
 mod publication;
 
@@ -77,6 +80,8 @@ pub(crate) enum SyncOutcome {
     /// Local work may have progressed, but another owner is publishing. This
     /// is neither successful publication nor a failed transport attempt.
     PublicationPending,
+    /// Staging/publication progressed, but retained local intent needs another epoch.
+    StagedPending,
     Blocked,
     /// ADDED 2026-07-26 (v0.113.2, audit SYNC-H2): the auto-commit
     /// backstop skipped the commit step (operator is committing
@@ -1189,20 +1194,15 @@ pub(crate) fn is_index_lock_failure(msg: &str) -> bool {
 /// extra is foreign. Rename entries compare by new path (both
 /// classifiers agree on it).
 pub(crate) fn staged_extra_paths(
-    repo: &Path,
+    _repo: &Path,
     staged: &[(PathBuf, dracon_git::types::FileStatus)],
     to_stage: &[dracon_git::types::DiffFile],
 ) -> Vec<PathBuf> {
     let intended_files: HashSet<&PathBuf> = to_stage.iter().map(|e| &e.path).collect();
-    let intended_dirs: Vec<&PathBuf> = to_stage
-        .iter()
-        .map(|e| &e.path)
-        .filter(|p| repo.join(p).is_dir())
-        .collect();
     staged
         .iter()
         .map(|(p, _)| p)
-        .filter(|p| !intended_files.contains(*p) && !intended_dirs.iter().any(|d| p.starts_with(d)))
+        .filter(|p| !intended_files.contains(*p))
         .cloned()
         .collect()
 }
@@ -4249,6 +4249,7 @@ async fn stage_commit_and_push(
     to_stage: &[dracon_git::types::DiffFile],
     to_restore: &[dracon_git::types::DiffFile],
     private_assets: Option<&crate::bucket_assets::Prepared>,
+    epoch: Option<staged_epoch::Epoch>,
 ) -> Result<Option<SyncOutcome>> {
     let repo = ctx.repo;
     let policy = ctx.policy;
@@ -4256,6 +4257,10 @@ async fn stage_commit_and_push(
     let has_origin = ctx.has_origin;
     let _idle_seconds = ctx.idle_seconds;
 
+    let captured_at_entry = epoch.is_some();
+    let epoch = if let Some(epoch) = epoch {
+        epoch
+    } else {
     // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): auto-resolve
     // unmerged index entries so the commit loop is never blocked.
     // See `auto_resolve_unmerged_if_safe` for the full rationale.
@@ -4422,20 +4427,8 @@ async fn stage_commit_and_push(
         git_rm_missing(repo, &missing, dry_run).await?;
     }
 
-    // FIXED 2026-10-03 (audit R4-SC-05): post-stage hygiene sweep.
-    // clean_staged_paths ran BEFORE staging; stage-large-then-truncate
-    // in the same cycle — or a concurrent operator/git-add of a large
-    // or excluded file between clean and commit — was swept into the
-    // commit unchecked (the bootstrap path got this sweep in R3-M1;
-    // steady state did not). Re-run the same sweep (staged-blob
-    // oversize sizing + excluded-index rescan) now that staging is
-    // done, so the commit below only sees post-sweep content. The
-    // build-artifact leg is idempotent (second run finds nothing).
-    // Dry-run stages nothing, so there is nothing to re-sweep.
-    if !dry_run {
-        clean_staged_paths(ctx).await?;
-    }
-
+    // Close the staging epoch without resetting excluded/unknown content.
+    // A separate capture is the sole commit candidate, never a live write-tree.
     let staged = git_name_status_entries(repo, &["diff", "--cached", "--name-status"]).await?;
     // ADDED 2026-10-03 (audit R4-SC-16): staged set ⊆ intent.
     // Foreign-staged paths (manual adds landing mid-cycle) defer the
@@ -4455,26 +4448,15 @@ async fn stage_commit_and_push(
             return Ok(Some(SyncOutcome::Blocked));
         }
     }
-    let committed_entries: Vec<dracon_git::types::DiffFile> = staged
-        .into_iter()
-        .map(|(path, status)| dracon_git::types::DiffFile::new(path, status))
-        .collect();
+        staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?
+    };
+    let committed_entries = epoch.entries()?;
 
     let blast_radius = compute_blast_radius(repo);
 
     let version_bumped = false;
 
     if committed_entries.is_empty() {
-        if let Err(e) = run_git_with_timeout(repo, &["reset", "HEAD", "--"], 10, "reset").await {
-            // Non-fatal: the staging area will be cleaned up on the next sync cycle.
-            // The most common cause is index.lock contention from a concurrent process
-            // (sync-now CLI, warden daemon) holding the lock on the same repo.
-            eprintln!(
-                "⚠️ {} filter-only commit: git reset failed (non-fatal, will retry next cycle): {}",
-                repo.display(),
-                e
-            );
-        }
         if debug_enabled() {
             eprintln!(
                 "🐛 {} skipped commit: all changes were filter-only (smudge/clean)",
@@ -4543,103 +4525,11 @@ async fn stage_commit_and_push(
         }
         println!("  message: {}", msg.lines().next().unwrap_or("(empty)"));
     } else {
-        // ADDED 2026-10-09 (goal 20261009193116-1ess3v): forward-only
-        // bucket guard on the daemon commit path. Keep this explicit
-        // check even though ordinary commits now execute hooks: guarded
-        // storage commits seal a verified immutable tree directly, and
-        // repos may have a different configured hook chain. That is how
-        // hellhunter `f5d55b5` (27 deleted protected assets) and deathrun
-        // `30352ba` (4 deleted webp) were committed silently and only
-        // detonated at push time. Run the same staged check the hook
-        // runs; violations (and guard infra failures) block the commit
-        // with the index intact. Repos without a discoverable guard
-        // script are unaffected.
-        if let Some(prepared) = private_assets {
-            if let Err(error) = prepared
-                .verify_staged(repo, policy.stage_op_timeout_secs)
-                .await
-            {
-                eprintln!(
-                    "⚠️ {} private bucket index verification refused auto-commit: {error:#}",
-                    repo.display()
-                );
-                return Ok(Some(SyncOutcome::Blocked));
-            }
-        }
-        if let Err(error) = crate::bucket_guard::check_staged_forward_only(
-            repo,
-            policy.stage_op_timeout_secs,
-            std::env::var("DRACON_BUCKET_GUARD").ok().as_deref(),
-        )
-        .await
-        {
-            eprintln!(
-                "⚠️ {} bucket forward-only guard blocked auto-commit; staged/worktree content retained: {error:#}",
-                repo.display()
-            );
-            return Ok(Some(SyncOutcome::Blocked));
-        }
-        // A storage-guarded commit is sealed through libgit2, which runs no
-        // hooks at all, so the FULL commit-hook lifecycle must be driven
-        // explicitly there (pre-commit, prepare-commit-msg, commit-msg, then
-        // post-commit after the seal) or a refusing `commit-msg` would be
-        // bypassed. The ordinary `git commit` path runs the same lifecycle
-        // itself — driving it there too would execute every hook twice per
-        // commit — so this is gated on the seal actually happening.
-        let guarded = match storage_guarded(repo) {
-            Ok(guarded) => guarded,
-            Err(error) => {
-                // Unresolvable guard binding: the seal would refuse this, so
-                // block it here rather than committing raw bytes via `git`.
-                eprintln!(
-                    "⚠️ {} storage guard binding is not usable; staged/worktree content retained: {error:#}",
-                    repo.display()
-                );
-                return Ok(Some(SyncOutcome::Blocked));
-            }
-        };
-        if guarded {
-            let prepared =
-                run_sealed_commit_hooks(repo, &msg, policy.stage_op_timeout_secs).await?;
-            let repo_path = repo.to_path_buf();
-            let storage_commit = tokio::task::spawn_blocking(move || {
-                crate::storage::prepare_configured_storage_commit(&repo_path, &prepared.message)
-            })
-            .await?;
-            match storage_commit {
-                Ok(Some(prepared)) => {
-                    advance_sealed_commit(repo, &prepared, policy.stage_op_timeout_secs).await?;
-                    drop(prepared);
-                    // Git ignores post-commit's exit status: the commit already
-                    // exists. Report the failure without undoing the commit.
-                    if let Err(error) =
-                        run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs)
-                            .await
-                    {
-                        eprintln!(
-                            "⚠️ {} post-commit hook failed after the sealed commit: {error:#}",
-                            repo.display()
-                        );
-                    }
-                }
-                Ok(None) => {
-                    // A binding that disappears mid-pass must defer, not drive
-                    // the hooks twice by falling back to an ordinary commit.
-                    eprintln!(
-                        "⚠️ {} storage guard vanished mid-pass; staged/worktree content retained",
-                        repo.display()
-                    );
-                    return Ok(Some(SyncOutcome::Blocked));
-                }
-                Err(error) => {
-                    eprintln!("⚠️ {} storage commit guard blocked auto-commit; staged/worktree content retained: {}", repo.display(), error);
-                    return Ok(Some(SyncOutcome::Blocked));
-                }
-            }
-        } else {
-            // Never attempt a libgit2 seal after selecting the native lifecycle:
-            // a newly appearing binding must not seal without running hooks.
-            commit_staged_owned(repo, &msg, policy.stage_op_timeout_secs).await?;
+        let pending = epoch.commit(repo, &msg, policy, ctx.excluded_dir_names, private_assets).await?;
+        if pending {
+            // Publication succeeded, but never call retained staged/unstaged
+            // data clean or reset failure state as though this epoch drained it.
+            return Ok(Some(SyncOutcome::StagedPending));
         }
         if crate::policy::debug_enabled() {
             // Exact commit-completion timestamp for the fairness probe's
@@ -4688,7 +4578,7 @@ async fn stage_commit_and_push(
         }
     }
 
-    if !ctx.commit_only {
+    if !ctx.commit_only && !captured_at_entry {
         prune_other_default_branch(repo).await;
         post_commit_pull(svc, repo, policy).await;
     }
@@ -4703,7 +4593,9 @@ async fn stage_commit_and_push(
         );
     }
 
-    restore_excluded_paths(ctx, to_restore).await?;
+    if !captured_at_entry {
+        restore_excluded_paths(ctx, to_restore).await?;
+    }
 
     // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3): track push
     // failure and surface it as `SyncOutcome::PushFailed` instead of
@@ -4937,250 +4829,28 @@ async fn bootstrap_empty_repo_commit_owned(
         return Ok(false);
     }
 
-    // Untracked enumeration respects .gitignore (including the
-    // warden-managed secrets block) via --exclude-standard.
-    let untracked = untracked_entries(repo).await?;
-    // R3-M2: per-repo entries EXTEND the global list (union helper).
-    let auto_commit_exclude = crate::policy::effective_auto_commit_excludes(policy, &repo_override);
-    let mut to_stage: Vec<String> = Vec::new();
-    for entry in &untracked {
-        // `auto_stage_untracked = false` skips newly-added files,
-        // exactly like the normal pipeline's partition.
-        if !policy.auto_stage_untracked {
-            continue;
+    let epoch = staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?;
+    let epoch = if epoch.has_intent() { epoch } else {
+        let untracked = untracked_entries(repo).await?;
+        let excludes = crate::policy::effective_auto_commit_excludes(policy, &repo_override);
+        let paths: Vec<String> = untracked.iter().filter(|entry| policy.auto_stage_untracked
+            && !crate::exclude::matches_untracked_exclude(repo, &entry.path, &policy.untracked_exclude_patterns)
+            && should_stage_entry(repo, entry, excluded_dir_names, &policy.exclude_file_patterns,
+                policy.max_stage_file_bytes, &excludes))
+            .take(policy.max_stage_batch_files).map(|e| e.path.to_string_lossy().to_string()).collect();
+        if paths.is_empty() || dry_run { return Ok(false); }
+        stage_existing_files_filtered(repo, &paths, false, policy.stage_op_timeout_secs,
+            excluded_dir_names, Some((policy, &excludes))).await?;
+        let fresh = staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?;
+        let intended: HashSet<_> = paths.iter().map(PathBuf::from).collect();
+        if fresh.entries()?.iter().any(|e| !intended.contains(&e.path)) {
+            anyhow::bail!("root staging epoch contains foreign extra paths; retained for next capture");
         }
-        if crate::exclude::matches_untracked_exclude(
-            repo,
-            &entry.path,
-            &policy.untracked_exclude_patterns,
-        ) {
-            continue;
-        }
-        if !should_stage_entry(
-            repo,
-            entry,
-            excluded_dir_names,
-            &policy.exclude_file_patterns,
-            policy.max_stage_file_bytes,
-            &auto_commit_exclude,
-        ) {
-            continue;
-        }
-        to_stage.push(entry.path.to_string_lossy().to_string());
-    }
-    if to_stage.is_empty() {
-        return Ok(false);
-    }
-
-    if dry_run {
-        println!(
-            "🌱 Would create root commit in {} with {} file(s):",
-            repo.display(),
-            to_stage.len()
-        );
-        for p in to_stage.iter().take(10) {
-            println!("  {}", p);
-        }
-        if to_stage.len() > 10 {
-            println!("  ... and {} more", to_stage.len() - 10);
-        }
-        return Ok(false);
-    }
-
-    // Stage explicit paths (never bare `git add .`).
-    // CHANGED 2026-07-21 (v0.112.31, audit H6/F1.5): filtered variant
-    // so directory-expanded files get the per-file policy re-applied.
-    stage_existing_files_filtered(
-        repo,
-        &to_stage,
-        dry_run,
-        policy.stage_op_timeout_secs,
-        excluded_dir_names,
-        Some((policy, &auto_commit_exclude)),
-    )
-    .await?;
-
-    // Verify something actually landed in the index (files may have
-    // been deleted between ls-files and add).
-    let staged = git_name_status_entries(repo, &["diff", "--cached", "--name-status"]).await?;
-    if staged.is_empty() {
-        return Ok(false);
-    }
-
-    // ADDED 2026-07-21 (v0.112.33, audit M3/F1.10): staged-hygiene
-    // sweep before the root commit. The bootstrap stages its
-    // policy-filtered list, but the INDEX may also contain content
-    // the OPERATOR staged before the daemon discovered the repo
-    // (e.g. a 300 MiB file, an excluded pattern) — previously that
-    // content was swept into the "auto: initial commit" unchecked.
-    // The shared hygiene helpers (`unstage_oversized_paths` /
-    // `unstage_excluded_paths`) use `git reset HEAD --`, which fails
-    // on an unborn branch (no HEAD), so the unborn-branch primitive
-    // is `git rm --cached`.
-    // FIXED 2026-10-03 (audit R3-M1): size the STAGED blob here, not
-    // the worktree file — the old `should_stage_entry` worktree stat
-    // let stage-large-then-truncate smuggle a >max blob into the root
-    // commit (M4 covered steady state only).
-    let staged_paths: Vec<std::path::PathBuf> =
-        staged.iter().map(|(path, _)| path.clone()).collect();
-    let blob_sizes = staged_blob_sizes_for(repo, staged_paths).await?;
-    let mut to_unstage: Vec<std::path::PathBuf> = Vec::new();
-    for (path, _status) in &staged {
-        let entry =
-            dracon_git::types::DiffFile::new(path.clone(), dracon_git::types::FileStatus::Added);
-        let passes = match blob_sizes.get(path) {
-            Some(Some(staged_bytes)) => crate::exclude::should_stage_entry_with_blob_size(
-                repo,
-                &entry,
-                *staged_bytes,
-                excluded_dir_names,
-                &policy.exclude_file_patterns,
-                policy.max_stage_file_bytes,
-                &auto_commit_exclude,
-            ),
-            // Unmeasurable blob: fail closed (unstage), like
-            // `unstage_oversized_paths`.
-            Some(None) => {
-                eprintln!(
-                    "⚠️ cannot measure staged blob for {} in {}; unstaging before root commit (fail closed)",
-                    path.display(),
-                    repo.display()
-                );
-                false
-            }
-            // Present in `diff --cached` but gone from `ls-files -s`:
-            // an index race that resolved itself (nothing staged —
-            // nothing to protect). Fall back to the worktree check.
-            None => should_stage_entry(
-                repo,
-                &entry,
-                excluded_dir_names,
-                &policy.exclude_file_patterns,
-                policy.max_stage_file_bytes,
-                &auto_commit_exclude,
-            ),
-        } && !crate::exclude::matches_untracked_exclude(
-            repo,
-            path,
-            &policy.untracked_exclude_patterns,
-        );
-        if !passes {
-            to_unstage.push(path.clone());
-        }
-    }
-    for chunk in to_unstage.chunks(50) {
-        let mut cmd = crate::policy::tokio_git_command();
-        // `-f`: `git rm --cached` refuses ("staged content different
-        // from both the file and the HEAD") exactly in the R3-M1 case
-        // the sweep exists for — index ≠ truncated worktree. Forcing
-        // is safe: the blob stays in the object store and `--cached`
-        // never touches the worktree file.
-        cmd.args(["rm", "--cached", "-f", "-q", "--"])
-            .current_dir(repo)
-            .kill_on_drop(true);
-        for p in chunk {
-            cmd.arg(p);
-        }
-        // FIXED 2026-09-27 (audit F87): the previous `cmd.status().await?`
-        // discarded the exit status. On any non-zero exit (index.lock
-        // contention, a pathspec the unborn branch cannot resolve) the
-        // sweep silently no-op'd and the very next step committed exactly
-        // the oversized/excluded content the sweep exists to keep out.
-        // Both sibling helpers were fixed for this class in v0.112.33
-        // (`unstage_oversized_paths` in git/staging.rs, `unstage_excluded_
-        // paths` in sync.rs); the bootstrap twin was missed.
-        let status = cmd.status().await?;
-        if !status.success() {
-            return Err(anyhow::anyhow!(
-                "git rm --cached ({} paths) failed in {}: exit {}",
-                chunk.len(),
-                repo.display(),
-                status
-            ));
-        }
-    }
-
-    // Re-verify after the hygiene sweep.
-    let staged = git_name_status_entries(repo, &["diff", "--cached", "--name-status"]).await?;
-    if staged.is_empty() {
-        return Ok(false);
-    }
-
-    let msg = format!("auto: initial commit ({} files)", staged.len());
-    // Same guarantee as the steady-state path: when the root commit will be
-    // sealed through libgit2, drive the FULL commit-hook lifecycle explicitly
-    // (a seal runs no hooks). The `git commit` path runs it itself.
-    let mut commit_message = msg.clone();
-    let guarded = match storage_guarded(repo) {
-        Ok(guarded) => guarded,
-        Err(error) => {
-            eprintln!(
-                "⚠️ {} storage guard binding is not usable; staged/worktree content retained: {error:#}",
-                repo.display()
-            );
-            return Ok(false);
-        }
+        fresh
     };
-    if guarded {
-        let prepared = match run_sealed_commit_hooks(repo, &msg, policy.stage_op_timeout_secs).await
-        {
-            Ok(prepared) => prepared,
-            Err(error) => {
-                eprintln!(
-                    "⚠️ {} configured commit hook refused the root commit; staged/worktree content retained: {error:#}",
-                    repo.display()
-                );
-                return Err(error);
-            }
-        };
-        commit_message = prepared.message;
-        let sealed_message = commit_message.clone();
-        let repo_path = repo.to_path_buf();
-        let sealed = tokio::task::spawn_blocking(move || {
-            crate::storage::prepare_configured_storage_commit(&repo_path, &sealed_message)
-        })
-        .await?;
-        match sealed {
-            Ok(Some(prepared)) => {
-                advance_sealed_commit(repo, &prepared, policy.stage_op_timeout_secs).await?;
-                drop(prepared);
-                // `post-commit` runs only after a real commit, exactly like Git.
-                if let Err(error) =
-                    run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs)
-                        .await
-                {
-                    eprintln!(
-                        "⚠️ {} post-commit hook failed after the sealed root commit: {error:#}",
-                        repo.display()
-                    );
-                }
-                return Ok(true);
-            }
-            Ok(None) => {
-                // Hooks have already run. A binding that disappears mid-pass
-                // must defer rather than run the same hooks again via Git.
-                eprintln!(
-                    "⚠️ {} storage guard vanished before the root commit; staged/worktree content retained",
-                    repo.display()
-                );
-                return Ok(false);
-            }
-            Err(error) => {
-                eprintln!(
-                    "⚠️ {} storage guard blocked root commit; staged/worktree content retained: {}",
-                    repo.display(),
-                    error
-                );
-                return Ok(false);
-            }
-        }
-    }
-    commit_staged_owned(repo, &commit_message, policy.stage_op_timeout_secs).await?;
-    eprintln!(
-        "🌱 {} created root commit ({} files, empty repo bootstrap)",
-        repo.display(),
-        staged.len()
-    );
+    if !epoch.has_intent() || dry_run { return Ok(false); }
+    let message = format!("auto: initial commit ({} files)", epoch.entries()?.len());
+    epoch.commit(repo, &message, policy, excluded_dir_names, None).await?;
     Ok(true)
 }
 
@@ -5203,6 +4873,7 @@ async fn bootstrap_empty_repo_commit_owned(
 ///
 /// The `staged_op` process group is cancelled and killed on timeout, which also
 /// bounds hook execution: a hanging hook cannot outlive the pass.
+#[cfg(test)]
 async fn commit_staged_owned(repo: &Path, message: &str, timeout_secs: u64) -> Result<()> {
     run_git_with_timeout(
         repo,
@@ -5211,39 +4882,6 @@ async fn commit_staged_owned(repo: &Path, message: &str, timeout_secs: u64) -> R
         "commit-staged",
     )
     .await
-}
-
-/// Publish only the verified immutable object, with native Git's ref hooks and
-/// an expected-old-tip check. A concurrent HEAD advance must never be lost.
-async fn advance_sealed_commit(
-    repo: &Path,
-    prepared: &crate::storage::PreparedStorageCommit,
-    timeout_secs: u64,
-) -> Result<()> {
-    run_git_with_timeout(
-        repo,
-        &[
-            "update-ref",
-            "-m",
-            "commit: storage-verified auto commit",
-            "HEAD",
-            &prepared.commit_id,
-            &prepared.previous_id,
-        ],
-        timeout_secs.max(1),
-        "sealed-commit-ref",
-    )
-    .await
-}
-
-/// Whether the commit about to be made will be SEALED through libgit2.
-///
-/// The error case is NOT flattened to `false`: a repository whose storage
-/// attributes are committed/staged without a resolvable guard binding must be
-/// BLOCKED (the seal is what refuses it), not silently downgraded to a plain
-/// `git commit` that would commit the raw bytes the guard exists to stop.
-fn storage_guarded(repo: &Path) -> Result<bool> {
-    crate::storage::has_configured_storage_guard(repo)
 }
 
 /// Run ONE configured hook, tolerating a repository that has none.
@@ -5547,6 +5185,9 @@ async fn sync_repo_local_with_ownership(
         return Ok(blocked);
     }
 
+    let entry_epoch = staged_epoch::Epoch::capture(repo, policy.stage_op_timeout_secs).await?;
+    let mut entry_epoch = entry_epoch.has_intent().then_some(entry_epoch);
+
     // ADDED 2026-07-25 (v0.113.0): auto-gc when dangling garbage
     // exceeds the policy threshold — the self-healing fix for the
     // recurring tmp_pack_* bloat incidents (hegemon 4.9 GiB,
@@ -5558,7 +5199,7 @@ async fn sync_repo_local_with_ownership(
     // `check_conflict_state` — v0.113.0 gc'd repos mid-merge/
     // rebase/cherry-pick even though the sync itself correctly
     // blocked two statements later.
-    if !dry_run && !commit_only {
+    if !dry_run && !commit_only && entry_epoch.is_none() {
         crate::git::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes).await;
         // ADDED 2026-07-29 (v0.113.10): opt-in janitor for stale
         // daemon-created branches + orphaned remote-tracking refs.
@@ -5592,6 +5233,13 @@ async fn sync_repo_local_with_ownership(
                 repo.display()
             );
             return Ok(SyncOutcome::NothingToDo);
+        }
+        if let Some(epoch) = entry_epoch.take() {
+            if !policy.auto_commit || dry_run { return Ok(SyncOutcome::StagedPending); }
+            let message = format!("auto: initial commit ({} files)", epoch.entries()?.len());
+            let pending = epoch.commit(repo, &message, policy, excluded_dir_names, None).await?;
+            // Do not enter ordinary staging after a root captured epoch.
+            return Ok(if pending { SyncOutcome::StagedPending } else { SyncOutcome::PushPaused });
         }
         match bootstrap_empty_repo_commit_owned(repo, policy, excluded_dir_names, dry_run).await {
             Ok(true) => {
@@ -5731,6 +5379,19 @@ async fn sync_repo_local_with_ownership(
         local_work_deferred: false,
     };
 
+    if let Some(epoch) = entry_epoch {
+        if !policy.auto_commit || dry_run { return Ok(SyncOutcome::StagedPending); }
+        if ctx.backstop_active {
+            return Ok(match handle_ahead_push(&mut ctx, &svc).await? {
+                PushReport::Attempted { ok: false, .. } => SyncOutcome::PushFailed,
+                _ => SyncOutcome::BackstopSkipped,
+            });
+        }
+        let entries = epoch.entries()?;
+        return Ok(stage_commit_and_push(&svc, &mut ctx, &initial_status, &entries,
+            &[], None, Some(epoch)).await?.unwrap_or(SyncOutcome::Synced));
+    }
+
     let copied_standard_files = if policy.standard_files_auto {
         // Acquire git's index.lock before writing standard files to the working tree.
         // This prevents conflicting with git's own checkout during clone — if git
@@ -5781,7 +5442,8 @@ async fn sync_repo_local_with_ownership(
         auto_pull_merge(&svc, &ctx, &initial_status).await?;
     }
     preparation_phase("before_clean");
-    clean_staged_paths(&ctx).await?;
+    // Cycle-entry capture proved no staged intent; do not erase later unknown
+    // staging via hygiene. Candidate policy verification refuses it intact.
     // Explicit checkout opt-in only. Upload/read-back must precede computing
     // the diff, so verified reference changes enter this same commit cycle.
     // The bridge attempts first (when `bucket-runner.json` is present and
@@ -6090,6 +5752,7 @@ async fn sync_repo_local_with_ownership(
                 &to_stage,
                 &to_restore,
                 private_assets.as_ref(),
+                None,
             )
             .await;
             if debug_enabled() {
