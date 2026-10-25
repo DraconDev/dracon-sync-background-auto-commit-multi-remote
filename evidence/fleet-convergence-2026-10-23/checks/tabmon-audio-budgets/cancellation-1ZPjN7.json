@@ -86,6 +86,21 @@
       "pid": 1845229,
       "starttime": "260193440",
       "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845229,
+      "starttime": "260193440",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845229,
+      "starttime": "260193440",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845229,
+      "starttime": "260193440",
+      "signal": "SIGKILL"
     }
   ],
   "failed_revision": "9ddc4c869ac63b6cab04b2c7c69c2f409a636a43",
@@ -160,5 +175,9 @@
     }
   ],
   "applied": true,
-  "corrected_test_anchor": "9e62ef2eea2382ac4cb20f9ebbd2a28f12d73933"
+  "corrected_test_anchor": "9e62ef2eea2382ac4cb20f9ebbd2a28f12d73933",
+  "result": "no live members remain",
+  "remaining": [],
+  "manifest_after": "cancelled",
+  "finished_at": 1792896127.5459557
 }

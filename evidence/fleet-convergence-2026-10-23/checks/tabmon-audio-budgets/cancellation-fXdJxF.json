@@ -1,0 +1,183 @@
+{
+  "observed_at": 1792896127.6021748,
+  "active_manifest": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.fXdJxF/manifest.json",
+  "signals": [
+    {
+      "pid": 1842919,
+      "starttime": "260192828",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1842928,
+      "starttime": "260192830",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1843526,
+      "starttime": "260192952",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 2526861,
+      "starttime": "260379195",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 2527002,
+      "starttime": "260379234",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1845152,
+      "starttime": "260193421",
+      "signal": "SIGTERM"
+    }
+  ],
+  "failed_revision": "9ddc4c869ac63b6cab04b2c7c69c2f409a636a43",
+  "group": 1842919,
+  "daemon_pid": 3906273,
+  "initial_members": [
+    {
+      "pid": 1842919,
+      "state": "S",
+      "ppid": 3906273,
+      "group": 1842919,
+      "starttime": "260192828",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "git"
+    },
+    {
+      "pid": 1842928,
+      "state": "S",
+      "ppid": 1842919,
+      "group": 1842919,
+      "starttime": "260192830",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "ssh"
+    },
+    {
+      "pid": 1843526,
+      "state": "S",
+      "ppid": 1842919,
+      "group": 1842919,
+      "starttime": "260192952",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "pre-push"
+    },
+    {
+      "pid": 1845152,
+      "state": "S",
+      "ppid": 1843526,
+      "group": 1842919,
+      "starttime": "260193421",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "MainThread"
+    },
+    {
+      "pid": 2526861,
+      "state": "S",
+      "ppid": 1845152,
+      "group": 1842919,
+      "starttime": "260379195",
+      "uid": 1000,
+      "cwd": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.fXdJxF/snapshot-9ddc4c869ac63b6cab04b2c7c69c2f409a636a43/extensions/standalones/api-debugger",
+      "unit": true,
+      "name": "npm run compile"
+    },
+    {
+      "pid": 2527002,
+      "state": "R",
+      "ppid": 2526861,
+      "group": 1842919,
+      "starttime": "260379234",
+      "uid": 1000,
+      "cwd": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.fXdJxF/snapshot-9ddc4c869ac63b6cab04b2c7c69c2f409a636a43/extensions/standalones/api-debugger",
+      "unit": true,
+      "name": "MainThread"
+    }
+  ],
+  "applied": true,
+  "corrected_test_anchor": "9e62ef2eea2382ac4cb20f9ebbd2a28f12d73933",
+  "result": "no live members remain",
+  "remaining": [],
+  "manifest_after": "cancelled",
+  "finished_at": 1792896133.0405002
+}
