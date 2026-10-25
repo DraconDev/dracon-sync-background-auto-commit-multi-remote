@@ -17,6 +17,12 @@ no failing artifact was deployed. V8 boxes the upload at its API boundary and
 removes the unused timestamp without changing log policy or warning settings.
 A vanished temporary target was rebuilt from the unchanged capture; the exact
 qualified hash matched, and the executable is now stored durably outside /tmp.
+A fresh regression replay passed the8contract,5observer,8historical-witness,
+13isolated-gate and6shell-wrapper cases; the hook inputs match the current
+publication source9ddc4c8 through ordinary required filters. A first180second
+overall replay envelope expired after12passing cases; it is rejected partial
+execution, not an assertion failure or suite pass. The complete bounded replay
+left internal per-test/cancellation deadlines unchanged.
 See `checks/workspace-final-v8/` and the historical continuation in
 [qualification-v7-checkpoint.md](qualification-v7-checkpoint.md).
 

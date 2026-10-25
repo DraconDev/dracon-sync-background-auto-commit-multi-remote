@@ -1,0 +1,8 @@
+{
+  "revision": "9ddc4c869ac63b6cab04b2c7c69c2f409a636a43",
+  "ordinary_required_filter_matches": {
+    "scripts/git-hooks/run-push-gates.mjs": true,
+    "scripts/git-hooks/run-push-gates.test.mjs": true,
+    "scripts/git-hooks/pre-push.test.mjs": true
+  }
+}
