@@ -18,6 +18,10 @@ mod staged_epoch;
 #[path = "sync/excluded_revert.rs"]
 mod excluded_revert;
 
+#[cfg(all(test, target_os = "linux"))]
+#[path = "sync/excluded_revert_tests.rs"]
+mod excluded_revert_tests;
+
 #[cfg(target_os = "linux")]
 pub(crate) async fn excluded_restore_helper(path: &Path) -> Result<()> {
     excluded_revert::helper(path).await
