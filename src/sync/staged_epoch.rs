@@ -4,6 +4,28 @@ use crate::git::staged_intent::{CapturedHead, StagedIntentSnapshot};
 use anyhow::ensure;
 use tokio::time::Instant;
 
+#[derive(Debug)]
+enum EpochConflict {
+    LockReplaced,
+    ReferenceChanged,
+    IndexChanged,
+}
+
+impl std::fmt::Display for EpochConflict {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::LockReplaced => "epoch index lock was replaced; retained foreign lock",
+            Self::ReferenceChanged => "epoch branch changed",
+            Self::IndexChanged => "epoch index or parent changed; actual staged/worktree data retained",
+        })
+    }
+}
+impl std::error::Error for EpochConflict {}
+
+pub(super) fn is_conflict(error: &anyhow::Error) -> bool {
+    error.is::<EpochConflict>()
+}
+
 pub(super) struct Epoch {
     snapshot: StagedIntentSnapshot,
     reference: Option<String>,
@@ -120,19 +142,12 @@ impl Epoch {
     }
 
     async fn unchanged(&self, repo: &Path, lock: &crate::git::IndexLock) -> Result<()> {
-        ensure!(
-            lock.is_owned(),
-            "epoch index lock was replaced; retained foreign lock"
-        );
-        ensure!(
-            self.reference == reference(repo).await?,
-            "epoch branch changed"
-        );
-        ensure!(
-            self.snapshot == StagedIntentSnapshot::capture(repo, self.deadline).await?,
-            "epoch index or parent changed; actual staged/worktree data retained; candidate backup: {:?}",
-            self.retained
-        );
+        ensure!(lock.is_owned(), EpochConflict::LockReplaced);
+        ensure!(self.reference == reference(repo).await?, EpochConflict::ReferenceChanged);
+        if self.snapshot != StagedIntentSnapshot::capture(repo, self.deadline).await? {
+            return Err(anyhow::Error::new(EpochConflict::IndexChanged))
+                .with_context(|| format!("candidate backup: {:?}", self.retained));
+        }
         Ok(())
     }
 
