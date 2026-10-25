@@ -746,6 +746,31 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn published_epoch_deadline_is_pending_not_a_failed_commit() {
+        use std::os::unix::fs::PermissionsExt;
+        let (root, mut policy) = fixture().await;
+        let repo = root.path();
+        policy.watch_roots = vec![repo.to_string_lossy().into_owned()];
+        let hooks = repo.join(".git/epoch-hooks");
+        std::fs::create_dir(&hooks).unwrap();
+        let post = hooks.join("post-commit");
+        std::fs::write(&post, "#!/bin/sh\nsleep 30\n").unwrap();
+        std::fs::set_permissions(&post, std::fs::Permissions::from_mode(0o755)).unwrap();
+        git(repo, &["config", "core.hooksPath", hooks.to_str().unwrap()], None).await.unwrap();
+        std::fs::write(repo.join("file"), b"published before follow-up\n").unwrap();
+        git(repo, &["add", "--", "file"], None).await.unwrap();
+        let epoch = Epoch::capture(repo, 10).await.unwrap();
+        let result = tokio::time::timeout(Duration::from_secs(15),
+            epoch.commit(repo, "fixture bounded publication", &policy, &BTreeSet::new(), None))
+            .await.expect("absolute epoch deadline must terminate post hook");
+        assert!(matches!(result, Ok(true)), "known publication must remain pending, not failure: {result:?}");
+        assert_eq!(git(repo, &["show", "HEAD:file"], None).await.unwrap().stdout,
+            b"published before follow-up\n");
+        assert_eq!(std::fs::read(repo.join("file")).unwrap(), b"published before follow-up\n");
+        assert!(!repo.join(".git/index.lock").exists());
+    }
+
+    #[tokio::test]
     async fn installed_epoch_keeps_proven_identity_and_rejects_late_replacement() {
         let (root, policy) = fixture().await;
         let repo = root.path();
