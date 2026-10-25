@@ -21,8 +21,8 @@ use super::current_branch;
 /// (git's checkout waits until we're done).
 pub(crate) struct IndexLock {
     path: PathBuf,
-    /// True if we successfully created the lock (our responsibility to clean up).
-    held: bool,
+    // Keep the inode alive so deletion/recreation cannot reuse its identity.
+    file: std::fs::File,
 }
 
 /// Return the index-lock path Git uses for a checkout.
@@ -58,7 +58,7 @@ impl IndexLock {
             .create_new(true) // O_EXCL — fails if file exists
             .open(&path)
         {
-            Ok(_file) => Ok(Self { path, held: true }),
+            Ok(file) => Ok(Self { path, file }),
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Err(format!(
                 "index.lock held by another git operation, skipping {}",
                 repo.display()
@@ -74,9 +74,18 @@ impl IndexLock {
 
 impl Drop for IndexLock {
     fn drop(&mut self) {
-        if self.held {
-            let _ = std::fs::remove_file(&self.path);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            if let (Ok(owned), Ok(current)) =
+                (self.file.metadata(), std::fs::symlink_metadata(&self.path))
+            {
+                if (owned.dev(), owned.ino()) == (current.dev(), current.ino()) {
+                    let _ = std::fs::remove_file(&self.path);
+                }
+            }
         }
+        // Without a stable filesystem identity, conservatively retain the lock.
     }
 }
 

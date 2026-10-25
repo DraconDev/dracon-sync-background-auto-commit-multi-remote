@@ -1347,9 +1347,12 @@ mod ops;
 pub(crate) use ops::*;
 pub(crate) mod push_resources;
 mod status;
+pub(crate) mod staged_intent;
 pub(crate) use status::*;
 mod inspection;
-pub(crate) use inspection::{inspect_status, inspect_status_with_coverage, STATUS_INSPECTION_BUDGET};
+#[cfg(test)]
+pub(crate) use inspection::inspect_status;
+pub(crate) use inspection::{inspect_status_with_coverage, STATUS_INSPECTION_BUDGET};
 mod urls;
 pub(crate) use urls::*;
 

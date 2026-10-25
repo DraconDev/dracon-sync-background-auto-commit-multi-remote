@@ -157,9 +157,8 @@ async fn inspect_status_inner(
             );
         }
         if let Some(expected) = covered_gitlinks {
-            if indexed_gitlinks(repo).await? != Some(expected) {
-                bail!("status gitlink coverage changed during inspection; retry with a fresh inventory");
-            }
+            anyhow::ensure!(indexed_gitlinks(repo).await? == Some(expected),
+                "status gitlink coverage changed during inspection; retry with a fresh inventory");
         }
         parse_status(&stdout)
     })

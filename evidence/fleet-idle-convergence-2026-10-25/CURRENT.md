@@ -3,8 +3,17 @@
 Goal: .pi-glla/goals/20261025090441-ya0tp4.md. Strong final requirement is ALL
 watched repositories clean AND idle in a fresh observation, not merely previously
 published ancestors. Do not hide eligible work or stop editors/producers to obtain
-it. No daemon implementation, index recovery or deployment has occurred yet.
-Only the read-only observer's inventory cardinality input was generalized, with
+it. No index recovery or deployment has occurred yet. Source-only inspection
+repair now skips redundant dirty-child recursion ONLY with complete watched
+coverage of indexed gitlinks; uncovered children retain full Git status, child
+HEAD/index gitlink changes stay visible, and coverage is revalidated under the
+same absolute cancellation budget. Daemon and report pass their full observed
+inventory. 11 inspection development tests passed (see checks/inspection-development.log),
+including partial coverage, child visibility, gitlink advances and existing
+cancellation/root-wiring tests. That run emitted an unused-import warning, now
+fixed in source but not yet rerun; it is NOT final strict qualification.
+
+The read-only observer's inventory cardinality input was generalized, with
 regressions preserving legacy-ten checks and rejecting omitted/duplicate/alias
 paths. scripts/test-fleet-convergence-observe.py passes6tests. Full fresh ref
 receipt baseline-refs.json covers ALL37 with zero repository/query failures and
@@ -76,11 +85,18 @@ report is NOT authority for this goal. Its assumptions/deadline/cancellation lim
 and Warden filter investigation are relevant; do not claim a timeout root cause
 from a generic error alone.
 
-First scoute8fd262b settled. A retained follow-up is running as
-3d460217-4a5c-4b89-a283-b7a4efcbe292, <=20additional calls/100lines, read-only,
-for staged-identity/commit-sealing integration and batch-cap safety. Assess its
-native result before implementation/completion. Parent owns status/hygiene
-research and every mutation. No branch/identity/security changes authorized.
+Both first scouts settled and were assessed; staging-scout.md and
+staging-design-followup.md are archived here. No tiny pathname union can close
+the native commit API's final index race. Follow-up also corrects a prior parent
+assumption: default max_stage_batch_files is100000, not100; verify effective
+policy rather than treating120staged as an actual current cap violation. A strict
+cap, if exceeded, must refuse truthfully without unstaging user intent.
+
+New read-only scout bb8ed530-4700-46c5-92e0-a0daf5eefa10 is researching installed
+Git native commit/index-lock timing and hook forwarding/rollback in disposable
+fixtures only. Assess its result before picking the atomic transaction design;
+a hook wrapper alone cannot solve provenance of read-after-native-git-add.
+Parent owns source mutations. No canonical branch/identity/security changes.
 
 Next: assess follow-up design; full37remote/object baseline is now captured.
 Inspect actual Doomtap hygiene refusal and reproduce staged-intent root gaps in
