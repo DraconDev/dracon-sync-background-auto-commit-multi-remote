@@ -2188,3 +2188,9 @@ ok
 test sync::tests::test_sync_repo_skips_revert_in_progress ... [master (root-commit) 293f215] init
 ok
 test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) 1b51db3] init
+ok
+test sync::tests::test_sync_repo_unstages_excluded_dir_paths ... [master (root-commit) 1a6c76f] init
+ok
+test sync::tests::test_sync_repo_unstages_oversized_file ... [master (root-commit) d0de025] init
+ok
+test sync::tests::test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked ... [master (root-commit) d0de025] init
