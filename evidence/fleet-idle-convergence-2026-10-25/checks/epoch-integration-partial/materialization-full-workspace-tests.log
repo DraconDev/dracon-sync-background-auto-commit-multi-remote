@@ -348,4 +348,6 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
      Running unittests src/lib.rs (target/debug/deps/dracon_sync-ba7d89301df71044)
 
 running 157 tests
-test lfs_classify::tests::large_database_is_refused_not_enrolled ... 
+test lfs_classify::tests::large_database_is_refused_not_enrolled ... ok
+test lfs_classify::tests::large_sensitive_key_is_refused_not_enrolled ... ok
+test lfs_classify::tests::large_sql_migration_stays_source_text ... 
