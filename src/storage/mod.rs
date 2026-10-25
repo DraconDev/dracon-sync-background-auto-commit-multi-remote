@@ -489,6 +489,16 @@ pub(crate) enum StorageCommand {
         #[arg(long, default_value = ".")]
         repo: PathBuf,
     },
+    /// Internal immutable-tree verifier; reports this executable's compiled identity.
+    #[command(hide = true)]
+    VerifyConfiguredTree {
+        #[arg(long)]
+        repo: PathBuf,
+        #[arg(long)]
+        tree: String,
+        #[arg(long)]
+        index: PathBuf,
+    },
     /// Check indexed enrolled references against locally verified protected metadata.
     /// Independent of Git's stat cache; no backend availability claim.
     VerifyIndex {
@@ -1206,6 +1216,11 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
         );
         return Ok(());
     }
+    if let StorageCommand::VerifyConfiguredTree { repo, tree, index } = command {
+        verify_configured_tree(repo, tree, index)?;
+        println!("{} {}", env!("DRACON_EPOCH_SOURCE_ID"), tree);
+        return Ok(());
+    }
     if let StorageCommand::VerifyConfiguredIndex { repo } = command {
         if !verify_configured_index(repo, true)? {
             bail!("repository has no configured storage guard");
@@ -1265,6 +1280,7 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
         | StorageCommand::VerifyIndex { .. }
         | StorageCommand::SetupGuard { .. }
         | StorageCommand::VerifyConfiguredIndex { .. }
+        | StorageCommand::VerifyConfiguredTree { .. }
         | StorageCommand::ImportManifest { .. }
         | StorageCommand::RestoreAsset(_)
         | StorageCommand::Hydrate { .. } => {
@@ -2713,6 +2729,29 @@ pub(crate) fn verify_configured_index(repo: &Path, honor_git_index: bool) -> Res
     )?;
     verify_guard_entries(&indexed)?;
     Ok(true)
+}
+
+/// Verify a caller-owned private index populated exclusively from an immutable
+/// tree. This never writes the real index, creates commits or updates refs.
+fn verify_configured_tree(repo: &Path, tree: &str, index_path: &Path) -> Result<()> {
+    if !crate::git::is_valid_object_id(tree) || !index_path.is_absolute() {
+        bail!("invalid immutable storage view");
+    }
+    let repository = git2::Repository::open(repo)?;
+    let candidate = repository.find_tree(git2::Oid::from_str(tree)?)?;
+    let mut index = git2::Index::open(index_path)?;
+    // Parent populated the private index; verify its complete identity before
+    // any attribute/binding checks. Never rewrite or trust the live index.
+    if index.write_tree_to(&repository)? != candidate.id() {
+        bail!("private storage view differs from immutable tree");
+    }
+    // Environment belongs solely to this helper process. Existing authority
+    // checks inspect this explicit private view, including portable attributes.
+    std::env::set_var("GIT_INDEX_FILE", index_path);
+    let Some(binding) = configured_guard(repo, true)? else { return Ok(()); };
+    let indexed = indexed_manifest_at(repo, &binding.repo_id, &binding.metadata_root,
+        &binding.manifest_path, Some(index_path.to_path_buf()))?;
+    verify_guard_entries(&indexed)
 }
 
 /// Whether this repository has a bound storage guard, i.e. whether a commit

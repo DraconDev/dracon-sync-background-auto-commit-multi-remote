@@ -53,3 +53,6 @@ default = []
 
 # This manifest is maintained in the standalone dracon-sync repository.
 # The parent dracon-utilities workspace consumes this directory by path.
+
+[build-dependencies]
+sha2 = "0.10.9"

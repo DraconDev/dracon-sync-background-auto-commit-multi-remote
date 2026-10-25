@@ -58,7 +58,12 @@ impl IndexLock {
         // debug message). For a submodule the lock belongs at
         // `<parent>/.git/modules/<name>/index.lock` — where git
         // itself takes it.
-        let path = index_lock_path(repo);
+        Self::acquire_path(index_lock_path(repo), repo)
+    }
+
+    /// Caller resolved this exact path with a bounded owned Git command.
+    #[cfg(unix)]
+    pub(crate) fn acquire_path(path: PathBuf, repo: &Path) -> Result<Self, String> {
         match std::fs::OpenOptions::new()
             .write(true)
             .create_new(true) // O_EXCL — fails if file exists
@@ -79,6 +84,11 @@ impl IndexLock {
 }
 
 impl IndexLock {
+    #[cfg(not(unix))]
+    pub(crate) fn acquire_path(_path: PathBuf, _repo: &Path) -> Result<Self, String> {
+        Err("ownership-safe index locks require Unix".into())
+    }
+
     /// Detect replacement by a non-cooperating writer; this is not an atomic
     /// compare-and-unlink primitive against hostile filesystem mutation.
     pub(crate) fn is_owned(&self) -> bool {
