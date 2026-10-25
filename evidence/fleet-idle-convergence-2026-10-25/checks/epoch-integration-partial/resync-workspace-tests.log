@@ -1233,3 +1233,10 @@ test git::tests::test_push_to_named_remote_no_auto_force_when_divergent ... [mas
  create mode 100644 file.txt
 [master 05cd996] other commit
 HEAD is now at 414318e init
+ok
+test git::tests::test_push_to_named_remote_skips_https_fallback_on_permanent_rejection ... ok
+test git::tests::test_push_to_named_remote_ssh_fails_https_fallback ... ok
+test git::tests::test_push_to_named_remote_ssh_success ... ok
+test git::tests::test_push_to_named_remote_unsafe_branch_skips_https_fallback ... ok
+test git::tests::test_push_with_retries_both_fail ... ok
+test git::tests::test_push_with_retries_exhausts_retries_and_fails ... 
