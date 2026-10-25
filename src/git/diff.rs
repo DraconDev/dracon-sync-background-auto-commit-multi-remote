@@ -223,6 +223,7 @@ fn parse_name_status_z(stdout: &[u8]) -> Vec<(PathBuf, FileStatus)> {
 }
 
 /// Get name-status entries via `git diff --name-status` with custom args.
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 pub(crate) async fn git_name_status_entries(
     repo: &Path,
     args: &[&str],

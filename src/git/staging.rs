@@ -7,6 +7,7 @@ use std::time::Duration;
 
 /// Unstage paths that match excluded directory patterns.
 /// Returns the count of unstaged files.
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 pub(crate) async fn unstage_excluded_paths(
     repo: &Path,
     excluded_dir_names: &BTreeSet<String>,
@@ -251,6 +252,7 @@ pub(crate) async fn staged_blob_sizes_for(
 
 /// Unstage files that exceed the max file size threshold.
 /// Returns the count of unstaged files.
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Result<usize> {
     let staged = super::staged_paths(repo).await?;
     // FIX (audit M4, 2026-10-02): size the STAGED blob (index), not the
@@ -826,6 +828,7 @@ fn git_config_get(repo: &Path, key: &str) -> Option<String> {
 }
 
 /// Restore paths from the index to the working tree.
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
     if paths.is_empty() {
         return Ok(());
@@ -884,6 +887,7 @@ pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 fn is_excluded_change_path(path: &Path, excluded_dir_names: &BTreeSet<String>) -> bool {
     path.components()
         .filter_map(|c| c.as_os_str().to_str())

@@ -36,7 +36,7 @@ use dracon_git::GitService;
 use crate::exclude::should_stage_entry;
 use crate::git::origin_url;
 use crate::git::{
-    cli_diff_entries, git_name_status_entries, has_origin_remote, has_tracking_upstream,
+    cli_diff_entries, has_origin_remote, has_tracking_upstream,
     is_bisect_in_progress, is_cherry_pick_in_progress, is_merge_in_progress, is_rebase_in_progress,
     is_repo_ready, is_revert_in_progress, prune_other_default_branch, run_git_capture_output,
     run_git_with_timeout, untracked_entries,
@@ -1133,6 +1133,7 @@ pub(crate) fn is_index_lock_failure(msg: &str) -> bool {
 /// gitlink updates, deletions) derives from `to_stage`, so any
 /// extra is foreign. Rename entries compare by new path (both
 /// classifiers agree on it).
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 pub(crate) fn staged_extra_paths(
     _repo: &Path,
     staged: &[(PathBuf, dracon_git::types::FileStatus)],
@@ -1146,6 +1147,7 @@ pub(crate) fn staged_extra_paths(
         .cloned()
         .collect()
 }
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 async fn stage_existing_files_filtered(
     repo: &Path,
     existing: &[String],
@@ -1166,6 +1168,7 @@ async fn stage_existing_files_filtered(
     .await
 }
 
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 async fn stage_existing_files_suppressing(
     repo: &Path,
     existing: &[String],
@@ -1652,6 +1655,7 @@ async fn stage_existing_files_in_index(
 /// hook. With the daemon-standalone branch removed, the canonical head
 /// is just `refs/heads/main` from the shared gitdir — no buffer-branch
 /// fast-forward needed.
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 async fn stage_gitlink_updates(
     repo: &Path,
     gitlinks: &[String],
@@ -1878,6 +1882,7 @@ async fn partition_gitignored(repo: &Path, paths: &[String]) -> (Vec<String>, Ve
     (force_paths, normal_paths)
 }
 
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 async fn git_rm_missing(repo: &Path, missing: &[String], dry_run: bool) -> Result<()> {
     if missing.is_empty() {
         return Ok(());
@@ -1962,6 +1967,7 @@ async fn post_commit_pull(svc: &GitService, repo: &Path, policy: &SyncPolicy) {
 /// into the index, and leaving them staged would pollute the
 /// operator's next manual commit — but their CONTENT must be
 /// preserved.
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 async fn unstage_paths_git(repo: &Path, paths: &[String]) -> Result<()> {
     if paths.is_empty() {
         return Ok(());

@@ -2790,6 +2790,7 @@ fn verify_configured_tree(
 /// sealed commit executes no hooks, so the daemon must invoke them explicitly
 /// there. The ordinary `git commit` path already runs them itself, and
 /// pre-running it there would execute every `pre-commit` hook twice per commit.
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 pub(crate) fn has_configured_storage_guard(repo: &Path) -> Result<bool> {
     Ok(configured_guard(repo, false)?.is_some())
 }
@@ -2804,12 +2805,16 @@ pub(crate) fn commit_configured_storage(repo: &Path, message: &str) -> Result<bo
 
 /// A verified commit object awaiting an owned, compare-and-swap ref update.
 /// Keep the storage lock until Git has accepted/rejected that update.
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 pub(crate) struct PreparedStorageCommit {
+    #[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
     pub commit_id: String,
+    #[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
     pub previous_id: String,
     _lock: dracon_sync::storage_core::index::CommitLock,
 }
 
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 fn prepare_storage_commit_inner(
     repo: &Path,
     message: &str,

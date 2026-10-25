@@ -1801,6 +1801,7 @@ pub(crate) fn should_stage_entry_with_blob_size(
     true
 }
 
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 pub(crate) fn can_restore_entry(_repo: &Path, entry: &dracon_git::types::DiffFile) -> bool {
     use dracon_git::types::FileStatus;
     matches!(
@@ -1825,6 +1826,7 @@ pub(crate) fn is_large_untracked(
     }
 }
 
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 pub(crate) fn append_to_gitignore(repo: &Path, patterns: &[String]) -> Result<()> {
     let gitignore = repo.join(".gitignore");
     let current = std::fs::read_to_string(&gitignore).unwrap_or_default();
@@ -1914,6 +1916,7 @@ pub(crate) fn append_to_gitignore(repo: &Path, patterns: &[String]) -> Result<()
 
 /// Handle large untracked files by adding them to .gitignore.
 /// Returns true if .gitignore was updated.
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 pub(crate) fn handle_large_untracked(
     repo: &Path,
     to_restore: &[dracon_git::types::DiffFile],
@@ -1945,6 +1948,7 @@ pub(crate) fn handle_large_untracked(
 /// Common build / generated output directory names that should never be tracked.
 /// These are checked IN ADDITION to exclude_dir_names to catch directories
 /// that aren't in the standard exclusion list but are clearly build artifacts.
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 fn is_build_output_dir_name(name: &str) -> bool {
     matches!(
         name,
@@ -1958,6 +1962,7 @@ fn is_build_output_dir_name(name: &str) -> bool {
 /// output directories. These should never have been committed (build artifacts,
 /// generated files, etc.). Removes them from git tracking and adds the directory
 /// patterns to .gitignore.
+#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
 pub(crate) fn remove_tracked_excluded_paths(
     repo: &Path,
     excluded_dir_names: &BTreeSet<String>,
