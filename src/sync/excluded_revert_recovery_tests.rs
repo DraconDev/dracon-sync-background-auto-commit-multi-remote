@@ -380,6 +380,11 @@ async fn excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_res
         "read-only probe cannot adopt or repair weak permissions"
     );
     assert_eq!(std::fs::metadata(&archive).unwrap().mode() & 0o777, 0o755);
+    // The fixture exchanged canonical inodes before this call. Refresh their
+    // already-verified HEAD-equal stat cache BEFORE the byte-exact baseline;
+    // otherwise ordinary libgit2 status refresh is mistaken for lost intent.
+    git(r, &["diff-index", "--quiet", "--cached", "HEAD", "--"]);
+    git(r, &["update-index", "--refresh"]);
     let index = std::fs::read(r.join(".git/index")).unwrap();
     let policy: SyncPolicy = toml::from_str("auto_github_private=false\nauto_commit=true\nauto_pull=false\nauto_push=false\nauto_bump_versions=false\ntrusted_emails=['test@test']\ntrusted_authors=['test']\nremotes=[]\n").unwrap();
     assert_eq!(
