@@ -1194,6 +1194,9 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     Ok(crate::sync::SyncOutcome::PublicationPending) => {
                         println!("⏳ publication pending for {} (local pass finished; another process owns publication)", repo.display());
                     }
+                    Ok(crate::sync::SyncOutcome::StagedPending) => {
+                        println!("⏳ local staging remains pending for {} (follow-up required; not fully synced)", repo.display());
+                    }
                     Ok(crate::sync::SyncOutcome::Blocked) => {
                         println!(
                             "⏸️  sync blocked for {} (guard or manual intervention required)",
