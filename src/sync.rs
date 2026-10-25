@@ -12055,9 +12055,11 @@ trusted_authors = ["test"]
     /// cycle with the index intact — never swept into the mechanical
     /// commit. The mock stages the extra file as a side effect of the
     /// first `add` (deterministic; no wall-clock racing), then passes
-    /// through. Cycle 2 commits everything (commit-all converges).
+    /// through. Cycle 2 commits the captured foreign staging without absorbing
+    /// unstaged work; cycle 3 commits the separate worktree epoch. Both intents
+    /// converge without a failed-sync backoff or an index overwrite.
     #[tokio::test]
-    async fn test_concurrent_staging_defers_one_cycle_then_converges() {
+    async fn test_concurrent_staging_defers_then_captured_and_worktree_epochs_converge() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = init_test_repo(&tmp, "concurrent-stage-repo");
         let mut policy: SyncPolicy = toml::from_str(
@@ -12124,19 +12126,24 @@ trusted_authors = ["test"]
         );
         let head = git_cmd(&repo, &["show", "HEAD:pending.txt"]).stdout;
         assert_eq!(head, b"pending work\n", "nothing may commit in cycle 1");
-        // Cycle 2: the extra is pre-staged → intended → all committed.
-        let converged = tokio::time::timeout(
+        // Cycle 2: only the now-captured extra is committed. The original
+        // worktree version is not silently swept into that captured epoch.
+        let captured = tokio::time::timeout(
             Duration::from_secs(20),
             sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None),
         )
         .await
         .expect("cycle 2 must be bounded");
-        assert!(
-            matches!(converged, Ok(SyncOutcome::Synced)),
-            "commit-all must converge next cycle, got: {converged:?}"
-        );
-        let head = git_cmd(&repo, &["show", "HEAD:extra.txt"]).stdout;
-        assert_eq!(head, b"v1\nconcurrent\n");
+        assert!(matches!(captured, Ok(SyncOutcome::StagedPending)), "{captured:?}");
+        assert_eq!(git_cmd(&repo, &["show", "HEAD:extra.txt"]).stdout, b"v1\nconcurrent\n");
+        assert_eq!(git_cmd(&repo, &["show", "HEAD:pending.txt"]).stdout, b"pending work\n");
+        assert_eq!(std::fs::read(repo.join("pending.txt")).unwrap(), b"pending work v2\n");
+        let converged = tokio::time::timeout(Duration::from_secs(20),
+            sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None))
+            .await.expect("worktree follow-up epoch must be bounded");
+        assert!(matches!(converged, Ok(SyncOutcome::Synced)), "{converged:?}");
+        assert_eq!(git_cmd(&repo, &["show", "HEAD:pending.txt"]).stdout, b"pending work v2\n");
+        assert_eq!(git_cmd(&repo, &["show", "HEAD:extra.txt"]).stdout, b"v1\nconcurrent\n");
     }
 
     #[tokio::test]
