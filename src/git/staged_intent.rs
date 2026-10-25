@@ -74,6 +74,148 @@ impl StagedIntentSnapshot {
     }
 }
 
+// Borrow basename slices rather than allocating every full directory prefix.
+// These caps bound graph nodes/edges, borrowed snapshot payload, cumulative wire
+// input and cumulative output respectively. The shared runner additionally caps
+// each stdout/stderr stream at 64 MiB, including on a failing command.
+const TREE_PAYLOAD_LIMIT: usize = 64 * 1024 * 1024;
+const TREE_NODE_LIMIT: usize = 262_144;
+const TREE_INPUT_LIMIT: usize = 128 * 1024 * 1024;
+const TREE_OUTPUT_LIMIT: usize = 32 * 1024 * 1024;
+
+enum TreeChild<'a> {
+    Directory(usize),
+    Entry(&'a CachedIdentity),
+}
+
+#[derive(Default)]
+struct TreeDirectory<'a> {
+    children: BTreeMap<&'a [u8], TreeChild<'a>>,
+    oid: Option<String>,
+}
+
+impl StagedIntentSnapshot {
+    /// Writes only unreferenced tree objects derived from captured identities.
+    /// This is not authorization: production commit integration remains pending.
+    /// Never reads or locks the live index, runs filters, or overrides hooks.
+    pub(crate) async fn materialize_tree(&self, repo: &Path, deadline: Instant) -> Result<String> {
+        tokio::time::timeout_at(deadline, async {
+            let check_deadline = || -> Result<()> {
+                ensure!(Instant::now() < deadline, "tree materialization deadline expired");
+                Ok(())
+            };
+            check_deadline()?;
+            let mut dirs = vec![TreeDirectory::default()];
+            let mut levels = vec![vec![0usize]];
+            let mut payload = 0usize;
+            let mut nodes = 1usize;
+            for (path, entry) in &self.entries {
+                check_deadline()?;
+                payload = payload.checked_add(path.len()).and_then(|n| n.checked_add(entry.oid.len() + 16))
+                    .context("tree payload overflow")?;
+                ensure!(payload <= TREE_PAYLOAD_LIMIT, "tree payload limit exceeded");
+                ensure!(matches!(entry.mode, 0o100644 | 0o100755 | 0o120000 | 0o160000), "unsupported tree mode");
+                ensure!(super::is_valid_object_id(&entry.oid) && !entry.oid.bytes().all(|b| b == b'0'), "invalid tree object ID");
+                let mut components = path.split(|b| *b == b'/').peekable();
+                let mut parent = 0;
+                let mut depth = 0;
+                while let Some(name) = components.next() {
+                    check_deadline()?;
+                    ensure!(!name.is_empty() && name != b"." && name != b".." && !name.contains(&0), "invalid tree path");
+                    if components.peek().is_none() {
+                        ensure!(!dirs[parent].children.contains_key(name), "duplicate child or file/directory collision");
+                        nodes += 1;
+                        ensure!(nodes <= TREE_NODE_LIMIT, "tree graph limit exceeded");
+                        dirs[parent].children.insert(name, TreeChild::Entry(entry));
+                    } else {
+                        let child = match dirs[parent].children.get(name) {
+                            Some(TreeChild::Directory(id)) => *id,
+                            Some(TreeChild::Entry(_)) => anyhow::bail!("file/directory collision"),
+                            None => {
+                                nodes += 1;
+                                ensure!(nodes <= TREE_NODE_LIMIT, "tree graph limit exceeded");
+                                let id = dirs.len();
+                                dirs.push(TreeDirectory::default());
+                                dirs[parent].children.insert(name, TreeChild::Directory(id));
+                                if levels.len() <= depth + 1 { levels.push(Vec::new()); }
+                                levels[depth + 1].push(id);
+                                id
+                            }
+                        };
+                        parent = child;
+                        depth += 1;
+                    }
+                }
+            }
+            check_deadline()?;
+            let format = read(repo, &["rev-parse", "--show-object-format"]).await?;
+            let width = match format.as_slice() {
+                b"sha1\n" => 40,
+                b"sha256\n" => 64,
+                _ => anyhow::bail!("unsupported object format"),
+            };
+            let mut total_input = 0usize;
+            let mut total_output = format.len();
+            for level in levels.iter().rev() {
+                check_deadline()?;
+                let mut input = Vec::new();
+                for &id in level {
+                    for (name, child) in &dirs[id].children {
+                        check_deadline()?;
+                        let (mode, kind, oid) = match child {
+                            TreeChild::Directory(child) => (0o40000, "tree", dirs[*child].oid.as_deref().context("missing child tree")?),
+                            TreeChild::Entry(entry) => (entry.mode, if entry.mode == 0o160000 { "commit" } else { "blob" }, entry.oid.as_str()),
+                        };
+                        ensure!(oid.len() == width, "tree object ID width mismatch");
+                        let header = format!("{mode:o} {kind} {oid}\t");
+                        let size = header.len() + name.len() + 1;
+                        ensure!(size <= TREE_INPUT_LIMIT.saturating_sub(total_input), "tree input limit exceeded");
+                        total_input += size;
+                        input.extend_from_slice(header.as_bytes());
+                        input.extend_from_slice(name);
+                        input.push(0);
+                    }
+                    ensure!(total_input < TREE_INPUT_LIMIT, "tree input limit exceeded");
+                    total_input += 1;
+                    input.push(0); // --batch -z tree boundary (also represents empty root)
+                }
+                check_deadline()?;
+                let mut child = super::spawn_git_command_cancellable_stdin(repo, &[
+                    "--no-optional-locks", "-c", "core.fsmonitor=false", "mktree", "--batch", "-z",
+                ], "staged tree")?;
+                let mut stdin = child.stdin.take().context("missing tree stdin")?;
+                let write = async {
+                    use tokio::io::AsyncWriteExt;
+                    stdin.write_all(&input).await?;
+                    stdin.shutdown().await?;
+                    Ok::<_, anyhow::Error>(())
+                };
+                let ((status, output, stderr), ()) = tokio::try_join!(
+                    super::run_git_captured_output(child, repo, "staged tree"), write
+                )?;
+                total_output += output.len() + stderr.len();
+                ensure!(total_output <= TREE_OUTPUT_LIMIT, "tree output limit exceeded");
+                ensure!(status.success(), "mktree failed: {status}");
+                assign_tree_oids(&mut dirs, level, &output, width, deadline)?;
+            }
+            check_deadline()?;
+            dirs[0].oid.take().context("missing root tree")
+        }).await.context("tree materialization deadline expired; owned Git cancelled")?
+    }
+}
+
+fn assign_tree_oids(dirs: &mut [TreeDirectory<'_>], level: &[usize], output: &[u8], width: usize, deadline: Instant) -> Result<()> {
+    ensure!(output.len() == level.len() * (width + 1), "invalid mktree output count/width");
+    for (&id, record) in level.iter().zip(output.chunks_exact(width + 1)) {
+        ensure!(Instant::now() < deadline, "tree materialization deadline expired");
+        ensure!(record[width] == b'\n', "invalid mktree output terminator");
+        let oid = std::str::from_utf8(&record[..width])?;
+        ensure!(super::is_valid_object_id(oid) && !oid.bytes().all(|b| b == b'0'), "invalid mktree output ID");
+        dirs[id].oid = Some(oid.to_owned());
+    }
+    Ok(())
+}
+
 async fn run(repo: &Path, args: &[&str]) -> Result<(std::process::ExitStatus, Vec<u8>)> {
     let mut argv = vec!["--no-optional-locks", "-c", "core.fsmonitor=false"];
     argv.extend_from_slice(args);
