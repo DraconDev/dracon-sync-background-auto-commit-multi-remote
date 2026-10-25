@@ -1687,4 +1687,289 @@ test sync::tests::test_truncate_task_short ... ok
 test sync::tests::test_warden_auto_harden_disabled_never_forks ... ok
 test sync::tests::test_warden_auto_harden_hardens_once ... ok
 test sync::tests::test_warden_auto_harden_skips_dry_run ... ok
-test sync::tests::unlimited_batch_bootstraps_all_related_unborn_files ... 
+test sync::tests::unlimited_batch_bootstraps_all_related_unborn_files ... ok
+test sync::tests::unlimited_batch_commits_all_related_worktree_files_in_one_epoch ... [master (root-commit) 1307f11] init
+ok
+test test_helpers::tests::test_create_test_repo_registers_temp_dir ... ok
+test test_helpers::tests::test_env_restorer_remove_round_trip ... ok
+test test_helpers::tests::test_env_restorer_round_trip ... ok
+test tests::one_shot_cancellation_reaps_owned_children_and_releases_repository_lease ... ok
+test tests::test_env_freeze_takes_precedence ... ok
+test tests::test_freeze_marker_paths ... ok
+test tests::test_freeze_reason_none_when_no_marker ... ok
+test tests::test_metrics_contains_all_expected_metrics ... ok
+test tests::test_metrics_output_has_expected_format ... ok
+test tests::test_parent_pid_is_readable_on_procfs ... ok
+test tests::test_pause_marker_records_caller_provenance ... ok
+test tests::test_run_maintenance_pauses_runs_resumes ... ok
+test tests::test_run_maintenance_preserves_existing_freeze ... ok
+test tests::test_run_maintenance_resumes_even_on_failure ... ok
+test tests::test_run_maintenance_spawn_failure_returns_127_and_resumes ... ok
+test tests::test_scaffold_does_not_delete_symlinked_external_directory ... ok
+test tests::test_scaffold_rejects_root_target_without_deleting_repo ... ok
+test tests::test_scaffold_rejects_symlink_directory_escape ... ok
+test vanished::tests::detect_is_sorted_by_path_for_deterministic_reports ... ok
+test vanished::tests::detect_reports_only_unexpired_vanished_entries ... ok
+test vanished::tests::ledger_roundtrips_through_json ... ok
+test vanished::tests::mark_seen_adds_and_clears_vanished_stamp ... ok
+test vanished::tests::quantum_holds_heartbeat_but_not_vanish_signals ... ok
+test vanished::tests::save_skips_identical_content ... ok
+test vanished::tests::save_stable_across_reload_round_trip ... ok
+test vanished::tests::update_stamps_newly_absent_and_clears_returned ... ok
+test visibility::tests::test_cache_not_written_on_unparseable_origin ... ok
+test visibility::tests::test_cache_not_written_when_gh_visibility_unknown ... ok
+test visibility::tests::test_cache_prevents_repeated_api_calls ... ok
+test visibility::tests::test_cached_repo_visibility_returns_none_when_no_file ... ok
+test visibility::tests::test_cached_repo_visibility_returns_private ... ok
+test visibility::tests::test_cached_repo_visibility_returns_public ... ok
+test visibility::tests::test_cached_repo_visibility_treats_legacy_format_as_unknown ... ok
+test visibility::tests::test_cached_repo_visibility_window_follows_interval_hours ... ok
+test visibility::tests::test_codeberg_api_url_construction ... ok
+test visibility::tests::test_flip_repo_visibility_uses_single_remote_identity ... ok
+test visibility::tests::test_get_github_metadata_returns_empty_on_error ... ok
+test visibility::tests::test_get_github_visibility_returns_safe_default_on_error ... ok
+test visibility::tests::test_github_visibility_at_creation_disabled ... ok
+test visibility::tests::test_github_visibility_at_creation_enabled_private ... ok
+test visibility::tests::test_gitlab_api_url_construction ... ok
+test visibility::tests::test_last_known_visibility_survives_stale_cache_for_display_only ... ok
+test visibility::tests::test_parse_github_owner_repo_empty_string ... ok
+test visibility::tests::test_parse_github_owner_repo_gitlab_url ... ok
+test visibility::tests::test_parse_github_owner_repo_https ... ok
+test visibility::tests::test_parse_github_owner_repo_invalid_url ... ok
+test visibility::tests::test_parse_github_owner_repo_no_git_suffix ... ok
+test visibility::tests::test_parse_github_owner_repo_ssh ... ok
+test visibility::tests::test_parse_github_owner_repo_ssh_scheme_and_userinfo ... ok
+test visibility::tests::test_parse_github_owner_repo_with_dots ... ok
+test visibility::tests::test_parse_github_owner_repo_with_hyphens ... ok
+test visibility::tests::test_parse_github_owner_repo_with_name_mapping ... ok
+test visibility::tests::test_parse_visibility_cache_new_format_private ... ok
+test visibility::tests::test_parse_visibility_cache_new_format_public ... ok
+test visibility::tests::test_parse_visibility_cache_rejects_legacy_timestamp_only ... ok
+test visibility::tests::test_parse_visibility_cache_rejects_malformed ... ok
+test visibility::tests::test_refresh_falls_back_to_unknown_when_gh_unavailable ... ok
+test visibility::tests::test_refresh_handles_legacy_file_correctly_via_ssh_url ... ok
+test visibility::tests::test_refresh_idempotent ... ok
+test visibility::tests::test_refresh_preserves_new_format ... ok
+test visibility::tests::test_refresh_upgrades_legacy_to_new_format ... ok
+test visibility::tests::test_repo_metadata_default ... ok
+test visibility::tests::test_resolve_account_explicit_overrides ... ok
+test visibility::tests::test_resolve_account_from_https_url ... ok
+test visibility::tests::test_resolve_account_from_ssh_url ... ok
+test visibility::tests::test_same_host_project_divergence_detects_splits ... ok
+test visibility::tests::test_select_github_remote_falls_back_to_origin ... ok
+test visibility::tests::test_select_github_remote_prefers_github_over_origin ... ok
+test visibility::tests::test_select_github_remote_returns_none_when_nothing ... ok
+test visibility::tests::test_select_github_remote_skips_empty_github_uses_origin ... ok
+test visibility::tests::test_set_codeberg_metadata_does_not_panic ... ok
+test visibility::tests::test_set_codeberg_visibility_builds_correct_request ... ok
+test visibility::tests::test_set_gitlab_metadata_does_not_panic ... ok
+test visibility::tests::test_set_gitlab_visibility_builds_correct_request ... ok
+test visibility::tests::test_strip_ansi_passthrough_plain_text ... ok
+test visibility::tests::test_strip_ansi_removes_color_codes ... ok
+test visibility::tests::test_sync_metadata_defaults_in_policy ... ok
+test visibility::tests::test_sync_metadata_parses_true ... ok
+test visibility::tests::test_sync_metadata_with_missing_tokens ... ok
+test visibility::tests::test_sync_mirror_metadata_does_not_panic ... ok
+test visibility::tests::test_sync_mirror_metadata_handles_unparseable_origin ... ok
+test visibility::tests::test_sync_mirror_visibility_does_not_panic_on_all_failures ... ok
+test visibility::tests::test_sync_mirror_visibility_handles_unparseable_origin ... ok
+test visibility::tests::test_sync_mirror_visibility_skips_when_cache_fresh ... ok
+test visibility::tests::test_sync_visibility_defaults_in_policy ... ok
+test visibility::tests::test_sync_visibility_parses_true ... ok
+test visibility::tests::test_visibility_cache_corrupt_file ... ok
+test visibility::tests::test_visibility_cache_fresh_when_recent ... ok
+test visibility::tests::test_visibility_cache_freshness_works_for_both_formats ... ok
+test visibility::tests::test_visibility_cache_in_the_future_is_not_fresh ... ok
+test visibility::tests::test_visibility_cache_not_fresh_when_missing ... ok
+test visibility::tests::test_visibility_cache_stale_when_old ... ok
+test visibility::tests::test_visibility_cache_updates_timestamp ... ok
+
+failures:
+
+---- storage::tests::a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order stdout ----
+
+thread 'storage::tests::a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order' (1421972) panicked at dracon-sync/src/storage/tests.rs:938:5:
+assertion `left == right` failed
+  left: ["pre-commit argv=[]", "prepare-commit-msg argv=[/tmp/.tmpcMjIOz/.git/dracon-epoch-message-06cM9T/COMMIT_EDITMSG message]", "commit-msg argv=[/tmp/.tmpcMjIOz/.git/dracon-epoch-message-06cM9T/COMMIT_EDITMSG]", "post-commit argv=[]"]
+ right: ["pre-commit argv=[]", "prepare-commit-msg argv=[/tmp/.tmpcMjIOz/.git/COMMIT_EDITMSG message]", "commit-msg argv=[/tmp/.tmpcMjIOz/.git/COMMIT_EDITMSG]", "post-commit argv=[]"]
+
+---- storage::tests::storage_bootstrap_cannot_bypass_guard_with_no_verify stdout ----
+
+thread 'storage::tests::storage_bootstrap_cannot_bypass_guard_with_no_verify' (1427216) panicked at dracon-sync/src/storage/tests.rs:1169:18:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier refused: Error: indexed storage references do not match protected metadata
+
+
+---- storage::tests::storage_bootstrap_without_local_driver_cannot_commit_hydrated_bytes stdout ----
+
+thread 'storage::tests::storage_bootstrap_without_local_driver_cannot_commit_hydrated_bytes' (1432357) panicked at dracon-sync/src/storage/tests.rs:701:14:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier refused: Error: committed or staged storage attributes require an explicit version-1 guard binding
+
+
+---- sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore stdout ----
+📝 committed 3 file(s) in /tmp/.tmpyQMV5V/repo
+
+thread 'sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore' (1436131) panicked at dracon-sync/src/sync/bucket_qualification_tests.rs:248:5:
+assertion `left == right` failed
+  left: StagedPending
+ right: Synced
+
+---- sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery stdout ----
+⚠️ /tmp/.tmp5fqaOl/repo bucket runner bridge refused; no commit: bundle refused
+qualification operations: [Object {"op": String("consumer-diagnostic"), "reason": String("managed-bootstrap-text-verified"), "status": String("supported")}, Object {"key": String("games/1aa4fe13-bee8-4f0b-9a4c-bfe543e333ac/db4b373cca38cf0faa3a1613512dab8cae665cfd9de3e6dd34dbb2c8b367aa96.png"), "op": String("head"), "role": String("uploader")}, Object {"op": String("close"), "role": String("uploader")}, Object {"op": String("plan-diagnostic"), "outcomes": Array [Object {"path": String("public/a.png"), "reason": String("new-registration"), "status": String("eligible")}, Object {"path": String("public/b.png"), "reason": String("new-registration"), "status": String("eligible")}], "status": String("planned")}, Object {"commitEligible": Bool(false), "op": String("verdict"), "status": String("refused")}]
+staged paths: 
+📝 committed 3 file(s) in /tmp/.tmp5fqaOl/repo
+
+thread 'sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery' (1438950) panicked at dracon-sync/src/sync/bucket_qualification_tests.rs:358:9:
+assertion `left == right` failed
+  left: StagedPending
+ right: Synced
+
+---- sync::owned_commit_tests::another_publication_owner_allows_a_real_commit_without_a_push_or_failure_reset stdout ----
+📝 committed 1 file(s) in /tmp/.tmprbzVQD/repo
+⏳ /tmp/.tmprbzVQD/repo committed; publication owned by another worker (this pass did not push)
+
+thread 'sync::owned_commit_tests::another_publication_owner_allows_a_real_commit_without_a_push_or_failure_reset' (1443895) panicked at dracon-sync/src/sync/owned_commit_tests.rs:255:5:
+assertion `left == right` failed
+  left: "staged content"
+ right: "unstaged content"
+
+---- sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits stdout ----
+🛡️ /tmp/.tmpeN0NHM/a auto-hardened with warden before staging
+📝 committed 2 file(s) in /tmp/.tmpeN0NHM/a
+🛡️ /tmp/.tmp8D3xmq/b auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmp8D3xmq/b
+📝 committed 3 file(s) in /tmp/.tmpeN0NHM/a
+⏳ /tmp/.tmpeN0NHM/a committed; publication owned by another worker (this pass did not push)
+📝 committed 1 file(s) in /tmp/.tmpeN0NHM/a
+⏳ /tmp/.tmpeN0NHM/a committed; publication owned by another worker (this pass did not push)
+
+thread 'sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits' (1447433) panicked at dracon-sync/src/sync/publication_actor_tests.rs:271:5:
+assertion failed: matches!(first_outcome, SyncOutcome::Synced | SyncOutcome::PushFailed |
+    SyncOutcome::PushPaused)
+
+---- sync::tests::test_bootstrap_sweep_measures_staged_blob_not_worktree stdout ----
+ℹ️ skip large staged blob big.bin (2048 bytes > 1024 bytes)
+
+thread 'sync::tests::test_bootstrap_sweep_measures_staged_blob_not_worktree' (1481764) panicked at dracon-sync/src/sync.rs:7729:24:
+called `Result::unwrap()` on an `Err` value: captured staged path is excluded or oversized: big.bin
+
+---- sync::tests::test_deletions_committed_when_intentional stdout ----
+🛡️ /tmp/.tmpRik3pc/deletion-commit-repo auto-hardened with warden before staging
+📝 committed 7 file(s) in /tmp/.tmpRik3pc/deletion-commit-repo
+
+thread 'sync::tests::test_deletions_committed_when_intentional' (1496315) panicked at dracon-sync/src/sync.rs:11496:9:
+deletions should be committed, not blocked
+
+---- sync::tests::test_excluded_tracked_file_reverted_when_opted_in stdout ----
+🛡️ /tmp/.tmpevKlho/repo auto-hardened with warden before staging
+📝 committed 2 file(s) in /tmp/.tmpevKlho/repo
+
+thread 'sync::tests::test_excluded_tracked_file_reverted_when_opted_in' (1498638) panicked at dracon-sync/src/sync.rs:8704:9:
+assertion `left == right` failed: opted-in revert must restore the HEAD content
+  left: "edited by operator"
+ right: "original"
+
+---- sync::tests::test_filter_only_reset_failure_is_non_fatal stdout ----
+🛡️ /tmp/.tmpyvkZWy/filter-only-reset-fail-repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_filter_only_reset_failure_is_non_fatal' (1500422) panicked at dracon-sync/src/sync.rs:11687:9:
+filter-only reset failure should be non-fatal, got Err(private staging retained at /tmp/.tmpyvkZWy/filter-only-reset-fail-repo/.git/dracon-staging-fOismP
+
+Caused by:
+    index.lock held by another git operation, skipping /tmp/.tmpyvkZWy/filter-only-reset-fail-repo)
+
+---- sync::tests::test_filter_only_skip_still_pushes_ahead stdout ----
+🛡️ /tmp/.tmpGi81X7/filter-only-push-ahead auto-hardened with warden before staging
+
+thread 'sync::tests::test_filter_only_skip_still_pushes_ahead' (1501086) panicked at dracon-sync/src/sync.rs:11790:9:
+assertion `left == right` failed: ahead must push even when the commit is skipped as filter-only
+  left: "abb7debc4c3af10adbefe270dd5c6d1a18004e60\n"
+ right: "ef0949b991220a7314b81e462a821faf3da1a022\n"
+
+---- sync::tests::test_index_lock_contention_preserves_work_and_recovers stdout ----
+🛡️ /tmp/.tmpZURMjo/lock-recovery-repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_index_lock_contention_preserves_work_and_recovers' (1510858) panicked at dracon-sync/src/sync.rs:11841:9:
+must not claim work synced while the index is locked: Err(private staging retained at /tmp/.tmpZURMjo/lock-recovery-repo/.git/dracon-staging-tSVsJE
+
+Caused by:
+    index.lock held by another git operation, skipping /tmp/.tmpZURMjo/lock-recovery-repo)
+
+---- sync::tests::test_index_lock_contention_retries_then_succeeds stdout ----
+🛡️ /tmp/.tmprfuLgG/lock-retry-repo auto-hardened with warden before staging
+⏳ /tmp/.tmprfuLgG/lock-retry-repo git add hit index.lock contention (retry 1/2)
+📝 committed 1 file(s) in /tmp/.tmprfuLgG/lock-retry-repo
+
+thread 'sync::tests::test_index_lock_contention_retries_then_succeeds' (1511386) panicked at dracon-sync/src/sync.rs:11930:9:
+retry after contention must succeed in the same sync, got: Ok(StagedPending)
+
+---- sync::tests::test_sc05_post_stage_sweep_catches_filter_inflated_blob stdout ----
+ℹ️ skip large staged blob big.bin (2148 bytes > 1024 bytes)
+
+thread 'sync::tests::test_sc05_post_stage_sweep_catches_filter_inflated_blob' (1519837) panicked at dracon-sync/src/sync.rs:7791:9:
+sync must succeed (sweep unstages, never errors): Err(private staging retained at /tmp/.tmp1ivwRm/repo/.git/dracon-staging-K5A5Md
+
+Caused by:
+    captured staged path is excluded or oversized: big.bin)
+
+---- sync::tests::test_staged_extra_paths_matching stdout ----
+
+thread 'sync::tests::test_staged_extra_paths_matching' (1521749) panicked at dracon-sync/src/sync.rs:12163:9:
+assertion failed: staged_extra_paths(&repo, &staged, &to_stage).is_empty()
+
+---- sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo stdout ----
+🛡️ /tmp/.tmpoTyhDf/test-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmpoTyhDf/test-repo
+
+thread 'sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo' (1522459) panicked at dracon-sync/src/sync.rs:7234:9:
+dirty repo with auto_commit should sync
+
+---- sync::tests::test_sync_repo_mirror_push_success_returns_true stdout ----
+🛡️ /tmp/.tmpwmGpNG/test-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmpwmGpNG/test-repo
+📝 committed 3 file(s) in /tmp/.tmpwmGpNG/test-repo
+⏳ /tmp/.tmpwmGpNG/test-repo committed; publication owned by another worker (this pass did not push)
+
+thread 'sync::tests::test_sync_repo_mirror_push_success_returns_true' (1538120) panicked at dracon-sync/src/sync.rs:10025:9:
+mirror push success should return true
+
+---- sync::tests::test_sync_repo_mixed_tracked_and_untracked stdout ----
+🛡️ /tmp/.tmp6JouQO/mixed-repo auto-hardened with warden before staging
+📝 committed 2 file(s) in /tmp/.tmp6JouQO/mixed-repo
+
+thread 'sync::tests::test_sync_repo_mixed_tracked_and_untracked' (1542207) panicked at dracon-sync/src/sync.rs:11216:9:
+mixed changes should be committed
+
+---- sync::tests::test_sync_repo_stages_and_commits_untracked_file stdout ----
+🛡️ /tmp/.tmp3w4KHf/test-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmp3w4KHf/test-repo
+
+thread 'sync::tests::test_sync_repo_stages_and_commits_untracked_file' (1548312) panicked at dracon-sync/src/sync.rs:7511:9:
+untracked file should be staged and committed
+
+
+failures:
+    storage::tests::a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order
+    storage::tests::storage_bootstrap_cannot_bypass_guard_with_no_verify
+    storage::tests::storage_bootstrap_without_local_driver_cannot_commit_hydrated_bytes
+    sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore
+    sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery
+    sync::owned_commit_tests::another_publication_owner_allows_a_real_commit_without_a_push_or_failure_reset
+    sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits
+    sync::tests::test_bootstrap_sweep_measures_staged_blob_not_worktree
+    sync::tests::test_deletions_committed_when_intentional
+    sync::tests::test_excluded_tracked_file_reverted_when_opted_in
+    sync::tests::test_filter_only_reset_failure_is_non_fatal
+    sync::tests::test_filter_only_skip_still_pushes_ahead
+    sync::tests::test_index_lock_contention_preserves_work_and_recovers
+    sync::tests::test_index_lock_contention_retries_then_succeeds
+    sync::tests::test_sc05_post_stage_sweep_catches_filter_inflated_blob
+    sync::tests::test_staged_extra_paths_matching
+    sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo
+    sync::tests::test_sync_repo_mirror_push_success_returns_true
+    sync::tests::test_sync_repo_mixed_tracked_and_untracked
+    sync::tests::test_sync_repo_stages_and_commits_untracked_file
+
+test result: FAILED. 1419 passed; 20 failed; 3 ignored; 0 measured; 0 filtered out; finished in 496.08s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
