@@ -83,7 +83,11 @@ async fn excluded_restore_never_resets_later_pre_commit_producer_bytes() {
     .unwrap();
     std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
     let result = sync_repo(r, &p, &BTreeSet::new(), 0, None, false, None).await;
-    assert_eq!(result.unwrap(), SyncOutcome::StagedPending, "later hook work remains truthfully pending");
+    assert_eq!(
+        result.unwrap(),
+        SyncOutcome::StagedPending,
+        "later hook work remains truthfully pending"
+    );
     assert_eq!(git(r, &["show", "HEAD:normal.txt"]), b"two\n");
     assert_eq!(git(r, &["show", "HEAD:excluded.log"]), b"head\n");
     assert_eq!(
@@ -99,21 +103,47 @@ async fn excluded_restore_never_resets_later_pre_commit_producer_bytes() {
 
 #[tokio::test]
 async fn excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_push_hook_work() {
-    let (d, mut p) = setup(); let r=d.path();
-    let remote=tempfile::tempdir().unwrap();
-    git(r,&["init","--bare","-q",remote.path().to_str().unwrap()]);
-    git(r,&["remote","add","origin",remote.path().to_str().unwrap()]);
-    p.auto_push=true; p.remotes.clear();
-    let head=git(r,&["rev-parse","HEAD"]);
-    std::fs::write(r.join("excluded.log"),b"before restore\n").unwrap();
-    let hook=r.join(".git/local-test-hooks/pre-push");
-    std::fs::write(&hook,b"#!/bin/sh\nprintf 'later push hook bytes\\n' > excluded.log\n").unwrap();
-    std::fs::set_permissions(&hook,std::fs::Permissions::from_mode(0o755)).unwrap();
-    let result=sync_repo(r,&p,&BTreeSet::new(),0,None,false,None).await;
-    assert_eq!(result.unwrap(),SyncOutcome::StagedPending,"an empty candidate cannot hide later publication-hook work");
-    assert_eq!(git(remote.path(),&["rev-parse","refs/heads/main"]),head,"actual backlog reaches its destination");
-    assert_eq!(git(r,&["rev-parse","HEAD"]),head,"no recovery/manual/empty commit was manufactured");
-    assert_eq!(std::fs::read(r.join("excluded.log")).unwrap(),b"later push hook bytes\n");
-    assert!(hook.is_file(),"producer remains enabled");
+    let (d, mut p) = setup();
+    let r = d.path();
+    let remote = tempfile::tempdir().unwrap();
+    git(
+        r,
+        &["init", "--bare", "-q", remote.path().to_str().unwrap()],
+    );
+    git(
+        r,
+        &["remote", "add", "origin", remote.path().to_str().unwrap()],
+    );
+    p.auto_push = true;
+    p.remotes.clear();
+    let head = git(r, &["rev-parse", "HEAD"]);
+    std::fs::write(r.join("excluded.log"), b"before restore\n").unwrap();
+    let hook = r.join(".git/local-test-hooks/pre-push");
+    std::fs::write(
+        &hook,
+        b"#!/bin/sh\nprintf 'later push hook bytes\\n' > excluded.log\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let result = sync_repo(r, &p, &BTreeSet::new(), 0, None, false, None).await;
+    assert_eq!(
+        result.unwrap(),
+        SyncOutcome::StagedPending,
+        "an empty candidate cannot hide later publication-hook work"
+    );
+    assert_eq!(
+        git(remote.path(), &["rev-parse", "refs/heads/main"]),
+        head,
+        "actual backlog reaches its destination"
+    );
+    assert_eq!(
+        git(r, &["rev-parse", "HEAD"]),
+        head,
+        "no recovery/manual/empty commit was manufactured"
+    );
+    assert_eq!(
+        std::fs::read(r.join("excluded.log")).unwrap(),
+        b"later push hook bytes\n"
+    );
+    assert!(hook.is_file(), "producer remains enabled");
 }
-

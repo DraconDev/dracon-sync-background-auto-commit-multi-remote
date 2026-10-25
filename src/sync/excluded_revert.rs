@@ -417,24 +417,57 @@ async fn settle_directory(repo: &Path, directory: &Path, deadline: Instant) -> R
 
 /// A producer can edit an excluded file again after its pre-staging restore.
 /// Empty candidates must retain that fact rather than return healthy no-work.
-pub(super) async fn paths_dirty(repo: &Path, paths: &[dracon_git::types::DiffFile], deadline: Instant) -> Result<bool> {
+pub(super) async fn paths_dirty(
+    repo: &Path,
+    paths: &[dracon_git::types::DiffFile],
+    deadline: Instant,
+) -> Result<bool> {
     tokio::time::timeout_at(deadline, async {
         let mut command = crate::policy::tokio_git_command();
         for (key, _) in std::env::vars_os() {
-            if key.to_string_lossy().starts_with("GIT_") { command.env_remove(key); }
+            if key.to_string_lossy().starts_with("GIT_") {
+                command.env_remove(key);
+            }
         }
-        command.current_dir(repo).env("GIT_OPTIONAL_LOCKS", "0").env("GIT_NO_LAZY_FETCH", "1")
-            .args(["--no-optional-locks", "-c", "core.fsmonitor=false", "diff", "--name-only", "-z", "HEAD", "--"]);
+        command
+            .current_dir(repo)
+            .env("GIT_OPTIONAL_LOCKS", "0")
+            .env("GIT_NO_LAZY_FETCH", "1")
+            .args([
+                "--no-optional-locks",
+                "-c",
+                "core.fsmonitor=false",
+                "diff",
+                "--name-only",
+                "-z",
+                "HEAD",
+                "--",
+            ]);
         for entry in paths {
-            ensure!(crate::git::is_safe_git_path(&entry.path), "unsafe excluded follow-up path");
+            ensure!(
+                crate::git::is_safe_git_path(&entry.path),
+                "unsafe excluded follow-up path"
+            );
             let mut literal = std::ffi::OsString::from(":(literal)");
-            literal.push(entry.path.as_os_str()); command.arg(literal);
+            literal.push(entry.path.as_os_str());
+            command.arg(literal);
         }
-        let out = crate::git::run_command_captured_output(command.into_tokio(), 3600,
-            "excluded restored-path follow-up", None).await?;
-        ensure!(out.status.success(), "excluded follow-up inspection failed: {}", String::from_utf8_lossy(&out.stderr));
+        let out = crate::git::run_command_captured_output(
+            command.into_tokio(),
+            3600,
+            "excluded restored-path follow-up",
+            None,
+        )
+        .await?;
+        ensure!(
+            out.status.success(),
+            "excluded follow-up inspection failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
         Ok(!out.stdout.is_empty())
-    }).await.context("excluded follow-up absolute deadline expired")?
+    })
+    .await
+    .context("excluded follow-up absolute deadline expired")?
 }
 
 /// Must also run with the opt-in NOW DISABLED: changing policy does not make an

@@ -138,9 +138,13 @@ impl Epoch {
     /// index/ref update is pending work, not permission to acquire/reset it.
     pub(super) async fn index_changed(&self, repo: &Path) -> Result<bool> {
         tokio::time::timeout_at(self.deadline, async {
-            Ok(self.snapshot != StagedIntentSnapshot::capture(repo, self.deadline).await?
-                || self.reference != reference(repo).await?)
-        }).await.context("empty epoch follow-up deadline expired")?
+            Ok(
+                self.snapshot != StagedIntentSnapshot::capture(repo, self.deadline).await?
+                    || self.reference != reference(repo).await?,
+            )
+        })
+        .await
+        .context("empty epoch follow-up deadline expired")?
     }
 
     pub(super) fn entries(&self) -> Result<Vec<dracon_git::types::DiffFile>> {
