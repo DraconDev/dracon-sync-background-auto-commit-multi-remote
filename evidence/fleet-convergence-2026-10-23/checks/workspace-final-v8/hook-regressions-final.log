@@ -9,3 +9,23 @@
 ✔ nested Bun scripts use the exact selected pin rather than inherited Bun (33201.139613ms)
 ✔ library workspaces are built before a dependent lifecycle script resolves them (29790.947724ms)
 ✔ same-repository preparation is exclusive but product gates still overlap (27540.248939ms)
+✔ native pool budgets bound lifecycle, library and gate workers (25737.514808ms)
+
+Interrupted while running:
+
+⚠ scripts/git-hooks/run-push-gates.test.mjs (scripts/git-hooks/run-push-gates.test.mjs:1:1)
+✖ scripts/git-hooks/run-push-gates.test.mjs (179802.722424ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 1
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 179810.879024
+
+✖ failing tests:
+
+test at scripts/git-hooks/run-push-gates.test.mjs:1:1
+✖ scripts/git-hooks/run-push-gates.test.mjs (179802.722424ms)
+  'Promise resolution is still pending but the event loop has already resolved'
