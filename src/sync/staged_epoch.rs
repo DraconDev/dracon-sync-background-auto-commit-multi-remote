@@ -8,6 +8,9 @@ pub(super) struct Epoch {
     snapshot: StagedIntentSnapshot,
     reference: Option<String>,
     deadline: Instant,
+    // Keep the independent pack after installation: a later actual-index
+    // replacement must not make the proven candidate collectible by prune.
+    retained: Option<PathBuf>,
 }
 
 pub(super) async fn git(
@@ -80,6 +83,7 @@ impl Epoch {
                 snapshot,
                 reference,
                 deadline,
+                retained: None,
             })
         })
         .await
@@ -126,7 +130,8 @@ impl Epoch {
         );
         ensure!(
             self.snapshot == StagedIntentSnapshot::capture(repo, self.deadline).await?,
-            "epoch index or parent changed; all staged/worktree data retained"
+            "epoch index or parent changed; actual staged/worktree data retained; candidate backup: {:?}",
+            self.retained
         );
         Ok(())
     }
@@ -513,7 +518,21 @@ impl Staging {
             // A durable pack preserves candidate payloads even if an external
             // prune runs after refusal. This is not a ref/publication waiver.
             let prefix = self.directory.join("retained");
-            git(repo, &["pack-objects", "--revs", "--window=0", "--depth=0", prefix.to_str().context("unsupported retention path")?], Some(format!("{tree}\n").as_bytes())).await?;
+            let mut pack_input = format!("{tree}\n");
+            if let CapturedHead::Commit(parent) = &self.baseline.snapshot.head {
+                // The no-rewrite parent remains reachable in normal history.
+                // Retain only the candidate's new objects, not another copy of
+                // every unchanged historical asset on every staging pass.
+                pack_input.push_str(&format!("^{parent}\n"));
+            }
+            git(repo, &["pack-objects", "--revs", "--window=0", "--depth=0", prefix.to_str().context("unsupported retention path")?], Some(pack_input.as_bytes())).await?;
+            for entry in std::fs::read_dir(&self.directory)? {
+                let path = entry?.path();
+                if path.extension().is_some_and(|ext| ext == "pack" || ext == "idx") {
+                    std::fs::File::open(path)?.sync_all()?;
+                }
+            }
+            std::fs::File::open(&self.directory)?.sync_all()?;
             let entries = git(repo, &["ls-tree", "-r", "-z", "--full-tree", tree], None).await?;
             let mut candidate = std::collections::BTreeMap::new();
             for record in entries.stdout.split(|b| *b == 0).filter(|r| !r.is_empty()) {
@@ -532,7 +551,7 @@ impl Staging {
                 if !candidate.contains_key(path) { changed.insert(path.clone(), None); }
             }
             let expected = StagedIntentSnapshot { head: self.baseline.snapshot.head.clone(), entries: candidate, changed };
-            let epoch = Epoch { snapshot: expected, reference: self.baseline.reference.clone(), deadline };
+            let epoch = Epoch { snapshot: expected, reference: self.baseline.reference.clone(), deadline, retained: Some(self.directory.clone()) };
             epoch.eligible(repo, policy, excluded).await?;
             let actual_index = git(repo, &["rev-parse", "--path-format=absolute", "--git-path", "index"], None).await?;
             let actual_index = PathBuf::from(std::str::from_utf8(&actual_index.stdout)?.trim_end_matches('\n'));
@@ -543,7 +562,9 @@ impl Staging {
             // a read-after-install observation of a concurrently replaced index.
             // Commit's unchanged check must reject any later delta intact.
             drop(lock);
-            std::fs::remove_dir_all(&self.directory)?;
+            // Do not erase the independent candidate pack merely because
+            // install succeeded. A later foreign replacement can remove its
+            // only ordinary index root before this epoch commits.
             Ok(epoch)
         }).await.context("private staging deadline expired")?
             .with_context(|| format!("private staging retained at {}", retained.display()))
@@ -711,6 +732,11 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(epoch.snapshot.entries[b"file".as_slice()].oid, expected_oid);
+        let retained = epoch
+            .retained
+            .as_ref()
+            .expect("installed candidate retention");
+        assert!(retained.join("index").is_file());
         std::fs::write(repo.join("file"), b"late foreign replacement\n").unwrap();
         git(repo, &["add", "--", "file"], None).await.unwrap();
         std::fs::create_dir(repo.join("directory")).unwrap();
@@ -727,6 +753,21 @@ mod tests {
             .entries
             .contains_key(b"directory/late-child".as_slice()));
         assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), bytes);
+        let pack_index = std::fs::read_dir(retained)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .find(|path| path.extension().is_some_and(|ext| ext == "idx"))
+            .expect("candidate pack survives late replacement");
+        let objects = git(
+            repo,
+            &["verify-pack", "-v", pack_index.to_str().unwrap()],
+            None,
+        )
+        .await
+        .unwrap();
+        assert!(String::from_utf8(objects.stdout)
+            .unwrap()
+            .contains(&expected_oid));
         assert_eq!(
             std::fs::read(repo.join("file")).unwrap(),
             b"late foreign replacement\n"
