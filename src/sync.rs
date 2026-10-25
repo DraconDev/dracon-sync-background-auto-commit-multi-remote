@@ -10799,25 +10799,46 @@ push_url = "{}"
     // A real Pending result is not Synced: require bounded follow-up AND raw
     // Git cleanliness, rather than accepting a widened outcome list alone.
     async fn assert_synced_after_metadata_followup(
-        repo: &Path, policy: &SyncPolicy, mut result: Result<SyncOutcome>,
+        repo: &Path,
+        policy: &SyncPolicy,
+        mut result: Result<SyncOutcome>,
     ) {
         for round in 0..3 {
-            let status = tokio::time::timeout(Duration::from_secs(20),
-                staged_epoch::git(repo, &["status", "--porcelain=v1", "--untracked-files=all"], None))
-                .await.expect("bounded fixture status").unwrap().stdout;
+            let status = tokio::time::timeout(
+                Duration::from_secs(20),
+                staged_epoch::git(
+                    repo,
+                    &["status", "--porcelain=v1", "--untracked-files=all"],
+                    None,
+                ),
+            )
+            .await
+            .expect("bounded fixture status")
+            .unwrap()
+            .stdout;
             match result {
                 Ok(SyncOutcome::Synced) => {
-                    assert!(status.is_empty(), "Synced must mean raw Git clean: {}", String::from_utf8_lossy(&status));
+                    assert!(
+                        status.is_empty(),
+                        "Synced must mean raw Git clean: {}",
+                        String::from_utf8_lossy(&status)
+                    );
                     return;
                 }
                 Ok(SyncOutcome::StagedPending) => {
-                    assert!(!status.is_empty(), "metadata follow-up must correspond to real work");
+                    assert!(
+                        !status.is_empty(),
+                        "metadata follow-up must correspond to real work"
+                    );
                 }
                 other => panic!("unexpected fixture outcome at round {round}: {other:?}"),
             }
-            result = tokio::time::timeout(Duration::from_secs(30),
-                sync_repo(repo, policy, &BTreeSet::new(), 5, None, false, None))
-                .await.expect("bounded metadata follow-up");
+            result = tokio::time::timeout(
+                Duration::from_secs(30),
+                sync_repo(repo, policy, &BTreeSet::new(), 5, None, false, None),
+            )
+            .await
+            .expect("bounded metadata follow-up");
         }
         panic!("metadata did not converge within three rounds: {result:?}");
     }

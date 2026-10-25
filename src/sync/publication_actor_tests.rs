@@ -270,12 +270,17 @@ async fn blocked_publication_does_not_stall_cross_repo_or_same_repo_commits() {
     let first_outcome = first.join(90).await;
     assert!(matches!(
         first_outcome,
-        SyncOutcome::Synced | SyncOutcome::PushFailed | SyncOutcome::PushPaused
+        SyncOutcome::Synced
+            | SyncOutcome::PushFailed
+            | SyncOutcome::PushPaused
             | SyncOutcome::StagedPending
     ));
     if first_outcome == SyncOutcome::StagedPending {
-        assert_ne!(git(&a.repo, &["rev-parse", "HEAD"]), a_pinned,
-            "pending is justified by real newer local intent, not a fabricated successful push");
+        assert_ne!(
+            git(&a.repo, &["rev-parse", "HEAD"]),
+            a_pinned,
+            "pending is justified by real newer local intent, not a fabricated successful push"
+        );
     }
     assert_eq!(
         a.remote_tip(),
