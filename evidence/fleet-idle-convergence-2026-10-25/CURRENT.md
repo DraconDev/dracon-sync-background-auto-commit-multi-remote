@@ -86,4 +86,8 @@ Next: assess follow-up design; full37remote/object baseline is now captured.
 Inspect actual Doomtap hygiene refusal and reproduce staged-intent root gaps in
 disposable fixtures, then make
 small forward-only repairs with preservation/refusal tests before any live recovery.
-Task1 is in progress; later tasks remain open. See confirmed goal for all8gates.
+baseline-staged-local-paths.json now losslessly records staged raw path/mode/OID
+metadata and local changed/untracked path lists for all37, base64 for exact path
+bytes; all74metadata queries succeeded. No content, index or policy was changed
+by those raw/no-textconv metadata queries. Baseline capture task1 is complete;
+staging task2/2.1 is in progress. See confirmed goal for all8gates.
