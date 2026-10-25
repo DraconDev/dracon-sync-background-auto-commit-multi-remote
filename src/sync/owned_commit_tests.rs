@@ -209,6 +209,7 @@ async fn another_publication_owner_allows_a_real_commit_without_a_push_or_failur
         .unwrap()
         .unwrap();
     let before = git(&fixture.repo, &["rev-parse", "HEAD"]).await;
+    let staged_before = git(&fixture.repo, &["rev-parse", ":file"]).await;
     let policy = SyncPolicy {
         auto_commit: true,
         auto_push: true,
@@ -254,8 +255,11 @@ async fn another_publication_owner_allows_a_real_commit_without_a_push_or_failur
     assert_ne!(git(&fixture.repo, &["rev-parse", "HEAD"]).await, before);
     assert_eq!(
         git(&fixture.repo, &["show", "HEAD:file"]).await,
-        "unstaged content"
+        "staged content",
+        "publication contention must not re-stage and absorb unstaged bytes"
     );
+    assert_eq!(git(&fixture.repo, &["rev-parse", "HEAD:file"]).await, staged_before);
+    assert_eq!(git(&fixture.repo, &["rev-parse", ":file"]).await, staged_before);
     assert_eq!(
         std::fs::read_to_string(fixture.repo.join("file")).unwrap(),
         "unstaged content"
