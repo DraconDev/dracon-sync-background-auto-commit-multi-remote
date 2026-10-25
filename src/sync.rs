@@ -12073,7 +12073,7 @@ trusted_authors = ["test"]
         std::fs::write(
             &mock,
             format!(
-                "#!/bin/sh\nif [ \"$1\" = \"add\" ] && [ ! -f \"{}\" ]; then touch \"{}\"; echo concurrent >> \"{}/extra.txt\"; \"{}\" -C \"{}\" add extra.txt; fi\nexec \"{}\" \"$@\"\n",
+                "#!/bin/sh\nif [ \"$1\" = \"add\" ] && [ ! -f \"{}\" ]; then touch \"{}\"; echo concurrent >> \"{}/extra.txt\"; (unset GIT_INDEX_FILE; \"{}\" -C \"{}\" add extra.txt); fi\nexec \"{}\" \"$@\"\n",
                 tripped.display(),
                 tripped.display(),
                 repo.display(),
