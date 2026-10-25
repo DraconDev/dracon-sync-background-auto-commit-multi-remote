@@ -2115,3 +2115,20 @@ ok
 test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) ba5c0ff] init
 ok
 test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) f5fad0d] init
+ok
+test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) 07b9772] init
+ok
+test sync::tests::test_sync_repo_bootstrap_failure_is_error_not_nothing_to_do ... ok
+test sync::tests::test_sync_repo_busy_lease_defers_without_committing ... ok
+test sync::tests::test_sync_repo_clean_repo_returns_false ... [master (root-commit) 07b9772] init
+ok
+test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [master (root-commit) e4b92eb] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 dirty.txt
+[master 8b0d7ac] unpushed
+ 1 file changed, 1 insertion(+)
+ create mode 100644 ahead.txt
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) 7605805] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) 7605805] init
