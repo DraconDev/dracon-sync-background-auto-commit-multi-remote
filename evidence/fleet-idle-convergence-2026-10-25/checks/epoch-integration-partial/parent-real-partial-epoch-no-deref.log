@@ -55,3 +55,27 @@ warning: function `unstage_paths_git` is never used
 1965 | async fn unstage_paths_git(repo: &Path, paths: &[String]) -> Result<()> {
      |          ^^^^^^^^^^^^^^^^^
 
+warning: `dracon-sync` (bin "dracon-sync" test) generated 8 warnings (run `cargo fix --bin "dracon-sync" -p dracon-sync --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 07s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 1 test
+test sync::tests::captured_epoch_commits_partial_index_and_keeps_unstaged_work ... [master (root-commit) 8dcc793] init
+FAILED
+
+failures:
+
+---- sync::tests::captured_epoch_commits_partial_index_and_keeps_unstaged_work stdout ----
+
+thread 'sync::tests::captured_epoch_commits_partial_index_and_keeps_unstaged_work' (4078999) panicked at dracon-sync/src/sync.rs:11956:9:
+Err(staged epoch Git Some("update-ref") refused: fatal: prepare: multiple updates for 'HEAD' (including one via its referent 'refs/heads/master') are not allowed
+)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sync::tests::captured_epoch_commits_partial_index_and_keeps_unstaged_work
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1435 filtered out; finished in 1.13s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
