@@ -286,7 +286,7 @@ impl Epoch {
             let zero = "0".repeat(oid.len());
             let previous = parent.unwrap_or(&zero);
             let transaction = if let Some(reference) = &self.reference {
-                format!("start\nsymref-verify HEAD {reference}\nupdate {reference} {oid} {previous}\nprepare\ncommit\n")
+                format!("start\noption no-deref\nsymref-verify HEAD {reference}\nupdate {reference} {oid} {previous}\nprepare\ncommit\n")
             } else {
                 format!("start\noption no-deref\nupdate HEAD {oid} {previous}\nprepare\ncommit\n")
             };
