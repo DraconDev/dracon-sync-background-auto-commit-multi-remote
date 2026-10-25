@@ -288,71 +288,132 @@ async fn excluded_recovery_empty_epoch_followup_observes_foreign_staging_without
 #[tokio::test]
 async fn excluded_recovery_late_displaced_writer_after_archival_stays_visible_and_blocked() {
     use std::io::{Seek, SeekFrom, Write};
-    let (d, pending, targets) = fixture().await; let r = d.path();
+    let (d, pending, targets) = fixture().await;
+    let r = d.path();
     request(r, &pending, targets);
-    exchange(r, &pending, "one.log"); exchange(r, &pending, "two.log");
+    exchange(r, &pending, "one.log");
+    exchange(r, &pending, "two.log");
     // A completed open on the displaced inode survives renaming its directory.
     // This models a lookup/open queued around exchange, not an already-open
     // canonical writer (which the kernel-lease controls reject separately).
-    let mut writer = OpenOptions::new().write(true).open(pending.join("files/one.log")).unwrap();
+    let mut writer = OpenOptions::new()
+        .write(true)
+        .open(pending.join("files/one.log"))
+        .unwrap();
     let metadata = writer.metadata().unwrap();
-    assert!(settle_pending(r, Instant::now() + Duration::from_secs(5)).await.unwrap());
+    assert!(settle_pending(r, Instant::now() + Duration::from_secs(5))
+        .await
+        .unwrap());
     assert!(!super::super::has_pending_excluded_recovery(r).unwrap());
-    let archive = r.join(".git/dracon-excluded-archive").join(pending.file_name().unwrap());
+    let archive = r
+        .join(".git/dracon-excluded-archive")
+        .join(pending.file_name().unwrap());
     let seal = std::fs::read(archive.join("archive-state.json")).unwrap();
     let index = std::fs::read(r.join(".git/index")).unwrap();
     // SAME byte count and restored mtime: ctime still exposes this late write.
     tokio::time::sleep(Duration::from_millis(20)).await;
-    writer.seek(SeekFrom::Start(0)).unwrap(); writer.write_all(b"UNKNOWN! one.log\n").unwrap();
+    writer.seek(SeekFrom::Start(0)).unwrap();
+    writer.write_all(b"UNKNOWN! one.log\n").unwrap();
     assert_eq!(writer.metadata().unwrap().len(), metadata.len());
-    writer.set_times(std::fs::FileTimes::new().set_modified(metadata.modified().unwrap())).unwrap();
+    writer
+        .set_times(std::fs::FileTimes::new().set_modified(metadata.modified().unwrap()))
+        .unwrap();
     writer.sync_all().unwrap();
-    assert!(super::super::has_pending_excluded_recovery(r).unwrap(), "archival is not immutability proof");
-    assert!(!settle_pending(r, Instant::now() + Duration::from_secs(5)).await.unwrap());
+    assert!(
+        super::super::has_pending_excluded_recovery(r).unwrap(),
+        "archival is not immutability proof"
+    );
+    assert!(!settle_pending(r, Instant::now() + Duration::from_secs(5))
+        .await
+        .unwrap());
     let policy: SyncPolicy = toml::from_str("auto_github_private=false\nauto_commit=true\nauto_pull=false\nauto_push=false\nauto_bump_versions=false\ntrusted_emails=['test@test']\ntrusted_authors=['test']\nremotes=[]\n").unwrap();
-    assert_eq!(super::super::sync_repo(r, &policy, &BTreeSet::new(), 0, None, false, None).await.unwrap(), SyncOutcome::Blocked);
+    assert_eq!(
+        super::super::sync_repo(r, &policy, &BTreeSet::new(), 0, None, false, None)
+            .await
+            .unwrap(),
+        SyncOutcome::Blocked
+    );
     assert!(git(r, &["status", "--porcelain=v1", "--untracked-files=all"]).is_empty());
     assert_eq!(std::fs::read(r.join(".git/index")).unwrap(), index);
-    assert_eq!(std::fs::read(archive.join("archive-state.json")).unwrap(), seal, "never bless changed archive bytes by resealing");
-    assert_eq!(std::fs::read(archive.join("files/one.log")).unwrap(), b"UNKNOWN! one.log\n");
+    assert_eq!(
+        std::fs::read(archive.join("archive-state.json")).unwrap(),
+        seal,
+        "never bless changed archive bytes by resealing"
+    );
+    assert_eq!(
+        std::fs::read(archive.join("files/one.log")).unwrap(),
+        b"UNKNOWN! one.log\n"
+    );
     assert_eq!(std::fs::read(r.join("one.log")).unwrap(), b"HEAD one.log\n");
-    writer.seek(SeekFrom::Start(0)).unwrap(); writer.write_all(b"STILL").unwrap();
-    assert!(super::super::has_pending_excluded_recovery(r).unwrap(), "producer remains enabled");
+    writer.seek(SeekFrom::Start(0)).unwrap();
+    writer.write_all(b"STILL").unwrap();
+    assert!(
+        super::super::has_pending_excluded_recovery(r).unwrap(),
+        "producer remains enabled"
+    );
 }
 
 #[tokio::test]
-async fn excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_reseal_changed_records() {
-    let (d, pending, targets) = fixture().await; let r = d.path();
+async fn excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_reseal_changed_records(
+) {
+    let (d, pending, targets) = fixture().await;
+    let r = d.path();
     request(r, &pending, targets);
-    assert!(settle_pending(r, Instant::now() + Duration::from_secs(5)).await.unwrap());
-    let archive = r.join(".git/dracon-excluded-archive").join(pending.file_name().unwrap());
+    assert!(settle_pending(r, Instant::now() + Duration::from_secs(5))
+        .await
+        .unwrap());
+    let archive = r
+        .join(".git/dracon-excluded-archive")
+        .join(pending.file_name().unwrap());
     // Simulated prior-revision archive: preserve its original request/bytes.
     std::fs::remove_file(archive.join("archive-state.json")).unwrap();
     assert!(super::super::has_pending_excluded_recovery(r).unwrap());
-    assert!(settle_pending(r, Instant::now() + Duration::from_secs(5)).await.unwrap());
+    assert!(settle_pending(r, Instant::now() + Duration::from_secs(5))
+        .await
+        .unwrap());
     assert!(!super::super::has_pending_excluded_recovery(r).unwrap());
     let original_seal = std::fs::read(archive.join("archive-state.json")).unwrap();
-    std::fs::write(archive.join("files/two.log"), b"later unknown archive body\n").unwrap();
-    assert!(!settle_pending(r, Instant::now() + Duration::from_secs(5)).await.unwrap());
-    assert_eq!(std::fs::read(archive.join("archive-state.json")).unwrap(), original_seal);
+    std::fs::write(
+        archive.join("files/two.log"),
+        b"later unknown archive body\n",
+    )
+    .unwrap();
+    assert!(!settle_pending(r, Instant::now() + Duration::from_secs(5))
+        .await
+        .unwrap());
+    assert_eq!(
+        std::fs::read(archive.join("archive-state.json")).unwrap(),
+        original_seal
+    );
     // If the seal is genuinely missing, unknown bodies still cannot be adopted.
     std::fs::remove_file(archive.join("archive-state.json")).unwrap();
-    assert!(!settle_pending(r, Instant::now() + Duration::from_secs(5)).await.unwrap());
+    assert!(!settle_pending(r, Instant::now() + Duration::from_secs(5))
+        .await
+        .unwrap());
     assert!(!archive.join("archive-state.json").exists());
     assert!(super::super::has_pending_excluded_recovery(r).unwrap());
 }
 
 #[tokio::test]
 async fn excluded_recovery_preexisting_pending_seal_survives_retry_without_overwrite() {
-    let (d, pending, targets) = fixture().await; let r = d.path();
+    let (d, pending, targets) = fixture().await;
+    let r = d.path();
     request(r, &pending, targets);
-    assert!(settle_pending(r, Instant::now() + Duration::from_secs(5)).await.unwrap());
-    let archive = r.join(".git/dracon-excluded-archive").join(pending.file_name().unwrap());
+    assert!(settle_pending(r, Instant::now() + Duration::from_secs(5))
+        .await
+        .unwrap());
+    let archive = r
+        .join(".git/dracon-excluded-archive")
+        .join(pending.file_name().unwrap());
     let seal = std::fs::read(archive.join("archive-state.json")).unwrap();
     // Simulate a crash after sealing but before the atomic archive move.
     std::fs::rename(&archive, &pending).unwrap();
-    assert!(settle_pending(r, Instant::now() + Duration::from_secs(5)).await.unwrap());
-    assert_eq!(std::fs::read(archive.join("archive-state.json")).unwrap(), seal);
+    assert!(settle_pending(r, Instant::now() + Duration::from_secs(5))
+        .await
+        .unwrap());
+    assert_eq!(
+        std::fs::read(archive.join("archive-state.json")).unwrap(),
+        seal
+    );
     assert!(!super::super::has_pending_excluded_recovery(r).unwrap());
 }
-

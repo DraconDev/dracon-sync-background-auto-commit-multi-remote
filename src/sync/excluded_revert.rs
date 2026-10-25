@@ -1,10 +1,10 @@
 //! Explicit destructive opt-in, applied BEFORE staging/hooks, never afterwards.
 //! Linux exchange retains displaced bytes in a private durable recovery directory.
+#[path = "excluded_archive.rs"]
+mod archive;
 #[cfg(test)]
 #[path = "excluded_revert_recovery_tests.rs"]
 mod recovery_tests;
-#[path = "excluded_archive.rs"]
-mod archive;
 use super::*;
 use crate::git::staged_intent::{CapturedHead, StagedIntentSnapshot};
 use anyhow::{bail, ensure};
@@ -103,14 +103,18 @@ impl Location {
         let after = file.metadata().await?;
         let observed = archive::Stamp::of(&after);
         ensure!(
-            archive::Stamp::of(&before) == observed && length == before.len()
+            archive::Stamp::of(&before) == observed
+                && length == before.len()
                 && archive::stamp(self)? == Some(observed.clone()),
             "excluded file changed during capture"
         );
-        Ok(Some((Fingerprint {
-            identity: identity(&after),
-            sha256: format!("{:x}", hash.finalize()),
-        }, observed)))
+        Ok(Some((
+            Fingerprint {
+                identity: identity(&after),
+                sha256: format!("{:x}", hash.finalize()),
+            },
+            observed,
+        )))
     }
     fn same_parent(&self, other: &Self) -> Result<bool> {
         let a = self.parent.metadata()?;
@@ -501,7 +505,9 @@ pub(super) async fn settle_pending(repo: &Path, deadline: Instant) -> Result<boo
         Err(error) => return Err(error.into()),
     }
     for directory in archive::unsealed(repo)? {
-        if !settle_directory(repo, &directory, deadline).await? { return Ok(false); }
+        if !settle_directory(repo, &directory, deadline).await? {
+            return Ok(false);
+        }
     }
     for entry in std::fs::read_dir(gitdir)? {
         ensure!(

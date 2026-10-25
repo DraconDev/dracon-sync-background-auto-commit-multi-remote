@@ -15,7 +15,11 @@ pub(super) struct Stamp {
 }
 impl Stamp {
     pub(super) fn of(meta: &std::fs::Metadata) -> Self {
-        Self { identity: identity(meta), ctime: (meta.ctime(), meta.ctime_nsec()), links: meta.nlink() }
+        Self {
+            identity: identity(meta),
+            ctime: (meta.ctime(), meta.ctime_nsec()),
+            links: meta.nlink(),
+        }
     }
 }
 #[derive(PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -32,16 +36,25 @@ pub(super) struct Seal {
 }
 
 pub(super) fn stamp(location: &Location) -> Result<Option<Stamp>> {
-    location.file()?.map(|file| {
-        let meta = file.metadata()?;
-        ensure!(meta.is_file() && meta.nlink() == 1, "archived source must remain a single-link regular file");
-        Ok(Stamp::of(&meta))
-    }).transpose()
+    location
+        .file()?
+        .map(|file| {
+            let meta = file.metadata()?;
+            ensure!(
+                meta.is_file() && meta.nlink() == 1,
+                "archived source must remain a single-link regular file"
+            );
+            Ok(Stamp::of(&meta))
+        })
+        .transpose()
 }
 fn private_directory(path: &Path) -> Result<()> {
     let meta = std::fs::symlink_metadata(path)?;
-    ensure!(meta.is_dir() && meta.uid() == unsafe { libc::geteuid() } && meta.mode() & 0o077 == 0,
-        "recovery/archive directory must be owned, private and nonsymlink: {}", path.display());
+    ensure!(
+        meta.is_dir() && meta.uid() == unsafe { libc::geteuid() } && meta.mode() & 0o077 == 0,
+        "recovery/archive directory must be owned, private and nonsymlink: {}",
+        path.display()
+    );
     Ok(())
 }
 fn directories(repo: &Path, deadline: std::time::Instant) -> Result<Vec<PathBuf>> {
@@ -54,9 +67,16 @@ fn directories(repo: &Path, deadline: std::time::Instant) -> Result<Vec<PathBuf>
     }
     let mut paths = Vec::new();
     for entry in std::fs::read_dir(archive)? {
-        ensure!(std::time::Instant::now() < deadline, "excluded archive inspection deadline expired");
+        ensure!(
+            std::time::Instant::now() < deadline,
+            "excluded archive inspection deadline expired"
+        );
         let entry = entry?;
-        if entry.file_name().as_bytes().starts_with(b"dracon-excluded-recovery-") {
+        if entry
+            .file_name()
+            .as_bytes()
+            .starts_with(b"dracon-excluded-recovery-")
+        {
             private_directory(&entry.path())?;
             paths.push(entry.path());
         }
@@ -69,8 +89,16 @@ pub(super) fn unsealed(repo: &Path) -> Result<Vec<PathBuf>> {
     let deadline = std::time::Instant::now() + Duration::from_secs(2);
     let mut paths = Vec::new();
     for directory in directories(repo, deadline)? {
-        ensure!(std::time::Instant::now() < deadline, "excluded archive inspection deadline expired");
-        if Location::open(&directory, Path::new(SEAL))?.file()?.is_none() { paths.push(directory); }
+        ensure!(
+            std::time::Instant::now() < deadline,
+            "excluded archive inspection deadline expired"
+        );
+        if Location::open(&directory, Path::new(SEAL))?
+            .file()?
+            .is_none()
+        {
+            paths.push(directory);
+        }
     }
     Ok(paths)
 }
@@ -82,24 +110,47 @@ pub(super) fn pending(repo: &Path) -> Result<bool> {
     let deadline = std::time::Instant::now() + Duration::from_secs(2);
     let canonical = std::fs::canonicalize(repo)?;
     for directory in directories(repo, deadline)? {
-        ensure!(std::time::Instant::now() < deadline, "excluded archive inspection deadline expired");
+        ensure!(
+            std::time::Instant::now() < deadline,
+            "excluded archive inspection deadline expired"
+        );
         let location = Location::open(&directory, Path::new(SEAL))?;
-        let Some(file) = location.file()? else { return Ok(true) };
+        let Some(file) = location.file()? else {
+            return Ok(true);
+        };
         let before = file.metadata()?;
-        ensure!(before.is_file() && before.nlink() == 1 && before.len() <= MAX_SEAL_BYTES,
-            "invalid or oversized excluded archive seal");
+        ensure!(
+            before.is_file() && before.nlink() == 1 && before.len() <= MAX_SEAL_BYTES,
+            "invalid or oversized excluded archive seal"
+        );
         let original_stamp = Stamp::of(&before);
         let mut bytes = Vec::new();
         file.take(MAX_SEAL_BYTES + 1).read_to_end(&mut bytes)?;
-        ensure!(bytes.len() as u64 <= MAX_SEAL_BYTES, "excluded archive seal grew past budget");
-        ensure!(stamp(&location)? == Some(original_stamp), "excluded archive seal changed during inspection");
+        ensure!(
+            bytes.len() as u64 <= MAX_SEAL_BYTES,
+            "excluded archive seal grew past budget"
+        );
+        ensure!(
+            stamp(&location)? == Some(original_stamp),
+            "excluded archive seal changed during inspection"
+        );
         let seal: Seal = serde_json::from_slice(&bytes)?;
-        ensure!(seal.schema == 1 && seal.repo == canonical.as_os_str().as_bytes(), "excluded archive seal identity mismatch");
-        if stamp(&Location::open(&directory, Path::new("recovery.json"))?)? != Some(seal.request) { return Ok(true) }
+        ensure!(
+            seal.schema == 1 && seal.repo == canonical.as_os_str().as_bytes(),
+            "excluded archive seal identity mismatch"
+        );
+        if stamp(&Location::open(&directory, Path::new("recovery.json"))?)? != Some(seal.request) {
+            return Ok(true);
+        }
         for target in seal.targets {
-            ensure!(std::time::Instant::now() < deadline, "excluded archive inspection deadline expired");
+            ensure!(
+                std::time::Instant::now() < deadline,
+                "excluded archive inspection deadline expired"
+            );
             let path = PathBuf::from(std::ffi::OsString::from_vec(target.path));
-            if stamp(&Location::open(&directory.join("files"), &path)?)? != target.observed { return Ok(true) }
+            if stamp(&Location::open(&directory.join("files"), &path)?)? != target.observed {
+                return Ok(true);
+            }
         }
     }
     Ok(false)
@@ -111,12 +162,17 @@ pub(super) fn persist(directory: &Path, seal: &Seal) -> Result<()> {
     if let Some(file) = Location::open(directory, Path::new(SEAL))?.file()? {
         use std::io::Read;
         let meta = file.metadata()?;
-        ensure!(meta.is_file() && meta.nlink() == 1 && meta.len() <= MAX_SEAL_BYTES,
-            "invalid existing archive seal; retained without replacement");
+        ensure!(
+            meta.is_file() && meta.nlink() == 1 && meta.len() <= MAX_SEAL_BYTES,
+            "invalid existing archive seal; retained without replacement"
+        );
         let mut bytes = Vec::new();
         file.take(MAX_SEAL_BYTES + 1).read_to_end(&mut bytes)?;
-        ensure!(bytes.len() as u64 <= MAX_SEAL_BYTES && serde_json::from_slice::<Seal>(&bytes)? == *seal,
-            "existing archive seal differs; never reseal uncertain bytes");
+        ensure!(
+            bytes.len() as u64 <= MAX_SEAL_BYTES
+                && serde_json::from_slice::<Seal>(&bytes)? == *seal,
+            "existing archive seal differs; never reseal uncertain bytes"
+        );
         return Ok(());
     }
     let mut file = tempfile::NamedTempFile::new_in(directory)?;

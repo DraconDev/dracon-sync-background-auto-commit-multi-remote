@@ -141,17 +141,26 @@ async fn unresolved_private_recovery_is_a_machine_readable_concern_even_when_git
 #[cfg(target_os = "linux")]
 #[tokio::test]
 async fn late_archive_write_is_visible_in_real_json_even_with_same_size_and_restored_mtime() {
-    use std::os::unix::{ffi::OsStrExt, fs::{DirBuilderExt, MetadataExt}};
     use sha2::{Digest, Sha256};
+    use std::os::unix::{
+        ffi::OsStrExt,
+        fs::{DirBuilderExt, MetadataExt},
+    };
     fn stamp(meta: &std::fs::Metadata) -> serde_json::Value {
         serde_json::json!({"identity":[meta.dev(),meta.ino(),meta.len(),meta.mode(),meta.uid(),meta.gid(),meta.mtime(),meta.mtime_nsec()],
             "ctime":[meta.ctime(),meta.ctime_nsec()],"links":meta.nlink()})
     }
     let (d, repo, policy) = fixture();
     let archive = repo.join(".git/dracon-excluded-archive");
-    std::fs::DirBuilder::new().mode(0o700).create(&archive).unwrap();
+    std::fs::DirBuilder::new()
+        .mode(0o700)
+        .create(&archive)
+        .unwrap();
     let directory = archive.join("dracon-excluded-recovery-consumer-fixture");
-    std::fs::DirBuilder::new().mode(0o700).create(&directory).unwrap();
+    std::fs::DirBuilder::new()
+        .mode(0o700)
+        .create(&directory)
+        .unwrap();
     std::fs::create_dir(directory.join("files")).unwrap();
     let retained = directory.join("files/tracked.txt");
     std::fs::write(&retained, b"baseline\n").unwrap();
@@ -161,29 +170,64 @@ async fn late_archive_write_is_visible_in_real_json_even_with_same_size_and_rest
     let request = serde_json::json!({"repo":repo.as_os_str().as_bytes(), "source_id":"consumer-fixture-not-helper-execution-proof",
         "head":String::from_utf8(git(&repo,&["rev-parse","HEAD"])).unwrap().trim(),
         "targets":[{"path":b"tracked.txt".as_slice(),"before":null,"desired":fingerprint}]});
-    std::fs::write(directory.join("recovery.json"), serde_json::to_vec(&request).unwrap()).unwrap();
+    std::fs::write(
+        directory.join("recovery.json"),
+        serde_json::to_vec(&request).unwrap(),
+    )
+    .unwrap();
     let seal = serde_json::json!({"schema":1,"repo":repo.as_os_str().as_bytes(),
         "request":stamp(&std::fs::metadata(directory.join("recovery.json")).unwrap()),
         "targets":[{"path":b"tracked.txt".as_slice(),"observed":retained_stamp}]});
-    std::fs::write(directory.join("archive-state.json"), serde_json::to_vec(&seal).unwrap()).unwrap();
+    std::fs::write(
+        directory.join("archive-state.json"),
+        serde_json::to_vec(&seal).unwrap(),
+    )
+    .unwrap();
     let sealed = std::fs::read(directory.join("archive-state.json")).unwrap();
     let initial = report(d.path(), &policy).await;
-    assert_eq!(initial["rows"][0]["concern"],false,"unchanged sealed fixture is not an eternal concern: {initial}");
+    assert_eq!(
+        initial["rows"][0]["concern"], false,
+        "unchanged sealed fixture is not an eternal concern: {initial}"
+    );
     let index = std::fs::read(repo.join(".git/index")).unwrap();
     tokio::time::sleep(Duration::from_millis(20)).await;
-    std::fs::write(&retained,b"later!!!\n").unwrap();
-    std::fs::OpenOptions::new().write(true).open(&retained).unwrap()
-        .set_times(std::fs::FileTimes::new().set_modified(metadata.modified().unwrap())).unwrap();
-    assert_eq!(std::fs::metadata(&retained).unwrap().len(),metadata.len());
-    assert_eq!(std::fs::metadata(&retained).unwrap().modified().unwrap(),metadata.modified().unwrap());
-    assert!(git(&repo,&["status","--porcelain=v1","--untracked-files=all"]).is_empty());
-    let observed = report(d.path(), &policy).await; let row = &observed["rows"][0];
-    assert_eq!(row["concern"],true,"archive changes must not disappear behind raw-clean Git: {observed}");
-    assert_eq!(row["health"]["current"],"blocked"); assert_ne!(row["state_cause_label"],"idle");
-    assert!(row["hint"].as_str().unwrap().contains("dracon-excluded-archive"));
-    assert_eq!(row["modified"],0); assert_eq!(row["staged"],0); assert_eq!(row["untracked"],0);
-    assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(),index);
-    assert_eq!(std::fs::read(directory.join("archive-state.json")).unwrap(),sealed,"report cannot reseal changed bytes");
-    assert_eq!(std::fs::read(&retained).unwrap(),b"later!!!\n");
+    std::fs::write(&retained, b"later!!!\n").unwrap();
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(&retained)
+        .unwrap()
+        .set_times(std::fs::FileTimes::new().set_modified(metadata.modified().unwrap()))
+        .unwrap();
+    assert_eq!(std::fs::metadata(&retained).unwrap().len(), metadata.len());
+    assert_eq!(
+        std::fs::metadata(&retained).unwrap().modified().unwrap(),
+        metadata.modified().unwrap()
+    );
+    assert!(git(
+        &repo,
+        &["status", "--porcelain=v1", "--untracked-files=all"]
+    )
+    .is_empty());
+    let observed = report(d.path(), &policy).await;
+    let row = &observed["rows"][0];
+    assert_eq!(
+        row["concern"], true,
+        "archive changes must not disappear behind raw-clean Git: {observed}"
+    );
+    assert_eq!(row["health"]["current"], "blocked");
+    assert_ne!(row["state_cause_label"], "idle");
+    assert!(row["hint"]
+        .as_str()
+        .unwrap()
+        .contains("dracon-excluded-archive"));
+    assert_eq!(row["modified"], 0);
+    assert_eq!(row["staged"], 0);
+    assert_eq!(row["untracked"], 0);
+    assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), index);
+    assert_eq!(
+        std::fs::read(directory.join("archive-state.json")).unwrap(),
+        sealed,
+        "report cannot reseal changed bytes"
+    );
+    assert_eq!(std::fs::read(&retained).unwrap(), b"later!!!\n");
 }
-

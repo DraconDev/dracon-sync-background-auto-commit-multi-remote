@@ -43,9 +43,13 @@ pub(crate) fn has_pending_excluded_recovery(repo: &Path) -> Result<bool> {
         }
     }
     #[cfg(target_os = "linux")]
-    { excluded_revert::archived_pending(repo) }
+    {
+        excluded_revert::archived_pending(repo)
+    }
     #[cfg(not(target_os = "linux"))]
-    { Ok(gitdir.join("dracon-excluded-archive").try_exists()?) }
+    {
+        Ok(gitdir.join("dracon-excluded-archive").try_exists()?)
+    }
 }
 
 #[cfg(target_os = "linux")]
