@@ -116,7 +116,10 @@ async fn unresolved_private_recovery_is_a_machine_readable_concern_even_when_git
         .any(|f| f == "EXCLUDED_RECOVERY"));
     assert_eq!(row["health"]["current"], "blocked");
     assert_ne!(row["state_cause_label"], "idle");
-    assert!(row["hint"].as_str().unwrap().contains("recovery unresolved"));
+    assert!(row["hint"]
+        .as_str()
+        .unwrap()
+        .contains("recovery unresolved"));
     assert_eq!(row["modified"], 0);
     assert_eq!(row["staged"], 0);
     assert_eq!(row["untracked"], 0);
