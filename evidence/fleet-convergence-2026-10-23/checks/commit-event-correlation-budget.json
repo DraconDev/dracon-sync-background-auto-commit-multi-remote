@@ -1,74 +1,9 @@
 {
-  "observed_at": 1792840295.755772,
-  "loaded_binary_sha256": "59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc",
-  "default_source_ref": "fa9728b7358372c1fc169ca776fee551b9057ae7",
+  "observed_at": 1792888998.41657,
+  "loaded_binary_sha256": "8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad",
+  "default_source_ref": "b19262a9cbd55f702e287d65ece21f00f66d4c33",
   "default_source_function": "default_stage_op_timeout_secs",
   "source_verified_against_qualified_input_hash": true,
-  "repositories": [
-    {
-      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
-      "global_stage_override_present": false,
-      "repo_stage_override_present": false,
-      "effective_stage_op_timeout_secs": 60
-    },
-    {
-      "repo": "/home/dracon/Dev/browser-extensions-shared",
-      "global_stage_override_present": false,
-      "repo_stage_override_present": false,
-      "effective_stage_op_timeout_secs": 60
-    },
-    {
-      "repo": "/home/dracon/Dev/dracon-strategy",
-      "global_stage_override_present": false,
-      "repo_stage_override_present": false,
-      "effective_stage_op_timeout_secs": 60
-    },
-    {
-      "repo": "/home/dracon/.dracon",
-      "global_stage_override_present": false,
-      "repo_stage_override_present": false,
-      "effective_stage_op_timeout_secs": 60
-    },
-    {
-      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
-      "global_stage_override_present": false,
-      "repo_stage_override_present": false,
-      "effective_stage_op_timeout_secs": 60
-    },
-    {
-      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
-      "global_stage_override_present": false,
-      "repo_stage_override_present": false,
-      "effective_stage_op_timeout_secs": 60
-    },
-    {
-      "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
-      "global_stage_override_present": false,
-      "repo_stage_override_present": false,
-      "effective_stage_op_timeout_secs": 60
-    },
-    {
-      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
-      "global_stage_override_present": false,
-      "repo_stage_override_present": false,
-      "effective_stage_op_timeout_secs": 60
-    },
-    {
-      "repo": "/home/dracon/Dev/dracon-platform",
-      "global_stage_override_present": false,
-      "repo_stage_override_present": false,
-      "effective_stage_op_timeout_secs": 60
-    },
-    {
-      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
-      "global_stage_override_present": false,
-      "repo_stage_override_present": false,
-      "effective_stage_op_timeout_secs": 60
-    }
-  ],
-  "reason": "Git commit timestamp precedes hooks; actual root note journal event arrived31.613s later, within the unchanged60s operation deadline. No production deadline enlarged. Correlation remains noncryptographic.",
-  "service_policy_environment": {
-    "HOME": "/home/dracon",
-    "DRACON_SYNC_POLICY": "/home/dracon/.dracon/utilities/sync/dracon-sync.toml"
-  }
+  "effective_stage_op_timeout_secs": 60,
+  "operator_and_repo_overrides_absent": true
 }

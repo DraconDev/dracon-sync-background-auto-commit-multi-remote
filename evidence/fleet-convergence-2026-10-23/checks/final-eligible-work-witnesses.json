@@ -1,16 +1,18 @@
 {
-  "recorded_at": 1792839596.093185,
-  "expected_loaded_sha256": "59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc",
-  "before_snapshot": "refs-final-v6-before-work.json",
+  "recorded_at": 1792888998.5901253,
+  "expected_loaded_sha256": "8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad",
+  "before_snapshot": "refs-final-v8-before-work.json",
+  "commit_event_budget_evidence": "commit-event-correlation-budget.json",
   "repositories": [
     {
       "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "2f79eaccbee11907b2818a6ca7f33a33d7881ae0",
-      "content_sha256": "c054096d38d030611d39060ffdbe06df28e2696d7e615dbc89313fcf6efd2f46",
-      "file_mtime": 1792839596.0398421,
-      "before_head": "b12ebcc6c61530c0449438e44d7593dbafa55226",
-      "before_observed_at": 1792839596.0387056,
+      "eligible_blob": "a6093f574af0979c64f13ff7b603925e1c9f3eab",
+      "content_sha256": "4582a92c10091f9efe2adc38c626544e506c652e1d94159fbaf0b6fab1f981ce",
+      "commit_event_budget_secs": 60,
+      "file_mtime": 1792888998.4201767,
+      "before_head": "7a87d917cf2f61ca35e6e6b3c50cb26910b4b853",
+      "before_observed_at": 1792888998.4173145,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -39,24 +41,23 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
-      "commit_event_budget_secs": 60
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
     },
     {
       "repo": "/home/dracon/Dev/browser-extensions-shared",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "a3a5ce1ae4b882de4f0d71ce933ae53836801233",
-      "content_sha256": "1c5266f415a39cfab81a41f9dd2e16c14073e3cfb58386411a4136bf0a3f48ff",
-      "file_mtime": 1792857836.8514025,
-      "before_head": "5d8e0ac02d374edeb17aa60dffb63f7c754dba05",
-      "before_observed_at": 1792857836.8466449,
+      "eligible_blob": "b33eb1dce9ccb68dbc7dc641a84a43d12db7b4ec",
+      "content_sha256": "3712d02e93ca30d28504bd6f1935174fe1e9b4ccb6e50b17e9c3adc8435fb25d",
+      "commit_event_budget_secs": 60,
+      "file_mtime": 1792888998.4431772,
+      "before_head": "460947e77d73fcd8e0bbb086fa9a4e079557e81e",
+      "before_observed_at": 1792888998.441793,
       "intended_destinations": [
         {
           "logical": "origin",
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/browser-extensions-shared",
           "aliases": [
-            "github",
             "origin"
           ]
         },
@@ -65,7 +66,6 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/browser-extensions-shared",
           "aliases": [
-            "github",
             "origin"
           ]
         },
@@ -78,25 +78,23 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
-      "commit_event_budget_secs": 60,
-      "repair_anchor": "5d8e0ac02d374edeb17aa60dffb63f7c754dba05"
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
     },
     {
       "repo": "/home/dracon/Dev/dracon-strategy",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "9acf21b3b0dde10f7c76b9d266bbb3628969ef58",
-      "content_sha256": "a5df98d3a8425e1a44d5cf8b8471251f70cb59fb13f2aa431e767bb5ef567968",
-      "file_mtime": 1792839596.0488422,
-      "before_head": "39a3cd8e5ed49be9320882d0bf85585198125ff3",
-      "before_observed_at": 1792839596.0484312,
+      "eligible_blob": "5eb874bf01f407fde516fd300d259940e59c17ee",
+      "content_sha256": "f96aa5c330acacfedfb2024a66af89b7e74a5a1630e6083fcf1983d5e161a260",
+      "commit_event_budget_secs": 60,
+      "file_mtime": 1792888998.4561775,
+      "before_head": "5de0ea90018144dc3229a242fda40c72b4b6866a",
+      "before_observed_at": 1792888998.454661,
       "intended_destinations": [
         {
           "logical": "origin",
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-strategy",
           "aliases": [
-            "github",
             "origin"
           ]
         },
@@ -105,7 +103,6 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-strategy",
           "aliases": [
-            "github",
             "origin"
           ]
         },
@@ -118,24 +115,23 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
-      "commit_event_budget_secs": 60
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
     },
     {
       "repo": "/home/dracon/.dracon",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "6795df2d2c2b1379ed589e69d37cf5c1b289f8e4",
-      "content_sha256": "8c840fa2b2e97e7f91a72567033da1895fd7781de86be01f39d0eaf2eb178404",
-      "file_mtime": 1792839596.0548425,
-      "before_head": "3c3cc57b7e96ada166a7d5fc2dc75d2b68bcd651",
-      "before_observed_at": 1792839596.0541406,
+      "eligible_blob": "3d658ca6814c0d172d2f6385ae47b02899e97054",
+      "content_sha256": "c9602d5ac7fbca49e598a7d52975a7048498a1569a64f3f95c5a3553befd97e7",
+      "commit_event_budget_secs": 60,
+      "file_mtime": 1792888998.4671776,
+      "before_head": "f976133c9446f0e6bcec7803f8921381da5073f2",
+      "before_observed_at": 1792888998.4643967,
       "intended_destinations": [
         {
           "logical": "origin",
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-home",
           "aliases": [
-            "github",
             "origin"
           ]
         },
@@ -144,7 +140,6 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-home",
           "aliases": [
-            "github",
             "origin"
           ]
         },
@@ -157,17 +152,17 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
-      "commit_event_budget_secs": 60
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
     },
     {
       "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "cf31398f8194db230739f524952ca25bbce7b58a",
-      "content_sha256": "b6c32bfaf6f397900b32bd9cf4a54ce51689ee97c6b696667464ecaeb0e06c4d",
-      "file_mtime": 1792839596.0598423,
-      "before_head": "203abe828e150b1684e86a2e1ed9c2812a5b1f1d",
-      "before_observed_at": 1792839596.05899,
+      "eligible_blob": "0af62d10555a8deee6a9560cb3250f672d54d025",
+      "content_sha256": "260bc2552f11eae20f2ab609fc15f2470695817c18f56001c1ee0ee8c96ee06c",
+      "commit_event_budget_secs": 60,
+      "file_mtime": 1792888998.4731777,
+      "before_head": "5e19b8db84795457b44bc7e439d1d5f30fd10fb7",
+      "before_observed_at": 1792888998.4728336,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -194,17 +189,17 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
-      "commit_event_budget_secs": 60
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "01290285854c1bc5aafa93f1eda4679b98658a18",
-      "content_sha256": "115414184c566e2f434f069c99f73c8f74534d33270bf26c739d061fe1a02371",
-      "file_mtime": 1792839596.0678425,
-      "before_head": "c730282408a7fc253345cdf7e8710c690e37da5e",
-      "before_observed_at": 1792839596.0672717,
+      "eligible_blob": "cd1fccf77de28efed25701ccfa6fe8e802972f60",
+      "content_sha256": "e790fef4b7a8a38cfb9b416e0108c129e1f4583d4b076ce741e6a5cc2f9b30b1",
+      "commit_event_budget_secs": 60,
+      "file_mtime": 1792888998.4841778,
+      "before_head": "a555a167acc83274c9de7b02faaf03073ebeaaed",
+      "before_observed_at": 1792888998.4826486,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -233,17 +228,17 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
-      "commit_event_budget_secs": 60
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
     },
     {
       "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "bd586c2ea456f04ae1ed782016d8cd03963957c3",
-      "content_sha256": "d41b432d6611fbfc9bf8c3ec79dbb091f6cc188d6ea46e1175fad6bcdf526032",
-      "file_mtime": 1792839596.0718427,
-      "before_head": "69910cefa8083c04f486e33ef0567c0e7272c945",
-      "before_observed_at": 1792839596.07168,
+      "eligible_blob": "ed06c30bfc3d39c24cad9e5b775eb3159c3c1877",
+      "content_sha256": "e813bbad5d7d442d9ad90eec3e28ba266df76abb00d7c920338793e8478016a9",
+      "commit_event_budget_secs": 60,
+      "file_mtime": 1792888998.4961782,
+      "before_head": "faa7da9a177da89d7c6383e5369dc886caaab680",
+      "before_observed_at": 1792888998.4938323,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -272,17 +267,17 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
-      "commit_event_budget_secs": 60
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
       "eligible_path": "AUDIT-SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "78f8df45b2f1fd5171265adba7836077eead66e9",
-      "content_sha256": "caa1b30d3b4c326a844d979c1d8c0e8b7d7af163c0d1cec5318f6aecd15860f3",
-      "file_mtime": 1792839596.0768428,
-      "before_head": "5b1b03612cce52dd300b2749a8f84535628d8c15",
-      "before_observed_at": 1792839596.076624,
+      "eligible_blob": "6fb88c7034673893a262afd55e9e34fe36cb5e39",
+      "content_sha256": "10dd8c2dd49176a2243ac32330314207ad74da8b508d4eecee12d6e8bc49a281",
+      "commit_event_budget_secs": 60,
+      "file_mtime": 1792888998.5241787,
+      "before_head": "64b4d18bae3fa72b913173a6ef78b637e75acbf0",
+      "before_observed_at": 1792888998.5119483,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -311,23 +306,24 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
-      "commit_event_budget_secs": 60
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "82f4166cc916a1b5ffada17603364dbbde08a8a3",
-      "content_sha256": "f71866fd22248f17658e3825c6182d222d30c2d8783274f61af1922b7e5587c5",
-      "file_mtime": 1792839596.0818427,
-      "before_head": "6c5cfce86cb4bb3f4b3ca7a88249a78094c1fd6c",
-      "before_observed_at": 1792839596.0808394,
+      "eligible_blob": "325b23b772d5827d12beed2c32b1ab82917ff8de",
+      "content_sha256": "b2a7237a0beb5d285fb96108e1116208ddfdf5f31fdfe0476e6989f1cf1afe9e",
+      "commit_event_budget_secs": 60,
+      "file_mtime": 1792888998.5551794,
+      "before_head": "d5291d71681fbc3aeeb2a6dd08f363e788e96bd3",
+      "before_observed_at": 1792888998.5484912,
       "intended_destinations": [
         {
           "logical": "origin",
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-platform",
           "aliases": [
+            "github",
             "origin"
           ]
         },
@@ -336,6 +332,7 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-platform",
           "aliases": [
+            "github",
             "origin"
           ]
         },
@@ -348,17 +345,17 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
-      "commit_event_budget_secs": 60
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "eligible_blob": "33042c1821e93d0e63eaf3543eede0b2fd05ee86",
-      "content_sha256": "59420dfc056bf94dc5f99aa8372ce92fdcac0eb54e0a62e797f8b80efdcc420d",
-      "file_mtime": 1792839596.0858428,
-      "before_head": "3cb436dac91b71f4b44fba7da6b5ea066acfaf1b",
-      "before_observed_at": 1792839596.0854137,
+      "eligible_blob": "e159c0b58dc40e9ce5c391a3d39b5e888902ec9a",
+      "content_sha256": "329f5ff55396b12c8046077695ab139ef67605cb6729c1207fb8e50dcd0ef3c5",
+      "commit_event_budget_secs": 60,
+      "file_mtime": 1792888998.5771797,
+      "before_head": "d918811f9fc43320acb5a9c36f2de5633f8f4dd8",
+      "before_observed_at": 1792888998.5760834,
       "intended_destinations": [
         {
           "logical": "origin",
@@ -387,9 +384,7 @@
           ]
         }
       ],
-      "daemon_owned_commit": "not yet established; no manual add/commit/push performed",
-      "commit_event_budget_secs": 60
+      "daemon_owned_commit": "not yet established; no manual add/commit/push performed"
     }
-  ],
-  "commit_event_budget_evidence": "commit-event-correlation-budget.json"
+  ]
 }
