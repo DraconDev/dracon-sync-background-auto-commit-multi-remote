@@ -943,11 +943,32 @@ mod tests {
         );
         let observed = Epoch::capture(repo, 60).await.unwrap();
         assert_eq!(observed.snapshot, epoch.snapshot);
-        assert!(std::fs::read_dir(retained).unwrap().any(|entry| entry
+        let large_oid = String::from_utf8(
+            git(repo, &["hash-object", "--stdin"], Some(&large))
+                .await
+                .unwrap()
+                .stdout,
+        )
+        .unwrap();
+        let pack_index = std::fs::read_dir(retained)
             .unwrap()
-            .path()
-            .extension()
-            .is_some_and(|ext| ext == "pack")));
+            .map(|entry| entry.unwrap().path())
+            .find(|path| path.extension().is_some_and(|ext| ext == "idx"))
+            .expect("original candidate retained independently of the selected index");
+        let packed = git(
+            repo,
+            &["verify-pack", "-v", pack_index.to_str().unwrap()],
+            None,
+        )
+        .await
+        .unwrap()
+        .stdout;
+        assert!(
+            String::from_utf8(packed)
+                .unwrap()
+                .contains(large_oid.trim()),
+            "even the rejected candidate blob must survive independently of loose-object pruning"
+        );
 
         // A user's existing oversized staging is not OUR candidate to prune.
         git(repo, &["add", "--", "large"], None).await.unwrap();
