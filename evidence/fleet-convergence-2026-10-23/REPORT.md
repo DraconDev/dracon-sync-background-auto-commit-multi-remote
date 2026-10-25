@@ -2,20 +2,28 @@
 
 ## Result status
 
-Fleet completion is **not claimed**. A newly proven publication-completion
-semaphore deadlock is repaired and undergoing fresh qualification; see
-[qualification-v7-checkpoint.md](qualification-v7-checkpoint.md). The prior v6
-qualification and ledger below remain historical evidence for the still-loaded
-artifact, not final proof for the proposed replacement. The current ledger proves autonomous eligible commits and
-advertised descendant refs for nine of the ten initial repositories on loaded
-artifact `59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc`,
-PID3046262. Browser extensions is still explicitly nonhealthy/unproven, awaiting
-normal whole-gate success and publication. No external blocker has been accepted.
+Fleet completion is **not claimed**. The publication-completion semaphore
+race is repaired. V8 passed all four required Rust gates and candidate/installed
+execution receipts, including worker retirement and a new autonomous post-round
+commit/publication. Safe deployment loaded artifact
+`8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad`,
+PID3906273. The first fresh-runtime ledger proves seven of ten repositories;
+ai-auto-writer, browser extensions and dracon-platform remain explicitly
+nonhealthy/unproven pending ordinary remote advancement. The browser whole gate
+is running, not passed. No final external blocker is accepted.
+
+V7 failed with a debug-stack overflow and an unrelated unused system field;
+no failing artifact was deployed. V8 boxes the upload at its API boundary and
+removes the unused timestamp without changing log policy or warning settings.
+A vanished temporary target was rebuilt from the unchanged capture; the exact
+qualified hash matched, and the executable is now stored durably outside /tmp.
+See `checks/workspace-final-v8/` and the historical continuation in
+[qualification-v7-checkpoint.md](qualification-v7-checkpoint.md).
 
 Authoritative current evidence is `checks/live-convergence-ledger.json` and its
 referenced before/after snapshots and journal. The earlier8be epoch is retained
-under `checks/epoch-8be-before-v6/`; it must not be mistaken for current-runtime
-proof. Historical investigation/deployment updates remain linked from
+under `checks/epoch-8be-before-v6/` and v6's59ef epoch under
+`checks/epoch-59-before-v8/`; neither is current-runtime proof. Historical investigation/deployment updates remain linked from
 `diagnosis.md`, `qualification-checkpoint.md` and `execution-update-2026-10-24.md`.
 
 ## Initial inventory and disposition
