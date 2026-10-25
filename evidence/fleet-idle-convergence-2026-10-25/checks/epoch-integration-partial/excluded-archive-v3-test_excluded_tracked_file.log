@@ -1,0 +1,23 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.83s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 2 tests
+test sync::tests::test_excluded_tracked_file_edits_preserved_by_default ... ok
+test sync::tests::test_excluded_tracked_file_reverted_when_opted_in ... FAILED
+
+failures:
+
+---- sync::tests::test_excluded_tracked_file_reverted_when_opted_in stdout ----
+🛟 /tmp/.tmpE3aZ8V/repo explicit excluded restore recovery: /tmp/.tmpE3aZ8V/repo/.git/dracon-excluded-recovery-ufWr6X
+
+thread 'sync::tests::test_excluded_tracked_file_reverted_when_opted_in' (918600) panicked at dracon-sync/src/sync.rs:8955:9:
+sync_repo failed: Err(recovery/archive directory must be owned, private and nonsymlink: /tmp/.tmpE3aZ8V/repo/.git/dracon-excluded-recovery-ufWr6X)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sync::tests::test_excluded_tracked_file_reverted_when_opted_in
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 1465 filtered out; finished in 0.61s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

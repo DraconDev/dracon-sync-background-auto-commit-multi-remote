@@ -4,4 +4,50 @@
 
 running 8 tests
 test sync::excluded_revert::recovery_tests::excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_reseal_changed_records ... FAILED
-test sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late ... 
+test sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late ... FAILED
+test sync::excluded_revert::recovery_tests::excluded_recovery_empty_epoch_followup_observes_foreign_staging_without_resetting_it ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_foreign_lock_prevents_settlement_and_remains_exact ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_late_displaced_writer_after_archival_stays_visible_and_blocked ... FAILED
+test sync::excluded_revert::recovery_tests::excluded_recovery_partial_transaction_settles_without_replaying_or_resetting_user_work ... FAILED
+test sync::excluded_revert::recovery_tests::excluded_recovery_preexisting_pending_seal_survives_retry_without_overwrite ... FAILED
+test sync::excluded_revert::recovery_tests::excluded_recovery_uncertain_displaced_bytes_block_a_raw_clean_repo_even_without_optin ... ok
+
+failures:
+
+---- sync::excluded_revert::recovery_tests::excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_reseal_changed_records stdout ----
+
+thread 'sync::excluded_revert::recovery_tests::excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_reseal_changed_records' (904383) panicked at dracon-sync/src/sync/excluded_revert_recovery_tests.rs:364:10:
+called `Result::unwrap()` on an `Err` value: recovery/archive directory must be owned, private and nonsymlink: /tmp/.tmpl4gxiR/.git/dracon-excluded-recovery-KdAoJU
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late stdout ----
+
+thread 'sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late' (904614) panicked at dracon-sync/src/sync/excluded_revert_recovery_tests.rs:269:10:
+called `Result::unwrap()` on an `Err` value: recovery/archive directory must be owned, private and nonsymlink: /tmp/.tmpB6YzRV/.git/dracon-excluded-recovery-lJ1x9s
+
+---- sync::excluded_revert::recovery_tests::excluded_recovery_late_displaced_writer_after_archival_stays_visible_and_blocked stdout ----
+
+thread 'sync::excluded_revert::recovery_tests::excluded_recovery_late_displaced_writer_after_archival_stays_visible_and_blocked' (914264) panicked at dracon-sync/src/sync/excluded_revert_recovery_tests.rs:306:10:
+called `Result::unwrap()` on an `Err` value: recovery/archive directory must be owned, private and nonsymlink: /tmp/.tmpkRFqWJ/.git/dracon-excluded-recovery-zMlpHD
+
+---- sync::excluded_revert::recovery_tests::excluded_recovery_partial_transaction_settles_without_replaying_or_resetting_user_work stdout ----
+
+thread 'sync::excluded_revert::recovery_tests::excluded_recovery_partial_transaction_settles_without_replaying_or_resetting_user_work' (914276) panicked at dracon-sync/src/sync/excluded_revert_recovery_tests.rs:93:10:
+called `Result::unwrap()` on an `Err` value: recovery/archive directory must be owned, private and nonsymlink: /tmp/.tmpZAneep/.git/dracon-excluded-recovery-5hZNm0
+
+---- sync::excluded_revert::recovery_tests::excluded_recovery_preexisting_pending_seal_survives_retry_without_overwrite stdout ----
+
+thread 'sync::excluded_revert::recovery_tests::excluded_recovery_preexisting_pending_seal_survives_retry_without_overwrite' (914297) panicked at dracon-sync/src/sync/excluded_revert_recovery_tests.rs:404:10:
+called `Result::unwrap()` on an `Err` value: recovery/archive directory must be owned, private and nonsymlink: /tmp/.tmptN8mOu/.git/dracon-excluded-recovery-Lwo0I9
+
+
+failures:
+    sync::excluded_revert::recovery_tests::excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_reseal_changed_records
+    sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late
+    sync::excluded_revert::recovery_tests::excluded_recovery_late_displaced_writer_after_archival_stays_visible_and_blocked
+    sync::excluded_revert::recovery_tests::excluded_recovery_partial_transaction_settles_without_replaying_or_resetting_user_work
+    sync::excluded_revert::recovery_tests::excluded_recovery_preexisting_pending_seal_survives_retry_without_overwrite
+
+test result: FAILED. 3 passed; 5 failed; 0 ignored; 0 measured; 1459 filtered out; finished in 16.12s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

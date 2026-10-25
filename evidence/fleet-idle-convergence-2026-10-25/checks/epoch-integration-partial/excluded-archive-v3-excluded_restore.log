@@ -1,0 +1,58 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.39s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 9 tests
+test sync::excluded_revert_pipeline_tests::excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_push_hook_work ... FAILED
+test sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes ... FAILED
+test sync::excluded_revert_pipeline_tests::excluded_restore_only_excluded_work_needs_no_commit_and_dry_run_preserves_bytes ... FAILED
+test sync::excluded_revert_tests::excluded_restore_deadline_kills_required_filter_descendants_without_mutation ... ok
+test sync::excluded_revert_tests::excluded_restore_defers_active_writer_without_relocating_its_future_bytes ... FAILED
+test sync::excluded_revert_tests::excluded_restore_foreign_lock_is_not_removed_or_used_as_hygiene_ownership ... ok
+test sync::excluded_revert_tests::excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untracked ... FAILED
+test sync::excluded_revert_tests::excluded_restore_preserves_foreign_staged_intent_exactly ... ok
+test sync::excluded_revert_tests::excluded_restore_required_smudge_refusal_and_later_writer_are_not_overwritten ... ok
+
+failures:
+
+---- sync::excluded_revert_pipeline_tests::excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_push_hook_work stdout ----
+🛟 /tmp/.tmpP4b9CV explicit excluded restore recovery: /tmp/.tmpP4b9CV/.git/dracon-excluded-recovery-DTEIF5
+
+thread 'sync::excluded_revert_pipeline_tests::excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_push_hook_work' (914564) panicked at dracon-sync/src/sync/excluded_revert_pipeline_tests.rs:135:16:
+called `Result::unwrap()` on an `Err` value: recovery/archive directory must be owned, private and nonsymlink: /tmp/.tmpP4b9CV/.git/dracon-excluded-recovery-DTEIF5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes stdout ----
+🛟 /tmp/.tmpMi6Eqw explicit excluded restore recovery: /tmp/.tmpMi6Eqw/.git/dracon-excluded-recovery-sycm4z
+
+thread 'sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes' (914651) panicked at dracon-sync/src/sync/excluded_revert_pipeline_tests.rs:87:16:
+called `Result::unwrap()` on an `Err` value: recovery/archive directory must be owned, private and nonsymlink: /tmp/.tmpMi6Eqw/.git/dracon-excluded-recovery-sycm4z
+
+---- sync::excluded_revert_pipeline_tests::excluded_restore_only_excluded_work_needs_no_commit_and_dry_run_preserves_bytes stdout ----
+🛟 /tmp/.tmptqQTht explicit excluded restore recovery: /tmp/.tmptqQTht/.git/dracon-excluded-recovery-nmEamT
+
+thread 'sync::excluded_revert_pipeline_tests::excluded_restore_only_excluded_work_needs_no_commit_and_dry_run_preserves_bytes' (914718) panicked at dracon-sync/src/sync/excluded_revert_pipeline_tests.rs:62:5:
+assertion failed: sync_repo(r, &p, &BTreeSet::new(), 0, None, false, None).await.is_ok()
+
+---- sync::excluded_revert_tests::excluded_restore_defers_active_writer_without_relocating_its_future_bytes stdout ----
+🛟 /tmp/.tmpvXu8qa explicit excluded restore recovery: /tmp/.tmpvXu8qa/.git/dracon-excluded-recovery-6ZAs1W
+
+thread 'sync::excluded_revert_tests::excluded_restore_defers_active_writer_without_relocating_its_future_bytes' (915974) panicked at dracon-sync/src/sync/excluded_revert_tests.rs:108:30:
+called `Result::unwrap()` on an `Err` value: recovery/archive directory must be owned, private and nonsymlink: /tmp/.tmpvXu8qa/.git/dracon-excluded-recovery-6ZAs1W
+
+---- sync::excluded_revert_tests::excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untracked stdout ----
+🛟 /tmp/.tmpQg9DW3 explicit excluded restore recovery: /tmp/.tmpQg9DW3/.git/dracon-excluded-recovery-hcu8OB
+
+thread 'sync::excluded_revert_tests::excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untracked' (916061) panicked at dracon-sync/src/sync/excluded_revert_tests.rs:78:6:
+called `Result::unwrap()` on an `Err` value: recovery/archive directory must be owned, private and nonsymlink: /tmp/.tmpQg9DW3/.git/dracon-excluded-recovery-hcu8OB
+
+
+failures:
+    sync::excluded_revert_pipeline_tests::excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_push_hook_work
+    sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes
+    sync::excluded_revert_pipeline_tests::excluded_restore_only_excluded_work_needs_no_commit_and_dry_run_preserves_bytes
+    sync::excluded_revert_tests::excluded_restore_defers_active_writer_without_relocating_its_future_bytes
+    sync::excluded_revert_tests::excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untracked
+
+test result: FAILED. 4 passed; 5 failed; 0 ignored; 0 measured; 1458 filtered out; finished in 3.73s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

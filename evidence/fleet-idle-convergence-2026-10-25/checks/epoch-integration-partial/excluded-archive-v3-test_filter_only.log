@@ -1,0 +1,12 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.21s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 3 tests
+test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) 25ae427] init
+ok
+test sync::tests::test_filter_only_skip_still_pushes_ahead ... ok
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) 9a264e4] init
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1464 filtered out; finished in 0.97s
+
