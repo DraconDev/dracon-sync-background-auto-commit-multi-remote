@@ -269,3 +269,15 @@ async fn excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer
         .unwrap());
     assert!(!super::super::has_pending_excluded_recovery(r).unwrap());
 }
+
+#[tokio::test]
+async fn excluded_recovery_empty_epoch_followup_observes_foreign_staging_without_resetting_it() {
+    let (d,_pending,_targets)=fixture().await; let r=d.path();
+    let epoch=super::super::staged_epoch::Epoch::capture(r,10).await.unwrap();
+    assert!(!epoch.index_changed(r).await.unwrap());
+    git(r,&["add","--","one.log"]);
+    let index=std::fs::read(r.join(".git/index")).unwrap();
+    assert!(epoch.index_changed(r).await.unwrap());
+    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(),index);
+    assert_eq!(git(r,&["show",":one.log"]),b"operator one.log\n");
+}
