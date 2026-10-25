@@ -1005,4 +1005,191 @@ test git::staged_intent::tests::shared_git_runner_deadline_and_drop_terminate_ow
 test git::staged_intent::tests::unborn_rename_and_sha256 ... ok
 test git::staged_intent::tests::unmerged_and_intent_to_add_refuse_without_index_changes ... ok
 test git::staged_intent::tests::unsupported_flags_sparse_and_split_index_refuse ... ok
-test git::staging::detect_large_blobs_ahead_regression::reports_a_blob_committed_ahead_of_upstream ... 
+test git::staging::detect_large_blobs_ahead_regression::reports_a_blob_committed_ahead_of_upstream ... ok
+test git::staging::detect_large_blobs_ahead_regression::rev_list_failure_propagates_instead_of_empty ... ok
+test git::staging::tests::large_blob_record_preserves_spaces_in_path ... ok
+test git::staging::tests::test_build_filter_branch_args_escapes_single_quotes ... ok
+test git::staging::tests::test_build_filter_branch_args_shape ... ok
+test git::staging::tests::test_f31_noop_rewrite_deletes_backup_branch ... Parsed 1 commitsParsed 1 commitsHEAD is now at d322adf init
+
+New history written in 0.14 seconds...
+Completely finished after 0.23 seconds.
+ok
+test git::staging::tests::test_real_rewrite_returns_outcome_with_bundle_and_lease ... Parsed 1 commitsHEAD is now at 25ffbfa c1
+
+New history written in 0.12 seconds...
+Completely finished after 0.18 seconds.
+ok
+test git::staging::tests::test_unstage_oversized_paths_exempts_gitlinks ... ok
+test git::staging::tests::test_unstage_oversized_paths_measures_staged_blob_not_worktree ... ok
+test git::staging::tests::test_unstage_oversized_paths_quotes_glob_metachars ... ok
+test git::status::tests::test_any_mirror_tracking_ref_exists_false_for_fresh_clone ... ok
+test git::status::tests::test_any_mirror_tracking_ref_exists_true_with_mirror_ref ... ok
+test git::status::tests::test_conflict_state_detected_through_gitfile ... ok
+test git::status::tests::test_conflict_state_plain_repo_layout ... ok
+test git::status::tests::test_count_all_head_commits_counts_everything ... ok
+test git::status::tests::test_count_pushable_unpushed_mirrors_excludes_divergence ... ok
+test git::status::tests::test_has_origin_remote_falls_back_on_parse_miss ... ok
+test git::status::tests::test_index_lock_path_resolves_linked_worktree_gitdir ... ok
+test git::status::tests::test_index_lock_resolves_real_gitdir_for_submodule ... ok
+test git::status::tests::test_is_stable_empty_repo_detached_head_rejected ... ok
+test git::status::tests::test_is_stable_empty_repo_fresh_init ... ok
+test git::status::tests::test_is_stable_empty_repo_head_lock_blocks ... ok
+test git::status::tests::test_is_stable_empty_repo_index_lock_blocks ... ok
+test git::status::tests::test_is_stable_empty_repo_tmp_pack_blocks ... ok
+test git::status::tests::test_mirror_tracking_helpers_follow_non_main_branch ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_config_without_ref ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_no_config ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_ref_exists ... ok
+test git::sync_lease::tests::child_process_lease_probe ... ok
+test git::sync_lease::tests::lease_excludes_other_processes_and_releases_without_stale_lock_cleanup ... 
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1445 filtered out; finished in 0.02s
+
+
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1445 filtered out; finished in 0.01s
+
+ok
+test git::sync_lease::tests::linked_worktrees_share_ownership_and_symlink_locks_fail_closed ... ok
+test git::sync_lease::tests::publication_excludes_publishers_but_not_local_commits_across_processes ... 
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1445 filtered out; finished in 0.00s
+
+
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1445 filtered out; finished in 0.00s
+
+
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1445 filtered out; finished in 0.01s
+
+
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1445 filtered out; finished in 0.00s
+
+ok
+test git::tests::test_auto_create_all_remotes_codeberg_missing_token ... ok
+test git::tests::test_auto_create_all_remotes_codeberg_override_opt_in ... ok
+test git::tests::test_auto_create_all_remotes_empty_when_no_auto_create ... ok
+test git::tests::test_auto_create_all_remotes_generic_error ... ok
+test git::tests::test_auto_create_all_remotes_github_success ... ok
+test git::tests::test_auto_create_all_remotes_gitlab_success ... ok
+test git::tests::test_codeberg_https_url_already_https ... ok
+test git::tests::test_codeberg_https_url_non_codeberg ... ok
+test git::tests::test_codeberg_https_url_ssh_colon_path ... ok
+test git::tests::test_codeberg_https_url_ssh_protocol ... ok
+test git::tests::test_configure_all_remotes_adds_mirror ... ok
+test git::tests::test_configure_all_remotes_adds_multiple ... ok
+test git::tests::test_configure_all_remotes_idempotent ... ok
+test git::tests::test_consolidate_to_main_deletes_master_and_keeps_main ... [master (root-commit) 5555c6c] init
+ 6 files changed, 165 insertions(+)
+ create mode 100644 bare.git/HEAD
+ create mode 100644 bare.git/config
+ create mode 100755 bare.git/hooks/pre-commit
+ create mode 100755 bare.git/hooks/pre-push
+ create mode 100755 bare.git/hooks/pre-rebase
+ create mode 100644 file.txt
+To /tmp/.tmpdyTSUz/bare.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+Switched to a new branch 'main'
+[main 509e957] main commit
+To /tmp/.tmpdyTSUz/bare.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+Deleted branch master (was 5555c6c).
+ok
+test git::tests::test_create_repo_on_codeberg_conflict_409 ... ok
+test git::tests::test_create_repo_on_codeberg_success_201 ... ok
+test git::tests::test_create_repo_on_codeberg_unauthorized_401 ... ok
+test git::tests::test_create_repo_on_codeberg_unprocessable_422 ... ok
+test git::tests::test_create_repo_on_github_already_exists_returns_url_without_suffix ... ok
+test git::tests::test_create_repo_on_github_pat_passed_as_env_var ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_create_repo_on_github_public_flag_when_private_false ... ok
+test git::tests::test_create_repo_on_github_success ... ok
+test git::tests::test_create_repo_on_gitlab_already_exists_returns_url_without_suffix ... ok
+test git::tests::test_create_repo_on_gitlab_network_error ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_create_repo_on_gitlab_success ... ok
+test git::tests::test_create_repo_on_gitlab_token_passed_as_env_var ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_detect_orphan_origin_detects_single_digit_suffix ... ok
+test git::tests::test_detect_orphan_origin_ignores_legitimate_numeric_repo_suffix ... ok
+test git::tests::test_detect_orphan_origin_ignores_legitimate_version ... ok
+test git::tests::test_detect_orphan_origin_ignores_multi_digit_suffix ... ok
+test git::tests::test_detect_orphan_origin_no_suffix ... ok
+test git::tests::test_diagnose_divergence_divergent ... [master (root-commit) 6388316] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+[master 1eac941] other commit
+HEAD is now at 6388316 init
+ok
+test git::tests::test_diagnose_divergence_remote_purely_behind ... [master (root-commit) 6388316] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_ensure_remote_adds_new ... ok
+test git::tests::test_ensure_remote_idempotent ... ok
+test git::tests::test_ensure_remote_updates_url ... ok
+test git::tests::test_fallback_status_rank_ordering ... ok
+test git::tests::test_fix_orphan_origin_updates_remote_url ... [main (root-commit) 6388316] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_fix_orphan_origin_updates_upstream_tracking ... [main (root-commit) 3bef7c8] init
+ 6 files changed, 165 insertions(+)
+ create mode 100644 bare.git/HEAD
+ create mode 100644 bare.git/config
+ create mode 100755 bare.git/hooks/pre-commit
+ create mode 100755 bare.git/hooks/pre-push
+ create mode 100755 bare.git/hooks/pre-rebase
+ create mode 100644 file.txt
+To /tmp/.tmp8VDA6U/bare.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+ok
+test git::tests::test_get_remote_url_nonexistent_remote ... ok
+test git::tests::test_gh_cmd_disables_prompts_without_token ... ok
+test git::tests::test_gh_cmd_uses_configured_pat_and_disables_prompts ... ok
+test git::tests::test_git_ssh_hardening_contains_key_flags ... ok
+test git::tests::test_github_https_url_non_github_returns_none ... ok
+test git::tests::test_github_https_url_ssh_with_colon_path ... ok
+test git::tests::test_github_https_url_with_embedded_newline ... ok
+test git::tests::test_gitlab_https_url_already_https ... ok
+test git::tests::test_gitlab_https_url_non_gitlab ... ok
+test git::tests::test_gitlab_https_url_ssh_colon_path ... ok
+test git::tests::test_gitlab_https_url_ssh_protocol ... ok
+test git::tests::test_has_only_master_branch_detects_master_only ... [master (root-commit) e56c795] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_has_only_master_branch_ignores_main_and_master ... Switched to a new branch 'master'
+fatal: not a valid object name: 'master'
+ok
+test git::tests::test_https_fallback_retains_per_forge_errors ... ok
+test git::tests::test_is_git_worktree_file_gitdir_prefix ... ok
+test git::tests::test_is_git_worktree_file_nonexistent ... ok
+test git::tests::test_is_git_worktree_file_regular_git_dir ... ok
+test git::tests::test_is_git_worktree_file_with_whitespace ... ok
+test git::tests::test_is_repo_ready_empty_commit ... [main (root-commit) 38a7a2e] init
+ok
+test git::tests::test_is_repo_ready_empty_head ... ok
+test git::tests::test_is_repo_ready_no_commits ... ok
+test git::tests::test_is_repo_ready_no_head ... ok
+test git::tests::test_is_repo_ready_normal_repo ... [main (root-commit) 8d473b8] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 hello.txt
+ok
+test git::tests::test_list_remotes_empty ... ok
+test git::tests::test_list_remotes_one_remote ... 
