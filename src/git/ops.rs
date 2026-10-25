@@ -456,10 +456,31 @@ pub(crate) async fn run_git_captured_output(
 /// stdin write nor a helper retaining stderr can escape timeout/cancellation.
 /// Preserve caller cwd/env, and return raw bytes without echoing SDK diagnostics.
 pub(crate) async fn run_command_captured_output(
+    command: TokioCommand,
+    timeout_secs: u64,
+    label: &str,
+    input: Option<&[u8]>,
+) -> Result<std::process::Output> {
+    run_command_captured_input(command, timeout_secs, label, input, None).await
+}
+
+/// Stream a caller-held read-only source descriptor, not a pathname that may be
+/// replaced during validation. Same bounded/cancellable process-group ownership.
+pub(crate) async fn run_command_captured_file(
+    command: TokioCommand,
+    timeout_secs: u64,
+    label: &str,
+    file: std::fs::File,
+) -> Result<std::process::Output> {
+    run_command_captured_input(command, timeout_secs, label, None, Some(file)).await
+}
+
+async fn run_command_captured_input(
     mut command: TokioCommand,
     timeout_secs: u64,
     label: &str,
     input: Option<&[u8]>,
+    file: Option<std::fs::File>,
 ) -> Result<std::process::Output> {
     use tokio::io::AsyncWriteExt;
     let workdir = command
@@ -469,7 +490,9 @@ pub(crate) async fn run_command_captured_output(
         .to_path_buf();
     command
         .kill_on_drop(true)
-        .stdin(if input.is_some() {
+        .stdin(if let Some(file) = file {
+            std::process::Stdio::from(file)
+        } else if input.is_some() {
             std::process::Stdio::piped()
         } else {
             std::process::Stdio::null()
