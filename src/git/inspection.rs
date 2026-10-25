@@ -232,6 +232,80 @@ mod tests {
     use super::*;
 
     #[test]
+    fn gitlink_coverage_parsing_is_exact_and_conflicts_require_full_status() {
+        let root = Path::new("/fixture");
+        for width in [40, 64] {
+            let bytes = format!("100644 {} 0\tfile\0160000 {} 0\tchild\0", "a".repeat(width), "b".repeat(width));
+            assert_eq!(parse_gitlinks(root, bytes.as_bytes()).unwrap(),
+                Some(BTreeSet::from([root.join("child")])));
+            let conflict = format!("160000 {} 2\tchild\0", "b".repeat(width));
+            assert_eq!(parse_gitlinks(root, conflict.as_bytes()).unwrap(), None);
+        }
+        for name in ["", "../outside", "/absolute"] {
+            let bytes = format!("160000 {} 0\t{name}\0", "b".repeat(40));
+            assert!(parse_gitlinks(root, bytes.as_bytes()).is_err());
+        }
+        assert!(parse_gitlinks(root, b"160000 broken\0").is_err());
+    }
+
+    #[tokio::test]
+    async fn covered_children_skip_recursive_dirt_but_keep_gitlink_and_child_work() {
+        fn commit_index(repo: &git2::Repository) -> git2::Oid {
+            let tree = repo.index().unwrap().write_tree().unwrap();
+            let tree = repo.find_tree(tree).unwrap();
+            let parents: Vec<_> = repo.head().ok().map(|h| h.peel_to_commit().unwrap()).into_iter().collect();
+            let refs: Vec<_> = parents.iter().collect();
+            let signature = git2::Signature::now("Fixture", "fixture@example.invalid").unwrap();
+            repo.commit(Some("HEAD"), &signature, &signature, "fixture", &tree, &refs).unwrap()
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let parent = git2::Repository::init(root).unwrap();
+        for name in ["child", "other"] {
+            let path = root.join(name);
+            let child = git2::Repository::init(&path).unwrap();
+            std::fs::write(path.join("tracked"), "baseline").unwrap();
+            let mut index = child.index().unwrap();
+            index.add_path(Path::new("tracked")).unwrap();
+            index.write().unwrap();
+            commit_index(&child);
+        }
+        std::fs::write(root.join(".gitmodules"),
+            "[submodule \"child\"]\npath = child\nurl = fixture\n[submodule \"other\"]\npath = other\nurl = fixture\n").unwrap();
+        let added = std::process::Command::new("git").arg("-C").arg(root)
+            .args(["add", "--", ".gitmodules", "child", "other"]).output().unwrap();
+        assert!(added.status.success(), "{}", String::from_utf8_lossy(&added.stderr));
+        commit_index(&parent);
+        for name in ["child", "other"] {
+            std::fs::write(root.join(name).join("tracked"), "unstaged child work").unwrap();
+        }
+        std::fs::write(root.join("child/untracked"), "new child work").unwrap();
+        let partial = BTreeSet::from([root.to_path_buf(), root.join("child")]);
+        let full = BTreeSet::from([root.to_path_buf(), root.join("child"), root.join("other")]);
+        let uncovered = inspect_status_with_coverage(root, STATUS_INSPECTION_BUDGET, &partial).await.unwrap();
+        assert_eq!(uncovered.modified_files, 2, "one uncovered child must retain full recursive status");
+        let covered = inspect_status_with_coverage(root, STATUS_INSPECTION_BUDGET, &full).await.unwrap();
+        assert!(covered.is_clean, "child work cannot be staged by its parent");
+        let child_status = inspect_status_with_coverage(&root.join("child"), STATUS_INSPECTION_BUDGET, &full).await.unwrap();
+        assert_eq!((child_status.modified_files, child_status.untracked_files), (1, 1));
+        assert!(!child_status.is_clean, "child work must remain visible in its own row");
+        let child = git2::Repository::open(root.join("child")).unwrap();
+        let mut index = child.index().unwrap();
+        index.add_path(Path::new("tracked")).unwrap();
+        index.write().unwrap();
+        commit_index(&child);
+        let advanced = inspect_status_with_coverage(root, STATUS_INSPECTION_BUDGET, &full).await.unwrap();
+        assert_eq!(advanced.modified_files, 1, "advanced child HEAD must stay visible");
+        let added = std::process::Command::new("git").arg("-C").arg(root)
+            .args(["add", "--", "child"]).output().unwrap();
+        assert!(added.status.success());
+        let staged = inspect_status_with_coverage(root, STATUS_INSPECTION_BUDGET, &full).await.unwrap();
+        assert_eq!(staged.staged_files, 1, "staged gitlink change must stay visible");
+        assert_eq!(std::fs::read(root.join("other/tracked")).unwrap(), b"unstaged child work");
+        assert_eq!(std::fs::read(root.join("child/untracked")).unwrap(), b"new child work");
+    }
+
+    #[test]
     fn head_presence_survives_owned_inspection_for_report_empty_detection() {
         for len in [40, 64] {
             let oid = "a".repeat(len);
