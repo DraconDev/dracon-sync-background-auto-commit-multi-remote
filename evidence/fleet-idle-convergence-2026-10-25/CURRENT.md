@@ -57,8 +57,26 @@ After that run, actual lock admission gained an I/O-kind-preserving API:
 AlreadyExists is typed contention/defer; missing-parent/permission/inspection errors
 remain genuine failures. typed-lock-admission-test.log passes1negative-control test.
 Real full commit-path contention recovery is not yet rerun on this revision.
-Source changed since the last matching helper build: rebuild a real matching helper
-before further functional epochs; no installed-old or fake verifier fallback.
+Two former failing assertions were repaired with STRONGER preservation checks:
+owned publisher contention must commit the captured staged blob (not sweep the
+unstaged bytes), while retaining the unstaged file, cached OID, untouched remote
+and unchanged failure memory; its targeted run passes1test. The original four-hook
+lifecycle test now verifies exact argument positions with the owned private message
+path, hook-rewritten commit text, temporary cleanup AND preservation of an existing
+operator COMMIT_EDITMSG draft; its targeted run passes1test. Logs:
+preservation-publication-owner.log and preservation-private-message-lifecycle.log.
+The cross-repo publication test now permits truthful StagedPending ONLY alongside
+real newer local HEAD; its pinned-tip and bounded final remote convergence
+assertions remain unchanged. That edited test has not yet been rerun.
+
+Three ordinary fixtures now require bounded metadata follow-up AND raw Git
+cleanliness, not a wider outcome list alone: auto-hardening generates eligible
+metadata after original classification. The dirty-repo targeted case passes1test
+(metadata-followup-raw-clean.log); the mixed/untracked cases still need rerun.
+The supporting helper was rebuilt from current source for these functional checks.
+parent-current-source-inventory.json records current source/file hashes and that
+DEBUG helper, not a final qualification or installed receipt. Rebuild after any
+further source changes; never use installed-old/fake verifier fallback.
 
 Next: finish ordinary-path policy/metadata/cleanup authority reconciliation,
 retain all old policy behavior or diagnose an explicit conflict, remove unused
