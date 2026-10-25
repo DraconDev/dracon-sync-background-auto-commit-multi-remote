@@ -3,6 +3,8 @@
 #[cfg(test)]
 #[path = "excluded_revert_recovery_tests.rs"]
 mod recovery_tests;
+#[path = "excluded_archive.rs"]
+mod archive;
 use super::*;
 use crate::git::staged_intent::{CapturedHead, StagedIntentSnapshot};
 use anyhow::{bail, ensure};
@@ -72,6 +74,9 @@ impl Location {
         Ok(Some(unsafe { File::from_raw_fd(fd) }))
     }
     async fn fingerprint(&self) -> Result<Option<Fingerprint>> {
+        Ok(self.observed().await?.map(|(fingerprint, _)| fingerprint))
+    }
+    async fn observed(&self) -> Result<Option<(Fingerprint, archive::Stamp)>> {
         let Some(file) = self.file()? else {
             return Ok(None);
         };
@@ -96,14 +101,16 @@ impl Location {
             hash.update(&buffer[..n]);
         }
         let after = file.metadata().await?;
+        let observed = archive::Stamp::of(&after);
         ensure!(
-            identity(&before) == identity(&after) && length == before.len(),
+            archive::Stamp::of(&before) == observed && length == before.len()
+                && archive::stamp(self)? == Some(observed.clone()),
             "excluded file changed during capture"
         );
-        Ok(Some(Fingerprint {
+        Ok(Some((Fingerprint {
             identity: identity(&after),
             sha256: format!("{:x}", hash.finalize()),
-        }))
+        }, observed)))
     }
     fn same_parent(&self, other: &Self) -> Result<bool> {
         let a = self.parent.metadata()?;
@@ -362,8 +369,11 @@ async fn settle_directory(repo: &Path, directory: &Path, deadline: Instant) -> R
         let source = Location::open(directory, Path::new("recovery.json"))?.file()?
             .context("missing recovery request")?;
         ensure!(source.metadata()?.is_file(), "nonregular recovery request");
+        let request_stamp = archive::Stamp::of(&source.metadata()?);
         let mut bytes = Vec::new();
         tokio::fs::File::from_std(source).take(64 * 1024 * 1024 + 1).read_to_end(&mut bytes).await?;
+        ensure!(archive::stamp(&Location::open(directory, Path::new("recovery.json"))?)? == Some(request_stamp.clone()),
+            "recovery request changed during inspection");
         ensure!(bytes.len() <= 64 * 1024 * 1024, "recovery request too large");
         let request: RestoreRequest = serde_json::from_slice(&bytes)?;
         if std::fs::canonicalize(repo)?.as_os_str().as_bytes() != request.repo {
@@ -372,13 +382,15 @@ async fn settle_directory(repo: &Path, directory: &Path, deadline: Instant) -> R
         }
         let tree = directory.join("files");
         let mut states = Vec::new();
+        let mut observed_targets = Vec::new();
         for target in request.targets {
             use std::os::unix::ffi::OsStringExt;
             let path = PathBuf::from(std::ffi::OsString::from_vec(target.path.clone()));
-            let retained = Location::open(&tree, &path)?.fingerprint().await?;
-            let state = if retained.as_ref() == Some(&target.desired) {
+            let retained = Location::open(&tree, &path)?.observed().await?;
+            let retained_identity = retained.as_ref().map(|(fingerprint, _)| fingerprint);
+            let state = if retained_identity == Some(&target.desired) {
                 "untouched-or-rolled-back"
-            } else if target.before.is_some() && retained == target.before {
+            } else if target.before.is_some() && retained_identity == target.before.as_ref() {
                 "captured-original-retained"
             } else if target.before.is_none() && retained.is_none() {
                 "absent-baseline-no-original-displaced"
@@ -387,6 +399,7 @@ async fn settle_directory(repo: &Path, directory: &Path, deadline: Instant) -> R
                 return Ok(false);
             };
             states.push(serde_json::json!({"path":target.path,"state":state}));
+            observed_targets.push(archive::Entry { path: target.path, observed: retained.map(|(_, stamp)| stamp) });
         }
         let record = serde_json::json!({"inspectedBy":env!("DRACON_EPOCH_SOURCE_ID"),
             "originalSource":request.source_id,"states":states,
@@ -396,8 +409,16 @@ async fn settle_directory(repo: &Path, directory: &Path, deadline: Instant) -> R
         note.as_file().sync_all()?;
         let _ = note.keep()?;
         File::open(directory)?.sync_all()?;
-        let gitdir = directory.parent().context("recovery directory missing parent")?;
+        archive::persist(directory, &archive::Seal { schema: 1, repo: request.repo,
+            request: request_stamp, targets: observed_targets })?;
+        let gitdir = crate::git::path_gitdir(repo).context("recovery directory missing Git directory")?;
         let archive = gitdir.join("dracon-excluded-archive");
+        if directory.parent() == Some(archive.as_path()) {
+            // Upgrade an unsealed older archive only after complete identity
+            // classification. A changed existing seal is NEVER rewritten.
+            return Ok(true);
+        }
+        ensure!(directory.parent() == Some(gitdir.as_path()), "unexpected pending recovery location");
         match std::fs::DirBuilder::new().mode(0o700).create(&archive) {
             Ok(()) => {},
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {},
@@ -407,7 +428,7 @@ async fn settle_directory(repo: &Path, directory: &Path, deadline: Instant) -> R
         ensure!(meta.is_dir() && meta.uid() == unsafe { libc::geteuid() } && meta.mode() & 0o077 == 0,
             "excluded archive must be an owned private real directory");
         let name = directory.file_name().context("missing recovery directory name")?;
-        let from = Location::open(gitdir, Path::new(name))?;
+        let from = Location::open(&gitdir, Path::new(name))?;
         let to = Location::open(&archive, Path::new(name))?;
         from.exchange(&to, libc::RENAME_NOREPLACE)?;
         eprintln!("🛟 verified excluded recovery retained at {}", archive.join(name).display());
@@ -479,6 +500,9 @@ pub(super) async fn settle_pending(repo: &Path, deadline: Instant) -> Result<boo
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(error.into()),
     }
+    for directory in archive::unsealed(repo)? {
+        if !settle_directory(repo, &directory, deadline).await? { return Ok(false); }
+    }
     for entry in std::fs::read_dir(gitdir)? {
         ensure!(
             Instant::now() < deadline,
@@ -501,6 +525,10 @@ pub(super) async fn settle_pending(repo: &Path, deadline: Instant) -> Result<boo
         }
     }
     Ok(!super::has_pending_excluded_recovery(repo)?)
+}
+
+pub(super) fn archived_pending(repo: &Path) -> Result<bool> {
+    archive::pending(repo)
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
