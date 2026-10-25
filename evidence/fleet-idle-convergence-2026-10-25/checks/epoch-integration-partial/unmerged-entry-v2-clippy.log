@@ -1,0 +1,15 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Checking dracon-system v0.112.51 (/home/dracon/Dev/dracon-utilities/dracon-system)
+error: very complex type used. Consider factoring parts into `type` definitions
+   --> dracon-sync/src/sync/unmerged_epoch.rs:165:44
+    |
+165 | fn slots(raw: &[u8], deadline: Instant) -> Result<BTreeMap<Vec<u8>, Vec<(u32, String, u8)>>> {
+    |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#type_complexity
+    = note: `-D clippy::type-complexity` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::type_complexity)]`
+
+error: could not compile `dracon-sync` (bin "dracon-sync") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `dracon-sync` (bin "dracon-sync" test) due to 1 previous error
