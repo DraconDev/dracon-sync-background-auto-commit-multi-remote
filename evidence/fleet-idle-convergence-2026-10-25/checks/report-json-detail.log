@@ -109,3 +109,12 @@ warning: function `parse_index_observation` is never used
 400 | fn parse_index_observation(
     |    ^^^^^^^^^^^^^^^^^^^^^^^
 
+warning: `dracon-sync` (bin "dracon-sync") generated 17 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 06s
+     Running tests/report_json_detail.rs (target/debug/deps/report_json_detail-23bf51aa4e8a99c3)
+
+running 1 test
+test named_repository_json_is_a_real_envelope_not_vertical_text ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.27s
+
