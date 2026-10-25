@@ -6,6 +6,7 @@ use tokio::time::Instant;
 
 #[derive(Debug)]
 enum EpochConflict {
+    LockBusy,
     LockReplaced,
     ReferenceChanged,
     IndexChanged,
@@ -14,6 +15,7 @@ enum EpochConflict {
 impl std::fmt::Display for EpochConflict {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
+            Self::LockBusy => "epoch index lock held by another operation",
             Self::LockReplaced => "epoch index lock was replaced; retained foreign lock",
             Self::ReferenceChanged => "epoch branch changed",
             Self::IndexChanged => {
@@ -26,6 +28,15 @@ impl std::error::Error for EpochConflict {}
 
 pub(super) fn is_conflict(error: &anyhow::Error) -> bool {
     error.is::<EpochConflict>()
+}
+
+fn acquire_epoch_lock(path: PathBuf) -> Result<crate::git::IndexLock> {
+    match crate::git::IndexLock::try_acquire_path(path) {
+        Ok(lock) => Ok(lock),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists =>
+            Err(anyhow::Error::new(EpochConflict::LockBusy)),
+        Err(error) => Err(error).context("cannot acquire epoch index lock"),
+    }
 }
 
 pub(super) struct Epoch {
@@ -273,8 +284,7 @@ impl Epoch {
             .await?;
             let index = PathBuf::from(std::str::from_utf8(&index.stdout)?.trim_end_matches('\n'));
             ensure!(index.is_absolute(), "index identity is not absolute");
-            let lock = crate::git::IndexLock::acquire_path(index.with_extension("lock"), repo)
-                .map_err(anyhow::Error::msg)?;
+            let lock = acquire_epoch_lock(index.with_extension("lock"))?;
             self.unchanged(repo, &lock).await?;
             self.eligible(repo, policy, excluded).await?;
             let tree = self.snapshot.materialize_tree(repo, deadline).await?;
@@ -705,7 +715,7 @@ impl Staging {
             epoch.eligible(repo, policy, excluded).await?;
             let actual_index = git(repo, &["rev-parse", "--path-format=absolute", "--git-path", "index"], None).await?;
             let actual_index = PathBuf::from(std::str::from_utf8(&actual_index.stdout)?.trim_end_matches('\n'));
-            let mut lock = crate::git::IndexLock::acquire_path(actual_index.with_extension("lock"), repo).map_err(anyhow::Error::msg)?;
+            let mut lock = acquire_epoch_lock(actual_index.with_extension("lock"))?;
             self.baseline.unchanged(repo, &lock).await?;
             lock.install_index(&self.index, &actual_index)?;
             // The returned identities are the proven private candidate, not
