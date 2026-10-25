@@ -221,4 +221,26 @@ test test_generic_assignment_pattern_completes_in_reasonable_time ... ok
 test test_nested_quantifier_patterns_do_not_cause_exponential_blowup ... ok
 test test_scanner_detects_known_secret_patterns ... ok
 test test_scanner_performance_mixed_secret_and_filler ... ok
-test test_scanner_performance_under_large_evil_input ... 
+test test_scanner_performance_under_large_evil_input ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.99s
+
+     Running tests/registry_credentials_test.rs (target/debug/deps/registry_credentials_test-6c12fb5bf9bf840f)
+
+running 1 test
+test test_load_registry_credentials_when_none_exist ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/restore_test.rs (target/debug/deps/restore_test-ec1da6168d22ed90)
+
+running 1 test
+test test_restore_workflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/scanner_edge_cases_test.rs (target/debug/deps/scanner_edge_cases_test-a5f32595b6c32f78)
+
+running 12 tests
+test test_patterns_are_valid_regexes ... ok
+test test_scanner_completes_quickly_on_large_clean_input ... 
