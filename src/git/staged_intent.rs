@@ -35,7 +35,7 @@ impl StagedIntentSnapshot {
         anyhow::bail!("staged intent requires Unix lock identities");
         tokio::time::timeout_at(deadline, async {
             ensure!(Instant::now() < deadline, "staged intent deadline expired");
-            let _lock = super::status::IndexLock::acquire(repo).map_err(anyhow::Error::msg)?;
+            let lock = super::status::IndexLock::acquire(repo).map_err(anyhow::Error::msg)?;
             let head = read_head(repo).await?;
             let raw = read(repo, &["ls-files", "--stage", "--sparse", "-z"]).await?;
             let entries = parse_entries(&raw, true, deadline)?;
@@ -66,6 +66,10 @@ impl StagedIntentSnapshot {
             ensure!(
                 head == read_head(repo).await?,
                 "HEAD changed during staged intent capture"
+            );
+            ensure!(
+                lock.is_owned(),
+                "index lock replaced during staged intent capture"
             );
             Ok(Self {
                 head,
@@ -445,10 +449,12 @@ mod tests {
         let dir = fixture();
         let repo = dir.path();
         let lock = super::super::status::IndexLock::acquire(repo).unwrap();
+        assert!(lock.is_owned());
         assert!(super::super::status::IndexLock::acquire(repo).is_err());
         let path = repo.join(".git/index.lock");
         std::fs::remove_file(&path).unwrap();
         std::fs::write(&path, b"foreign").unwrap();
+        assert!(!lock.is_owned());
         drop(lock);
         assert_eq!(std::fs::read(&path).unwrap(), b"foreign");
         std::fs::remove_file(&path).unwrap();

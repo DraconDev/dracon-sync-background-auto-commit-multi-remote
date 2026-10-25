@@ -72,18 +72,27 @@ impl IndexLock {
     }
 }
 
-impl Drop for IndexLock {
-    fn drop(&mut self) {
+impl IndexLock {
+    /// Detect replacement by a non-cooperating writer; this is not an atomic
+    /// compare-and-unlink primitive against hostile filesystem mutation.
+    pub(crate) fn is_owned(&self) -> bool {
         #[cfg(unix)]
         {
             use std::os::unix::fs::MetadataExt;
             if let (Ok(owned), Ok(current)) =
                 (self.file.metadata(), std::fs::symlink_metadata(&self.path))
             {
-                if (owned.dev(), owned.ino()) == (current.dev(), current.ino()) {
-                    let _ = std::fs::remove_file(&self.path);
-                }
+                return (owned.dev(), owned.ino()) == (current.dev(), current.ino());
             }
+        }
+        false
+    }
+}
+
+impl Drop for IndexLock {
+    fn drop(&mut self) {
+        if self.is_owned() {
+            let _ = std::fs::remove_file(&self.path);
         }
         // Without a stable filesystem identity, conservatively retain the lock.
     }
