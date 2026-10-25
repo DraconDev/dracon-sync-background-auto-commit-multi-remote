@@ -41,6 +41,12 @@ impl IndexLock {
     /// Try to acquire `.git/index.lock` for a repo.
     /// Returns Ok(lock) if acquired, Err if another process holds it.
     /// Uses `O_EXCL` (create_new) for atomic creation — no TOCTOU race.
+    #[cfg(not(unix))]
+    pub(crate) fn acquire(_repo: &Path) -> Result<Self, String> {
+        Err("index lock acquisition unsupported: ownership-safe cleanup requires Unix inode identities".into())
+    }
+
+    #[cfg(unix)]
     pub(crate) fn acquire(repo: &Path) -> Result<Self, String> {
         // CHANGED 2026-07-21 (v0.112.33, audit M16/F2.7): resolve
         // the REAL gitdir first — for linked worktrees and nested
@@ -976,4 +982,14 @@ mod tests {
             .unwrap();
         assert_eq!(count_pushable_unpushed_vs_mirrors(&repo), 0);
     }
+}
+
+#[cfg(all(test, not(unix)))]
+#[test]
+fn index_lock_unsupported_platform_refuses_before_filesystem_access() {
+    let repo = tempfile::tempdir().unwrap();
+    std::fs::create_dir(repo.path().join(".git")).unwrap();
+    let error = IndexLock::acquire(repo.path()).err().unwrap();
+    assert!(error.contains("unsupported"));
+    assert!(!repo.path().join(".git/index.lock").exists());
 }

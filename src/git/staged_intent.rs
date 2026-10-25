@@ -1,4 +1,4 @@
-//! Read-only staged identities, not a commit authorization or atomic commit gate.
+//! Read-only staged observation, not a lock, authorization or atomic commit gate.
 //! Equality says nothing about later hooks, staging provenance or ref publication.
 
 use anyhow::{ensure, Context, Result};
@@ -28,21 +28,16 @@ pub(crate) struct StagedIntentSnapshot {
 
 impl StagedIntentSnapshot {
     /// One caller-supplied absolute deadline covers every read and parse. Dropping
-    /// this future kills its owned Git process group and releases only our lock.
+    /// this future kills its owned Git process group. No index lock is acquired.
+    /// Git reads identities and flags together from one index observation; later
+    /// integration must conditionally validate at an actual atomic commit boundary.
     /// Unsupported index flags (including intent-to-add/sparse entries) refuse.
     pub(crate) async fn capture(repo: &Path, deadline: Instant) -> Result<Self> {
-        #[cfg(not(unix))]
-        anyhow::bail!("staged intent requires Unix lock identities");
         tokio::time::timeout_at(deadline, async {
             ensure!(Instant::now() < deadline, "staged intent deadline expired");
-            let lock = super::status::IndexLock::acquire(repo).map_err(anyhow::Error::msg)?;
             let head = read_head(repo).await?;
-            let raw = read(repo, &["ls-files", "--stage", "--sparse", "-z"]).await?;
-            let entries = parse_entries(&raw, true, deadline)?;
-            // --debug exposes CE_INTENT_TO_ADD and CE_SKIP_WORKTREE which the
-            // stage listing alone cannot distinguish from ordinary entries.
-            let flags = read(repo, &["ls-files", "--debug", "-z"]).await?;
-            validate_flags(&flags, entries.len(), deadline)?;
+            let raw = read(repo, &["ls-files", "--stage", "--debug", "--sparse", "-z"]).await?;
+            let entries = parse_index_observation(&raw, deadline)?;
             let base = match &head {
                 CapturedHead::Commit(oid) => {
                     let tree = read(repo, &["ls-tree", "-r", "-z", "--full-tree", oid]).await?;
@@ -66,10 +61,6 @@ impl StagedIntentSnapshot {
             ensure!(
                 head == read_head(repo).await?,
                 "HEAD changed during staged intent capture"
-            );
-            ensure!(
-                lock.is_owned(),
-                "index lock replaced during staged intent capture"
             );
             Ok(Self {
                 head,
@@ -196,33 +187,30 @@ fn parse_entries(
     Ok(entries)
 }
 
-fn validate_flags(mut bytes: &[u8], count: usize, deadline: Instant) -> Result<()> {
-    for _ in 0..count {
+fn parse_index_observation(mut bytes: &[u8], deadline: Instant) -> Result<BTreeMap<Vec<u8>, CachedIdentity>> {
+    let mut entries = BTreeMap::new();
+    while !bytes.is_empty() {
         ensure!(Instant::now() < deadline, "staged intent deadline expired");
-        let nul = bytes
-            .iter()
-            .position(|b| *b == 0)
-            .context("missing debug path")?;
+        let nul = bytes.iter().position(|b| *b == 0).context("missing index path terminator")?;
+        // Parse identity and exact byte path before consuming this same entry's
+        // debug payload. Never join flags from a second index read.
+        let record = parse_entries(&bytes[..=nul], true, deadline)?;
+        let (path, identity) = record.into_iter().next().context("missing index entry")?;
         bytes = &bytes[nul + 1..];
-        // Git's debug payload has five lines; paths themselves are NUL delimited.
-        for line in 0..5 {
-            let end = bytes
-                .iter()
-                .position(|b| *b == b'\n')
-                .context("invalid index debug record")?;
-            if line == 4 {
-                let text = std::str::from_utf8(&bytes[..end])?;
-                let (_, flags) = text.rsplit_once("flags: ").context("missing index flags")?;
-                ensure!(
-                    u32::from_str_radix(flags.trim(), 16)? == 0,
-                    "unsupported index flags"
-                );
+        for prefix in [b"  ctime: ".as_slice(), b"  mtime: ", b"  dev: ", b"  uid: ", b"  size: "] {
+            let end = bytes.iter().position(|b| *b == b'\n').context("invalid index debug record")?;
+            let line = &bytes[..end];
+            ensure!(line.starts_with(prefix), "unsupported index debug payload");
+            if prefix == b"  size: " {
+                let text = std::str::from_utf8(line)?;
+                let (_, flags) = text.rsplit_once("\tflags: ").context("missing index flags")?;
+                ensure!(u32::from_str_radix(flags, 16)? == 0, "unsupported index flags");
             }
             bytes = &bytes[end + 1..];
         }
+        ensure!(entries.insert(path, identity).is_none(), "duplicate index path");
     }
-    ensure!(bytes.is_empty(), "unexpected index debug entries");
-    Ok(())
+    Ok(entries)
 }
 
 #[cfg(all(test, unix))]
