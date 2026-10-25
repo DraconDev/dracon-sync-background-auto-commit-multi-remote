@@ -1,0 +1,5 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.96s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 4 tests
+test sync::publication_actor_tests::abandoned_fixture_hook_exits_when_its_checkout_disappears ... 
