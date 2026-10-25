@@ -11,9 +11,12 @@ PID3906273. The refreshed fresh-runtime ledger now proves autonomous eligible
 commit/publication for ALL TEN initial repositories. Browser sourcee6f93db passed
 all147 original whole-gate checks, and subsequent daemon publication advanced its
 intended refs. Those raw outcomes are retained. A separate intermittent workspace
-prepare/output race was reproduced and repaired afterward; qualification and
-publication of that final library repair remain required before claiming the
-overall objective. No final external blocker is accepted.
+prepare/output race was reproduced and repaired afterward. Final sourcead856e9
+now passes64/64 applicable original gates in BOTH ordinary attempts2BxpB2/SEsqdY;
+fresh advertised refs at all THREE intended browser destinations contain that
+repair. The all-ten ledger was refreshed on the same qualified loaded daemon,
+with zero repository/query errors. No external blocker or initial fixable backlog
+remains in the observed evidence. Independent completion decision is pending.
 
 V7 failed with a debug-stack overflow and an unrelated unused system field;
 no failing artifact was deployed. V8 boxes the upload at its API boundary and
@@ -48,7 +51,7 @@ accepted as final-runtime convergence.
 | pi-goal-list-loop-audit | converged at that instant | Earlier activity is not proof on a replacement daemon; new witness required. |
 | dracon-strategy | stalled;75ahead | Authorized OpenAI-hook boundary precision repair, full text/binary credential regressions, qualified Warden and targeted retry. |
 | .dracon | queued;1ahead | Report missing scheduler evidence truthfully rather than infer health; verify advertised destinations/aliases. |
-| browser-extensions-shared | publishing2301seconds;314ahead | Missing service tools, mutable-source/dependency/lifecycle integration defects, demonstrated product failures and later native task-budget exhaustion. Full147gate sourcee6f93db and actual publication now witnessed; final library-output repair validation remains pending. |
+| browser-extensions-shared | publishing2301seconds;314ahead | Missing service tools, mutable-source/dependency/lifecycle integration defects, demonstrated product failures and later native task-budget exhaustion. Full147gate sourcee6f93db witnessed; final library repairad856e9 passed64applicable gates in both normal attempts and reached all3intended destinations. |
 | endless-td | converged at that instant | Fresh final-runtime commit/ref evidence, not a cosmetic state change. |
 | dracon-platform | blocked;31ahead;20modified/3untracked | Bounded private-storage workflow correction, source revalidation, original storage guards, later documented legacy sample retirement. |
 | polis | converged at that instant | Correct orphan classification without terminating unrelated active processes; preserve later note rename when finding historical witness. |
@@ -146,7 +149,7 @@ transfers and product gates remain independent. The21test suite proves exclusive
 preparation, overlapping product gates, cancellation during preparation and lease
 reacquisition. Cold-start test setup is separated from an explicit10second
 post-SIGTERM join bound. Rejected timeout/startup qualifications remain retained.
-Independent review found no issue; live multi-mirror validation remains pending.
+Independent review found no issue; subsequent normal multi-mirror validation is recorded in the final evidence below.
 The old476c295a cycle completed147gates with a dead-export failure already corrected
 in newer source. A remaining mirror was still repeating that same immutable pin.
 Only its isolated Git family was retired using pidfds after validating the failed
@@ -241,7 +244,7 @@ execution; deployment then used maintenance, backup, atomic replacement and
 pidfd SIGTERM with Restart=always. `/proc/<pid>/exe` matches the qualified hash;
 the maintenance marker was removed. No manual service stop was used.
 
-## Proof semantics and remaining condition
+## Proof semantics and historical qualification sequence
 
 A valid row requires the exact eligible blob in a post-baseline ancestor commit,
 loaded-daemon PID/time-correlated commit output, and actual advertised descendant
@@ -369,13 +372,42 @@ correctly blocking final completion on normal final-repair gates/publication.
 Its execution/live-query limitations are retained. Executor freshly replayed8/5/8
 Python regressions and1forms cold-build test, all passing. Normal2BxpB2 selects
 the exact final repair: all10filtered fingerprints match. Loaded PID/hash still
-match qualification. Selection is not success; normal outcomes remain pending.
+match qualification. At that assessment selection alone did not establish success.
 
-**Still required:** ordinary affected-source gates and actual remote containment
-of the final library repair. Initial all-ten eligible-tip proof is already present.
-The daemon, not a manual push, must establish it. Current active work is not
-called healthy or external. Subsequent unrelated feature changes are documented;
-only demonstrated minimal gate/integration corrections were made.
+## Final observed qualification and publication
+
+At2026-10-25T07:36UTC, BOTH original normal attempts2BxpB2 andSEsqdY passed
+all64applicable gates on immutablead856e90708ef4a83e1930d7b254c8db5c0a941a,
+including real cold library prebuilds, mandatory scripted installation and all
+selected consumer/product checks. Raw manifests and every log are archived in
+`checks/library-lifecycle-publication/dracon-pre-push.{2BxpB2,SEsqdY}/`;
+`final-normal-gates.json` indexes their terminal outcomes. These are the normal
+runner's dependency-closure-selected checks, not a substituted local selection.
+The earlier147gatee6f93db outcome remains independently retained, not rewritten.
+
+A fresh all-ten read-only observation has zero repository errors/failed queries
+and the same qualified loaded daemon before/after. All THREE intended browser
+destinations advertise commit descendants of the exact final repair anchor;
+`checks/library-lifecycle-publication/final-repair-publication.json` records
+per-destination aliases/tips, containment and confirmation times. The current
+`checks/live-convergence-ledger.json` still proves EVERY initial eligible witness
+with actual post-baseline objects, loaded-PID commit events and advanced intended
+refs. Its exact before/after/journal inputs are named inside it. Targeted stuck-list
+inspection now reports no stuck repositories. No manual recovery push was used.
+This resolves the independent rehearsal's sole P1 completion condition; the
+review's inability to execute checks/live-query or reconstruct committed ranges
+is retained, not relabelled independent execution. Final committed repair diff
+is separately archived.
+
+Subsequent unrelated changes: dracon-system commits06237eb/e75c926 change scratch
+ETA/disk alarm presentation and associated tests after the captured V8 assembly.
+Current system main bytes consequently differ; the four Rust pass claims apply
+only to the identified unchanged qualified assembly, not those later edits.
+The repaired daemon publication inputs and Warden main still match qualified
+bytes; current loaded/installed daemon hash remains qualified. No unrelated
+system feature was redeployed or pulled into this convergence task. Other later
+product edits may continue; the proof deliberately requires published ancestors,
+not a permanently clean HEAD or frozen operator activity.
 
 Successful watched-repository commits and publication remain daemon-owned under
 configured hooks. No real-repository manual recovery push/commit, history rewrite,
