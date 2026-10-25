@@ -16,7 +16,9 @@ impl std::fmt::Display for EpochConflict {
         f.write_str(match self {
             Self::LockReplaced => "epoch index lock was replaced; retained foreign lock",
             Self::ReferenceChanged => "epoch branch changed",
-            Self::IndexChanged => "epoch index or parent changed; actual staged/worktree data retained",
+            Self::IndexChanged => {
+                "epoch index or parent changed; actual staged/worktree data retained"
+            }
         })
     }
 }
@@ -143,7 +145,10 @@ impl Epoch {
 
     async fn unchanged(&self, repo: &Path, lock: &crate::git::IndexLock) -> Result<()> {
         ensure!(lock.is_owned(), EpochConflict::LockReplaced);
-        ensure!(self.reference == reference(repo).await?, EpochConflict::ReferenceChanged);
+        ensure!(
+            self.reference == reference(repo).await?,
+            EpochConflict::ReferenceChanged
+        );
         if self.snapshot != StagedIntentSnapshot::capture(repo, self.deadline).await? {
             return Err(anyhow::Error::new(EpochConflict::IndexChanged))
                 .with_context(|| format!("candidate backup: {:?}", self.retained));
@@ -859,11 +864,15 @@ mod tests {
 
     #[test]
     fn only_typed_intent_conflicts_are_nonfailure_deferrals() {
-        let changed = anyhow::Error::new(EpochConflict::IndexChanged)
-            .context("retained candidate fixture");
+        let changed =
+            anyhow::Error::new(EpochConflict::IndexChanged).context("retained candidate fixture");
         assert!(is_conflict(&changed));
-        assert!(!is_conflict(&anyhow::anyhow!("epoch index or parent changed")));
-        assert!(!is_conflict(&anyhow::anyhow!("permission denied reading index")));
+        assert!(!is_conflict(&anyhow::anyhow!(
+            "epoch index or parent changed"
+        )));
+        assert!(!is_conflict(&anyhow::anyhow!(
+            "permission denied reading index"
+        )));
     }
 
     #[tokio::test]

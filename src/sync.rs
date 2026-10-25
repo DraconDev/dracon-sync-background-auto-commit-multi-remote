@@ -4359,11 +4359,22 @@ async fn stage_commit_and_push(
             )
             .await?;
         }
-        match staging.finish(repo, policy, ctx.excluded_dir_names,
-            ctx.build_artifact_cleanup, dry_run).await {
+        match staging
+            .finish(
+                repo,
+                policy,
+                ctx.excluded_dir_names,
+                ctx.build_artifact_cleanup,
+                dry_run,
+            )
+            .await
+        {
             Ok(epoch) => epoch,
             Err(error) if staged_epoch::is_conflict(&error) => {
-                eprintln!("⏳ {} private staging deferred; concurrent intent retained: {error:#}", repo.display());
+                eprintln!(
+                    "⏳ {} private staging deferred; concurrent intent retained: {error:#}",
+                    repo.display()
+                );
                 return Ok(Some(SyncOutcome::Blocked));
             }
             Err(error) => return Err(error),
@@ -4445,10 +4456,16 @@ async fn stage_commit_and_push(
         }
         println!("  message: {}", msg.lines().next().unwrap_or("(empty)"));
     } else {
-        pending_local = match epoch.commit(repo, &msg, policy, ctx.excluded_dir_names, private_assets).await {
+        pending_local = match epoch
+            .commit(repo, &msg, policy, ctx.excluded_dir_names, private_assets)
+            .await
+        {
             Ok(pending) => pending,
             Err(error) if staged_epoch::is_conflict(&error) => {
-                eprintln!("⏳ {} captured commit deferred; concurrent intent retained: {error:#}", repo.display());
+                eprintln!(
+                    "⏳ {} captured commit deferred; concurrent intent retained: {error:#}",
+                    repo.display()
+                );
                 return Ok(Some(SyncOutcome::Blocked));
             }
             Err(error) => return Err(error),
