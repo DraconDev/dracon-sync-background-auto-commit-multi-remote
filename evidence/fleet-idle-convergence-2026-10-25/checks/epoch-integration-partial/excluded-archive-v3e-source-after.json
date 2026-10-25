@@ -1,0 +1,26 @@
+{
+  "capturedAt": "2026-10-25T23:29:30.955991+00:00",
+  "scope": "v3e targeted current-source gates ONLY; complete workspace/release/deny for latest source still needed after remaining implementation",
+  "changedSourceFiles": [],
+  "pinnedHelperUnchanged": true,
+  "logSha256": {
+    "excluded-archive-v3e-excluded_recovery.log": "0705ea9e0010e512ae23b2819d2889d3efc7f8f4d81999c1f76d0fe69d62c3f1",
+    "excluded-archive-v3e-excluded_restore.log": "ead36b00f44b7e7f72b635ac6af66574d0ab786297344e45245a6323a7645c15",
+    "excluded-archive-v3e-helper-build.log": "0e7935bd99b201a45cadfd68a27b56da9dcd7f3b4314190a00a89d18686ffc75",
+    "excluded-archive-v3e-json-report.log": "ec1c674339a64428bfad2d6f00bf13d69f03c7960b74fdafe450b98bf5f875e5",
+    "excluded-archive-v3e-strict-clippy.log": "b2045637df6f2233dbcb610b45e0434a1677f38da474deb6f4ef9c7cfb8b45eb",
+    "excluded-archive-v3e-test_excluded_tracked_file.log": "338e3b8d417bc689f2dc83227195cb116e78c95e86a93989e49fefb3f765a104",
+    "excluded-archive-v3e-test_filter_only.log": "f83082219826e2c5bd3861a6eafff1d0bc0645108d168eafd2a512930a22dd3a"
+  },
+  "observedExitCodes": {
+    "excluded-archive-v3e-json-report": 0,
+    "excluded-archive-v3e-strict-clippy": 0,
+    "excluded-archive-v3e-excluded_recovery": 101,
+    "excluded-archive-v3e-test_excluded_tracked_file": 0,
+    "excluded-archive-v3e-test_filter_only": 0,
+    "excluded-archive-v3e-excluded_restore": 0
+  },
+  "previousFullFourGateSource": "excluded-archive-v3d-source-before.json",
+  "notInstallationOrLoadedExecutionProof": true,
+  "liveBatchMigrationAppliedByThisContinuation": false
+}
