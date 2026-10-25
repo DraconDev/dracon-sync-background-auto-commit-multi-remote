@@ -268,7 +268,9 @@ impl Epoch {
             if matches!(self.snapshot.head, CapturedHead::Unborn { .. })
                 && entry.is_some()
                 && crate::exclude::matches_untracked_exclude(
-                    repo, &path.path, &policy.untracked_exclude_patterns,
+                    repo,
+                    &path.path,
+                    &policy.untracked_exclude_patterns,
                 )
             {
                 rejected.push(raw.clone());
