@@ -1,0 +1,111 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: enum `CapturedHead` is never used
+ --> dracon-sync/src/git/staged_intent.rs:9:17
+  |
+9 | pub(crate) enum CapturedHead {
+  |                 ^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `CachedIdentity` is never constructed
+  --> dracon-sync/src/git/staged_intent.rs:15:19
+   |
+15 | pub(crate) struct CachedIdentity {
+   |                   ^^^^^^^^^^^^^^
+
+warning: struct `StagedIntentSnapshot` is never constructed
+  --> dracon-sync/src/git/staged_intent.rs:23:19
+   |
+23 | pub(crate) struct StagedIntentSnapshot {
+   |                   ^^^^^^^^^^^^^^^^^^^^
+
+warning: associated function `capture` is never used
+  --> dracon-sync/src/git/staged_intent.rs:36:25
+   |
+29 | impl StagedIntentSnapshot {
+   | ------------------------- associated function in this implementation
+...
+36 |     pub(crate) async fn capture(repo: &Path, deadline: Instant) -> Result<Self> {
+   |                         ^^^^^^^
+
+warning: constant `TREE_PAYLOAD_LIMIT` is never used
+  --> dracon-sync/src/git/staged_intent.rs:81:7
+   |
+81 | const TREE_PAYLOAD_LIMIT: usize = 64 * 1024 * 1024;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `TREE_NODE_LIMIT` is never used
+  --> dracon-sync/src/git/staged_intent.rs:82:7
+   |
+82 | const TREE_NODE_LIMIT: usize = 262_144;
+   |       ^^^^^^^^^^^^^^^
+
+warning: constant `TREE_INPUT_LIMIT` is never used
+  --> dracon-sync/src/git/staged_intent.rs:83:7
+   |
+83 | const TREE_INPUT_LIMIT: usize = 128 * 1024 * 1024;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `TREE_OUTPUT_LIMIT` is never used
+  --> dracon-sync/src/git/staged_intent.rs:84:7
+   |
+84 | const TREE_OUTPUT_LIMIT: usize = 32 * 1024 * 1024;
+   |       ^^^^^^^^^^^^^^^^^
+
+warning: enum `TreeChild` is never used
+  --> dracon-sync/src/git/staged_intent.rs:86:6
+   |
+86 | enum TreeChild<'a> {
+   |      ^^^^^^^^^
+
+warning: struct `TreeDirectory` is never constructed
+  --> dracon-sync/src/git/staged_intent.rs:92:8
+   |
+92 | struct TreeDirectory<'a> {
+   |        ^^^^^^^^^^^^^
+
+warning: method `materialize_tree` is never used
+   --> dracon-sync/src/git/staged_intent.rs:101:25
+    |
+ 97 | impl StagedIntentSnapshot {
+    | ------------------------- method in this implementation
+...
+101 |     pub(crate) async fn materialize_tree(&self, repo: &Path, deadline: Instant) -> Result<String> {
+    |                         ^^^^^^^^^^^^^^^^
+
+warning: function `assign_tree_oids` is never used
+   --> dracon-sync/src/git/staged_intent.rs:259:4
+    |
+259 | fn assign_tree_oids(
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `run` is never used
+   --> dracon-sync/src/git/staged_intent.rs:286:10
+    |
+286 | async fn run(repo: &Path, args: &[&str]) -> Result<(std::process::ExitStatus, Vec<u8>)> {
+    |          ^^^
+
+warning: function `read` is never used
+   --> dracon-sync/src/git/staged_intent.rs:297:10
+    |
+297 | async fn read(repo: &Path, args: &[&str]) -> Result<Vec<u8>> {
+    |          ^^^^
+
+warning: function `read_head` is never used
+   --> dracon-sync/src/git/staged_intent.rs:306:10
+    |
+306 | async fn read_head(repo: &Path) -> Result<CapturedHead> {
+    |          ^^^^^^^^^
+
+warning: function `parse_entries` is never used
+   --> dracon-sync/src/git/staged_intent.rs:334:4
+    |
+334 | fn parse_entries(
+    |    ^^^^^^^^^^^^^
+
+warning: function `parse_index_observation` is never used
+   --> dracon-sync/src/git/staged_intent.rs:400:4
+    |
+400 | fn parse_index_observation(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^
+

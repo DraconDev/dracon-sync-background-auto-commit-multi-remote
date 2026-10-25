@@ -5010,8 +5010,13 @@ pub(crate) async fn run_repos_report(
             1 => {
                 // `RepoReportRow` isn't Clone; borrow the single
                 // row as a one-element slice instead.
-                print_repos_vertical(std::slice::from_ref(matches[0]), &filter, 0, 0, 0, true);
-                return Ok(());
+                if !json {
+                    print_repos_vertical(std::slice::from_ref(matches[0]), &filter, 0, 0, 0, true);
+                    return Ok(());
+                }
+                // Detail selection already narrowed discovery to this basename.
+                // Preserve the normal machine-readable envelope below rather
+                // than silently returning human text for `repos <name> --json`.
             }
             _ => {
                 eprintln!(
