@@ -2,7 +2,13 @@
 use std::{path::Path, process::Command, time::Duration};
 
 fn git(repo: &Path, args: &[&str]) {
-    let result = Command::new("git")
+    let mut command = Command::new("git");
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(key);
+        }
+    }
+    let result = command
         .arg("-C")
         .arg(repo)
         .args(args)
@@ -41,6 +47,11 @@ async fn named_repository_json_is_a_real_envelope_not_vertical_text() {
     std::fs::write(&policy, toml::to_string(&settings).unwrap()).unwrap();
 
     let mut command = tokio::process::Command::new(env!("CARGO_BIN_EXE_dracon-sync"));
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(key);
+        }
+    }
     command
         .args(["repos", "fixture-repo", "--json"])
         .env("HOME", fixture.path())
