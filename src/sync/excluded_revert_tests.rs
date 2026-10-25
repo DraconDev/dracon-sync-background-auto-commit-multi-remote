@@ -1,6 +1,6 @@
 use super::*;
 use std::io::{Seek, SeekFrom, Write};
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
 fn git(repo: &Path, args: &[&str]) -> Vec<u8> {
     let out = crate::git::git_cmd()
@@ -86,6 +86,12 @@ async fn excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untr
     );
     assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), index);
     assert!(recovery_contains(repo, b"operator\0bytes\xfe"));
+    let archive = repo.join(".git/dracon-excluded-archive");
+    assert_eq!(std::fs::metadata(&archive).unwrap().mode() & 0o077, 0);
+    for entry in std::fs::read_dir(&archive).unwrap() {
+        assert_eq!(entry.unwrap().metadata().unwrap().mode() & 0o077, 0,
+            "raw retained bytes must never rely on permissive tempfile defaults");
+    }
     std::fs::remove_file(repo.join("excluded.log")).unwrap();
     assert!(
         restore(repo).await.unwrap(),
