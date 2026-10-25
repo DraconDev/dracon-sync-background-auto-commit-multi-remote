@@ -101,7 +101,10 @@ impl StagedIntentSnapshot {
     pub(crate) async fn materialize_tree(&self, repo: &Path, deadline: Instant) -> Result<String> {
         tokio::time::timeout_at(deadline, async {
             let check_deadline = || -> Result<()> {
-                ensure!(Instant::now() < deadline, "tree materialization deadline expired");
+                ensure!(
+                    Instant::now() < deadline,
+                    "tree materialization deadline expired"
+                );
                 Ok(())
             };
             check_deadline()?;
@@ -111,19 +114,33 @@ impl StagedIntentSnapshot {
             let mut nodes = 1usize;
             for (path, entry) in &self.entries {
                 check_deadline()?;
-                payload = payload.checked_add(path.len()).and_then(|n| n.checked_add(entry.oid.len() + 16))
+                payload = payload
+                    .checked_add(path.len())
+                    .and_then(|n| n.checked_add(entry.oid.len() + 16))
                     .context("tree payload overflow")?;
                 ensure!(payload <= TREE_PAYLOAD_LIMIT, "tree payload limit exceeded");
-                ensure!(matches!(entry.mode, 0o100644 | 0o100755 | 0o120000 | 0o160000), "unsupported tree mode");
-                ensure!(super::is_valid_object_id(&entry.oid) && !entry.oid.bytes().all(|b| b == b'0'), "invalid tree object ID");
+                ensure!(
+                    matches!(entry.mode, 0o100644 | 0o100755 | 0o120000 | 0o160000),
+                    "unsupported tree mode"
+                );
+                ensure!(
+                    super::is_valid_object_id(&entry.oid) && !entry.oid.bytes().all(|b| b == b'0'),
+                    "invalid tree object ID"
+                );
                 let mut components = path.split(|b| *b == b'/').peekable();
                 let mut parent = 0;
                 let mut depth = 0;
                 while let Some(name) = components.next() {
                     check_deadline()?;
-                    ensure!(!name.is_empty() && name != b"." && name != b".." && !name.contains(&0), "invalid tree path");
+                    ensure!(
+                        !name.is_empty() && name != b"." && name != b".." && !name.contains(&0),
+                        "invalid tree path"
+                    );
                     if components.peek().is_none() {
-                        ensure!(!dirs[parent].children.contains_key(name), "duplicate child or file/directory collision");
+                        ensure!(
+                            !dirs[parent].children.contains_key(name),
+                            "duplicate child or file/directory collision"
+                        );
                         nodes += 1;
                         ensure!(nodes <= TREE_NODE_LIMIT, "tree graph limit exceeded");
                         dirs[parent].children.insert(name, TreeChild::Entry(entry));
@@ -137,7 +154,9 @@ impl StagedIntentSnapshot {
                                 let id = dirs.len();
                                 dirs.push(TreeDirectory::default());
                                 dirs[parent].children.insert(name, TreeChild::Directory(id));
-                                if levels.len() <= depth + 1 { levels.push(Vec::new()); }
+                                if levels.len() <= depth + 1 {
+                                    levels.push(Vec::new());
+                                }
                                 levels[depth + 1].push(id);
                                 id
                             }
@@ -163,13 +182,28 @@ impl StagedIntentSnapshot {
                     for (name, child) in &dirs[id].children {
                         check_deadline()?;
                         let (mode, kind, oid) = match child {
-                            TreeChild::Directory(child) => (0o40000, "tree", dirs[*child].oid.as_deref().context("missing child tree")?),
-                            TreeChild::Entry(entry) => (entry.mode, if entry.mode == 0o160000 { "commit" } else { "blob" }, entry.oid.as_str()),
+                            TreeChild::Directory(child) => (
+                                0o40000,
+                                "tree",
+                                dirs[*child].oid.as_deref().context("missing child tree")?,
+                            ),
+                            TreeChild::Entry(entry) => (
+                                entry.mode,
+                                if entry.mode == 0o160000 {
+                                    "commit"
+                                } else {
+                                    "blob"
+                                },
+                                entry.oid.as_str(),
+                            ),
                         };
                         ensure!(oid.len() == width, "tree object ID width mismatch");
                         let header = format!("{mode:o} {kind} {oid}\t");
                         let size = header.len() + name.len() + 1;
-                        ensure!(size <= TREE_INPUT_LIMIT.saturating_sub(total_input), "tree input limit exceeded");
+                        ensure!(
+                            size <= TREE_INPUT_LIMIT.saturating_sub(total_input),
+                            "tree input limit exceeded"
+                        );
                         total_input += size;
                         input.extend_from_slice(header.as_bytes());
                         input.extend_from_slice(name);
@@ -180,9 +214,18 @@ impl StagedIntentSnapshot {
                     input.push(0); // --batch -z tree boundary (also represents empty root)
                 }
                 check_deadline()?;
-                let mut child = super::spawn_git_command_cancellable_stdin(repo, &[
-                    "--no-optional-locks", "-c", "core.fsmonitor=false", "mktree", "--batch", "-z",
-                ], "staged tree")?;
+                let mut child = super::spawn_git_command_cancellable_stdin(
+                    repo,
+                    &[
+                        "--no-optional-locks",
+                        "-c",
+                        "core.fsmonitor=false",
+                        "mktree",
+                        "--batch",
+                        "-z",
+                    ],
+                    "staged tree",
+                )?;
                 let mut stdin = child.stdin.take().context("missing tree stdin")?;
                 let write = async {
                     use tokio::io::AsyncWriteExt;
@@ -191,26 +234,47 @@ impl StagedIntentSnapshot {
                     Ok::<_, anyhow::Error>(())
                 };
                 let ((status, output, stderr), ()) = tokio::try_join!(
-                    super::run_git_captured_output(child, repo, "staged tree"), write
+                    super::run_git_captured_output(child, repo, "staged tree"),
+                    write
                 )?;
                 total_output += output.len() + stderr.len();
-                ensure!(total_output <= TREE_OUTPUT_LIMIT, "tree output limit exceeded");
+                ensure!(
+                    total_output <= TREE_OUTPUT_LIMIT,
+                    "tree output limit exceeded"
+                );
                 ensure!(status.success(), "mktree failed: {status}");
                 assign_tree_oids(&mut dirs, level, &output, width, deadline)?;
             }
             check_deadline()?;
             dirs[0].oid.take().context("missing root tree")
-        }).await.context("tree materialization deadline expired; owned Git cancelled")?
+        })
+        .await
+        .context("tree materialization deadline expired; owned Git cancelled")?
     }
 }
 
-fn assign_tree_oids(dirs: &mut [TreeDirectory<'_>], level: &[usize], output: &[u8], width: usize, deadline: Instant) -> Result<()> {
-    ensure!(output.len() == level.len() * (width + 1), "invalid mktree output count/width");
+fn assign_tree_oids(
+    dirs: &mut [TreeDirectory<'_>],
+    level: &[usize],
+    output: &[u8],
+    width: usize,
+    deadline: Instant,
+) -> Result<()> {
+    ensure!(
+        output.len() == level.len() * (width + 1),
+        "invalid mktree output count/width"
+    );
     for (&id, record) in level.iter().zip(output.chunks_exact(width + 1)) {
-        ensure!(Instant::now() < deadline, "tree materialization deadline expired");
+        ensure!(
+            Instant::now() < deadline,
+            "tree materialization deadline expired"
+        );
         ensure!(record[width] == b'\n', "invalid mktree output terminator");
         let oid = std::str::from_utf8(&record[..width])?;
-        ensure!(super::is_valid_object_id(oid) && !oid.bytes().all(|b| b == b'0'), "invalid mktree output ID");
+        ensure!(
+            super::is_valid_object_id(oid) && !oid.bytes().all(|b| b == b'0'),
+            "invalid mktree output ID"
+        );
         dirs[id].oid = Some(oid.to_owned());
     }
     Ok(())
@@ -749,6 +813,192 @@ mod tests {
             .unwrap_err();
         assert!(error.to_string().contains("unsupported"), "{error:#}");
         assert_eq!(before, preserved(repo));
+    }
+
+    async fn tree(snapshot: &StagedIntentSnapshot, repo: &Path) -> Result<String> {
+        snapshot
+            .materialize_tree(repo, Instant::now() + Duration::from_secs(15))
+            .await
+    }
+
+    #[tokio::test]
+    async fn materialized_tree_is_captured_not_live_and_preserves_repository() {
+        use std::os::unix::fs::{symlink, PermissionsExt};
+        for sha256 in [false, true] {
+            let dir = tempfile::tempdir().unwrap();
+            let repo = dir.path();
+            cmd(
+                repo,
+                &[
+                    "init",
+                    "--template=",
+                    "-b",
+                    "main",
+                    if sha256 {
+                        "--object-format=sha256"
+                    } else {
+                        "--object-format=sha1"
+                    },
+                ],
+            );
+            std::fs::write(repo.join("file"), b"base").unwrap();
+            std::fs::write(repo.join("deleted"), b"base deletion").unwrap();
+            cmd(repo, &["add", "--", "file", "deleted"]);
+            cmd(repo, &["commit", "-m", "base"]);
+            cmd(repo, &["rm", "--", "deleted"]);
+            std::fs::write(repo.join("file"), b"captured").unwrap();
+            for parent in ["a/deep", "b/deep", "c"] {
+                std::fs::create_dir_all(repo.join(parent)).unwrap();
+                std::fs::write(repo.join(parent).join("leaf"), parent.as_bytes()).unwrap();
+            }
+            let name = OsStr::from_bytes(b"a/deep/raw-\xff\t\n");
+            std::fs::write(repo.join(name), b"raw").unwrap();
+            symlink("../file", repo.join("c/symlink")).unwrap();
+            git(
+                repo,
+                &[
+                    OsStr::new("add"),
+                    OsStr::new("--"),
+                    OsStr::new("file"),
+                    OsStr::new("a"),
+                    OsStr::new("b"),
+                    OsStr::new("c"),
+                ],
+            );
+            cmd(repo, &["update-index", "--chmod=+x", "--", "a/deep/leaf"]);
+            let missing = "1".repeat(if sha256 { 64 } else { 40 });
+            cmd(
+                repo,
+                &[
+                    "update-index",
+                    "--add",
+                    "--cacheinfo",
+                    &format!("160000,{missing},c/gitlink"),
+                ],
+            );
+            let expected = String::from_utf8(cmd(repo, &["write-tree"])).unwrap();
+            let snapshot = capture(repo).await;
+            std::fs::write(repo.join("file"), b"new same-path staged intent").unwrap();
+            std::fs::write(repo.join("foreign"), b"new foreign staged intent").unwrap();
+            cmd(repo, &["add", "--", "file", "foreign"]);
+            std::fs::write(repo.join("file"), b"unstaged worktree").unwrap();
+            std::fs::write(repo.join(".gitattributes"), b"* filter=refuse\n").unwrap();
+            cmd(repo, &["config", "filter.refuse.clean", "false"]);
+            cmd(repo, &["config", "filter.refuse.required", "true"]);
+            let hooks = repo.join("hooks");
+            std::fs::create_dir(&hooks).unwrap();
+            for hook in ["post-index-change", "pre-commit", "post-commit"] {
+                let path = hooks.join(hook);
+                std::fs::write(&path, b"#!/bin/sh\necho called >> hook-called\nexit 1\n").unwrap();
+                std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+            }
+            cmd(repo, &["config", "core.hooksPath", hooks.to_str().unwrap()]);
+            let before = preserved(repo);
+            let head = std::fs::read(repo.join(".git/HEAD")).unwrap();
+            let refs = cmd(repo, &["show-ref"]);
+            let live = cmd(repo, &["ls-files", "--stage", "-z"]);
+            let lock = super::super::status::IndexLock::acquire(repo).unwrap();
+            assert_eq!(tree(&snapshot, repo).await.unwrap(), expected.trim());
+            assert!(lock.is_owned());
+            assert_eq!(before, preserved(repo));
+            assert_eq!(head, std::fs::read(repo.join(".git/HEAD")).unwrap());
+            assert_eq!(refs, cmd(repo, &["show-ref"]));
+            assert_eq!(live, cmd(repo, &["ls-files", "--stage", "-z"]));
+            assert_eq!(
+                std::fs::read(repo.join("foreign")).unwrap(),
+                b"new foreign staged intent"
+            );
+            assert_eq!(std::fs::read(repo.join(name)).unwrap(), b"raw");
+            assert_eq!(
+                std::fs::read_link(repo.join("c/symlink")).unwrap(),
+                Path::new("../file")
+            );
+            assert!(!repo.join("hook-called").exists());
+        }
+    }
+
+    #[tokio::test]
+    async fn materialized_empty_root_and_invalid_input_refusals() {
+        let dir = fixture();
+        let repo = dir.path();
+        let mut snapshot = capture(repo).await;
+        let expected = String::from_utf8(cmd(repo, &["write-tree"])).unwrap();
+        assert_eq!(tree(&snapshot, repo).await.unwrap(), expected.trim());
+        assert!(snapshot
+            .materialize_tree(repo, Instant::now())
+            .await
+            .is_err());
+        let identity = CachedIdentity {
+            mode: 0o160000,
+            oid: "1".repeat(40),
+        };
+        for path in [
+            b"".as_slice(),
+            b"/a",
+            b"a/",
+            b"a//b",
+            b"a/../b",
+            b"a/./b",
+            b"a\0b",
+        ] {
+            snapshot.entries.clear();
+            snapshot.entries.insert(path.to_vec(), identity.clone());
+            assert!(tree(&snapshot, repo).await.is_err(), "{path:?}");
+        }
+        snapshot.entries.clear();
+        snapshot.entries.insert(b"a".to_vec(), identity.clone());
+        snapshot.entries.insert(b"a/b".to_vec(), identity.clone());
+        assert!(format!("{:#}", tree(&snapshot, repo).await.unwrap_err()).contains("collision"));
+        for bad in [
+            CachedIdentity {
+                mode: 0o40000,
+                ..identity.clone()
+            },
+            CachedIdentity {
+                oid: "z".repeat(40),
+                ..identity.clone()
+            },
+            CachedIdentity {
+                oid: "1".repeat(64),
+                ..identity.clone()
+            },
+            CachedIdentity {
+                mode: 0o100644,
+                ..identity.clone()
+            },
+        ] {
+            snapshot.entries.clear();
+            snapshot.entries.insert(b"missing".to_vec(), bad);
+            assert!(tree(&snapshot, repo).await.is_err());
+        }
+        // Adversarial depth is linear in path bytes; node cap refuses before Git.
+        snapshot.entries.clear();
+        snapshot
+            .entries
+            .insert(b"a/".repeat(TREE_NODE_LIMIT), identity);
+        assert!(tree(&snapshot, repo).await.is_err());
+        assert!(!repo.join(".git/index.lock").exists());
+    }
+
+    #[test]
+    fn materialized_tree_output_requires_exact_count_width_and_oid() {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut dirs = vec![TreeDirectory::default()];
+        for output in [
+            Vec::new(),
+            vec![b'z'; 41],
+            format!("{}\n{}\n", "1".repeat(40), "1".repeat(40)).into_bytes(),
+            format!("{}x", "1".repeat(40)).into_bytes(),
+            format!("{}\n", "0".repeat(40)).into_bytes(),
+        ] {
+            assert!(assign_tree_oids(&mut dirs, &[0], &output, 40, deadline).is_err());
+        }
+        let valid = format!("{}\n", "1".repeat(40));
+        assign_tree_oids(&mut dirs, &[0], valid.as_bytes(), 40, deadline).unwrap();
+        assert_eq!(
+            dirs[0].oid.as_deref(),
+            Some("1111111111111111111111111111111111111111")
+        );
     }
 
     #[test]
