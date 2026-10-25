@@ -2107,3 +2107,7 @@ test sync::tests::test_sync_repo_ahead_count_failure_fails_cycle ... ok
 test sync::tests::test_sync_repo_auto_commit_creates_commit ... [master (root-commit) 6f32f20] init
 ok
 test sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo ... [master (root-commit) 906befa] init
+ok
+test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) 3fd0b12] init
+ok
+test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) 254a3d4] init
