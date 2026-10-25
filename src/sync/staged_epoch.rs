@@ -661,10 +661,14 @@ impl Staging {
         let directory = git(repo, &["rev-parse", "--absolute-git-dir"], None).await?;
         let directory =
             PathBuf::from(std::str::from_utf8(&directory.stdout)?.trim_end_matches('\n'));
-        let directory = tempfile::Builder::new()
-            .prefix("dracon-staging-")
-            .tempdir_in(directory)?
-            .keep();
+        let mut builder = tempfile::Builder::new();
+        builder.prefix("dracon-staging-");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            builder.permissions(std::fs::Permissions::from_mode(0o700));
+        }
+        let directory = builder.tempdir_in(directory)?.keep();
         let index = directory.join("index");
         let staging = Self {
             baseline,

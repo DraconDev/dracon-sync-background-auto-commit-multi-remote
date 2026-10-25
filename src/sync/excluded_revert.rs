@@ -12,7 +12,7 @@ use sha2::{Digest, Sha256};
 use std::ffi::CString;
 use std::fs::{File, OpenOptions};
 use std::os::fd::{AsRawFd, FromRawFd};
-use std::os::unix::{ffi::OsStrExt, fs::MetadataExt};
+use std::os::unix::{ffi::OsStrExt, fs::{MetadataExt, PermissionsExt}};
 use tokio::io::AsyncReadExt;
 use tokio::time::Instant;
 
@@ -224,6 +224,7 @@ async fn restore_inner(
     let gitdir = PathBuf::from(std::str::from_utf8(&gitdir.stdout)?.trim_end_matches('\n'));
     let scratch = tempfile::Builder::new()
         .prefix("dracon-excluded-recovery-")
+        .permissions(std::fs::Permissions::from_mode(0o700))
         .tempdir_in(gitdir)?;
     let index = scratch.path().join("index");
     staged_epoch::run_index_git(
