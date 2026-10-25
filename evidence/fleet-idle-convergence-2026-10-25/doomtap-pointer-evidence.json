@@ -1,0 +1,11 @@
+{
+  "head": {
+    "git_blob_sha256": "37979c4c720e9f929e7f1bba46b59d3dc353769898dc002e2589703026699bba",
+    "pointer_text": "version dracon-asset-pointer/v1\nobject quarantine/doomtap/868eb0b2f653f7c1d1f5c8ba00f978f3993a8de3658feaa5eed4b41f3153b474.png\nsha256 868eb0b2f653f7c1d1f5c8ba00f978f3993a8de3658feaa5eed4b41f3153b474\nbytes 1732211\n"
+  },
+  "index": {
+    "git_blob_sha256": "3f6b9dfefe334d1fd02778be70ed3997139a56c81af5349b6be8701f48716e9c",
+    "pointer_text": "version dracon-asset-pointer/v1\nobject quarantine/doomtap/2da8cf3ce113c14e86d375354c68e483f2a20158ea3e3a09509b40da8b656306.png\nsha256 2da8cf3ce113c14e86d375354c68e483f2a20158ea3e3a09509b40da8b656306\nbytes 1732735\n"
+  },
+  "worktree_payload_sha256": "2da8cf3ce113c14e86d375354c68e483f2a20158ea3e3a09509b40da8b656306"
+}
