@@ -1,0 +1,872 @@
+{
+  "label": "final-v8-after-work-initial",
+  "observed_at": 1792889204.053933,
+  "observer_sha256": "fff516e8899dae7c64b88a6c835bda6952ae2819a10ed87d646f59a86dc51584",
+  "daemon_before": {
+    "pid": 3906273,
+    "loaded_sha256": "8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad"
+  },
+  "daemon_after": {
+    "pid": 3906273,
+    "loaded_sha256": "8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad"
+  },
+  "same_loaded_revision_throughout": true,
+  "operations": "read-only Git object and advertised-ref queries",
+  "repositories": [
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
+      "started_at": 1792889196.983423,
+      "initial_head": {
+        "exit": 0,
+        "stdout": "4175c221aa0c1b419482acac91ff505cb234bdeb",
+        "stderr": ""
+      },
+      "initial_intended_remotes": [
+        "origin",
+        "github",
+        "gitlab"
+      ],
+      "initial_excluded_remotes": [
+        "codeberg"
+      ],
+      "remotes": {
+        "gitlab": {
+          "url_without_credentials": "gitlab.com:DraconDev/ai-auto-writer.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "90582b1f66866d5a61b5dcf3d6f0392a729ab2d9",
+          "object_type": "commit",
+          "equals_observed_head": false,
+          "confirmed_at": 1792889198.4350617
+        },
+        "origin": {
+          "url_without_credentials": "github.com:DraconDev/ai-auto-writer.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "90582b1f66866d5a61b5dcf3d6f0392a729ab2d9",
+          "object_type": "commit",
+          "equals_observed_head": false,
+          "confirmed_at": 1792889199.5248632
+        }
+      },
+      "head": "fc058ecc3da91c699b1084a85addd4fd750747ed",
+      "branch": "main",
+      "head_type": "commit",
+      "head_metadata": [
+        "fc058ecc3da91c699b1084a85addd4fd750747ed",
+        "90582b1f66866d5a61b5dcf3d6f0392a729ab2d9",
+        "1792889067",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "intended_destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/ai-auto-writer",
+          "aliases": [
+            "origin"
+          ]
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/ai-auto-writer",
+          "aliases": [
+            "origin"
+          ]
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/ai-auto-writer",
+          "aliases": [
+            "gitlab"
+          ]
+        }
+      ],
+      "head_after_queries": "fc058ecc3da91c699b1084a85addd4fd750747ed",
+      "finished_at": 1792889199.5280137
+    },
+    {
+      "repo": "/home/dracon/Dev/browser-extensions-shared",
+      "started_at": 1792889196.9838295,
+      "initial_head": {
+        "exit": 0,
+        "stdout": "1b9b1d38e756346e27df47c3c2e8400598aaf3c5",
+        "stderr": ""
+      },
+      "initial_intended_remotes": [
+        "origin",
+        "github",
+        "gitlab"
+      ],
+      "initial_excluded_remotes": [
+        "codeberg"
+      ],
+      "remotes": {
+        "gitlab": {
+          "url_without_credentials": "gitlab.com:DraconDev/browser-extensions-shared.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+          "object_type": "commit",
+          "equals_observed_head": false,
+          "confirmed_at": 1792889198.4242563
+        },
+        "origin": {
+          "url_without_credentials": "github.com:DraconDev/browser-extensions-shared.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+          "object_type": "commit",
+          "equals_observed_head": false,
+          "confirmed_at": 1792889199.4333112
+        }
+      },
+      "head": "de2ca122ea1ecc73140c42d7c8653294cdd47f48",
+      "branch": "main",
+      "head_type": "commit",
+      "head_metadata": [
+        "de2ca122ea1ecc73140c42d7c8653294cdd47f48",
+        "99b206750ebc91060445342fd91078451299d69c",
+        "1792889188",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "intended_destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/browser-extensions-shared",
+          "aliases": [
+            "origin"
+          ]
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/browser-extensions-shared",
+          "aliases": [
+            "origin"
+          ]
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/browser-extensions-shared",
+          "aliases": [
+            "gitlab"
+          ]
+        }
+      ],
+      "head_after_queries": "de2ca122ea1ecc73140c42d7c8653294cdd47f48",
+      "finished_at": 1792889199.435713
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy",
+      "started_at": 1792889196.9843957,
+      "initial_head": {
+        "exit": 0,
+        "stdout": "2c37a9fc164b725ed2f8d763ebd717a81bd923a2",
+        "stderr": ""
+      },
+      "initial_intended_remotes": [
+        "origin",
+        "github",
+        "gitlab"
+      ],
+      "initial_excluded_remotes": [
+        "codeberg"
+      ],
+      "remotes": {
+        "github": {
+          "url_without_credentials": "github.com:DraconDev/dracon-strategy.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "108d5cac5e183fbcded88ece92b98f68ec53dd84",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889198.1068795
+        },
+        "gitlab": {
+          "url_without_credentials": "gitlab.com:DraconDev/dracon-strategy.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "108d5cac5e183fbcded88ece92b98f68ec53dd84",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889199.527475
+        },
+        "origin": {
+          "url_without_credentials": "github.com:DraconDev/dracon-strategy.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "108d5cac5e183fbcded88ece92b98f68ec53dd84",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889200.5474913
+        }
+      },
+      "head": "108d5cac5e183fbcded88ece92b98f68ec53dd84",
+      "branch": "main",
+      "head_type": "commit",
+      "head_metadata": [
+        "108d5cac5e183fbcded88ece92b98f68ec53dd84",
+        "5de0ea90018144dc3229a242fda40c72b4b6866a",
+        "1792889002",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "intended_destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/dracon-strategy",
+          "aliases": [
+            "github",
+            "origin"
+          ]
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/dracon-strategy",
+          "aliases": [
+            "github",
+            "origin"
+          ]
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/dracon-strategy",
+          "aliases": [
+            "gitlab"
+          ]
+        }
+      ],
+      "head_after_queries": "108d5cac5e183fbcded88ece92b98f68ec53dd84",
+      "finished_at": 1792889200.5499327
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "started_at": 1792889196.9849627,
+      "initial_head": {
+        "exit": 0,
+        "stdout": "e2248850941a78da011d85414e2abacc3cd5803f",
+        "stderr": ""
+      },
+      "initial_intended_remotes": [
+        "origin",
+        "github",
+        "gitlab"
+      ],
+      "initial_excluded_remotes": [
+        "codeberg"
+      ],
+      "remotes": {
+        "gitlab": {
+          "url_without_credentials": "gitlab.com:DraconDev/dracon-home.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "9d106e8b88a4151d5c91b704ed883ea0f3b11b43",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889198.405583
+        },
+        "origin": {
+          "url_without_credentials": "github.com:DraconDev/dracon-home.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "9d106e8b88a4151d5c91b704ed883ea0f3b11b43",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889199.433776
+        }
+      },
+      "head": "9d106e8b88a4151d5c91b704ed883ea0f3b11b43",
+      "branch": "main",
+      "head_type": "commit",
+      "head_metadata": [
+        "9d106e8b88a4151d5c91b704ed883ea0f3b11b43",
+        "b97ff01056a6a09f847382c3c9ab62aec76894a9",
+        "1792889127",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "intended_destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/dracon-home",
+          "aliases": [
+            "origin"
+          ]
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/dracon-home",
+          "aliases": [
+            "origin"
+          ]
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/dracon-home",
+          "aliases": [
+            "gitlab"
+          ]
+        }
+      ],
+      "head_after_queries": "9d106e8b88a4151d5c91b704ed883ea0f3b11b43",
+      "finished_at": 1792889199.4384081
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
+      "started_at": 1792889196.9865968,
+      "initial_head": {
+        "exit": 0,
+        "stdout": "e1ef3f4eb271970960dd60b99596ab96e7d8905b",
+        "stderr": ""
+      },
+      "initial_intended_remotes": [
+        "origin",
+        "github",
+        "gitlab"
+      ],
+      "initial_excluded_remotes": [
+        "codeberg"
+      ],
+      "remotes": {
+        "github": {
+          "url_without_credentials": "github.com:DraconDev/ai-auto-video.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "d88b9a649eb76432952f0398fa9d65aebc0b3877",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889198.1151927
+        },
+        "gitlab": {
+          "url_without_credentials": "gitlab.com:DraconDev/ai-auto-video.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "d88b9a649eb76432952f0398fa9d65aebc0b3877",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889199.4671097
+        },
+        "origin": {
+          "url_without_credentials": "github.com:DraconDev/ai-auto-video.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "d88b9a649eb76432952f0398fa9d65aebc0b3877",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889200.463886
+        }
+      },
+      "head": "d88b9a649eb76432952f0398fa9d65aebc0b3877",
+      "branch": "main",
+      "head_type": "commit",
+      "head_metadata": [
+        "d88b9a649eb76432952f0398fa9d65aebc0b3877",
+        "5e19b8db84795457b44bc7e439d1d5f30fd10fb7",
+        "1792889045",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "intended_destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/ai-auto-video",
+          "aliases": [
+            "github",
+            "origin"
+          ]
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/ai-auto-video",
+          "aliases": [
+            "github",
+            "origin"
+          ]
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/ai-auto-video",
+          "aliases": [
+            "gitlab"
+          ]
+        }
+      ],
+      "head_after_queries": "d88b9a649eb76432952f0398fa9d65aebc0b3877",
+      "finished_at": 1792889200.4658747
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
+      "started_at": 1792889196.9878378,
+      "initial_head": {
+        "exit": 0,
+        "stdout": "ae1508f6135f5f187c057b13cd5d082d0ec4fad2",
+        "stderr": ""
+      },
+      "initial_intended_remotes": [
+        "origin",
+        "github",
+        "gitlab"
+      ],
+      "initial_excluded_remotes": [
+        "codeberg"
+      ],
+      "remotes": {
+        "github": {
+          "url_without_credentials": "github.com:DraconDev/web-games-endless-td.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "07554ec51633bacfc40abd9b777c9ed82ca93b3b",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889198.102335
+        },
+        "gitlab": {
+          "url_without_credentials": "gitlab.com:DraconDev/web-games-endless-td.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "07554ec51633bacfc40abd9b777c9ed82ca93b3b",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889199.4601912
+        },
+        "origin": {
+          "url_without_credentials": "github.com:DraconDev/web-games-endless-td.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "07554ec51633bacfc40abd9b777c9ed82ca93b3b",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889200.4552226
+        }
+      },
+      "head": "07554ec51633bacfc40abd9b777c9ed82ca93b3b",
+      "branch": "main",
+      "head_type": "commit",
+      "head_metadata": [
+        "07554ec51633bacfc40abd9b777c9ed82ca93b3b",
+        "d06ed672b7fadb7f1751b62e144b78f81587e6b6",
+        "1792889086",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "intended_destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/web-games-endless-td",
+          "aliases": [
+            "github",
+            "origin"
+          ]
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/web-games-endless-td",
+          "aliases": [
+            "github",
+            "origin"
+          ]
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/web-games-endless-td",
+          "aliases": [
+            "gitlab"
+          ]
+        }
+      ],
+      "head_after_queries": "07554ec51633bacfc40abd9b777c9ed82ca93b3b",
+      "finished_at": 1792889200.4573376
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
+      "started_at": 1792889199.4357371,
+      "initial_head": {
+        "exit": 0,
+        "stdout": "43b6895e0f283771eaca9ee386065fea6428be3e",
+        "stderr": ""
+      },
+      "initial_intended_remotes": [
+        "origin",
+        "github",
+        "gitlab"
+      ],
+      "initial_excluded_remotes": [
+        "codeberg"
+      ],
+      "remotes": {
+        "gitlab": {
+          "url_without_credentials": "gitlab.com:DraconDev/pi-goal-list-loop-audit.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "341f910f379d20fc115cfbb75a0da929316d332b",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889200.8505049
+        },
+        "origin": {
+          "url_without_credentials": "https://github.com/DraconDev/pi-goal-list-loop-audit.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "341f910f379d20fc115cfbb75a0da929316d332b",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889201.1391158
+        }
+      },
+      "head": "341f910f379d20fc115cfbb75a0da929316d332b",
+      "branch": "main",
+      "head_type": "commit",
+      "head_metadata": [
+        "341f910f379d20fc115cfbb75a0da929316d332b",
+        "faa7da9a177da89d7c6383e5369dc886caaab680",
+        "1792889047",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "intended_destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/pi-goal-list-loop-audit",
+          "aliases": [
+            "origin"
+          ]
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/pi-goal-list-loop-audit",
+          "aliases": [
+            "origin"
+          ]
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/pi-goal-list-loop-audit",
+          "aliases": [
+            "gitlab"
+          ]
+        }
+      ],
+      "head_after_queries": "341f910f379d20fc115cfbb75a0da929316d332b",
+      "finished_at": 1792889201.1425366
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
+      "started_at": 1792889199.4384289,
+      "initial_head": {
+        "exit": 0,
+        "stdout": "4f538fff7dea96b008b023266ee552b936a1f5a6",
+        "stderr": ""
+      },
+      "initial_intended_remotes": [
+        "origin",
+        "github",
+        "gitlab"
+      ],
+      "initial_excluded_remotes": [
+        "codeberg"
+      ],
+      "remotes": {
+        "github": {
+          "url_without_credentials": "github.com:DraconDev/web-games-polis.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "61ce6245d86215cf603fa6a318b96ba34cd79e36",
+          "object_type": "commit",
+          "equals_observed_head": false,
+          "confirmed_at": 1792889200.4339008
+        },
+        "gitlab": {
+          "url_without_credentials": "gitlab.com:DraconDev/web-games-polis.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "61ce6245d86215cf603fa6a318b96ba34cd79e36",
+          "object_type": "commit",
+          "equals_observed_head": false,
+          "confirmed_at": 1792889201.7706594
+        },
+        "origin": {
+          "url_without_credentials": "gitlab.com:DraconDev/web-games-polis.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "61ce6245d86215cf603fa6a318b96ba34cd79e36",
+          "object_type": "commit",
+          "equals_observed_head": false,
+          "confirmed_at": 1792889203.1423893
+        }
+      },
+      "head": "3e2a12a7cd979db3ac21db8753632949f70cc102",
+      "branch": "main",
+      "head_type": "commit",
+      "head_metadata": [
+        "3e2a12a7cd979db3ac21db8753632949f70cc102",
+        "61ce6245d86215cf603fa6a318b96ba34cd79e36",
+        "1792889178",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "intended_destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/web-games-polis",
+          "aliases": [
+            "gitlab",
+            "origin"
+          ]
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/web-games-polis",
+          "aliases": [
+            "github"
+          ]
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/web-games-polis",
+          "aliases": [
+            "gitlab",
+            "origin"
+          ]
+        }
+      ],
+      "head_after_queries": "3e2a12a7cd979db3ac21db8753632949f70cc102",
+      "finished_at": 1792889203.1465185
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform",
+      "started_at": 1792889199.5280359,
+      "initial_head": {
+        "exit": 0,
+        "stdout": "9f3a421df71e0a2a86edfe279f35388828f6b5bb",
+        "stderr": ""
+      },
+      "initial_intended_remotes": [
+        "origin",
+        "github",
+        "gitlab"
+      ],
+      "initial_excluded_remotes": [
+        "codeberg"
+      ],
+      "remotes": {
+        "gitlab": {
+          "url_without_credentials": "gitlab.com:DraconDev/dracon-platform.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "d5291d71681fbc3aeeb2a6dd08f363e788e96bd3",
+          "object_type": "commit",
+          "equals_observed_head": false,
+          "confirmed_at": 1792889200.9268951
+        },
+        "origin": {
+          "url_without_credentials": "github.com:DraconDev/dracon-platform.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "d5291d71681fbc3aeeb2a6dd08f363e788e96bd3",
+          "object_type": "commit",
+          "equals_observed_head": false,
+          "confirmed_at": 1792889201.9608715
+        }
+      },
+      "head": "c0a2ecc4628b0bcf831a839014a79154ce2c4d81",
+      "branch": "main",
+      "head_type": "commit",
+      "head_metadata": [
+        "c0a2ecc4628b0bcf831a839014a79154ce2c4d81",
+        "2317433255f6db35353b87732f37dbd780d62a01",
+        "1792889090",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "intended_destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/dracon-platform",
+          "aliases": [
+            "origin"
+          ]
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/dracon-platform",
+          "aliases": [
+            "origin"
+          ]
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/dracon-platform",
+          "aliases": [
+            "gitlab"
+          ]
+        }
+      ],
+      "head_after_queries": "c0a2ecc4628b0bcf831a839014a79154ce2c4d81",
+      "finished_at": 1792889201.962749
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+      "started_at": 1792889200.4573529,
+      "initial_head": {
+        "exit": 0,
+        "stdout": "1825edd376a91077878e62b469cee6bb88052c6b",
+        "stderr": ""
+      },
+      "initial_intended_remotes": [
+        "origin",
+        "github",
+        "gitlab"
+      ],
+      "initial_excluded_remotes": [
+        "codeberg"
+      ],
+      "remotes": {
+        "github": {
+          "url_without_credentials": "github.com:DraconDev/web-games-deathrun.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "0220f09aab0c0b2b80645ae01f36a860916dc4e0",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889201.470646
+        },
+        "gitlab": {
+          "url_without_credentials": "gitlab.com:DraconDev/web-games-deathrun.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "0220f09aab0c0b2b80645ae01f36a860916dc4e0",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889202.8209972
+        },
+        "origin": {
+          "url_without_credentials": "github.com:DraconDev/web-games-deathrun.git",
+          "intended_at_initial_baseline": true,
+          "query_succeeded": true,
+          "query_exit": 0,
+          "query_error_sha256": null,
+          "branch_ref": "0220f09aab0c0b2b80645ae01f36a860916dc4e0",
+          "object_type": "commit",
+          "equals_observed_head": true,
+          "confirmed_at": 1792889203.8319302
+        }
+      },
+      "head": "0220f09aab0c0b2b80645ae01f36a860916dc4e0",
+      "branch": "main",
+      "head_type": "commit",
+      "head_metadata": [
+        "0220f09aab0c0b2b80645ae01f36a860916dc4e0",
+        "d918811f9fc43320acb5a9c36f2de5633f8f4dd8",
+        "1792889031",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "intended_destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/web-games-deathrun",
+          "aliases": [
+            "github",
+            "origin"
+          ]
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/web-games-deathrun",
+          "aliases": [
+            "github",
+            "origin"
+          ]
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/web-games-deathrun",
+          "aliases": [
+            "gitlab"
+          ]
+        }
+      ],
+      "head_after_queries": "0220f09aab0c0b2b80645ae01f36a860916dc4e0",
+      "finished_at": 1792889203.8358865
+    }
+  ]
+}
