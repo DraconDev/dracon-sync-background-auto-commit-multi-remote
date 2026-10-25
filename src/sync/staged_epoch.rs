@@ -179,11 +179,10 @@ impl Epoch {
             "captured staged intent exceeds strict batch limit"
         );
         let rejected = self.ineligible_paths(repo, policy, excluded).await?;
-        ensure!(
-            rejected.is_empty(),
-            "captured staged path is excluded or oversized: {:?}",
-            rejected.first().map(|path| path_from_git_bytes(path))
-        );
+        if let Some(path) = rejected.first() {
+            anyhow::bail!("captured staged path is excluded or oversized: {}",
+                path_from_git_bytes(path)?.display());
+        }
         Ok(())
     }
 

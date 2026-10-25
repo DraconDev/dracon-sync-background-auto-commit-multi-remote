@@ -7718,20 +7718,18 @@ trusted_authors = ["test"]
         assert!(status.success());
         std::fs::write(repo.join("big.bin"), b"tiny").unwrap();
 
+        let index_before = std::fs::read(repo.join(".git/index")).unwrap();
         let policy = bootstrap_test_policy("max_stage_file_bytes = 1024");
         let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
-        assert!(result.unwrap(), "bootstrap must still commit small.txt");
-        let output = crate::git::git_cmd()
-            .args(["ls-files"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-        let tracked = String::from_utf8_lossy(&output.stdout);
-        assert!(tracked.contains("small.txt"));
-        assert!(
-            !tracked.contains("big.bin"),
-            "staged-large-then-truncated blob must not reach the root commit"
-        );
+        assert!(format!("{:#}", result.unwrap_err()).contains("excluded or oversized"),
+            "the cached 2KiB blob must be refused despite the tiny worktree copy");
+        assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), index_before,
+            "operator staging is not an owned candidate to prune");
+        assert_eq!(std::fs::read(repo.join("big.bin")).unwrap(), b"tiny");
+        assert_eq!(std::fs::read(repo.join("small.txt")).unwrap(), b"ok\n");
+        assert!(!crate::git::git_cmd().args(["rev-parse", "--verify", "HEAD"])
+            .current_dir(&repo).output().unwrap().status.success(),
+            "neither an oversized root nor a partial replacement root may be published");
     }
 
     /// ADDED 2026-10-03 (audit R4-SC-05): steady state had no
