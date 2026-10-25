@@ -1,6 +1,96 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Latest executor continuation (supersedes historical Next/research notes below)
+## Resync continuation — current source, NOT deployment qualification
+
+The active goal file is authoritative; `.pi-glla/handoff-brief.md` describes a
+different historical bucket-strategy goal and must not redirect this work.
+This continuation made NO canonical index recovery, real-repository manual
+commit/push, installation, service change or live batch-policy migration.
+
+### Production repairs and observed controls
+
+- Ordinary private candidates now prune size/policy-rejected delta entries back
+  to their exact baseline BEFORE installation. Existing captured staged intent
+  still refuses intact; it is never silently pruned or re-staged. Original
+  candidate objects remain in the independent retained pack. The real
+  filter-inflation regression now passes. The updated bootstrap oversized-cache
+  regression proves refusal, byte-exact original index, tiny unstaged bytes and
+  no partial/oversized root commit. New ordinary/captured negative controls pass.
+- Both normal and unborn preparation are wrapped in the captured epoch's ONE
+  absolute deadline, not another full budget per staging command. Warden probing
+  is asynchronous and its invocation now uses the owned process-group runner.
+  Two real 1s staging controls prove the hanging hardener and its descendant stop,
+  actual index/HEAD stay unchanged and local bytes survive. See
+  latest-absolute_staging_deadline_cancels_hardener_descendants.log.
+- An empty private delta no longer acquires/installs the actual index: a real
+  foreign staged+unstaged payload and foreign lock survive this boundary. For a
+  genuinely nonempty candidate blocked by index admission, the daemon now still
+  publishes already committed backlog via its original publication path, but
+  returns truthful local Blocked, never healthy filter-only. An actual pre-push
+  refusal remains PushFailed. Both success and meaningful-hook rejection controls
+  preserve cached bytes, dirty worktree bytes and the exact foreign lock.
+- Exact-path diagnostics no longer claim directory names authorize unknown
+  children. The actual foreign-child/private-candidate preservation controls stay
+  active, not replaced by a pathname or metadata-prefix waiver.
+- Deletion, transient-lock and mirror controls retain first-pass byte/deletion
+  assertions and require bounded real convergence afterward. The mirror test now
+  checks BOTH actual remote refs equal final HEAD and raw Git is clean, rather
+  than accepting a boolean result without inspecting either destination.
+- Guarded bootstrap negatives now require visible guard errors rather than
+  healthy Ok(false); valid protected reference bytes must commit unchanged,
+  invalid staging must remain byte-exact and hydrated bytes stay local. Both
+  storage-bootstrap controls pass. No storage/security guard was relaxed.
+
+### Gate evidence and remaining work
+
+`resync-workspace-tests.log` is an actual FAILED workspace run: the sync binary
+reported1431passed/12failed/3ignored; preceding security suites passed but the
+workspace run stopped, so later crates cannot be called tested. Later targeted
+repairs cover most of those failures, across successive revisions, NOT a passing
+fresh coherent workspace run. The integrated harness now uses a10s WHOLE-epoch
+budget instead of the old3s-per-operation assumption; its original60s episode,
+fault-entry and process-teardown assertions remain unchanged and it passes.
+The dedicated1s staging cancellation controls remain stronger independent checks.
+
+Targeted logs: backlog-filter_only.log (4pass),
+backlog-sync__staged_epoch__tests.log (9pass), backlog-publication_actor_tests.log
+(4pass), backlog-test_index_lock_contention_preserves_work_and_recovers.log
+(1pass), backlog-meaningful-hook-refusal.log (1pass), followup-storage_bootstrap.log
+(2pass), followup-integrated_failure_recovery_harness.log (1pass), deletion and
+transient-lock followup logs (1each), and
+ diagnostic-test_sync_repo_mirror_push_success_returns_true.log (1pass).
+Latest strict workspace/all-target Clippy passes with zero warnings in
+resync-latest-strict-clippy.log; temporary legacy dead_code allowances STILL need
+removal/reconciliation before claiming final implementation readiness.
+
+Still demonstrated: both SDK qualification cases return StagedPending after
+verified enrollment. Diagnostic proof identifies exact native untracked paths:
+bucket-assets.manifest.json.lock, public/a.png, public/b.png. These are existing
+Prepared materializations/runtime-lock exclusions, not an arbitrary prefix waiver.
+Resolve eligible-work versus retained materialization accounting WITHOUT hiding
+raw Git state, ignoring later changed source bytes or weakening storage checks;
+do not merely widen the expected outcomes. The enrollment diagnostic assertion
+remains RED. Explicit `revert_excluded_to_head` is also still unwired and its
+behavioral regression remains RED: preserve default edits and safely honor the
+explicit opt-in, with content/ownership controls, not a blanket post-hook reset.
+
+Additional source-known unfinished policy integration MUST NOT be hidden by
+passing targeted tests: `version_bumped = false` currently disables normal bump/
+release behavior; unmerged resolution is placed after capture that can reject
+unmerged entries; build-artifact cleanup still explicitly refuses rather than
+reconciling owned index/.gitignore deltas; large-untracked hygiene helpers remain
+unused. Restore intended policy behavior safely or diagnose concrete conflicts;
+no silent feature disabling or wholesale waiver is authorized.
+
+Latest inventory: checks/epoch-integration-partial/resync-source-checkpoint.json
+records current source hashes and matching DEBUG helper identity. Logs span
+revisions; rebuild the real helper after each further source edit. Final release
+build, deny, full workspace tests, Warden qualification, original repaired gates,
+independent review, safe installed/loaded runtime and ALL37 clean-idle/publication
+proofs are still required. Live zero-count migration remains authorized but MUST
+wait for its qualified supporting daemon. Do not call the goal complete.
+
+## Earlier executor continuation (historical revision evidence)
 
 NOT final qualification; no new daemon deployment or canonical-index recovery.
 The implementation worker's partial result was assessed, not accepted as done.
