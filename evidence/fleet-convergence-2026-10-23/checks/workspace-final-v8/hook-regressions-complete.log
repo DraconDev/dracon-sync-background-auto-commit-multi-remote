@@ -5,3 +5,4 @@
 ✔ each distinct pushed revision is validated, not just the current HEAD (3148.671908ms)
 ✔ source symlinks cannot route gates back into the mutable live checkout (828.899919ms)
 ✔ owned group cancellation stops gates and cleans only disposable sources (16451.752681ms)
+✔ owned group cancellation stops provisioning and cleans only disposable sources (37142.118801ms)
