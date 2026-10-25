@@ -187,28 +187,51 @@ fn parse_entries(
     Ok(entries)
 }
 
-fn parse_index_observation(mut bytes: &[u8], deadline: Instant) -> Result<BTreeMap<Vec<u8>, CachedIdentity>> {
+fn parse_index_observation(
+    mut bytes: &[u8],
+    deadline: Instant,
+) -> Result<BTreeMap<Vec<u8>, CachedIdentity>> {
     let mut entries = BTreeMap::new();
     while !bytes.is_empty() {
         ensure!(Instant::now() < deadline, "staged intent deadline expired");
-        let nul = bytes.iter().position(|b| *b == 0).context("missing index path terminator")?;
+        let nul = bytes
+            .iter()
+            .position(|b| *b == 0)
+            .context("missing index path terminator")?;
         // Parse identity and exact byte path before consuming this same entry's
         // debug payload. Never join flags from a second index read.
         let record = parse_entries(&bytes[..=nul], true, deadline)?;
         let (path, identity) = record.into_iter().next().context("missing index entry")?;
         bytes = &bytes[nul + 1..];
-        for prefix in [b"  ctime: ".as_slice(), b"  mtime: ", b"  dev: ", b"  uid: ", b"  size: "] {
-            let end = bytes.iter().position(|b| *b == b'\n').context("invalid index debug record")?;
+        for prefix in [
+            b"  ctime: ".as_slice(),
+            b"  mtime: ",
+            b"  dev: ",
+            b"  uid: ",
+            b"  size: ",
+        ] {
+            let end = bytes
+                .iter()
+                .position(|b| *b == b'\n')
+                .context("invalid index debug record")?;
             let line = &bytes[..end];
             ensure!(line.starts_with(prefix), "unsupported index debug payload");
             if prefix == b"  size: " {
                 let text = std::str::from_utf8(line)?;
-                let (_, flags) = text.rsplit_once("\tflags: ").context("missing index flags")?;
-                ensure!(u32::from_str_radix(flags, 16)? == 0, "unsupported index flags");
+                let (_, flags) = text
+                    .rsplit_once("\tflags: ")
+                    .context("missing index flags")?;
+                ensure!(
+                    u32::from_str_radix(flags, 16)? == 0,
+                    "unsupported index flags"
+                );
             }
             bytes = &bytes[end + 1..];
         }
-        ensure!(entries.insert(path, identity).is_none(), "duplicate index path");
+        ensure!(
+            entries.insert(path, identity).is_none(),
+            "duplicate index path"
+        );
     }
     Ok(entries)
 }
@@ -398,38 +421,177 @@ mod tests {
         assert_eq!(before, preserved(repo));
     }
 
+    #[cfg(target_os = "linux")]
+    fn process_identity(pid: u32) -> Option<(String, String)> {
+        let text = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+        let fields: Vec<_> = text.rsplit_once(") ")?.1.split_whitespace().collect();
+        Some((fields[0].to_owned(), fields[19].to_owned()))
+    }
+
+    #[cfg(target_os = "linux")]
+    async fn assert_terminated(pid: u32, start: &str) {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while process_identity(pid)
+                .is_some_and(|(state, current)| state != "Z" && current == start)
+            {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("owned process remained active after cancellation");
+    }
+
+    #[cfg(target_os = "linux")]
     #[tokio::test]
-    async fn deadline_and_caller_cancellation_release_owned_lock() {
+    async fn observation_deadline_and_caller_drop_terminate_actual_git_pid() {
+        for cancel in [false, true] {
+            let dir = fixture();
+            let repo = dir.path();
+            assert!(StagedIntentSnapshot::capture(repo, Instant::now())
+                .await
+                .is_err());
+            // Git itself blocks opening HEAD; the observer does no synchronous
+            // gitdir/index resolution, even for a stalled filesystem operation.
+            let head = repo.join(".git/HEAD");
+            std::fs::remove_file(&head).unwrap();
+            let name = std::ffi::CString::new(head.as_os_str().as_bytes()).unwrap();
+            assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+            let deadline = Instant::now() + Duration::from_secs(if cancel { 30 } else { 5 });
+            let mut run = Box::pin(StagedIntentSnapshot::capture(repo, deadline));
+            let find_git = async {
+                loop {
+                    for entry in std::fs::read_dir("/proc").unwrap().flatten() {
+                        let Ok(pid) = entry.file_name().to_string_lossy().parse::<u32>() else {
+                            continue;
+                        };
+                        if std::fs::read_link(entry.path().join("cwd")).ok().as_deref()
+                            == Some(repo)
+                            && std::fs::read_to_string(entry.path().join("comm"))
+                                .ok()
+                                .as_deref()
+                                == Some("git\n")
+                        {
+                            return (pid, process_identity(pid).unwrap().1);
+                        }
+                    }
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+            };
+            let (pid, start) = tokio::select! {
+                result = &mut run => panic!("blocked Git returned early: {result:?}"),
+                found = tokio::time::timeout(Duration::from_secs(3), find_git) => found.unwrap(),
+            };
+            if cancel {
+                drop(run);
+            } else {
+                let error = run.await.unwrap_err();
+                assert!(format!("{error:#}").contains("deadline"));
+            }
+            assert_terminated(pid, &start).await;
+            assert!(!repo.join(".git/index.lock").exists());
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn shared_git_runner_deadline_and_drop_terminate_owned_descendant() {
+        // This exercises the exact process-group runner used by observation,
+        // independently of its plumbing-only arguments (which spawn no helpers).
+        for cancel in [false, true] {
+            let dir = fixture();
+            let repo = dir.path();
+            let child = super::super::spawn_git_command_cancellable_stdin(
+                repo,
+                &[
+                    "-c",
+                    "alias.intent-probe=!sleep 30 & echo $! > helper.pid; wait",
+                    "intent-probe",
+                ],
+                "intent cancellation fixture",
+            )
+            .unwrap();
+            let git_pid = child.id().unwrap();
+            let git_start = process_identity(git_pid).unwrap().1;
+            let mut run = Box::pin(tokio::time::timeout(
+                Duration::from_secs(if cancel { 30 } else { 5 }),
+                super::super::run_git_captured_output(child, repo, "intent cancellation fixture"),
+            ));
+            let marker = repo.join("helper.pid");
+            tokio::select! {
+                result = &mut run => panic!("helper returned early: {result:?}"),
+                ready = tokio::time::timeout(Duration::from_secs(3), async {
+                    while !marker.exists() { tokio::time::sleep(Duration::from_millis(10)).await; }
+                }) => ready.unwrap(),
+            }
+            let pid = std::fs::read_to_string(marker)
+                .unwrap()
+                .trim()
+                .parse()
+                .unwrap();
+            let start = process_identity(pid).unwrap().1;
+            if cancel {
+                drop(run);
+            } else {
+                assert!(run.await.is_err());
+            }
+            assert_terminated(git_pid, &git_start).await;
+            assert_terminated(pid, &start).await;
+        }
+    }
+
+    #[tokio::test]
+    async fn unsupported_flags_sparse_index_and_supported_split_index() {
         let dir = fixture();
         let repo = dir.path();
-        assert!(StagedIntentSnapshot::capture(repo, Instant::now())
-            .await
-            .is_err());
-        assert!(!repo.join(".git/index.lock").exists());
-        // Block an actual Git read without a wrapper or environment mutation.
-        let head = repo.join(".git/HEAD");
-        std::fs::remove_file(&head).unwrap();
-        let name = std::ffi::CString::new(head.as_os_str().as_bytes()).unwrap();
-        assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
-        let started = Instant::now();
-        let error = StagedIntentSnapshot::capture(repo, started + Duration::from_millis(150))
+        std::fs::create_dir(repo.join("outside")).unwrap();
+        std::fs::create_dir(repo.join("inside")).unwrap();
+        std::fs::write(repo.join("file"), b"content").unwrap();
+        std::fs::write(repo.join("outside/leaf"), b"outside").unwrap();
+        std::fs::write(repo.join("inside/leaf"), b"inside").unwrap();
+        cmd(repo, &["add", "--", "file", "outside/leaf", "inside/leaf"]);
+        cmd(repo, &["commit", "-m", "base"]);
+        for (flag, reset) in [
+            ("--assume-unchanged", "--no-assume-unchanged"),
+            ("--skip-worktree", "--no-skip-worktree"),
+        ] {
+            cmd(repo, &["update-index", flag, "--", "file"]);
+            let before = preserved(repo);
+            let error =
+                StagedIntentSnapshot::capture(repo, Instant::now() + Duration::from_secs(5))
+                    .await
+                    .unwrap_err();
+            assert!(
+                error.to_string().contains("unsupported index flags"),
+                "{error:#}"
+            );
+            assert_eq!(before, preserved(repo));
+            cmd(repo, &["update-index", reset, "--", "file"]);
+        }
+        std::fs::write(repo.join("file"), b"staged content").unwrap();
+        cmd(repo, &["add", "--", "file"]);
+        let ordinary = capture(repo).await;
+        cmd(repo, &["update-index", "--split-index"]);
+        assert!(std::fs::read_dir(repo.join(".git"))
+            .unwrap()
+            .flatten()
+            .any(|e| e.file_name().to_string_lossy().starts_with("sharedindex.")));
+        let before = preserved(repo);
+        assert_eq!(ordinary, capture(repo).await);
+        assert_eq!(before, preserved(repo));
+        cmd(repo, &["update-index", "--no-split-index"]);
+        cmd(
+            repo,
+            &["sparse-checkout", "init", "--cone", "--sparse-index"],
+        );
+        cmd(repo, &["sparse-checkout", "set", "inside"]);
+        let listing = cmd(repo, &["ls-files", "--stage", "--sparse", "-z"]);
+        assert!(listing.windows(7).any(|w| w == b"040000 "));
+        let before = preserved(repo);
+        let error = StagedIntentSnapshot::capture(repo, Instant::now() + Duration::from_secs(5))
             .await
             .unwrap_err();
-        assert!(format!("{error:#}").contains("deadline"));
-        assert!(started.elapsed() < Duration::from_secs(2));
-        assert!(!repo.join(".git/index.lock").exists());
-        // Poll once to start a real Git read, then drop the caller's future.
-        let mut future = Box::pin(StagedIntentSnapshot::capture(
-            repo,
-            Instant::now() + Duration::from_secs(5),
-        ));
-        assert!(matches!(
-            futures::poll!(&mut future),
-            std::task::Poll::Pending
-        ));
-        assert!(repo.join(".git/index.lock").exists());
-        drop(future);
-        assert!(!repo.join(".git/index.lock").exists());
+        assert!(error.to_string().contains("unsupported"), "{error:#}");
+        assert_eq!(before, preserved(repo));
     }
 
     #[test]
