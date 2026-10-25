@@ -1,0 +1,6 @@
+✔ uses the pushed source and package scripts, not newer live edits (1797.073175ms)
+✔ preparation runs in isolated generated directories and live changes between gates do not leak (2972.577324ms)
+✔ pre-script failure cannot be replaced by a successful script body (1763.545907ms)
+✔ export attributes cannot omit or rewrite the sources being validated (1097.279747ms)
+✔ each distinct pushed revision is validated, not just the current HEAD (2376.610077ms)
+✔ source symlinks cannot route gates back into the mutable live checkout (693.219497ms)
