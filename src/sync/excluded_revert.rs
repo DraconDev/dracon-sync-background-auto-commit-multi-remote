@@ -3,6 +3,9 @@
 #[path = "excluded_archive.rs"]
 mod archive;
 #[cfg(test)]
+#[path = "excluded_revert_crash_tests.rs"]
+mod crash_tests;
+#[cfg(test)]
 #[path = "excluded_revert_recovery_tests.rs"]
 mod recovery_tests;
 use super::*;

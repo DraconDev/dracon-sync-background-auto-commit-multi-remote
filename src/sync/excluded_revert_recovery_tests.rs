@@ -14,7 +14,7 @@ fn git(repo: &Path, args: &[&str]) -> Vec<u8> {
     );
     out.stdout
 }
-async fn fixture() -> (tempfile::TempDir, PathBuf, Vec<RestoreTarget>) {
+pub(super) async fn fixture() -> (tempfile::TempDir, PathBuf, Vec<RestoreTarget>) {
     let d = tempfile::tempdir().unwrap();
     let r = d.path();
     git(r, &["init", "-q", "-b", "main"]);
@@ -60,7 +60,7 @@ async fn fixture() -> (tempfile::TempDir, PathBuf, Vec<RestoreTarget>) {
     }
     (d, pending, targets)
 }
-fn request(repo: &Path, pending: &Path, targets: Vec<RestoreTarget>) -> PathBuf {
+pub(super) fn request(repo: &Path, pending: &Path, targets: Vec<RestoreTarget>) -> PathBuf {
     let req = RestoreRequest {
         source_id: env!("DRACON_EPOCH_SOURCE_ID").into(),
         repo: repo.as_os_str().as_bytes().to_vec(),
