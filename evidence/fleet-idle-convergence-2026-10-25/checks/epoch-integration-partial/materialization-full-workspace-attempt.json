@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-10-25T21:07:47.533937+00:00",
+  "scope": "post-materialization full-workspace ATTEMPT, NOT a passing qualification",
+  "comparedSourceInventory": "materialization-source-checkpoint.json",
+  "changedSourceFiles": [],
+  "debugHelperMatchesPriorInventory": false,
+  "debugHelperSha256": "bebef01ec46ee3a308b49798f4cf8ee49bf684f67c3c7872b74333d8838302f7",
+  "logSha256": {
+    "materialization-full-workspace-tests.log": "72c13c46626b97bfd9dd9a396bf71abea70ab5830331ff618b7101898669dc4c",
+    "materialization-cargo-deny.log": "f1a0fca39d4280363937aabd77783990ea6480bd9ca257816de3b68fc8efa845"
+  },
+  "tests": "workspace exit101, sync binary1446passed/1failed/3ignored; sole failure excluded opt-in; later workspace packages not fully run",
+  "deployed": false
+}
