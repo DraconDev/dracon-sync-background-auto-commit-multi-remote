@@ -21,4 +21,6 @@ test bucket_runner_bridge::bucket_runner_bridge_tests::accounting_failure_never_
 test bucket_runner_bridge::bucket_runner_bridge_tests::candidate_discovery_includes_new_files_with_operator_gates_and_repo_relative_roots ... ok
 test bucket_runner_bridge::bucket_runner_bridge_tests::disabled_repo_returns_none ... ok
 test bucket_runner_bridge::bucket_runner_bridge_tests::materialized_manifest_sources_stay_repo_relative_with_non_dot_asset_root ... ok
-test bucket_runner_bridge::bucket_runner_bridge_tests::missing_profile_is_refused ... 
+test bucket_runner_bridge::bucket_runner_bridge_tests::missing_profile_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::mocked_end_to_end_returns_prepared_with_materialized_paths ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::non_refused_status_without_commit_eligible_is_refused ... 
