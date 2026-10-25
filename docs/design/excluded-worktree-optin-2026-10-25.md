@@ -73,24 +73,65 @@ production median calculation changed only its even-length check to the Clippy-
 requested equivalent; no disk-rate algorithm or assertion threshold was relaxed.
 Original compiler, behavioral and Clippy failures remain in the evidence logs.
 
+## Recovery/follow-up v2 — observed, not installed
+
+Five recovery controls now pass, including cancellation AFTER observing an actual
+ACTIVE READ kernel lease in `/proc/locks`; an independent nonblocking writer can
+then reopen the canonical inode and later bytes survive. The child also sets a
+parent-death kill signal before Tokio initialization; this is implementation, not
+an independent parent-crash execution proof.
+
+Known untouched, rolled-back or partially applied transactions are classified by
+exact retained inode/content identities and archived privately. This does NOT
+replay old restores or change the actual index/canonical files. Unknown displaced
+bytes remain pending; neither disabling the opt-in nor raw Git cleanliness waives
+this state. Foreign locks remain exact and prevent settlement. Pending records
+force daemon admission independent of raw Git dirt. Archived records stay retained
+outside the pending dispatch set so history does not impose repeated full hashing.
+
+The real JSON report test initially found a second false-healthy path: flags and
+concern construction were correct, but current-health rendering reclassified the
+raw-clean row as converged and cleared concern. Current-health now treats recovery
+as a persistent blocker; the successful real CLI test requires concern=true,
+health.current=blocked, a non-idle cause and a concrete recovery hint, while Git
+counts stay truthfully zero and the report leaves index/recovery bytes untouched.
+
+Empty candidates also inspect later cached/ref updates and restored-path changes.
+A real pre-push producer leaves later canonical bytes pending while the original
+backlog actually reaches a disposable bare remote, without manufacturing a commit
+or disabling that producer. The first fixture lacked a configured upstream and
+correctly did NOT authorize bootstrap publication; its RED log is retained. The
+successful fixture configures the existing bootstrap gate rather than relaxing
+no-unwanted-push behavior for upstream-less repositories.
+
+Raw v2 results under checks/epoch-integration-partial: recovery5pass, restore9pass,
+original exclusion2pass, filter-only controls pass, real JSON1pass. The FULL Rust
+workspace now passes (sync1461pass/0fail/3ignored, system616pass/0fail,
+warden233pass/0fail, plus their integration/security suites). Strict workspace
+all-target Clippy, release build and cargo deny all pass. Source inventories before
+and after the complete workspace and release runs show ZERO source drift; the
+pinned external DEBUG helper is unchanged. These are Rust assembly gates, NOT
+final behavioral/installed/deployment or fleet-idle evidence. No new ignores or
+security waivers were introduced. Earlier failures remain in their original logs.
+
 ## Work still required before deployment
 
-- Verify cancellation while the helper actually HOLDS leases, not only while its
-  required smudge child hangs. Verify new-writer/lease-break races and cancellation
-  around exchanges. Preserve all displaced bytes and never silently report idle.
-- Implement/rehearse diagnosis and recovery for interrupted or multi-file partial
-  exchanges. Retaining a recovery JSON/file tree alone is not proof that subsequent
-  daemon/reporting will keep uncertain recovery state visible and nonhealthy.
+- Exercise new-writer/lease-break races, parent crash and cancellation precisely
+  around exchanges, including queued opens and displaced-writer behavior. Preserve
+  every displaced version and ensure archival cannot conceal uncertain future
+  writer activity. The existing actual-lease cancellation control is necessary,
+  not comprehensive proof of every race.
 - Check non-Linux/unsupported-filesystem behavior explicitly. The current guarded
   path refuses where its required atomic/lease primitives are unavailable; do not
   substitute destructive writes or call these refusals successful restoration.
-- Require truthful follow-up outcomes when later writes arrive in an otherwise
-  empty candidate. Rehearse original hooks and storage/security boundaries.
+- Rehearse actual daemon restart/admission and original hooks/storage/security
+  boundaries, not only direct worker, kernel-lease and real report controls.
 - Reconcile the other disabled policy integration (version bump/release, unmerged
   resolution, artifact cleanup and large-untracked hygiene) without weakening
   staging ownership or meaningful tests.
-- Then run a fresh coherent complete workspace suite, release build, deny and
-  strict Clippy, independently review, qualify actual installed/loaded execution,
+- After the remaining implementation edits, requalify a fresh coherent workspace
+  suite, release build, deny and strict Clippy, independently review and qualify
+  actual installed/loaded execution,
   apply the authorized zero-batch migration only with the supporting daemon,
   and prove every watched repository actually raw-clean/idle and published.
 
