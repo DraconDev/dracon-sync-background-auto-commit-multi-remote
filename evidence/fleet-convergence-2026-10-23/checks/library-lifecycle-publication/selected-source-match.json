@@ -1,0 +1,13 @@
+{
+  "revision": "0926aa530698260f1397e28cc145998bf3314e57",
+  "matches": {
+    "scripts/build-library.mjs": false,
+    "packages/extension-react/package.json": false,
+    "packages/extension-react/scripts/build.check.mjs": false,
+    "packages/extension-react/.gitignore": false,
+    "packages/brand-icon/package.json": false,
+    "packages/brand-icon/.gitignore": false,
+    "packages/extension-forms/package.json": false,
+    "packages/extension-forms/.gitignore": false
+  }
+}

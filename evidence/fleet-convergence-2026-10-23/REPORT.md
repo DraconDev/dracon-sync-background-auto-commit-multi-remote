@@ -7,10 +7,13 @@ race is repaired. V8 passed all four required Rust gates and candidate/installed
 execution receipts, including worker retirement and a new autonomous post-round
 commit/publication. Safe deployment loaded artifact
 `8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad`,
-PID3906273. The refreshed fresh-runtime ledger proves nine of ten repositories;
-browser extensions remains explicitly nonhealthy/unproven pending ordinary
-whole-gate success and remote advancement. The browser whole gate
-is running, not passed. No final external blocker is accepted.
+PID3906273. The refreshed fresh-runtime ledger now proves autonomous eligible
+commit/publication for ALL TEN initial repositories. Browser sourcee6f93db passed
+all147 original whole-gate checks, and subsequent daemon publication advanced its
+intended refs. Those raw outcomes are retained. A separate intermittent workspace
+prepare/output race was reproduced and repaired afterward; qualification and
+publication of that final library repair remain required before claiming the
+overall objective. No final external blocker is accepted.
 
 V7 failed with a debug-stack overflow and an unrelated unused system field;
 no failing artifact was deployed. V8 boxes the upload at its API boundary and
@@ -45,7 +48,7 @@ accepted as final-runtime convergence.
 | pi-goal-list-loop-audit | converged at that instant | Earlier activity is not proof on a replacement daemon; new witness required. |
 | dracon-strategy | stalled;75ahead | Authorized OpenAI-hook boundary precision repair, full text/binary credential regressions, qualified Warden and targeted retry. |
 | .dracon | queued;1ahead | Report missing scheduler evidence truthfully rather than infer health; verify advertised destinations/aliases. |
-| browser-extensions-shared | publishing2301seconds;314ahead | Missing service tools, mutable-source/dependency/lifecycle integration defects, demonstrated product failures and later native task-budget exhaustion. Whole final hook/publication remains pending. |
+| browser-extensions-shared | publishing2301seconds;314ahead | Missing service tools, mutable-source/dependency/lifecycle integration defects, demonstrated product failures and later native task-budget exhaustion. Full147gate sourcee6f93db and actual publication now witnessed; final library-output repair validation remains pending. |
 | endless-td | converged at that instant | Fresh final-runtime commit/ref evidence, not a cosmetic state change. |
 | dracon-platform | blocked;31ahead;20modified/3untracked | Bounded private-storage workflow correction, source revalidation, original storage guards, later documented legacy sample retirement. |
 | polis | converged at that instant | Correct orphan classification without terminating unrelated active processes; preserve later note rename when finding historical witness. |
@@ -262,7 +265,7 @@ normalized identity. Prior advertised commits are matched by destination, not
 alias spelling. Empty/omitted/duplicate inputs and alias retargets fail closed;
 transport spelling and extra-alias renames remain harmless. Eight contract tests,
 five observer tests and eight historical-witness tests pass. The refreshed actual
-same-runtime snapshot/journal still proves nine-of-ten, not browser success.
+same-runtime snapshot/journal now proves all ten, including browser publication.
 Evidence: `checks/ledger-contract-review/`.
 
 Older pinned browser attempts correctly retained failures from subsequently
@@ -334,8 +337,24 @@ Evidence and source anchor: `checks/tabmon-audio-budgets/`; rationale is documen
 in TabMon's `docs/audio-gate-case-budgets-2026-10-25.md`. This is local supporting
 qualification; the original complete whole gates still must pass normally.
 
-**Still required:** terminal success of the original browser whole gates and
-observed final-runtime eligible-tip advancement on all its intended remotes.
+The original complete sourcee6f93db eventually passed all147gates in AC9JDj;
+its manifest/logs are archived under `checks/browser-whole-e6f93db/`. Fresh
+read-only refs and actual loaded-PID commit events now prove all ten initial
+eligible witnesses. A separate same-source cBfjZa bootstrap failure was NOT
+explained away by that success: library prepare removed dist during a dependent
+import, reproduced with verified Bun1.3.14 despite concurrency1. The shared
+publisher compiles into sibling staging and atomically installs completed files,
+then prunes only obsolete compiler output. All three destructive TypeScript
+builds use it; original lifecycle hooks remain active. Tests force in-flight
+reads, compiler refusal and selective cleanup; the destructive mutant fails.
+All three library build/typecheck/tests pass. Exact staging ignores are verified
+not to ignore source or tests. Independent scoped review found no issue, with
+explicit per-file (not whole-directory) atomicity and committed-range limitations.
+See `checks/library-lifecycle-publication/` and the browser repository's
+`docs/design/workspace-library-output-publication-2026-10-25.md`.
+
+**Still required:** ordinary affected-source gates and actual remote containment
+of the final library repair. Initial all-ten eligible-tip proof is already present.
 The daemon, not a manual push, must establish it. Current active work is not
 called healthy or external. Subsequent unrelated feature changes are documented;
 only demonstrated minimal gate/integration corrections were made.
