@@ -165,6 +165,11 @@ async fn restore_inner(
     paths: &[dracon_git::types::DiffFile],
     deadline: Instant,
 ) -> Result<bool> {
+    let lock = match crate::git::IndexLock::try_acquire_path(crate::git::index_lock_path(repo)) {
+        Ok(lock) => lock,
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => return Ok(false),
+        Err(error) => return Err(error.into()),
+    };
     let snapshot = StagedIntentSnapshot::capture(repo, deadline).await?;
     if !snapshot.changed.is_empty() {
         return Ok(false);
@@ -257,11 +262,6 @@ async fn restore_inner(
             desired_before,
         });
     }
-    let lock = match crate::git::IndexLock::try_acquire_path(crate::git::index_lock_path(repo)) {
-        Ok(lock) => lock,
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => return Ok(false),
-        Err(error) => return Err(error.into()),
-    };
     if !lock.is_owned() || snapshot != StagedIntentSnapshot::capture(repo, deadline).await? {
         return Ok(false);
     }
