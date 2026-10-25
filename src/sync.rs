@@ -27,11 +27,12 @@ mod excluded_revert_tests;
 mod excluded_revert_pipeline_tests;
 
 /// Cheap persistent concern probe, independent of raw Git dirt and NOW-enabled
-/// policy. Pending records survive daemon restart; archives are never scanned as
-/// dispatch work. Inspection errors are not healthy/idle evidence.
+/// policy. Pending records survive restart. Archives are checked by metadata,
+/// not repeatedly hashed: late displaced writes must remain visible concerns.
+/// Inspection errors are not healthy/idle evidence.
 pub(crate) fn has_pending_excluded_recovery(repo: &Path) -> Result<bool> {
     let gitdir = crate::git::path_gitdir(repo).context("cannot locate recovery Git directory")?;
-    for entry in std::fs::read_dir(gitdir)? {
+    for entry in std::fs::read_dir(&gitdir)? {
         let entry = entry?;
         if entry
             .file_name()
@@ -41,7 +42,10 @@ pub(crate) fn has_pending_excluded_recovery(repo: &Path) -> Result<bool> {
             return Ok(true);
         }
     }
-    Ok(false)
+    #[cfg(target_os = "linux")]
+    { excluded_revert::archived_pending(repo) }
+    #[cfg(not(target_os = "linux"))]
+    { Ok(gitdir.join("dracon-excluded-archive").try_exists()?) }
 }
 
 #[cfg(target_os = "linux")]
