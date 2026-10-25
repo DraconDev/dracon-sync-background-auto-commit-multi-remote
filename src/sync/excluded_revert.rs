@@ -436,8 +436,11 @@ pub(super) async fn helper(request_path: &Path) -> Result<()> {
             return response(false);
         }
         // Hashing itself must not run past kernel-enforced lease expiry.
-        if started.elapsed() >= lease_budget || leases.iter().any(|file|
-            unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETLEASE) } != libc::F_RDLCK) {
+        if started.elapsed() >= lease_budget
+            || leases.iter().any(
+                |file| unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETLEASE) } != libc::F_RDLCK,
+            )
+        {
             return response(false);
         }
         if before.is_none() {
