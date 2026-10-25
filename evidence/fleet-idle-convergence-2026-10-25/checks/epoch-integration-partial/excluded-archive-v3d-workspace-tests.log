@@ -2027,3 +2027,25 @@ test sync::tests::test_m3_mirror_only_no_unwanted_push ... [master (root-commit)
 error: failed to push some refs to '/tmp/.tmpUN9OX6/mirror.git'
 ok
 test sync::tests::test_mirror_failure_ledger_names_remote ... [master (root-commit) 5f22691] init
+ok
+test sync::tests::test_partition_gitignored_tracked_file_with_gitignore_rule ... ok
+test sync::tests::test_partition_gitignored_untracked_gitignored_is_skipped ... ok
+test sync::tests::test_paused_remote_names_incident_stretches_reprobe ... ok
+test sync::tests::test_paused_remote_names_lists_only_gated ... ok
+test sync::tests::test_push_succeeds_with_detached_head ... [main (root-commit) 6e13df8] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpkoVz92/origin.git'
+[main 2f8fef4] ahead
+HEAD is now at 2f8fef4 ahead
+To /tmp/.tmpkoVz92/origin.git
+ * [new branch]      HEAD -> main
+ok
+test sync::tests::test_push_with_retries_fetches_first_on_rejection ... ok
+test sync::tests::test_refresh_stale_upstream_ref_converges ... Initialized empty Git repository in /tmp/.tmpl4DYIY/remote.git/
+[master (root-commit) fdb2cd5] init
+ok
+test sync::tests::test_refspec_format_is_always_qualified ... ok
+test sync::tests::test_rename_token_excludes_new_del ... ok
+test sync::tests::test_repo_has_warden_filter_honors_git_bin_seam ... 
