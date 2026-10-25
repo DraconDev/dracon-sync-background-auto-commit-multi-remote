@@ -136,7 +136,7 @@ fn identity(m: &std::fs::Metadata) -> (u64, u64, u64, u32, u32, u32, i64, i64) {
         m.mtime_nsec(),
     )
 }
-#[derive(Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 struct Fingerprint {
     identity: (u64, u64, u64, u32, u32, u32, i64, i64),
     sha256: String,
@@ -146,6 +146,7 @@ struct Target {
     source: Location,
     before: Option<Fingerprint>,
     desired: Location,
+    desired_before: Fingerprint,
 }
 
 /// false = uncertain ownership/content; callers preserve work and drain backlog.
@@ -246,15 +247,9 @@ async fn restore_inner(
     let mut targets = Vec::new();
     for (path, source, before) in sources {
         let desired = Location::open(&tree, &path)?;
-        ensure!(
-            desired.fingerprint().await?.is_some(),
-            "missing excluded restore target"
-        );
+        let desired_before = desired.fingerprint().await?.context("missing excluded restore target")?;
         targets.push(Target {
-            path,
-            source,
-            before,
-            desired,
+            path, source, before, desired, desired_before,
         });
     }
     let lock = match crate::git::IndexLock::try_acquire_path(crate::git::index_lock_path(repo)) {
@@ -274,8 +269,12 @@ async fn restore_inner(
             return Ok(false);
         }
     }
-    let journal = serde_json::json!({"head":head,"phase":"prepared; files retain exchanged originals",
-        "targets":targets.iter().map(|t| serde_json::json!({"path":t.path,"before":t.before})).collect::<Vec<_>>()});
+    let journal = RestoreRequest {
+        source_id: env!("DRACON_EPOCH_SOURCE_ID").to_owned(),
+        repo: repo.as_os_str().as_bytes().to_vec(), head: head.clone(),
+        targets: targets.into_iter().map(|t| RestoreTarget { path: t.path.as_os_str().as_bytes().to_vec(),
+            before: t.before, desired: t.desired_before }).collect(),
+    };
     let journal_path = scratch.path().join("recovery.json");
     std::fs::write(&journal_path, serde_json::to_vec_pretty(&journal)?)?;
     File::open(&journal_path)?.sync_all()?;
