@@ -1,0 +1,19 @@
+{
+  "capturedAt": "2026-10-25T23:23:16.896360+00:00",
+  "scope": "Rust intermediate assembly gates; NOT final implementation, installation, loaded execution or fleet convergence",
+  "changedSourceFiles": [],
+  "pinnedHelperUnchanged": true,
+  "releaseArtifacts": {
+    "target/release/dracon-sync": "063c6052378c0ff0f6ebd5528de33a7d8e866d039f72ff325aa54b73b96d2581",
+    "target/release/dracon-system": "5cc5a609b52ae59256ba9c4b29bf50d194f1570e41af241440ead48cd63c7dbb",
+    "target/release/dracon-warden": "44175cf23aa1e7f981fa6d7dff2235b83e021f116c6da747e7650fd2080b512a"
+  },
+  "logSha256": {
+    "excluded-archive-v3d-workspace-tests.log": "07478fe218d845a7fce4468d3390c6730386dbef9acee2d82668ff4108e95fd8",
+    "excluded-archive-v3d-strict-clippy.log": "e3ac22de7184f80b1fb307f407ba1720d7e96b3435647b7091a7f8692ab99fa7",
+    "excluded-archive-v3d-release-build.log": "e2e5e6c9e12d0d80d23b91641aec452b64dd2335764c9620d794026cb4182e24",
+    "excluded-archive-v3d-cargo-deny.log": "f1a0fca39d4280363937aabd77783990ea6480bd9ca257816de3b68fc8efa845"
+  },
+  "deployed": false,
+  "liveBatchMigrationApplied": false
+}
