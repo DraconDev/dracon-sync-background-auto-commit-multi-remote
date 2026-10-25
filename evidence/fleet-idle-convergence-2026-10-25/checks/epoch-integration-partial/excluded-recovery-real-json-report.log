@@ -1,1 +1,24 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.96s
+     Running tests/excluded_recovery_report.rs (target/debug/deps/excluded_recovery_report-3a6ff74c8d83efdc)
+
+running 1 test
+test unresolved_private_recovery_is_a_machine_readable_concern_even_when_git_is_clean ... FAILED
+
+failures:
+
+---- unresolved_private_recovery_is_a_machine_readable_concern_even_when_git_is_clean stdout ----
+
+thread 'unresolved_private_recovery_is_a_machine_readable_concern_even_when_git_is_clean' (3941833) panicked at dracon-sync/tests/excluded_recovery_report.rs:108:5:
+assertion `left == right` failed: raw-clean cannot hide retained uncertainty: {"active":0,"concern":0,"failures":0,"filter":"all","ok":1,"policy":"/tmp/.tmpsP7UM1/policy.toml","repos":1,"rows":[{"active":false,"ahead":0,"behind":0,"branch":"main","codeberg_skip_reason":"unknown","commits_1h":1,"commits_24h":1,"commits_6h":1,"concern":false,"daemon_last_action":"","daemon_last_action_unix":0,"daemon_last_action_when":"none","daemon_last_result":"","excluded_dirty":0,"excluded_remotes":["codeberg"],"frozen_secs":null,"git_modules_bytes":0,"git_size_bytes":12288,"health":{"current":"converged"},"hint":"⚠️ path-owned identity/origin warning: ✓ owned (path_owned:untrusted_origin); GitHub pack check unknown — use repos --deep; deep pack/history checks deferred — use repos --deep","last_author":"DraconDev","last_hash":"8cad26019cbf3292abc811ad7bc3bcd63b78803c","last_msg":"baseline","last_push":"0 seconds ago","last_unix":1792966770,"last_when":"0 seconds ago","missing_objects":0,"modified":0,"pack_too_large":false,"publish_state":"Ok","push_error":"","push_status":"OK","push_to_remotes":[],"repo":"/tmp/.tmpsP7UM1/fixture-repo","staged":0,"state_cause":"idle","state_cause_label":"idle","state_flags":["OK","EXCLUDED_RECOVERY","REPORT_CHECKS_DEFERRED"],"token_health":{"codeberg_present":false,"github_present":false,"gitlab_present":false},"untracked":0,"upstream":"origin/main","warn":false}],"warn":0}
+  left: Bool(false)
+ right: true
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    unresolved_private_recovery_is_a_machine_readable_concern_even_when_git_is_clean
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+error: test failed, to rerun pass `-p dracon-sync --test excluded_recovery_report`
