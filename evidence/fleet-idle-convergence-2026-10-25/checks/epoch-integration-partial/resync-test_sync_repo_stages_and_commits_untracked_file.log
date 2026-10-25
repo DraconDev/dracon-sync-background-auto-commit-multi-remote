@@ -1,0 +1,5 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.21s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 1 test
+test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) 5168c9a] init
