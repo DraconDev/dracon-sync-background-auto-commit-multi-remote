@@ -225,7 +225,7 @@ pub(super) async fn reconcile(
         private_file(&directory.join("original-index"),&original)?; private_file(&candidate,&original)?;
         let cached=private_read(repo,&candidate,&["ls-files","--stage","-z"]).await?;
         let all=slots(&cached,deadline)?;
-        ensure!(all.iter().filter(|(_,entries)|entries.iter().any(|(_,_,stage)|*stage!=0)).map(|(p,e)|(p.clone(),e.clone())).collect::<BTreeMap<_,_>>()==conflicts,
+        ensure!(all.iter().filter(|(_,entries)|entries.iter().any(|(_,_,stage)|*stage!=0)).map(|(p,e)|(p.clone(),e.iter().filter(|(_,_,stage)|*stage!=0).cloned().collect::<Vec<_>>())).collect::<BTreeMap<_,_>>()==conflicts,
             "conflict slots changed before lock; retained original index");
         let mut objects=BTreeSet::new();
         for entries in all.values(){for(mode,oid,_)in entries{if *mode!=0o160000{objects.insert(oid.clone());}}}
