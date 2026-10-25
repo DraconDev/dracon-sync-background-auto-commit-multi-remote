@@ -36,9 +36,9 @@ use dracon_git::GitService;
 use crate::exclude::should_stage_entry;
 use crate::git::origin_url;
 use crate::git::{
-    cli_diff_entries, has_origin_remote, has_tracking_upstream,
-    is_bisect_in_progress, is_cherry_pick_in_progress, is_merge_in_progress, is_rebase_in_progress,
-    is_repo_ready, is_revert_in_progress, prune_other_default_branch, run_git_capture_output,
+    cli_diff_entries, has_origin_remote, has_tracking_upstream, is_bisect_in_progress,
+    is_cherry_pick_in_progress, is_merge_in_progress, is_rebase_in_progress, is_repo_ready,
+    is_revert_in_progress, prune_other_default_branch, run_git_capture_output,
     run_git_with_timeout, untracked_entries,
 };
 use crate::policy::{debug_enabled, load_repo_override, SyncPolicy};
@@ -11940,10 +11940,77 @@ trusted_authors = ["test"]
     /// (untracked-dir/gitlink entries stage whole trees), and foreign
     /// paths reported as extras.
     #[tokio::test]
+    async fn unlimited_batch_bootstraps_all_related_unborn_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("unlimited-unborn");
+        std::fs::create_dir(&repo).unwrap();
+        assert!(git_cmd(&repo, &["init", "-q", "-b", "master"])
+            .status
+            .success());
+        assert!(git_cmd(&repo, &["config", "user.name", "fixture"])
+            .status
+            .success());
+        assert!(
+            git_cmd(&repo, &["config", "user.email", "fixture@example.invalid"])
+                .status
+                .success()
+        );
+        let mut policy: SyncPolicy = toml::from_str(
+            r#"
+            auto_commit = true
+            auto_stage_untracked = true
+            auto_push = false
+            auto_pull = false
+            auto_github_private = false
+            auto_bump_versions = false
+            standard_files_auto = false
+            build_artifact_cleanup = false
+            max_stage_batch_files = 0
+        "#,
+        )
+        .unwrap();
+        policy.watch_roots = vec![tmp.path().to_string_lossy().into_owned()];
+        for number in 0..120 {
+            std::fs::write(
+                repo.join(format!("initial-{number:03}.txt")),
+                b"one bootstrap change\n",
+            )
+            .unwrap();
+        }
+        assert!(tokio::time::timeout(
+            Duration::from_secs(60),
+            bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false)
+        )
+        .await
+        .expect("bounded unlimited bootstrap")
+        .unwrap());
+        assert_eq!(
+            git_cmd(&repo, &["ls-tree", "-rz", "HEAD"])
+                .stdout
+                .iter()
+                .filter(|byte| **byte == 0)
+                .count(),
+            120
+        );
+        for number in 0..120 {
+            assert_eq!(
+                git_cmd(&repo, &["show", &format!("HEAD:initial-{number:03}.txt")]).stdout,
+                b"one bootstrap change\n"
+            );
+        }
+        assert_eq!(
+            git_cmd(&repo, &["rev-list", "--count", "HEAD"]).stdout,
+            b"1\n"
+        );
+        assert!(!repo.join(".git/index.lock").exists());
+    }
+
+    #[tokio::test]
     async fn unlimited_batch_commits_all_related_worktree_files_in_one_epoch() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = init_test_repo(&tmp, "unlimited-related-epoch");
-        let mut policy: SyncPolicy = toml::from_str(r#"
+        let mut policy: SyncPolicy = toml::from_str(
+            r#"
             auto_commit = true
             auto_push = false
             auto_pull = false
@@ -11952,21 +12019,45 @@ trusted_authors = ["test"]
             standard_files_auto = false
             build_artifact_cleanup = false
             max_stage_batch_files = 0
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
         policy.watch_roots = vec![tmp.path().to_string_lossy().into_owned()];
         for number in 0..120 {
-            std::fs::write(repo.join(format!("related-{number:03}.txt")), b"same logical change\n").unwrap();
+            std::fs::write(
+                repo.join(format!("related-{number:03}.txt")),
+                b"same logical change\n",
+            )
+            .unwrap();
         }
-        let result = tokio::time::timeout(Duration::from_secs(60),
-            sync_repo_with_ahead_since(&repo, &policy, &BTreeSet::new(), 5,
-                None, false, None, None, true)).await.expect("bounded unlimited-count epoch");
+        let result = tokio::time::timeout(
+            Duration::from_secs(60),
+            sync_repo_with_ahead_since(
+                &repo,
+                &policy,
+                &BTreeSet::new(),
+                5,
+                None,
+                false,
+                None,
+                None,
+                true,
+            ),
+        )
+        .await
+        .expect("bounded unlimited-count epoch");
         assert!(matches!(result, Ok(SyncOutcome::PushPaused)), "{result:?}");
         for number in 0..120 {
-            assert_eq!(git_cmd(&repo, &["show", &format!("HEAD:related-{number:03}.txt")]).stdout,
-                b"same logical change\n");
+            assert_eq!(
+                git_cmd(&repo, &["show", &format!("HEAD:related-{number:03}.txt")]).stdout,
+                b"same logical change\n"
+            );
         }
-        assert_eq!(git_cmd(&repo, &["rev-list", "--count", "HEAD"]).stdout, b"2\n",
-            "all 120 related files must enter one new commit, not split epochs");
+        assert_eq!(
+            git_cmd(&repo, &["rev-list", "--count", "HEAD"]).stdout,
+            b"2\n",
+            "all 120 related files must enter one new commit, not split epochs"
+        );
         assert!(!repo.join(".git/index.lock").exists());
     }
 
