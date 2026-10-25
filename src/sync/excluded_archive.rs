@@ -18,12 +18,12 @@ impl Stamp {
         Self { identity: identity(meta), ctime: (meta.ctime(), meta.ctime_nsec()), links: meta.nlink() }
     }
 }
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(super) struct Entry {
     pub path: Vec<u8>,
     pub observed: Option<Stamp>,
 }
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(super) struct Seal {
     pub schema: u8,
     pub repo: Vec<u8>,
@@ -108,6 +108,17 @@ pub(super) fn pending(repo: &Path) -> Result<bool> {
 pub(super) fn persist(directory: &Path, seal: &Seal) -> Result<()> {
     use std::io::Write;
     private_directory(directory)?;
+    if let Some(file) = Location::open(directory, Path::new(SEAL))?.file()? {
+        use std::io::Read;
+        let meta = file.metadata()?;
+        ensure!(meta.is_file() && meta.nlink() == 1 && meta.len() <= MAX_SEAL_BYTES,
+            "invalid existing archive seal; retained without replacement");
+        let mut bytes = Vec::new();
+        file.take(MAX_SEAL_BYTES + 1).read_to_end(&mut bytes)?;
+        ensure!(bytes.len() as u64 <= MAX_SEAL_BYTES && serde_json::from_slice::<Seal>(&bytes)? == *seal,
+            "existing archive seal differs; never reseal uncertain bytes");
+        return Ok(());
+    }
     let mut file = tempfile::NamedTempFile::new_in(directory)?;
     serde_json::to_writer(file.as_file_mut(), seal)?;
     file.flush()?;
