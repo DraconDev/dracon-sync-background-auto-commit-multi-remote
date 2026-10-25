@@ -695,11 +695,11 @@ trusted_authors = ["DraconDev"]
 "#,
     )
     .unwrap();
-    assert!(
-        !crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false)
-            .await
-            .unwrap()
-    );
+    let index_before = std::fs::read(repo.join(".git/index")).unwrap();
+    let error = crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false)
+        .await.expect_err("missing binding must be a visible guard refusal, not healthy no-work");
+    assert!(format!("{error:#}").contains("require an explicit version-1 guard binding"), "{error:#}");
+    assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), index_before);
     assert!(git2::Repository::open(repo).unwrap().head().is_err());
     assert_eq!(
         std::fs::read(repo.join("asset.bin")).unwrap(),
@@ -1188,11 +1188,19 @@ trusted_authors = ["DraconDev"]
 "#,
         )
         .unwrap();
-        let result =
-            crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false)
-                .await
-                .unwrap();
-        assert_eq!(result, valid);
+        let index_before = std::fs::read(repo.join(".git/index")).unwrap();
+        let staged_asset = git_fixture_command(repo, &["show", ":asset.bin"]);
+        let result = crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false).await;
+        if valid {
+            assert!(result.expect("valid protected metadata must commit"));
+            assert_eq!(git_fixture_command(repo, &["show", "HEAD:asset.bin"]), staged_asset,
+                "valid control must commit the exact protected reference, not hydrated bytes");
+        } else {
+            let error = result.expect_err("guard refusal cannot be reclassified as healthy no-work");
+            assert!(format!("{error:#}").contains("indexed storage references do not match protected metadata"), "{error:#}");
+            assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), index_before,
+                "invalid captured staging must remain byte-exact");
+        }
         let repository = git2::Repository::open(repo).unwrap();
         assert_eq!(repository.head().is_ok(), valid);
         assert_eq!(
