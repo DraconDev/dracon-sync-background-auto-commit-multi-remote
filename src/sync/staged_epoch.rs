@@ -561,3 +561,179 @@ fn path_from_git_bytes(raw: &[u8]) -> Result<PathBuf> {
         Ok(PathBuf::from(std::str::from_utf8(raw)?))
     }
 }
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+
+    async fn fixture() -> (tempfile::TempDir, SyncPolicy) {
+        let root = tempfile::tempdir().unwrap();
+        git(root.path(), &["init", "-q", "-b", "main"], None)
+            .await
+            .unwrap();
+        std::fs::write(root.path().join("file"), b"base\n").unwrap();
+        git(root.path(), &["add", "--", "file"], None)
+            .await
+            .unwrap();
+        git(
+            root.path(),
+            &[
+                "-c",
+                "core.hooksPath=/dev/null",
+                "-c",
+                "user.name=Epoch Fixture",
+                "-c",
+                "user.email=epoch@example.invalid",
+                "-c",
+                "commit.gpgSign=false",
+                "commit",
+                "-q",
+                "-m",
+                "fixture",
+            ],
+            None,
+        )
+        .await
+        .unwrap();
+        let policy = SyncPolicy {
+            max_stage_batch_files: 10,
+            max_stage_file_bytes: 1024,
+            stage_op_timeout_secs: 60,
+            ..SyncPolicy::default()
+        };
+        (root, policy)
+    }
+
+    async fn private_candidate(repo: &Path) -> (Staging, String) {
+        let baseline = Epoch::capture(repo, 60).await.unwrap();
+        let staging = Staging::new(repo, baseline).await.unwrap();
+        std::fs::write(repo.join("file"), b"private candidate\n").unwrap();
+        run_index_git(
+            repo,
+            &["add", "--", "file"],
+            60,
+            "fixture private add",
+            Some(staging.index()),
+        )
+        .await
+        .unwrap();
+        let oid = git(
+            repo,
+            &["hash-object", "--stdin"],
+            Some(b"private candidate\n"),
+        )
+        .await
+        .unwrap();
+        (
+            staging,
+            String::from_utf8(oid.stdout).unwrap().trim().to_owned(),
+        )
+    }
+
+    async fn refused_install_preserves_actual_and_pack(child: bool) {
+        let (root, policy) = fixture().await;
+        let repo = root.path();
+        let (staging, candidate_oid) = private_candidate(repo).await;
+        let retained = staging.directory.clone();
+        let foreign = if child {
+            "directory/late-child"
+        } else {
+            "file"
+        };
+        if child {
+            std::fs::create_dir(repo.join("directory")).unwrap();
+        }
+        std::fs::write(repo.join(foreign), b"foreign staged\n").unwrap();
+        git(repo, &["add", "--", foreign], None).await.unwrap();
+        std::fs::write(repo.join(foreign), b"foreign unstaged\n").unwrap();
+        let actual_index = std::fs::read(repo.join(".git/index")).unwrap();
+        let actual = Epoch::capture(repo, 60).await.unwrap();
+        let error = staging
+            .finish(repo, &policy, &BTreeSet::new(), false, false)
+            .await
+            .err()
+            .unwrap();
+        assert!(
+            format!("{error:#}").contains("index or parent changed"),
+            "{error:#}"
+        );
+        assert_eq!(
+            std::fs::read(repo.join(".git/index")).unwrap(),
+            actual_index
+        );
+        assert_eq!(
+            std::fs::read(repo.join(foreign)).unwrap(),
+            b"foreign unstaged\n"
+        );
+        assert_eq!(
+            Epoch::capture(repo, 60).await.unwrap().snapshot,
+            actual.snapshot
+        );
+        assert!(retained.join("index").is_file());
+        let pack_index = std::fs::read_dir(&retained)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .find(|path| path.extension().is_some_and(|ext| ext == "idx"))
+            .expect("durable candidate pack index");
+        let contents = git(
+            repo,
+            &["verify-pack", "-v", pack_index.to_str().unwrap()],
+            None,
+        )
+        .await
+        .unwrap();
+        assert!(
+            String::from_utf8(contents.stdout)
+                .unwrap()
+                .contains(&candidate_oid),
+            "candidate payload must survive outside Git's loose-object GC reachability"
+        );
+        assert!(!repo.join(".git/index.lock").exists());
+    }
+
+    #[tokio::test]
+    async fn private_staging_same_path_conflict_retains_both_payloads() {
+        refused_install_preserves_actual_and_pack(false).await;
+    }
+
+    #[tokio::test]
+    async fn private_staging_foreign_child_is_not_a_prefix_waiver() {
+        refused_install_preserves_actual_and_pack(true).await;
+    }
+
+    #[tokio::test]
+    async fn installed_epoch_keeps_proven_identity_and_rejects_late_replacement() {
+        let (root, policy) = fixture().await;
+        let repo = root.path();
+        let (staging, expected_oid) = private_candidate(repo).await;
+        let epoch = staging
+            .finish(repo, &policy, &BTreeSet::new(), false, false)
+            .await
+            .unwrap();
+        assert_eq!(epoch.snapshot.entries[b"file".as_slice()].oid, expected_oid);
+        std::fs::write(repo.join("file"), b"late foreign replacement\n").unwrap();
+        git(repo, &["add", "--", "file"], None).await.unwrap();
+        std::fs::create_dir(repo.join("directory")).unwrap();
+        std::fs::write(repo.join("directory/late-child"), b"late child\n").unwrap();
+        git(repo, &["add", "--", "directory/late-child"], None)
+            .await
+            .unwrap();
+        let bytes = std::fs::read(repo.join(".git/index")).unwrap();
+        let lock = crate::git::IndexLock::acquire(repo).unwrap();
+        assert!(epoch.unchanged(repo, &lock).await.is_err());
+        assert_eq!(epoch.snapshot.entries[b"file".as_slice()].oid, expected_oid);
+        assert!(!epoch
+            .snapshot
+            .entries
+            .contains_key(b"directory/late-child".as_slice()));
+        assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), bytes);
+        assert_eq!(
+            std::fs::read(repo.join("file")).unwrap(),
+            b"late foreign replacement\n"
+        );
+        assert_eq!(
+            std::fs::read(repo.join("directory/late-child")).unwrap(),
+            b"late child\n"
+        );
+    }
+}
