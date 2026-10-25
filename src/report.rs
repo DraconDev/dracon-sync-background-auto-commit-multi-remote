@@ -2786,6 +2786,9 @@ pub(crate) fn parse_relative_minutes(text: &str) -> Option<i64> {
 /// flag now only fires when the repo has *zero* remotes, so the hint
 /// is updated to match: "no remote configured (cannot push)".
 pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
+    if flags.iter().any(|f| f.starts_with("EXCLUDED_RECOVERY")) {
+        return "excluded-file recovery unresolved — inspect Git-directory dracon-excluded-recovery-* records; retain canonical and recovery bytes".to_owned();
+    }
     if flags.iter().any(|f| f == "INTENTIONAL_NO_UPSTREAM") {
         return "intentional legacy isolation, no upstream configured".to_string();
     }
@@ -4413,6 +4416,12 @@ pub(crate) async fn run_repos_report(
         if history_broken {
             concern = true;
         }
+        let recovery_flag = match crate::sync::has_pending_excluded_recovery(&repo) {
+            Ok(true) => Some("EXCLUDED_RECOVERY"),
+            Ok(false) => None,
+            Err(_) => Some("EXCLUDED_RECOVERY_INSPECT_FAILED"),
+        };
+        if recovery_flag.is_some() { concern = true; }
         let mut warn = !concern && real_is_dirty;
 
         // Flags still use effective_status for ahead/behind/origin detection.
@@ -4430,6 +4439,7 @@ pub(crate) async fn run_repos_report(
         if repo_override.intentional_no_upstream {
             flags = apply_intentional_no_upstream(flags);
         }
+        if let Some(flag) = recovery_flag { flags.push(flag.to_owned()); }
 
         if report_checks_deferred {
             flags.push("REPORT_CHECKS_DEFERRED".to_string());
