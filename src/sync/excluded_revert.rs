@@ -505,6 +505,7 @@ pub(super) async fn settle_pending(repo: &Path, deadline: Instant) -> Result<boo
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(error.into()),
     }
+    archive::tighten_legacy(repo)?;
     for directory in archive::unsealed(repo)? {
         if !settle_directory(repo, &directory, deadline).await? {
             return Ok(false);
