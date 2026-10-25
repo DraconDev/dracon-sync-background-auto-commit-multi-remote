@@ -737,6 +737,18 @@ fn handle_visibility_flip(
 }
 
 fn main() -> Result<()> {
+    #[cfg(target_os = "linux")]
+    {
+        let args: Vec<_> = std::env::args_os().collect();
+        if args.get(1).is_some_and(|arg| arg == "--dracon-excluded-restore-helper") {
+            anyhow::ensure!(args.len() == 4, "invalid excluded restore helper invocation");
+            let parent: u32 = args[3].to_str().context("invalid helper parent")?.parse()?;
+            anyhow::ensure!(unsafe { libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL) } == 0,
+                "cannot bind excluded helper lifetime to its parent");
+            anyhow::ensure!(unsafe { libc::getppid() } as u32 == parent,
+                "excluded helper parent already exited");
+        }
+    }
     // Complete process-wide environment setup before Tokio creates threads.
     runtime_env::initialize()?;
     async_main()
@@ -763,7 +775,7 @@ async fn async_main() -> Result<()> {
             .is_some_and(|arg| arg == "--dracon-excluded-restore-helper")
         {
             anyhow::ensure!(
-                args.len() == 3,
+                args.len() == 4,
                 "invalid excluded restore helper invocation"
             );
             return sync::excluded_restore_helper(std::path::Path::new(&args[2])).await;
