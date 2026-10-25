@@ -3,3 +3,7 @@
 
 running 1 test
 test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) 5168c9a] init
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1442 filtered out; finished in 5.92s
+
