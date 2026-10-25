@@ -64,12 +64,8 @@ impl IndexLock {
     /// Caller resolved this exact path with a bounded owned Git command.
     #[cfg(unix)]
     pub(crate) fn acquire_path(path: PathBuf, repo: &Path) -> Result<Self, String> {
-        match std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true) // O_EXCL — fails if file exists
-            .open(&path)
-        {
-            Ok(file) => Ok(Self { path, file }),
+        match Self::try_acquire_path(path) {
+            Ok(lock) => Ok(lock),
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Err(format!(
                 "index.lock held by another git operation, skipping {}",
                 repo.display()
@@ -84,6 +80,22 @@ impl IndexLock {
 }
 
 impl IndexLock {
+    /// Preserve the actual I/O kind for callers that distinguish expected
+    /// contention from inspection/permission failures. Never parse error text.
+    pub(crate) fn try_acquire_path(path: PathBuf) -> std::io::Result<Self> {
+        #[cfg(unix)]
+        {
+            let file = std::fs::OpenOptions::new().write(true).create_new(true).open(&path)?;
+            Ok(Self { path, file })
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = path;
+            Err(std::io::Error::new(std::io::ErrorKind::Unsupported,
+                "ownership-safe index locks require Unix"))
+        }
+    }
+
     #[cfg(not(unix))]
     pub(crate) fn acquire_path(_path: PathBuf, _repo: &Path) -> Result<Self, String> {
         Err("ownership-safe index locks require Unix".into())
