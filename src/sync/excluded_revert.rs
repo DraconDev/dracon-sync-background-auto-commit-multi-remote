@@ -347,6 +347,84 @@ async fn restore_inner(
     Ok(response.1)
 }
 
+/// Inspect only retained bytes; NEVER replay an old restore or modify canonical
+/// files/index. Mixed interrupted transactions may settle only when EVERY target
+/// still has either the exact private desired inode or exact displaced original.
+async fn settle_directory(repo: &Path, directory: &Path, deadline: Instant) -> Result<bool> {
+    use std::os::unix::fs::DirBuilderExt;
+    tokio::time::timeout_at(deadline, async {
+        let source = Location::open(directory, Path::new("recovery.json"))?.file()?
+            .context("missing recovery request")?;
+        ensure!(source.metadata()?.is_file(), "nonregular recovery request");
+        let mut bytes = Vec::new();
+        tokio::fs::File::from_std(source).take(64 * 1024 * 1024 + 1).read_to_end(&mut bytes).await?;
+        ensure!(bytes.len() <= 64 * 1024 * 1024, "recovery request too large");
+        let request: RestoreRequest = serde_json::from_slice(&bytes)?;
+        if std::fs::canonicalize(repo)?.as_os_str().as_bytes() != request.repo {
+            eprintln!("⚠️ excluded recovery repository mismatch: {}", directory.display());
+            return Ok(false);
+        }
+        let tree = directory.join("files");
+        let mut states = Vec::new();
+        for target in request.targets {
+            use std::os::unix::ffi::OsStringExt;
+            let path = PathBuf::from(std::ffi::OsString::from_vec(target.path.clone()));
+            let retained = Location::open(&tree, &path)?.fingerprint().await?;
+            let state = if retained.as_ref() == Some(&target.desired) {
+                "untouched-or-rolled-back"
+            } else if target.before.is_some() && retained == target.before {
+                "captured-original-retained"
+            } else if target.before.is_none() && retained.is_none() {
+                "absent-baseline-no-original-displaced"
+            } else {
+                eprintln!("⚠️ unresolved excluded recovery: {}; retained bytes differ from BOTH captured identities; canonical files/index left untouched", directory.display());
+                return Ok(false);
+            };
+            states.push(serde_json::json!({"path":target.path,"state":state}));
+        }
+        let record = serde_json::json!({"inspectedBy":env!("DRACON_EPOCH_SOURCE_ID"),
+            "originalSource":request.source_id,"states":states,
+            "action":"read-only classification; no old restore replayed"});
+        let mut note = tempfile::Builder::new().prefix("settlement-").suffix(".json").tempfile_in(directory)?;
+        note.write_all(&serde_json::to_vec_pretty(&record)?)?;
+        note.as_file().sync_all()?;
+        let _ = note.keep()?;
+        File::open(directory)?.sync_all()?;
+        let gitdir = directory.parent().context("recovery directory missing parent")?;
+        let archive = gitdir.join("dracon-excluded-archive");
+        match std::fs::DirBuilder::new().mode(0o700).create(&archive) {
+            Ok(()) => {},
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {},
+            Err(error) => return Err(error.into()),
+        }
+        let meta = std::fs::symlink_metadata(&archive)?;
+        ensure!(meta.is_dir() && meta.uid() == unsafe { libc::geteuid() } && meta.mode() & 0o077 == 0,
+            "excluded archive must be an owned private real directory");
+        let name = directory.file_name().context("missing recovery directory name")?;
+        let from = Location::open(gitdir, Path::new(name))?;
+        let to = Location::open(&archive, Path::new(name))?;
+        from.exchange(&to, libc::RENAME_NOREPLACE)?;
+        eprintln!("🛟 verified excluded recovery retained at {}", archive.join(name).display());
+        Ok(true)
+    }).await.context("excluded recovery inspection deadline expired; records retained")?
+}
+
+/// Must also run with the opt-in NOW DISABLED: changing policy does not make an
+/// earlier interrupted transaction disappear. No worktree/index writes here.
+pub(super) async fn settle_pending(repo: &Path, deadline: Instant) -> Result<bool> {
+    let gitdir = crate::git::path_gitdir(repo).context("cannot locate recovery Git directory")?;
+    if std::fs::symlink_metadata(crate::git::index_lock_path(repo)).is_ok() {
+        return Ok(!super::has_pending_excluded_recovery(repo)?);
+    }
+    for entry in std::fs::read_dir(gitdir)? {
+        let entry = entry?;
+        if !entry.file_name().as_bytes().starts_with(b"dracon-excluded-recovery-") { continue; }
+        ensure!(entry.file_type()?.is_dir(), "non-directory excluded recovery record");
+        if !settle_directory(repo, &entry.path(), deadline).await? { return Ok(false); }
+    }
+    Ok(true)
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 struct RestoreTarget {
     path: Vec<u8>,
