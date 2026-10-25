@@ -1,2 +1,28 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
     Checking dracon-system v0.112.50 (/home/dracon/Dev/dracon-utilities/dracon-system)
+error: this `if` statement can be collapsed
+   --> dracon-sync/src/sync/staged_epoch.rs:268:13
+    |
+268 | /             if matches!(self.snapshot.head, CapturedHead::Unborn { .. }) && entry.is_some() {
+269 | |                 if crate::exclude::matches_untracked_exclude(
+270 | |                     repo,
+271 | |                     &path.path,
+...   |
+276 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#collapsible_if
+    = note: `-D clippy::collapsible-if` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+    |
+268 ~             if matches!(self.snapshot.head, CapturedHead::Unborn { .. }) && entry.is_some()
+269 ~                 && crate::exclude::matches_untracked_exclude(
+270 |                     repo,
+...
+274 |                     rejected.push(raw.clone());
+275 ~                 }
+    |
+
+error: could not compile `dracon-sync` (bin "dracon-sync") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
