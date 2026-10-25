@@ -45,4 +45,22 @@ test bucket_runner_bridge::outgoing::tests::accounting_reserves_enforced_output_
 test bucket_runner_bridge::outgoing::tests::accounting_reserves_tracked_filter_even_when_raw_status_is_clean ... ok
 test bucket_runner_bridge::outgoing::tests::accounting_snapshot_rejects_real_worktree_index_head_and_tip_changes ... ok
 test bucket_runner_bridge::outgoing::tests::accounting_symlink_sizes_link_text_not_referent ... ok
-test bucket_runner_bridge::outgoing::tests::accounting_untracked_toggle_and_read_limit_are_explicit ... 
+test bucket_runner_bridge::outgoing::tests::accounting_untracked_toggle_and_read_limit_are_explicit ... ok
+test bump::tests::test_extract_version_from_cargo_ignorefile ... ok
+test bump::tests::test_extract_version_from_cargo_no_version ... ok
+test bump::tests::test_extract_version_from_cargo_package ... ok
+test bump::tests::test_extract_version_from_cargo_with_inline_comment ... ok
+test bump::tests::test_extract_version_from_cargo_with_trailing_semicolon ... ok
+test bump::tests::test_extract_version_from_cargo_workspace_package ... ok
+test bump::tests::test_extract_version_from_json ... ok
+test bump::tests::test_extract_version_from_json_escaped_quotes ... ok
+test bump::tests::test_extract_version_from_json_multiple_keys ... ok
+test bump::tests::test_extract_version_from_json_not_found ... ok
+test daemon::daemon_tests::test_get_status_after_push ... [main (root-commit) ad38df9] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpAnHG9Y/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main 40d6948] second
+ 1 file changed, 1 insertion(+), 1 deletion(-)
