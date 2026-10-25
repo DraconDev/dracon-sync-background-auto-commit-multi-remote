@@ -7,3 +7,4 @@
 ✔ owned group cancellation stops gates and cleans only disposable sources (14570.928559ms)
 ✔ owned group cancellation stops provisioning and cleans only disposable sources (23668.238143ms)
 ✔ nested Bun scripts use the exact selected pin rather than inherited Bun (33201.139613ms)
+✔ library workspaces are built before a dependent lifecycle script resolves them (29790.947724ms)
