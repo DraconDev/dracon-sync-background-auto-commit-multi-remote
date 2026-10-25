@@ -85,14 +85,19 @@ impl IndexLock {
     pub(crate) fn try_acquire_path(path: PathBuf) -> std::io::Result<Self> {
         #[cfg(unix)]
         {
-            let file = std::fs::OpenOptions::new().write(true).create_new(true).open(&path)?;
+            let file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)?;
             Ok(Self { path, file })
         }
         #[cfg(not(unix))]
         {
             let _ = path;
-            Err(std::io::Error::new(std::io::ErrorKind::Unsupported,
-                "ownership-safe index locks require Unix"))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Unsupported,
+                "ownership-safe index locks require Unix",
+            ))
         }
     }
 

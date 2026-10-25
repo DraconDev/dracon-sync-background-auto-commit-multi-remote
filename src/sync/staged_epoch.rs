@@ -33,8 +33,9 @@ pub(super) fn is_conflict(error: &anyhow::Error) -> bool {
 fn acquire_epoch_lock(path: PathBuf) -> Result<crate::git::IndexLock> {
     match crate::git::IndexLock::try_acquire_path(path) {
         Ok(lock) => Ok(lock),
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists =>
-            Err(anyhow::Error::new(EpochConflict::LockBusy)),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+            Err(anyhow::Error::new(EpochConflict::LockBusy))
+        }
         Err(error) => Err(error).context("cannot acquire epoch index lock"),
     }
 }
@@ -938,8 +939,12 @@ mod tests {
         let busy = acquire_epoch_lock(path.clone()).err().expect("held lock");
         assert!(is_conflict(&busy));
         let failed = acquire_epoch_lock(root.path().join("missing/index.lock"))
-            .err().expect("missing parent must be an I/O failure");
-        assert!(!is_conflict(&failed), "real I/O failure cannot be hidden as contention");
+            .err()
+            .expect("missing parent must be an I/O failure");
+        assert!(
+            !is_conflict(&failed),
+            "real I/O failure cannot be hidden as contention"
+        );
         drop(owner);
         drop(acquire_epoch_lock(path).expect("owner cleanup permits retry"));
     }
