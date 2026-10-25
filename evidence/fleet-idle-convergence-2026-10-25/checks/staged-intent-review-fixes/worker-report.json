@@ -1,0 +1,64 @@
+{
+  "criteriaSatisfied": [
+    {
+      "id": "criterion-1",
+      "status": "satisfied",
+      "evidence": "Non-Unix IndexLock acquisition now refuses before filesystem access. Capture performs no synchronous lock/gitdir acquisition and parses identities plus flags from one owned, cancellable ls-files invocation."
+    },
+    {
+      "id": "criterion-2",
+      "status": "satisfied",
+      "evidence": "Seven targeted tests and two existing lock regressions passed; exact logs and source fingerprints retained."
+    }
+  ],
+  "changedFiles": [
+    "src/git/status.rs",
+    "src/git/staged_intent.rs"
+  ],
+  "testsAddedOrUpdated": [
+    "Non-Unix acquisition refusal regression, platform-gated.",
+    "One-pass observation tests retain byte-path, SHA256, deletion, mode and preservation coverage.",
+    "Assume-unchanged, skip-worktree, sparse-directory and split-index refusal fixtures.",
+    "Actual Git PID termination after observation timeout and caller drop.",
+    "Shared Git runner PID and controlled descendant termination after timeout and drop.",
+    "Foreign index.lock preservation during read-only observation."
+  ],
+  "commandsRun": [
+    {
+      "command": "CARGO_BUILD_JOBS=2 timeout --kill-after=15s 600s cargo test -p dracon-sync --bin dracon-sync --locked git::staged_intent::tests",
+      "result": "passed",
+      "summary": "7 passed; 0 failed; test execution 26.42s. Run once."
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=2 timeout --kill-after=15s 120s cargo test -p dracon-sync --bin dracon-sync --locked git::status::tests::test_index_lock",
+      "result": "passed",
+      "summary": "2 passed; 0 failed. Run once."
+    },
+    {
+      "command": "git diff --check; rustfmt --edition 2021 --check src/git/status.rs src/git/staged_intent.rs",
+      "result": "passed",
+      "summary": "Clean."
+    }
+  ],
+  "validationOutput": [
+    "Final HEAD: 50a88e93fa82757c2038f032a5fbba69846d6f3b.",
+    "Observation log: /tmp/staged-intent-review-fixes-tests.log; SHA256 c85a7bb01eb40da654f3527aad18c1d5c4a57d01ac79f02c63130fb0662bfadf.",
+    "Lock log: /tmp/staged-intent-review-fixes-lock-tests.log; SHA256 5050e7650b201cf04a8225891c1ddca88c40b37938a4ec4034985cb2d48606ff.",
+    "status.rs SHA256: 62c2cc7c1e57d5c32911cde0a00b72de1cabef99f2a4c56f1a53f4239621c45c.",
+    "staged_intent.rs SHA256: 8fd5ebd88e41e03c9668fadbdfdd856e02becab38ed75aa87e5802a3664bb562.",
+    "Normal serial harness retained; no global environment mutations."
+  ],
+  "residualRisks": [
+    "Observation is neither authorization nor a transaction; later integration must conditionally validate identities at an actual atomic commit boundary.",
+    "Nonzero flags, including split-index bookkeeping, conservatively refuse.",
+    "PID tests establish termination or zombie state with start-time identity checks, not immediate disappearance or reaping.",
+    "Non-Unix regression was not executable on this Linux host.",
+    "Unintegrated production APIs remain intentionally unsuppressed dead code."
+  ],
+  "noStagedFiles": true,
+  "diffSummary": "Removed capture locking and separate flags read; added coherent one-pass index parsing, unsupported-platform acquisition refusal, and targeted regression coverage.",
+  "reviewFindings": [
+    "Both reported P1 implementation issues addressed; independent re-review remains required."
+  ],
+  "manualNotes": "Prior logs remain untouched. No commits, staging, deployment, real-repository reconciliation or parent evidence edits performed; daemon independently committed source."
+}
