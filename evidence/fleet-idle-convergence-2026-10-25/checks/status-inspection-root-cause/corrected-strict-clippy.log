@@ -330,3 +330,4 @@
     Checking dracon-system v0.112.51 (/home/dracon/Dev/dracon-utilities/dracon-system)
     Checking git2 v0.21.0
     Checking dracon-git v94.7.2
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3m 04s
