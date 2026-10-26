@@ -99,3 +99,5 @@ Gate exited with status 1
   ▸ extensions/standalones/cinematic-pages-cooler-presentations TYPECHECK (31bd83ca328a)
   ▸ extensions/standalones/cinematic-pages-cooler-presentations BUILD (31bd83ca328a)
   ▸ extensions/standalones/cinematic-pages-cooler-presentations TEST (31bd83ca328a)
+  ▸ extensions/standalones/cinematic-pages-cooler-presentations LINT (31bd83ca328a)
+  ▸ extensions/standalones/clean-web TYPECHECK (31bd83ca328a)
