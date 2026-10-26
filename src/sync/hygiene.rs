@@ -54,7 +54,7 @@ async fn large_untracked(
             )
             || !crate::exclude::should_stage_entry_with_blob_size(
                 repo,
-                path,
+                &dracon_git::types::DiffFile::new(path.clone(), dracon_git::types::FileStatus::Added),
                 0,
                 excluded,
                 &policy.exclude_file_patterns,
