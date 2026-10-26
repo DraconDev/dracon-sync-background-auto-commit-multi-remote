@@ -78,6 +78,86 @@ fn fixture(artifact: &str) -> tempfile::TempDir {
 }
 
 #[tokio::test]
+async fn hygiene_durable_retry_survives_production_commit_and_process_exit_with_writer_refusal() {
+    const ROLE: &str = "DRACON_HYGIENE_DURABLE_REPO";
+    if let Some(path) = std::env::var_os(ROLE) {
+        let r = PathBuf::from(path); let mut p=policy(true); p.max_stage_file_bytes=16*1024;
+        let mut names=excluded(); names.insert("custom-build-cache".into());
+        let _writer=std::fs::OpenOptions::new().write(true).open(r.join(".gitignore")).unwrap();
+        std::fs::write(r.join("note.txt"),b"eligible real production edit\n").unwrap();
+        let result=sync_repo(&r,&p,&names,0,None,false,None).await.unwrap();
+        assert!(matches!(result,SyncOutcome::StagedPending),"refused metadata must remain pending: {result:?}");
+        assert!(native(&r,&["ls-files","--","custom-build-cache/a.bin"],None).is_empty());
+        assert!(super::has_pending(&r).unwrap());
+        // This process actually exits: subsequent retry cannot use Epoch memory.
+        std::process::exit(0);
+    }
+    let d=fixture("dist/extra.bin"); let r=d.path();
+    std::fs::create_dir(r.join("custom-build-cache")).unwrap();
+    std::fs::write(r.join("custom-build-cache/a.bin"),b"artifact retained\n").unwrap();
+    native(r,&["add","--","custom-build-cache/a.bin"],None);
+    native(r,&["commit","-q","-m","custom tracked artifact"],None);
+    let mut p=policy(false);p.max_stage_file_bytes=16*1024;let mut names=excluded();names.insert("custom-build-cache".into());
+    std::fs::write(r.join("note.txt"),b"warm-up\n").unwrap();
+    for _ in 0..4 { sync_repo(r,&p,&names,0,None,false,None).await.unwrap(); if native(r,&["status","--porcelain"],None).is_empty(){break;} }
+    // Existing ignored metadata must be stable before the actual writer control.
+    if !r.join(".gitignore").exists() { std::fs::write(r.join(".gitignore"),b"# original\n").unwrap();native(r,&["add","--",".gitignore"],None);native(r,&["commit","-q","-m","ignore baseline"],None); }
+    assert!(!std::fs::read_to_string(r.join(".gitignore")).unwrap().contains("custom-build-cache/"));
+    let inode=std::fs::metadata(r.join(".gitignore")).unwrap().ino();
+    let output=tokio::time::timeout(Duration::from_secs(40),tokio::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact","sync::hygiene::tests::hygiene_durable_retry_survives_production_commit_and_process_exit_with_writer_refusal","--nocapture"])
+        .env(ROLE,r).kill_on_drop(true).output()).await.unwrap().unwrap();
+    assert!(output.status.success(),"{}{}",String::from_utf8_lossy(&output.stdout),String::from_utf8_lossy(&output.stderr));
+    assert_eq!(std::fs::metadata(r.join(".gitignore")).unwrap().ino(),inode);
+    assert!(super::has_pending(r).unwrap());
+    let mut text=std::fs::read_to_string(r.join(".gitignore")).unwrap();text.push_str("\n# newer canonical operator edit\n");std::fs::write(r.join(".gitignore"),text).unwrap();
+    p.build_artifact_cleanup=true;
+    for _ in 0..4 {sync_repo(r,&p,&names,0,None,false,None).await.unwrap();if !super::has_pending(r).unwrap(){break;}}
+    assert!(!super::has_pending(r).unwrap(),"committed metadata must retire actual durable intent");
+    let committed=native(r,&["show","HEAD:.gitignore"],None);let committed=String::from_utf8(committed).unwrap();
+    assert!(committed.contains("custom-build-cache/\n") && committed.contains("# newer canonical operator edit\n"));
+    assert_eq!(std::fs::read(r.join("custom-build-cache/a.bin")).unwrap(),b"artifact retained\n");
+}
+
+#[tokio::test]
+async fn hygiene_durable_uncommitted_candidate_recovers_only_exact_owned_tree_after_restart() {
+    let d=fixture("dist/extra.bin");let r=d.path();let mut p=policy(true);p.max_stage_file_bytes=16*1024;
+    let baseline=staged_epoch::Epoch::capture(r,20).await.unwrap();
+    let staging=staged_epoch::Staging::new(r,baseline).await.unwrap();
+    let owned=staging.finish(r,&p,&excluded(),true,false).await.unwrap();drop(owned);
+    assert!(super::has_pending(r).unwrap());
+    // A different cached payload must NOT inherit deletion authority.
+    std::fs::write(r.join("foreign.txt"),b"foreign cached intent\n").unwrap();native(r,&["add","--","foreign.txt"],None);
+    let foreign=StagedIntentSnapshot::capture(r,Instant::now()+Duration::from_secs(10)).await.unwrap();
+    assert!(super::recover(r,&foreign,Instant::now()+Duration::from_secs(10)).await.unwrap().is_empty());
+    native(r,&["restore","--staged","--","foreign.txt"],None);
+    // Preserve that unrelated worktree edit; exact original cached tree can resume.
+    let head=native(r,&["rev-parse","HEAD"],None);
+    sync_repo(r,&p,&excluded(),0,None,false,None).await.unwrap();
+    assert_ne!(native(r,&["rev-parse","HEAD"],None),head,"recorded own deletion must not deadlock behind metadata retry");
+    assert!(native(r,&["ls-files","--","dist/extra.bin"],None).is_empty());
+    assert_eq!(std::fs::read(r.join("foreign.txt")).unwrap(),b"foreign cached intent\n");
+}
+
+#[tokio::test]
+async fn hygiene_durable_policy_optout_and_symlink_registry_refuse_without_mutation() {
+    let d=fixture("dist/extra.bin");let r=d.path();let p=policy(true);
+    let baseline=staged_epoch::Epoch::capture(r,15).await.unwrap();
+    let staging=staged_epoch::Staging::new(r,baseline).await.unwrap();
+    let _owned=staging.finish(r,&p,&excluded(),true,false).await.unwrap();
+    let index=std::fs::read(r.join(".git/index")).unwrap();
+    assert!(super::retry(r,&p,&excluded(),false,Instant::now()+Duration::from_secs(10)).await.is_err());
+    assert!(super::has_pending(r).unwrap());
+    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(),index);
+    assert!(!r.join(".gitignore").exists());
+    let other=fixture("dist/extra.bin");let canary=tempfile::tempdir().unwrap();
+    std::fs::write(canary.path().join("canary"),b"foreign bytes").unwrap();
+    std::os::unix::fs::symlink(canary.path(),other.path().join(".git/dracon-hygiene-intents")).unwrap();
+    assert!(super::has_pending(other.path()).is_err());
+    assert_eq!(std::fs::read(canary.path().join("canary")).unwrap(),b"foreign bytes");
+}
+
+#[tokio::test]
 async fn hygiene_large_only_production_cycle_is_admitted_after_clean_warmup() {
     let d = fixture("dist/extra.bin");
     let r = d.path();
