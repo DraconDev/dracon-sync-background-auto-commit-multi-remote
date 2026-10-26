@@ -1,0 +1,18 @@
+{
+  "capturedAt": "2026-10-26T03:07:13.702303+00:00",
+  "scope": "hygiene-order assembly; NOT final acceptance, installed/loaded execution or fleet-idle proof",
+  "changedSourceFiles": [],
+  "pinnedHelperUnchanged": true,
+  "observedExitCodes": {
+    "hygiene-order-v6-strict-clippy": 101,
+    "hygiene-order-v6-workspace-tests": 0,
+    "hygiene-order-v6-cargo-deny": 0,
+    "hygiene-order-v6-release-build": 0
+  },
+  "releaseArtifacts": {
+    "target/release/dracon-sync": "2423be17ccc3bf24293b1bbf4ecdbbf6f6fdfaa833953c1742f7f5e0490f61d0",
+    "target/release/dracon-system": "46d8dce64ae0576b00ae0d9a6f23bd2de199b0e8bf89d99569df5df89c654539",
+    "target/release/dracon-warden": "44175cf23aa1e7f981fa6d7dff2235b83e021f116c6da747e7650fd2080b512a"
+  },
+  "deploymentPerformedByThisContinuation": false
+}
