@@ -151,3 +151,4 @@ Gate exited with status 1
   ▸ extensions/standalones/web-time-tracker-limiter BUILD (31bd83ca328a)
   ▸ extensions/standalones/web-time-tracker-limiter TEST (31bd83ca328a)
   ▸ extensions/standalones/web-time-tracker-limiter LINT (31bd83ca328a)
+  ▸ extensions/standalones/youtube-dislike TYPECHECK (31bd83ca328a)
