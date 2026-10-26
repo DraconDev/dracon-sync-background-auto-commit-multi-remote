@@ -275,3 +275,39 @@
    Compiling intl-memoizer v0.5.3
    Compiling i18n-config v0.4.8
    Compiling intl_pluralrules v7.0.2
+    Checking age-core v0.10.0
+   Compiling zcheapstr v1.1.0
+   Compiling enumflags2 v0.7.12
+    Checking toml_datetime v0.6.11
+    Checking rustls-webpki v0.103.16
+   Compiling find-crate v0.6.3
+    Checking fluent-bundle v0.15.3
+    Checking icu_provider v2.3.1
+    Checking toml_edit v0.22.27
+    Checking tokio-util v0.7.19
+    Checking icu_normalizer v2.3.0
+    Checking icu_properties v2.3.0
+    Checking clap v4.6.7
+    Checking tower v0.5.3
+    Checking multiversion v0.9.0
+    Checking fluent v0.16.1
+    Checking serde_urlencoded v0.7.1
+    Checking encoding_rs v0.8.41
+   Compiling zvariant_derive v5.15.0
+    Checking toml v0.8.23
+    Checking openssl-probe v0.1.6
+    Checking terminal_size v0.4.4
+    Checking urlencoding v2.1.3
+    Checking sysinfo v0.32.1
+    Checking hostname v0.4.2
+    Checking fs2 v0.4.3
+   Compiling i18n-embed-impl v0.8.4
+    Checking h2 v0.4.19
+    Checking idna_adapter v1.2.2
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Checking idna v1.1.0
+    Checking tokio-native-tls v0.3.1
+    Checking url v2.5.8
+   Compiling i18n-embed v0.14.1
+    Checking tower-http v0.6.11
+   Compiling zvariant v5.15.0
