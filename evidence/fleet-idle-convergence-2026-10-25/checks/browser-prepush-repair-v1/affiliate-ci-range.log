@@ -418,3 +418,40 @@ OK    200  https://en.wikipedia.org
 OK    200  https://github.com
 WARN  403  WAF-botblock(maybe-live)  https://go.nordpass.io/aff_c?offer_id=488&aff_id=153772&url_id=9356
 WARN  403  WAF-botblock(maybe-live)  https://go.nordvpn.net/aff_c?offer_id=15&aff_id=153772&url_id=902
+OK    200  https://mail.google.com
+OK    200  https://news.ycombinator.com
+OK    200  https://s.click.aliexpress.com/e/_c3KmFhFZ
+OK    202  https://www.amazon.co.uk/
+WARN  403  WAF-botblock(maybe-live)  https://www.ebay.co.uk/?mkcid=1&mkrid=710-53481-19255-0&siteid=3&campid=5339180228&customid=dracon-newtab&toolid=10001&mkevt=1
+== Affiliate network host liveness (shared/lib/attribution.js networks) ==
+OK    200  https://awin1.com/
+OK    200  https://c.duomai.com/
+OK    200  https://click.linksynergy.com/
+WARN  403  WAF-botblock(maybe-live)  https://go.nordpass.io/
+OK    302  https://go.nordvpn.net/
+OK    200  https://impact.com/
+OK    200  https://www.jdoqocy.com/
+OK    307  https://redirect.viglink.com/
+== Source placeholder scan (shared/lib/attribution.js) ==
+OK    network-source-clean  /home/dracon/Dev/browser-extensions-shared/affiliate/shared/lib/attribution.js
+== summary: OK=57 WARN=11 DEAD=0 ==
+STRICT OK: no persistent 404/410 drift.
+==> [3/5] build deal-dashboard (affected-only: skipped unless the pushed range touches it)
+    skipped (untouched by pushed range)
+==> [4/5] build price-tracker (affected-only: skipped unless the pushed range touches it)
+    skipped (untouched by pushed range)
+==> [5/5] enrollment URL liveness (strict: fail on real 404/410 drift)
+== Enrollment URL liveness (verify-urls.sh) ==
+OK    200  https://affiliate-program.amazon.com
+OK    202  https://amazon.com
+OK    202  https://booking.com
+WARN  403  WAF-botblock(maybe-live)  https://impact.com/publisher-signup
+OK    200  https://partnernetwork.ebay.com
+OK    200  https://partnerstack.com
+OK    200  https://rakutenadvertising.com
+OK    200  https://walmart.com
+OK    200  https://www.awin.com
+OK    200  https://www.awin.com/us/getting-started-sas
+OK    200  https://www.cj.com
+OK    200  https://affiliate-program.amazon.com
+OK    200  https://chromewebstore.google.com/detail/cuslr-essential-apps-in-y/ckenonjjcacieiocdmbhcmmgahbepjab
