@@ -315,3 +315,12 @@
     Checking hyper v1.11.1
     Checking tokio-rustls v0.26.5
     Checking ssh2 v0.9.6
+    Checking zbus_names v4.3.4
+    Checking hyper-util v0.1.20
+    Checking age v0.10.1
+    Checking dracon-security v0.4.0 (/home/dracon/Dev/dracon-utilities/dracon-warden/src/security)
+    Checking hyper-rustls v0.27.9
+    Checking hyper-tls v0.6.0
+   Compiling zbus_macros v5.19.0
+    Checking reqwest v0.12.28
+    Checking dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
