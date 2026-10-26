@@ -1,6 +1,6 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Hygiene safety v1 — CURRENT targeted repair; NOT final/deployed
+## Hygiene safety v2 — CURRENT targeted repair; NOT final/deployed
 
 The newer safety review found gaps that the preceding passing suite did not
 cover. Ignore application recaptured a fresh canonical baseline after rendering,
@@ -11,13 +11,14 @@ the old render is refused and the foreign canonical bytes/index remain intact.
 Existing writable-FD, symlink and hardlink controls likewise refuse safely.
 Generated requests now use the recognized dracon-excluded-recovery namespace;
 previous dracon-ignore-recovery records were invisible to concern/archive scans.
-Directory0600/0700 protections apply at creation. Artifact de-index uses literal
+File0600/directory0700 protections apply at creation. Artifact de-index uses literal
 pathspec input, never glob expansion, never a gitlink checkout or filename-only
 artifact match. Eligibility no longer waives explicit file/per-repo opt-outs.
 
-Observed current targeted gates: hygiene13pass/0fail and strict ALL-TARGET
-workspace Clippy PASS. Matching frozen helper path and raw results use
-checks/epoch-integration-partial/hygiene-safety-v1-*. No current full-workspace,
+Observed current targeted gates: hygiene13pass/0fail, excluded48pass/0fail,
+staged-epoch controls PASS and strict ALL-TARGET workspace Clippy PASS. Matching
+frozen helper path, raw exits and post-check identities use
+checks/epoch-integration-partial/hygiene-safety-v2-*. No current full-workspace,
 release-build or cargo-deny qualification is claimed after these edits; v12 below
 is HISTORICAL. No service/binary/config deployment or zero-batch migration.
 
@@ -29,8 +30,13 @@ must force follow-up rather than report NothingToDo; and failed post-commit
 artifact ignore writes need durable retry intent so the deleted HEAD paths do
 not erase their plan. Do not call these repaired merely because focused tests
 pass. Original gates, installed/loaded behavior and every-watched clean/idle
-acceptance remain required. The crash-lease EAGAIN root cause is NOT established
-by an isolated retry passing; retain that limitation and inspect finite cleanup.
+acceptance remain required. The repeated crash-lease EAGAIN exposed an immediate-
+release inference: zombie state did not prove physical lease teardown. The test
+now requires an ACTUAL successful nonblocking open within the SAME original
+three-second deadline from parent death, then retains the inode, late-write and
+no-late-restore assertions. This is a finite cleanup criterion, not an idle grace
+sleep or reset budget; the earlier failed observations remain archived. Broader
+queued-open and exact-exchange qualification remains open.
 
 Operator-approved Doomtap scope change: only the exact nine QA frame names were
 de-indexed under maintenance, with exact positive ignore rules OUTSIDE the
