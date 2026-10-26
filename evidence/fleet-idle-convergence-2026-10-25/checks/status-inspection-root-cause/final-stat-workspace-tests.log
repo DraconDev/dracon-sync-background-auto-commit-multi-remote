@@ -1867,4 +1867,16 @@ test sync::diff_tests::test_retain_existing_stage_paths_drops_vanished ... ok
 test sync::excluded_revert::crash_tests::excluded_recovery_legacy_permission_repair_never_follows_archive_symlinks ... ok
 test sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores ... ok
 test sync::excluded_revert::recovery_tests::excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_reseal_changed_records ... ok
-test sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late ... 
+test sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_empty_epoch_followup_observes_foreign_staging_without_resetting_it ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_finalizes_once_and_never_relocates_a_later_canonical_writer ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_foreign_lock_prevents_settlement_and_remains_exact ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_late_displaced_writer_after_archival_stays_visible_and_blocked ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_legacy_ignore_namespace_retains_concerns_and_late_displaced_writes ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_partial_transaction_settles_without_replaying_or_resetting_user_work ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_preexisting_pending_seal_survives_retry_without_overwrite ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_uncertain_displaced_bytes_block_a_raw_clean_repo_even_without_optin ... ok
+test sync::excluded_revert_pipeline_tests::excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_push_hook_work ... ok
+test sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes ... ok
+test sync::excluded_revert_pipeline_tests::excluded_restore_only_excluded_work_needs_no_commit_and_dry_run_preserves_bytes ... ok
+test sync::excluded_revert_tests::excluded_restore_deadline_kills_required_filter_descendants_without_mutation ... 
