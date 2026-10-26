@@ -2994,4 +2994,21 @@ test tests::test_graduated_nice_value_memory_boundary ... ok
 test tests::test_graduated_nice_value_memory_tiers ... ok
 test tests::test_graduated_nice_value_negative_base_clamped ... ok
 test tests::the_trend_warning_and_the_rapid_fill_alarm_quote_the_same_figure ... ok
-test tests::tmp_e2e_fast_path_bypass_takes_fresh_unheld ... 
+test tests::tmp_e2e_fast_path_bypass_takes_fresh_unheld ... ok
+test tests::tmp_e2e_fast_path_keeps_open_held_tree ... ok
+test tests::tmp_e2e_fast_path_owns_only_the_general_skipped_window ... ok
+test tests::tmp_e2e_fast_path_zero_age_disables ... ok
+test tests::tmp_e2e_match_covers_glob_shapes ... ok
+test tests::tmp_entry_must_remain_under_validated_root ... ok
+test tests::tree_has_fresh_content_fails_closed_on_walk_errors ... ok
+test tests::truncate_log_handles_missing_trailing_newline_and_blank_lines ... ok
+test tests::truncate_log_preserves_non_utf8_lines_verbatim ... ok
+test tests::truncate_log_preserves_open_writer_inode ... ok
+test zram_tests::memory_percent_default_and_bounds ... ok
+
+test result: ok. 616 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 37.16s
+
+     Running tests/events_cli.rs (target/debug/deps/events_cli-4492fc6413de5332)
+
+running 4 tests
+test events_json_includes_rotated_segment_before_active_segment ... 
