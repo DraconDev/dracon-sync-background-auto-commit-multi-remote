@@ -482,4 +482,5 @@ test storage_core::s3::tests::existing_corrupt_object_is_never_overwritten_or_ac
 test storage_core::s3::tests::failed_readback_and_write_conflicts_cannot_issue_receipts ... ok
 test storage_core::s3::tests::interrupted_provider_body_and_destination_errors_fail_verification ... ok
 test storage_core::s3::tests::interrupted_source_cannot_contact_provider ... ok
-test storage_core::s3::tests::streaming_payload_above_git_limit_uses_bounded_reads ... 
+test storage_core::s3::tests::streaming_payload_above_git_limit_uses_bounded_reads ... ok
+test storage_core::security::tests::approval_and_publication_survive_process_death_without_reencrypting ... 
