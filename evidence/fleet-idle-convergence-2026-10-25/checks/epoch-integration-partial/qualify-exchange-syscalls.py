@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 
 LIBC = ctypes.CDLL(None, use_errno=True)
 LIBC.ptrace.restype = ctypes.c_long
@@ -241,6 +242,7 @@ def main():
                               and a['oldWriterLandedOnCanonical'])
     except BaseException as exc:
         record['error'] = repr(exc)
+        record['traceback'] = traceback.format_exc()
         record['pass'] = False
     finally:
         signal.alarm(0)
