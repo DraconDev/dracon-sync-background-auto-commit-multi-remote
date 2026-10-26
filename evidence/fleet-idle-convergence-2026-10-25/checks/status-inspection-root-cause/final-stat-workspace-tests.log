@@ -1909,4 +1909,4 @@ test sync::owned_commit_tests::configured_hook_runner_propagates_refusal_without
 test sync::owned_commit_tests::owned_commit_runs_the_configured_hook_chain_and_preserves_worktree_edits ... ok
 test sync::owned_commit_tests::the_ordinary_commit_path_runs_each_hook_exactly_once ... ok
 test sync::publication_actor_tests::abandoned_fixture_hook_exits_when_its_checkout_disappears ... ok
-test sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits ... 
+test sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits ... branch 'main' set up to track 'origin/main'.
