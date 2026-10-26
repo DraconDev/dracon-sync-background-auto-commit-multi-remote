@@ -2190,4 +2190,7 @@ test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [maste
 ok
 test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) 6766b5e] init
 ok
-test sync::tests::test_sync_repo_empty_repo_end_to_end ... 
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... ok
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) be4ac82] init
+ok
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) 24a7e18] init
