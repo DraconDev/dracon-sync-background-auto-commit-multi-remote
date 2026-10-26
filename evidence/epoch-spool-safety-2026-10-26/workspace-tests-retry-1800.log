@@ -177,4 +177,11 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 running 2 tests
 test prop_test_binary_passthrough_integrity ... ok
-test prop_test_hybrid_security_logic ... 
+test prop_test_hybrid_security_logic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 44.18s
+
+     Running tests/massive_secret_scan.rs (target/debug/deps/massive_secret_scan-eee5e26c6b5f79ce)
+
+running 1 test
+test test_massive_dataset_permutations ... 
