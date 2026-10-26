@@ -2,7 +2,6 @@
 //! large-file-only work, opt-out/dry-run scope, foreign-intent refusal and
 //! writer-safety. Fixtures are disposable; no installed-binary or fleet claim.
 use super::*;
-use std::os::unix::fs::PermissionsExt;
 
 fn native(repo: &Path, args: &[&str], input: Option<&[u8]>) -> Vec<u8> {
     use std::io::Write;
@@ -104,7 +103,6 @@ async fn hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_byte
         "oversized file is ignored, never truncated or committed"
     );
     let ignore = std::fs::read_to_string(r.join(".gitignore")).unwrap();
-    eprintln!("GITIGNORE>>>{ignore}<<<");
     assert!(ignore.contains("/huge.iso"));
     assert!(ignore.contains("dist/"));
     let tracked = String::from_utf8(native(r, &["ls-files"], None)).unwrap();

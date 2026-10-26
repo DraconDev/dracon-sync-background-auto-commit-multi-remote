@@ -7,3 +7,26 @@ warning: unused import: `std::os::unix::fs::PermissionsExt`
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
+warning: `dracon-sync` (bin "dracon-sync" test) generated 1 warning (run `cargo fix --bin "dracon-sync" -p dracon-sync --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 18.45s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 1 test
+test sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes ... FAILED
+
+failures:
+
+---- sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes stdout ----
+🛡️ /tmp/.tmpqShdQY auto-hardened with warden before staging
+
+thread 'sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes' (4008331) panicked at dracon-sync/src/sync/hygiene_tests.rs:92:5:
+production hygiene sync failed: Err(immutable storage verifier executable/source identity or binding mismatch)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1486 filtered out; finished in 0.36s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
