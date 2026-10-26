@@ -1865,4 +1865,6 @@ test sync::bucket_qualification_tests::bucket_qualification_later_materialized_b
 test sync::diff_tests::test_fallback_entries_recalculate_staged_files ... ok
 test sync::diff_tests::test_retain_existing_stage_paths_drops_vanished ... ok
 test sync::excluded_revert::crash_tests::excluded_recovery_legacy_permission_repair_never_follows_archive_symlinks ... ok
-test sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores ... 
+test sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_reseal_changed_records ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late ... 
