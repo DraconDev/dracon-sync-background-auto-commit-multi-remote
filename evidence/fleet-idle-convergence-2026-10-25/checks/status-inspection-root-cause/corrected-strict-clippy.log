@@ -262,3 +262,16 @@
    Compiling libgit2-sys v0.18.8+1.9.7
     Checking futures-executor v0.3.34
     Checking secrecy v0.8.0
+    Checking serde_spanned v0.6.9
+   Compiling unic-langid-impl v0.9.6
+   Compiling toml v0.5.11
+   Compiling basic-toml v0.1.10
+    Checking futures v0.3.34
+    Checking icu_locale_core v2.3.0
+    Checking cookie-factory v0.3.3
+   Compiling unic-langid v0.9.6
+   Compiling zvariant_utils v4.2.0
+   Compiling fluent-langneg v0.13.1
+   Compiling intl-memoizer v0.5.3
+   Compiling i18n-config v0.4.8
+   Compiling intl_pluralrules v7.0.2
