@@ -3098,3 +3098,38 @@ test tests::tests::build_globset_multiple_patterns ... ok
 test tests::tests::build_globset_normalizes_backslash ... ok
 test tests::tests::build_globset_single_pattern_matches ... ok
 test tests::tests::cli_once_hardens_single_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_once_repo_gr40dv/repo/.git/
+ok
+test tests::tests::cli_repair_dry_run_does_not_modify ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_dry_run_97Uyjn/repo/.git/
+ok
+test tests::tests::cli_repair_strict_fails_when_markers_remain ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_strict_untfIA/repo/.git/
+ok
+test tests::tests::cli_resmudge_reports_on_plaintext_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plain_GvfamV/repo/.git/
+ok
+test tests::tests::cli_resmudge_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plaintext_sibling_CibwP1/repo/.git/
+ok
+test tests::tests::cli_scrub_markers_finds_markers_in_json ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_json_Yyh8yt/repo/.git/
+ok
+test tests::tests::cli_scrub_markers_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_plaintext_sibling_mEN8Ce/repo/.git/
+ok
+test tests::tests::conversation_defaults_agree_with_dump_predicate ... ok
+test tests::tests::discover_git_repos_finds_all_git_dirs ... ok
+test tests::tests::discover_git_repos_local_finds_basic_repos ... ok
+test tests::tests::discover_git_repos_local_finds_nested_repositories ... ok
+test tests::tests::discover_git_repos_rejects_symlinked_git_marker ... ok
+test tests::tests::effective_discovery_roots_handles_empty_policy ... ok
+test tests::tests::effective_discovery_roots_merges_watch_and_discover_deduped ... ok
+test tests::tests::effective_protected_patterns_empty_stays_empty ... ok
+test tests::tests::effective_protected_patterns_union_conversation_defaults ... ok
+test tests::tests::effective_repo_roots_handles_empty_policy ... ok
+test tests::tests::effective_repo_roots_merges_and_dedupes ... ok
+test tests::tests::ensure_repo_filter_config_registers_diff_and_merge_drivers ... ok
+test tests::tests::filter_clean_encrypts_content_with_secret_marker ... ok
+test tests::tests::filter_clean_passes_plaintext_unchanged ... ok
+test tests::tests::filter_clean_refusal_reason_fails_closed_for_clean_only ... ok
+test tests::tests::filter_configured_bounds_preserve_default_and_reject_unbounded_limits ... ok
+test tests::tests::filter_process_pkt_round_trip ... ok
+test tests::tests::filter_process_rejects_bad_handshake ... ok
+test tests::tests::filter_process_serve_clean_smudge_and_error ... ok
+test tests::tests::filter_smudge_handles_empty_input ... ok
+test tests::tests::filter_smudge_passes_plaintext_unchanged ... ok
+test tests::tests::filter_transform_batch_matches_oneshot ... 
