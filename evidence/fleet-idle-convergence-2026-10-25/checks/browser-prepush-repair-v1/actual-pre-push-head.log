@@ -152,3 +152,6 @@
   ▸ packages/new-tab-core TEST (548a3a10a563)
   ▸ packages/nightfall TEST (548a3a10a563)
   ▸ wxt-starter TYPECHECK (548a3a10a563)
+  ▸ wxt-starter BUILD (548a3a10a563)
+  ▸ wxt-starter TEST (548a3a10a563)
+  ▸ wxt-starter LINT (548a3a10a563)
