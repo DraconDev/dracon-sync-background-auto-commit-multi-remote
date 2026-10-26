@@ -5336,6 +5336,26 @@ async fn sync_repo_local_with_ownership(
     // `count-objects` per hour per repo in the steady state.
     if !dry_run && !commit_only {
         crate::git::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes).await;
+        // ADDED 2026-10-26: sweep stale `tmp_pack_*` leftovers.
+        // `git gc` reports these as garbage but does NOT remove recent ones
+        // (verified: a fresh 1 MB tmp_pack survived plain `git gc` and was
+        // only collected by `--prune=now`), so auto-gc alone could never
+        // reclaim the 10.71 GiB / 23 files found in
+        // browser-extensions-shared. Each failed push leaks one, and a
+        // busy repo leaks them continuously.
+        let (tmp_files, tmp_freed) = crate::git::sweep_stale_tmp_packs(
+            repo,
+            policy.epoch_spool_max_age_secs,
+        )
+        .await;
+        if tmp_files > 0 {
+            eprintln!(
+                "🗑️ {} reclaimed {} abandoned tmp_pack file(s) ({})",
+                repo.display(),
+                tmp_files,
+                crate::git::human_bytes(tmp_freed)
+            );
+        }
         // ADDED 2026-07-29 (v0.113.10): opt-in janitor for stale
         // daemon-created branches + orphaned remote-tracking refs.
         // Placed with maybe_auto_gc: post-fetch (tracking tips fresh
