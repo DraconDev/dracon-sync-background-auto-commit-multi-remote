@@ -162,3 +162,7 @@ Gate exited with status 1
   ▸ packages/affiliate-deals BUILD (31bd83ca328a)
   ▸ packages/affiliate-deals TEST (31bd83ca328a)
   ▸ packages/affiliate-deals LINT (31bd83ca328a)
+  ▸ packages/brand-icon TYPECHECK (31bd83ca328a)
+  ▸ packages/brand-icon BUILD (31bd83ca328a)
+  ▸ packages/brand-icon TEST (31bd83ca328a)
+  ▸ packages/extension-core TYPECHECK (31bd83ca328a)
