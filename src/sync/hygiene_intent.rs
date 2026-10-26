@@ -98,6 +98,35 @@ pub(in crate::sync) fn persist(repo: &Path, baseline: &StagedIntentSnapshot,
     Ok(())
 }
 
+/// Restore only a recorded OWNED deletion grant, never replace the index or
+/// widen a captured user epoch. Any new/foreign cached delta changes the tree
+/// and therefore cannot inherit this grant.
+pub(in crate::sync) async fn recover(repo:&Path, snapshot:&StagedIntentSnapshot, deadline:Instant) -> Result<BTreeMap<Vec<u8>,String>> {
+    let mut granted=BTreeMap::new();
+    if snapshot.changed.is_empty() { return Ok(granted); }
+    let CapturedHead::Commit(parent)=&snapshot.head else {return Ok(granted)};
+    let tree=snapshot.materialize_tree(repo,deadline).await?;
+    for record in records(repo)? {
+        if &record.intent.parent!=parent || record.intent.tree!=tree {continue;}
+        let original=staged_epoch::git(repo,&["ls-tree","-r","-z","--full-tree",parent],None).await?;
+        let mut identities=BTreeMap::new();
+        for raw in original.stdout.split(|b|*b==0).filter(|r|!r.is_empty()) {
+            let tab=raw.iter().position(|b|*b==b'\t').context("invalid captured artifact tree")?;
+            let fields:Vec<_>=std::str::from_utf8(&raw[..tab])?.split(' ').collect();
+            ensure!(fields.len()==3,"invalid captured artifact identity");
+            identities.insert(raw[tab+1..].to_vec(),(u32::from_str_radix(fields[0],8)?,fields[2].to_owned()));
+        }
+        for proof in record.intent.paths {
+            let path=staged_epoch::path_from_git_bytes(&proof.path)?;
+            ensure!(crate::git::is_safe_git_path(&path) && proof.mode!=0o160000
+                && identities.get(&proof.path)==Some(&(proof.mode,proof.oid.clone()))
+                && snapshot.changed.get(&proof.path)==Some(&None),"uncertain recorded artifact deletion; index retained");
+            granted.insert(proof.path,proof.oid);
+        }
+    }
+    Ok(granted)
+}
+
 pub(in crate::sync) async fn retry(repo:&Path, policy:&SyncPolicy, excluded:&BTreeSet<String>, cleanup:bool, deadline:Instant) -> Result<()> {
     tokio::time::timeout_at(deadline,async {
         for record in records(repo)? {

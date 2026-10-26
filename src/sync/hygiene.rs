@@ -241,7 +241,7 @@ pub(super) async fn verify_deletions(
 #[path = "hygiene_intent.rs"]
 mod intent;
 #[cfg(target_os = "linux")]
-pub(super) use intent::{persist, retry};
+pub(super) use intent::{persist, recover, retry};
 
 pub(super) fn has_pending(repo: &Path) -> Result<bool> {
     #[cfg(target_os = "linux")]

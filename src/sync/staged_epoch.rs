@@ -166,6 +166,8 @@ impl Epoch {
             match Self::capture(repo, timeout_secs).await {
                 Ok(mut epoch) => {
                     epoch.deadline = deadline;
+                    #[cfg(target_os = "linux")]
+                    { epoch.deletions = super::hygiene::recover(repo, &epoch.snapshot, deadline).await?; }
                     Ok(epoch)
                 }
                 Err(original) if auto_resolve => {
@@ -974,7 +976,7 @@ impl Staging {
             // commit actor can publish. Later HEAD no longer contains these
             // paths, so rediscovery is not a durable retry strategy.
             #[cfg(target_os = "linux")]
-            super::hygiene::persist(repo, &self.baseline.snapshot, &epoch.snapshot, &epoch.deletions)?;
+            super::hygiene::persist(repo, &self.baseline.snapshot, &epoch.snapshot, &selected, &epoch.deletions)?;
             #[cfg(not(target_os = "linux"))]
             ensure!(epoch.deletions.is_empty(), "durable artifact reconciliation unsupported; candidate retained");
             let actual_index = git(
