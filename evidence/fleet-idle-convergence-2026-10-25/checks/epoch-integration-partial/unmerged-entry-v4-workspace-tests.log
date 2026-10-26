@@ -2389,4 +2389,26 @@ test result: ok. 14 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; fin
      Running unittests src/main.rs (target/debug/deps/dracon_system-3dae012e9af70063)
 
 running 616 tests
-test cpu_limit::lifecycle_tests::ambiguous_application_and_failed_expiry_remain_recoverable_until_retry_succeeds ... 
+test cpu_limit::lifecycle_tests::ambiguous_application_and_failed_expiry_remain_recoverable_until_retry_succeeds ... ok
+test cpu_limit::lifecycle_tests::expiry_manager_outage_preserves_verified_lease_across_reload_then_restores ... ok
+test cpu_limit::lifecycle_tests::rejected_application_retains_debt_and_next_pass_recovers_before_reapplying ... ok
+test cpu_limit::lifecycle_tests::rejected_timer_retains_intent_without_applying_and_restart_retires_it ... ok
+test cpu_limit::lifecycle_tests::replaced_unit_before_application_and_before_expiry_is_never_mutated ... ok
+test cpu_limit::lifecycle_tests::stale_timer_and_external_quota_preserve_current_ownership ... ok
+test cpu_limit::lifecycle_tests::uncertain_unit_retains_debt_until_confirmed_disappearance_without_writes ... ok
+test cpu_limit::lifecycle_tests::workload_revalidation_failure_leaves_only_unapplied_intent ... ok
+test cpu_limit::tests::incomplete_intent_never_counts_as_enforced_quota ... ok
+test cpu_limit::tests::lease_intent_survives_restart_and_keys_cannot_escape_state_root ... ok
+test cpu_limit::tests::only_isolated_job_scopes_are_eligible ... ok
+test cpu_limit::tests::quota_round_trip_preserves_stricter_existing_limits ... ok
+test cpu_limit::tests::unavailable_unit_identity_never_discards_cpu_debt ... ok
+test doctor::tests::an_absent_systemctl_is_skipped_not_failed ... ok
+test doctor::tests::doctor_checks_show_system_root_and_failure_status ... ok
+test doctor::tests::doctor_covers_m8_watchdog_timers ... ok
+test doctor::tests::doctor_covers_the_guard_itself ... ok
+test doctor::tests::json_envelope_carries_strict_verdict ... ok
+test doctor::tests::legacy_hint_names_checked_path ... ok
+test doctor::tests::strict_ignores_optional_checks ... ok
+test events::tests::concurrent_persistence_keeps_each_record_as_a_json_line ... ok
+test events::tests::oversized_event_is_truncated_to_a_valid_bounded_record ... ok
+test events::tests::oversized_legacy_segments_are_discarded_before_new_events ... 
