@@ -1,0 +1,10 @@
+::error file=apis/services/auth-api/.env.dev::.env file is not warden-encrypted — refusing commit.
+   First line was: # =============================================================================
+   Run 'dracon-warden encrypt apis/services/auth-api/.env.dev' (or ensure the git clean filter is active) and re-stage.
+::error file=apis/services/billing-api/.env.dev::.env file is not warden-encrypted — refusing commit.
+   First line was: # =============================================================================
+   Run 'dracon-warden encrypt apis/services/billing-api/.env.dev' (or ensure the git clean filter is active) and re-stage.
+::error file=apis/services/email-api/.env.dev::.env file is not warden-encrypted — refusing commit.
+   First line was: # =============================================================================
+   Run 'dracon-warden encrypt apis/services/email-api/.env.dev' (or ensure the git clean filter is active) and re-stage.
+pre-commit: 3 unencrypted .env file(s) blocked.
