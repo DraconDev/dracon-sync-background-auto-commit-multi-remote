@@ -1,0 +1,107 @@
+{
+  "scope": {
+    "repo": "/home/dracon/Dev/browser-extensions-shared",
+    "recordedAt": 1793042357.895203,
+    "localSha": "29cdcce8b463d070cf3910cd619a0e189196c06e",
+    "remoteSha": "9a83787ea6852ac11fbf58ea7cc71846746c232e",
+    "remoteName": "gitlab",
+    "branch": "main",
+    "rangeCommitCount": 1856,
+    "hookSha256": "317a8ee594a67d31df430c82d9fb23d05eb50a2f83b5ee98caa2428dabdae7c6",
+    "runnerSha256": "012459268fe5c6a93500455e8940bbbabd016587f77f20b06318c17cb7db1cb3",
+    "installedScopeRepairSha256": "317a8ee594a67d31df430c82d9fb23d05eb50a2f83b5ee98caa2428dabdae7c6",
+    "operations": "read-only advertised ref and local objects; no fetch, push or index mutation"
+  },
+  "command": "installed original composed pre-push hook on immutable post-repair advertised range; no git push",
+  "startedAt": 1793042365.6800368,
+  "log": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/convergence-postrepair-hook-1793042365680028115.log",
+  "deadlineSeconds": 1800,
+  "manualRecoveryPush": false,
+  "gateBypass": false,
+  "exit": 1,
+  "finishedAt": 1793044015.9654853,
+  "logSha256": "62a8764ba6d0fbe22cf1d44d832f6368782f93cbc2a268db9fd1699821dfc8f2",
+  "hookUnchanged": true,
+  "attemptDirectories": [
+    "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.I6fxm5"
+  ],
+  "manifests": [
+    {
+      "manifest": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.I6fxm5/manifest.json",
+      "status": "failed",
+      "error": "Error: ENOSPC: no space left on device, write",
+      "revisionCount": 1,
+      "revisions": [
+        {
+          "sha": "29cdcce8b463d070cf3910cd619a0e189196c06e",
+          "status": "failed",
+          "workspaces": [
+            "affiliate",
+            "extensions/collections/new-tab/bookmarks-new-tab",
+            "extensions/collections/new-tab/dark-new-tab",
+            "extensions/collections/new-tab/infinite-new-tab",
+            "extensions/collections/new-tab/minimalist-new-tab",
+            "extensions/collections/new-tab/new-tab-ultimate",
+            "extensions/collections/new-tab/speed-dial-new-tab",
+            "extensions/collections/new-tab/virtual-pet-new-tab",
+            "extensions/collections/toolkit/chatgpt-toolkit",
+            "extensions/collections/toolkit/gemini-toolkit",
+            "extensions/standalones/ai-chat-toolkit",
+            "extensions/standalones/ai-search",
+            "extensions/standalones/ai-tts-pro",
+            "extensions/standalones/amazon-price-watch",
+            "extensions/standalones/api-debugger",
+            "extensions/standalones/auto-form-filler",
+            "extensions/standalones/bugkit",
+            "extensions/standalones/cinematic-pages-cooler-presentations",
+            "extensions/standalones/clean-web",
+            "extensions/standalones/cursor-style",
+            "extensions/standalones/custom-history",
+            "extensions/standalones/custom-search",
+            "extensions/standalones/dark-mode-themes",
+            "extensions/standalones/death-note-typing-practice",
+            "extensions/standalones/full-page-screenshot",
+            "extensions/standalones/live-reload-pro",
+            "extensions/standalones/SamAI",
+            "extensions/standalones/tabmon",
+            "extensions/standalones/vidpro-extension",
+            "extensions/standalones/volume-and-video-pro",
+            "extensions/standalones/web-time-tracker-limiter",
+            "extensions/standalones/youtube-dislike",
+            "extensions/standalones/youtube-filter",
+            "packages/affiliate-deals",
+            "packages/brand-icon",
+            "packages/extension-core",
+            "packages/extension-forms",
+            "packages/extension-react",
+            "packages/extension-svelte",
+            "packages/new-tab-core",
+            "packages/nightfall",
+            "packages/tsconfig-base",
+            "wxt-starter"
+          ],
+          "failedGates": [
+            {
+              "workspace": "extensions/standalones/ai-chat-toolkit",
+              "gate": "LINT",
+              "exitCode": 1,
+              "log": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.I6fxm5/extensions_standalones_ai-chat-toolkit-LINT.log"
+            },
+            {
+              "workspace": "extensions/standalones/ai-tts-pro",
+              "gate": "LINT",
+              "exitCode": 1,
+              "log": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.I6fxm5/extensions_standalones_ai-tts-pro-LINT.log"
+            },
+            {
+              "workspace": "extensions/standalones/death-note-typing-practice",
+              "gate": "TEST",
+              "exitCode": 1,
+              "log": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.I6fxm5/extensions_standalones_death-note-typing-practice-TEST.log"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
