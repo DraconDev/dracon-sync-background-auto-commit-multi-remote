@@ -11660,6 +11660,7 @@ mod tests {
             push_op_timeout_secs: 300,
             auto_gc_garbage_threshold_bytes: crate::policy::default_auto_gc_garbage_threshold_bytes(
             ),
+            epoch_spool_max_age_secs: crate::policy::default_epoch_spool_max_age_secs(),
             auto_prune_stale_backup_branches: false,
             repo_sync_timeout_secs: 420,
             stage_op_timeout_secs: 60,
