@@ -6,3 +6,5 @@ $ vitest run --passWithNoTests
 https://svelte.dev/e/a11y_click_events_have_key_events
 11:57:06 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:592:8 Non-interactive element `<label>` should not be assigned mouse or keyboard event listeners
 https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+11:57:44 [vite-plugin-svelte] entrypoints/dashboard/components/ToastItem.svelte:18:22 This reference only captures the initial value of `toast`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
