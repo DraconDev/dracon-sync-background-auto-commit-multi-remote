@@ -29,4 +29,41 @@ test report::v011321_tests::rem_cell_active_only_no_excluded ... ok
 test sync::excluded_revert::crash_tests::excluded_recovery_legacy_permission_repair_never_follows_archive_symlinks ... ok
 test sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores ... FAILED
 test sync::excluded_revert::recovery_tests::excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_reseal_changed_records ... ok
-test sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late ... 
+test sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_empty_epoch_followup_observes_foreign_staging_without_resetting_it ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_foreign_lock_prevents_settlement_and_remains_exact ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_late_displaced_writer_after_archival_stays_visible_and_blocked ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_partial_transaction_settles_without_replaying_or_resetting_user_work ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_preexisting_pending_seal_survives_retry_without_overwrite ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_uncertain_displaced_bytes_block_a_raw_clean_repo_even_without_optin ... ok
+test sync::excluded_revert_pipeline_tests::excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_push_hook_work ... ok
+test sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes ... ok
+test sync::excluded_revert_pipeline_tests::excluded_restore_only_excluded_work_needs_no_commit_and_dry_run_preserves_bytes ... ok
+test sync::excluded_revert_tests::excluded_restore_deadline_kills_required_filter_descendants_without_mutation ... ok
+test sync::excluded_revert_tests::excluded_restore_defers_active_writer_without_relocating_its_future_bytes ... ok
+test sync::excluded_revert_tests::excluded_restore_foreign_lock_is_not_removed_or_used_as_hygiene_ownership ... ok
+test sync::excluded_revert_tests::excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untracked ... ok
+test sync::excluded_revert_tests::excluded_restore_preserves_foreign_staged_intent_exactly ... ok
+test sync::excluded_revert_tests::excluded_restore_required_smudge_refusal_and_later_writer_are_not_overwritten ... ok
+test sync::tests::test_check_untracked_threshold_gitignored_excluded ... ok
+test sync::tests::test_excluded_tracked_file_edits_preserved_by_default ... ok
+test sync::tests::test_excluded_tracked_file_reverted_when_opted_in ... ok
+test sync::tests::test_stage_existing_files_filtered_skips_excluded_pattern_nested ... ok
+test sync::tests::test_sync_repo_unstages_excluded_dir_paths ... [master (root-commit) 635a9ac] init
+ok
+
+failures:
+
+---- sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores stdout ----
+
+thread 'sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores' (1409741) panicked at dracon-sync/src/sync/excluded_revert_crash_tests.rs:136:10:
+parent death releases the actual kernel lease: Os { code: 11, kind: WouldBlock, message: "Resource temporarily unavailable" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores
+
+test result: FAILED. 47 passed; 1 failed; 0 ignored; 0 measured; 1442 filtered out; finished in 35.03s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
