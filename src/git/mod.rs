@@ -5347,6 +5347,95 @@ pub(crate) async fn maybe_prune_stale_backup_branches(
 }
 
 #[cfg(test)]
+mod tmp_pack_sweep_tests {
+    //! ADDED 2026-10-26 (disk-exhaustion incident).
+    //!
+    //! `git gc` reports `tmp_pack_*` as garbage but does NOT delete recent
+    //! ones — verified empirically: a fresh 1 MB tmp_pack survived plain
+    //! `git gc`, and only `--prune=now` collected it. Since this codebase
+    //! deliberately never uses `--prune=now`, these files had NO reclaimer
+    //! at all: browser-extensions-shared reached 23 files / 10.71 GiB
+    //! against 3.32 GiB of real pack (76% of `.git` dangling), and
+    //! ai-auto-writer repeatedly hit 28-66 GiB.
+    //!
+    //! These tests pin the two properties that matter: an aged tmp_pack is
+    //! reclaimed, and a pack that is still being written (fresh) or that is
+    //! not a tmp_pack is never touched.
+
+    fn init_repo() -> (tempfile::TempDir, std::path::PathBuf) {
+        let root = tempfile::tempdir().unwrap();
+        let status = crate::policy::std_git_command()
+            .args(["init", "-q", "-b", "main"])
+            .arg(root.path())
+            .status()
+            .unwrap();
+        assert!(status.success());
+        let pack = root.path().join(".git/objects/pack");
+        std::fs::create_dir_all(&pack).unwrap();
+        (root, pack)
+    }
+
+    fn write_aged(pack: &std::path::Path, name: &str, bytes: usize, age_secs: u64) {
+        let path = pack.join(name);
+        std::fs::write(&path, vec![7u8; bytes]).unwrap();
+        if age_secs > 0 {
+            let when = std::time::SystemTime::now()
+                - std::time::Duration::from_secs(age_secs);
+            std::fs::File::options()
+                .write(true)
+                .open(&path)
+                .unwrap()
+                .set_modified(when)
+                .unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn aged_tmp_pack_is_reclaimed_and_reported() {
+        let (root, pack) = init_repo();
+        write_aged(&pack, "tmp_pack_OLDAAA", 4096, 7200);
+        let (files, freed) = super::sweep_stale_tmp_packs(root.path(), 3600).await;
+        assert_eq!(files, 1, "the aged tmp_pack must be reclaimed");
+        assert_eq!(freed, 4096, "the freed byte count must be reported");
+        assert!(!pack.join("tmp_pack_OLDAAA").exists());
+    }
+
+    #[tokio::test]
+    async fn fresh_tmp_pack_survives_because_it_may_still_be_writing() {
+        let (root, pack) = init_repo();
+        write_aged(&pack, "tmp_pack_NEWBBB", 4096, 0);
+        let (files, _) = super::sweep_stale_tmp_packs(root.path(), 3600).await;
+        assert_eq!(files, 0, "a tmp_pack still being written must survive");
+        assert!(pack.join("tmp_pack_NEWBBB").exists());
+    }
+
+    #[tokio::test]
+    async fn real_packs_and_other_object_files_are_never_touched() {
+        let (root, pack) = init_repo();
+        // A REAL pack a ref may depend on, aged like the tmp one.
+        write_aged(&pack, "pack-0123456789abcdef.pack", 4096, 86_400);
+        write_aged(&pack, "pack-0123456789abcdef.idx", 4096, 86_400);
+        // A loose object file is equally not ours.
+        write_aged(&pack, "something_else", 4096, 86_400);
+        let (files, _) = super::sweep_stale_tmp_packs(root.path(), 3600).await;
+        assert_eq!(files, 0, "only tmp_pack_* names are candidates");
+        assert!(pack.join("pack-0123456789abcdef.pack").exists());
+        assert!(pack.join("pack-0123456789abcdef.idx").exists());
+        assert!(pack.join("something_else").exists());
+    }
+
+    #[tokio::test]
+    async fn non_repo_path_is_a_silent_no_op() {
+        let root = tempfile::tempdir().unwrap();
+        assert_eq!(
+            super::sweep_stale_tmp_packs(root.path(), 3600).await,
+            (0, 0),
+            "a non-repo path must not error or delete anything"
+        );
+    }
+}
+
+#[cfg(test)]
 mod auto_gc_tests {
     /// v0.113.2 (SYNC-H3): threshold 0 disables; a repo below the
     /// threshold is a no-op (and records no attempt cooldown).
