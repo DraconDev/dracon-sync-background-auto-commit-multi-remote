@@ -364,15 +364,15 @@ async fn excluded_recovery_finalizes_once_and_never_relocates_a_later_canonical_
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    assert_eq!(
+    assert!(
         serde_json::from_slice::<(String, bool)>(&output.stdout)
             .unwrap()
             .1,
-        true
+        "helper must finalize the exchange"
     );
-    // Helper exited: no rollback remains available. The canonical path must now
-    // hold the desired inode and bytes, and the displaced original must be the
-    // ONLY other copy.
+    // The helper has exited, so no rollback can exist any more. The canonical
+    // path must hold the desired inode/bytes; the displaced original must be
+    // the only other copy and must stay in the private location.
     let canonical = std::fs::metadata(r.join("one.log")).unwrap();
     assert_eq!(canonical.ino(), desired_inode);
     assert_eq!(std::fs::read(r.join("one.log")).unwrap(), b"HEAD one.log\n");
@@ -380,47 +380,35 @@ async fn excluded_recovery_finalizes_once_and_never_relocates_a_later_canonical_
         std::fs::read(pending.join("files/one.log")).unwrap(),
         b"operator one.log\n"
     );
-    // Settlement classifies the private copy as the exchanged original.
-    assert!(!super::super::has_pending_excluded_recovery(r).unwrap() || true);
     assert!(settle_pending(r, Instant::now() + Duration::from_secs(5))
         .await
         .unwrap());
-    let note = std::fs::read_dir(&r.join(".git/dracon-excluded-archive"))
+    assert!(!super::super::has_pending_excluded_recovery(r).unwrap());
+    // Settlement must classify the exchanged original, not claim the private
+    // copy proves the canonical file was never touched.
+    let archive = r.join(".git/dracon-excluded-archive");
+    let record = std::fs::read_dir(&archive)
         .unwrap()
         .filter_map(|e| e.ok())
         .map(|e| e.path())
         .find(|p| p.is_dir())
-        .map(|p| std::fs::read(p.join("archive-state.json")).unwrap())
-        .unwrap_or_else(|| {
-            std::fs::read_dir(&r.join(".git/dracon-excluded-archive"))
+        .map(|p| {
+            std::fs::read_dir(p)
                 .unwrap()
                 .filter_map(|e| e.ok())
-                .map(|e| e.path().join("settlement-.json"))
-                .find(|p| p.exists())
-                .map(|p| std::fs::read(p).unwrap())
-                .unwrap()
-        });
-    let archive_dir = std::fs::read_dir(&r.join(".git/dracon-excluded-archive"))
-        .unwrap()
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .find(|p| p.is_dir())
-        .unwrap();
-    let record = std::fs::read_dir(&archive_dir)
-        .unwrap()
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .find(|p| {
-            p.file_name()
-                .unwrap()
-                .to_string_lossy()
-                .starts_with("settlement-")
+                .map(|e| e.path())
+                .find(|p| {
+                    p.file_name()
+                        .unwrap()
+                        .to_string_lossy()
+                        .starts_with("settlement-")
+                })
+                .map(|p| std::fs::read_to_string(p).unwrap())
         })
-        .map(|p| std::fs::read_to_string(p).unwrap());
-    let _ = note;
-    if let Some(record) = record {
-        assert!(record.contains("canonical-exchange-settled"), "{record}");
-    }
+        .flatten()
+        .expect("settlement record retained");
+    assert!(record.contains("canonical-exchange-settled"), "{record}");
+    assert!(!record.contains("untouched-or-rolled-back"), "{record}");
 }
 
 #[tokio::test]
