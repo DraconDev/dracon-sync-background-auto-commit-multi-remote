@@ -431,7 +431,7 @@ impl Epoch {
     /// Returns true when index/worktree follow-up remains. One absolute deadline
     /// owns every child, hook, guard, signing operation and ref transaction.
     pub(super) async fn commit(
-        self,
+        mut self,
         repo: &Path,
         message: &str,
         policy: &SyncPolicy,
