@@ -428,3 +428,18 @@ OK    200  https://awin1.com/
 OK    200  https://c.duomai.com/
 OK    200  https://click.linksynergy.com/
 WARN  403  WAF-botblock(maybe-live)  https://go.nordpass.io/
+OK    302  https://go.nordvpn.net/
+OK    200  https://impact.com/
+OK    200  https://www.jdoqocy.com/
+OK    307  https://redirect.viglink.com/
+== Source placeholder scan (shared/lib/attribution.js) ==
+OK    network-source-clean  /home/dracon/Dev/browser-extensions-shared/affiliate/shared/lib/attribution.js
+== summary: OK=57 WARN=11 DEAD=0 ==
+STRICT OK: no persistent 404/410 drift.
+==> [3/5] build deal-dashboard (affected-only: skipped unless the pushed range touches it)
+Building: deal-dashboard
+  config OK: Deal Dashboard New Tab
+  schema OK: Deal Dashboard New Tab (against config.schema.json)
+manifest.json references missing files: popup.html, newtab/index.html
+ERROR: build failed: deal-dashboard (previous output preserved)
+CI FAIL: deal-dashboard build (exit 1)
