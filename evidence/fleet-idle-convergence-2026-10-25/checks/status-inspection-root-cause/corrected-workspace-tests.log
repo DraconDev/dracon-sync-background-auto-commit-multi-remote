@@ -1924,4 +1924,21 @@ test sync::staged_epoch::tests::only_typed_intent_conflicts_are_nonfailure_defer
 test sync::staged_epoch::tests::ordinary_size_rejection_prunes_only_private_delta_but_refuses_captured_intent ... ok
 test sync::staged_epoch::tests::private_staging_foreign_child_is_not_a_prefix_waiver ... ok
 test sync::staged_epoch::tests::private_staging_same_path_conflict_retains_both_payloads ... ok
-test sync::staged_epoch::tests::published_epoch_deadline_is_pending_not_a_failed_commit ... 
+test sync::staged_epoch::tests::published_epoch_deadline_is_pending_not_a_failed_commit ... ok
+test sync::staged_epoch::tests::zero_batch_limit_accepts_all_captured_files_without_relaxing_positive_limit ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_concurrent_index_ref_and_deadline_refuse_without_losing_data ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_foreign_lock_disabled_policy_and_active_merge_preserve_exact_index ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_never_relocates_an_active_worktree_writer ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_preserves_prior_partial_staging_and_rejects_late_cached_replacement ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_commits_only_verified_entry_staging_and_preserves_worktree ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_resolves_stale_slots_without_manufacturing_a_commit ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_resolves_exact_names_and_retains_all_stage_payloads_independently ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_retention_budget_uses_actual_blob_sizes_and_preserves_index_on_refusal ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_unknown_worktree_and_nonzero_other_index_flags_refuse_intact ... ok
+test sync::tests::bootstrap_absolute_staging_deadline_cancels_hardener_descendants ... ok
+test sync::tests::captured_epoch_commits_partial_index_and_keeps_unstaged_work ... [master (root-commit) 8fa0539] init
+ok
+test sync::tests::committed_epoch_outcome_keeps_local_pending_and_transport_failure_distinct ... ok
+test sync::tests::github_mirror_comparison_accepts_transport_variants ... ok
+test sync::tests::github_mirror_comparison_uses_repository_identity_not_host_only ... ok
+test sync::tests::index_deferral_backlog_publication_preserves_meaningful_hook_refusal ... 
