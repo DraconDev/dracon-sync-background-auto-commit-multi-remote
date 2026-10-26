@@ -120,7 +120,13 @@ impl IndexLock {
     /// exactly because it is only reused when mode and object id still match:
     /// Git re-validates size/mtime/ctime before trusting it, so a stale entry
     /// can only ever cost an extra hash, never report wrong content.
-    pub(crate) fn install_index(&mut self, source: &Path, index: &Path) -> Result<()> {
+    pub(crate) async fn install_index(
+        &mut self,
+        repo: &Path,
+        source: &Path,
+        index: &Path,
+        deadline: tokio::time::Instant,
+    ) -> Result<()> {
         use std::io::{Read, Write};
         anyhow::ensure!(self.is_owned(), "index lock replaced before install");
         let source = std::fs::File::open(source)?;
@@ -134,8 +140,15 @@ impl IndexLock {
             bytes.len() <= 64 * 1024 * 1024,
             "private index grew past budget"
         );
-        let merged = carry_over_stat_data(index, &bytes).unwrap_or(bytes);
-
+        let previous = std::fs::read(index)?;
+        anyhow::ensure!(previous.len() <= 64 * 1024 * 1024, "actual index exceeds budget");
+        let merged = tokio::time::timeout_at(
+            deadline, carry_over_stat_data(repo, index, &previous, &bytes),
+        ).await.context("stat-cache merge deadline expired; actual index preserved")?
+            .unwrap_or(bytes);
+        anyhow::ensure!(tokio::time::Instant::now() < deadline, "index installation deadline expired");
+        anyhow::ensure!(self.is_owned(), "index lock replaced during stat merge");
+        anyhow::ensure!(std::fs::read(index)? == previous, "actual index changed during stat merge; preserved");
         self.file.write_all(&merged)?;
         self.file.sync_all()?;
         anyhow::ensure!(self.is_owned(), "index lock replaced during install");
@@ -188,78 +201,81 @@ type StageEntry = (Vec<u8>, Vec<u8>, Vec<u8>);
 ///
 /// Returns `None` when the merge cannot be produced or verified, and the caller
 /// then installs the private index byte-for-byte (the previous behaviour).
-fn carry_over_stat_data(index: &Path, wanted: &[u8]) -> Option<Vec<u8>> {
-    use std::io::Write;
-    use std::process::{Command, Stdio};
-    let repo = index.parent()?.parent()?;
+async fn carry_over_stat_data(repo: &Path, index: &Path, previous: &[u8], wanted: &[u8]) -> Option<Vec<u8>> {
     let workspace = tempfile::Builder::new()
         .prefix("dracon-stat-")
         .tempdir_in(index.parent()?)
         .ok()?;
     let private = workspace.path().join("private.index");
     std::fs::write(&private, wanted).ok()?;
-    let listing = |path: &Path| -> Option<Vec<StageEntry>> {
-        let output = Command::new("git")
-            .args(["ls-files", "--stage", "-z"])
-            .current_dir(repo)
-            .env("GIT_INDEX_FILE", path)
-            .env("GIT_NO_LAZY_FETCH", "1")
-            .env("GIT_OPTIONAL_LOCKS", "0")
-            .output()
-            .ok()?;
+    let before_path = workspace.path().join("before.index");
+    std::fs::write(&before_path, previous).ok()?;
+    let before = stat_index_listing(repo, &before_path).await?;
+    let after = stat_index_listing(repo, &private).await?;
+    let merged = workspace.path().join("merged.index");
+    std::fs::write(&merged, previous).ok()?;
+    let delta = stat_index_delta(&before, &after);
+    if !delta.is_empty() {
+        let mut command = stat_index_command(repo, &merged);
+        command.args(["update-index", "-z", "--index-info"]);
+        let output = super::run_command_captured_output(
+            command, 60, "private stat-cache delta", Some(&delta),
+        ).await.ok()?;
         if !output.status.success() {
             return None;
         }
-        parse_stage_entries(&output.stdout)
-    };
-    let before = listing(index)?;
-    let after = listing(&private)?;
-    let merged = workspace.path().join("merged.index");
-    std::fs::copy(index, &merged).ok()?;
-    let mut delta = Vec::new();
-    for (mode, oid, path) in &after {
-        let unchanged = before
-            .iter()
-            .any(|(m, o, p)| m == mode && o == oid && p == path);
-        if !unchanged {
-            delta.extend_from_slice(mode);
-            delta.push(b' ');
-            delta.extend_from_slice(oid);
-            delta.push(b'\t');
-            delta.extend_from_slice(path);
-            delta.push(0);
-        }
     }
-    for (_, _, path) in &before {
-        if !after.iter().any(|(_, _, p)| p == path) {
-            delta.extend_from_slice(b"0 0000000000000000000000000000000000000000\t");
-            delta.extend_from_slice(path);
-            delta.push(0);
-        }
-    }
-    if !delta.is_empty() {
-        let mut child = Command::new("git")
-            .args(["update-index", "-z", "--index-info"])
-            .current_dir(repo)
-            .env("GIT_INDEX_FILE", &merged)
-            .env("GIT_NO_LAZY_FETCH", "1")
-            .env("GIT_OPTIONAL_LOCKS", "0")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .ok()?;
-        child.stdin.as_mut()?.write_all(&delta).ok()?;
-        drop(child.stdin.take());
-        if !child.wait().ok()?.success() {
-            return None;
-        }
-    }
-    let merged_entries = listing(&merged)?;
+    let merged_entries = stat_index_listing(repo, &merged).await?;
     if merged_entries != after {
         return None;
     }
     std::fs::read(&merged).ok()
+}
+
+fn stat_index_command(repo: &Path, index: &Path) -> tokio::process::Command {
+    let mut command = crate::policy::tokio_git_command();
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") { command.env_remove(key); }
+    }
+    command.current_dir(repo).env("GIT_INDEX_FILE", index)
+        .env("GIT_NO_LAZY_FETCH", "1").env("GIT_OPTIONAL_LOCKS", "0");
+    command.into_tokio()
+}
+
+async fn stat_index_listing(repo: &Path, index: &Path) -> Option<Vec<StageEntry>> {
+    let mut command = stat_index_command(repo, index);
+    command.args(["ls-files", "--stage", "-z"]);
+    let output = super::run_command_captured_output(
+        command, 60, "private stat-cache listing", None,
+    ).await.ok()?;
+    if !output.status.success() { return None; }
+    parse_stage_entries(&output.stdout)
+}
+
+// Path-keyed lookups avoid two quadratic scans on large (87k+ path) repos.
+fn stat_index_delta(before: &[StageEntry], after: &[StageEntry]) -> Vec<u8> {
+    use std::collections::BTreeMap;
+    let old: BTreeMap<_, _> = before.iter().map(|(m,o,p)| (p, (m,o))).collect();
+    let new: BTreeMap<_, _> = after.iter().map(|(m,o,p)| (p, (m,o))).collect();
+    let mut delta = Vec::new();
+    for (path, (mode, oid)) in &new {
+        if old.get(path) == Some(&(*mode, *oid)) { continue; }
+        delta.extend_from_slice(mode);
+        delta.push(b' ');
+        delta.extend_from_slice(oid);
+        delta.push(b'\t');
+        delta.extend_from_slice(path);
+        delta.push(0);
+    }
+    let width = before.first().or(after.first()).map_or(40, |(_,oid,_)| oid.len());
+    for path in old.keys().filter(|path| !new.contains_key(*path)) {
+        delta.extend_from_slice(b"0 ");
+        delta.extend(std::iter::repeat_n(b'0', width));
+        delta.push(b'\t');
+        delta.extend_from_slice(path);
+        delta.push(0);
+    }
+    delta
 }
 
 /// Parse `git ls-files --stage -z` into sorted `(mode, oid, path)` triples.
@@ -1162,8 +1178,8 @@ mod tests {
 }
 
 #[cfg(all(test, unix))]
-#[test]
-fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
+#[tokio::test]
+async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
     // Reproduced defect (2026-10-26): epochs install a `read-tree` index that
     // carries NO stat data, so the next `git status` re-runs the clean filter
     // for every tracked file. In a warden-filtered repo that cost 147-274s and
@@ -1225,7 +1241,7 @@ fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
         .unwrap();
     assert!(out.status.success());
     let mut lock = IndexLock::try_acquire_path(index.with_extension("lock")).unwrap();
-    lock.install_index(&private, &index).unwrap();
+    lock.install_index(repo, &private, &index, tokio::time::Instant::now() + std::time::Duration::from_secs(10)).await.unwrap();
     drop(lock);
     assert_eq!(
         zeroed(&index),
