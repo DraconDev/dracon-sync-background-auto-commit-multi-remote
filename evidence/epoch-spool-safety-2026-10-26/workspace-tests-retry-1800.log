@@ -384,4 +384,6 @@ test storage_core::hydration::tests::crash_helper ... ignored, subprocess helper
 test storage_core::hydration::tests::crash_recovery_resumes_capture_and_publication_without_original_cache_changes ... ok
 test storage_core::hydration::tests::hydration_preserves_index_backup_and_cache_and_restores_executable_mode ... ok
 test storage_core::hydration::tests::hydration_version_capacity_preserves_prior_backup_and_verified_cache ... ok
-test storage_core::hydration::tests::local_edits_corrupt_cache_wrong_references_and_capacity_never_replace_working_bytes ... 
+test storage_core::hydration::tests::local_edits_corrupt_cache_wrong_references_and_capacity_never_replace_working_bytes ... ok
+test storage_core::hydration::tests::local_resume_needs_no_original_recovery_cache_and_preserves_edits ... ok
+test storage_core::hydration::tests::local_resume_refuses_corrupt_output_intent_and_missing_preparation ... 
