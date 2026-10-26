@@ -1,0 +1,43 @@
+{
+  "at": "2026-10-26T11:44:51.340331+00:00",
+  "schema": 2,
+  "scope": "FINAL no-rollback protocol: ONE finalizing exchange, bilateral post-exchange fingerprint proof, no second exchange. Isolated disposable fixtures + owned ptrace process only. NOT installed/deployed; no fleet claim.",
+  "reproducedDefect": "exchange-syscalls-v1.json (exit1) legacy rollback relocated newer canonical writer inode 36999145 into private storage after canonical returned to 36999126; later bytes never reached canonical path",
+  "reproducedSecondDefect": "exchange-syscalls-cancel-v1.json single-exchange-plus-cancel left the queued old-inode writer resolving to the NEW canonical file (oldWriterLandedOnCanonical), so \"just delete rollback\" was NOT sufficient; the displaced-stamp/concern contract and bilateral proof are required",
+  "fix": {
+    "singleFinalization": "dracon-sync/src/sync/excluded_revert.rs exchange branch performs exactly one RENAME_EXCHANGE; rollback removed",
+    "bilateralProof": "after exchange, private must equal before and canonical must equal desired; mismatch reports uncertainty instead of a second exchange",
+    "settlement": "settle_directory distinguishes private-desired-payload-retained vs canonical-exchange-settled; archive stamp probe still turns a later displaced-inode write into a real concern",
+    "absentPath": "RENAME_NOREPLACE create path unchanged (no pre-existing inode to displace)"
+  },
+  "gates": {
+    "workspace_tests": "workspace_tests exit=0",
+    "release_build": "release exit=0",
+    "clippy": "clippy exit=0",
+    "deny": "deny exit=0"
+  },
+  "regressions": {
+    "excluded_recovery": "norollback-v4-excluded-recovery-tests.log 12passed/0failed including excluded_recovery_finalizes_once_and_never_relocates_a_later_canonical_writer",
+    "actual_syscall_debug_helper": "exchange-syscalls-norollback-v2.json pass=true",
+    "actual_syscall_release_binary": "exchange-syscalls-release-v2.json pass=true"
+  },
+  "identities": {
+    "release_binary_sha256": "8e5fb4fd744e3239e4f2b4ba095783a29414953a73fc34ff0cf8b296ab5fec4e",
+    "debug_helper_sha256": "17cca9e6def42ac31638ad075812905f636486ca95366ea446da6d690cc3cde4"
+  },
+  "notProven": [
+    "installed/loaded daemon identity and live behavior",
+    "original product/hook gates per repaired repository",
+    "cancellation, timeout, ENOSPC, restart and unsupported-filesystem interleavings",
+    "concurrent replacement of the canonical leaf by a third party",
+    "zero-batch policy migration",
+    "every-watched clean/idle autonomous-publication observation"
+  ],
+  "sourceSha256": {
+    "sync/excluded_revert.rs": "9ca8a4ed240f49bb4380054d7d237a0444a3f5d0807a14da9fcf2a4ac1fcdb98",
+    "sync/excluded_revert_recovery_tests.rs": "755773ccdf15b7118dc466f8aa94165ee3ccf0746650fe3b66042d76f84eb244",
+    "sync/hygiene_intent.rs": "6c7bdc5d21ff7c2e357e2cab73786b7f59f628d8188f8cdcec7ef080d988a7ef",
+    "../exclude/hygiene.rs": "08716fbdc7da068e9291e2486e8444da82d67848177db72d6cd3ab872d19ab7d",
+    "../sync/hygiene_tests.rs": "935deb11a2098e84baba7bf1c9d677a073171ed2e2ca6ea5c6819059ab1b0cb7"
+  }
+}
