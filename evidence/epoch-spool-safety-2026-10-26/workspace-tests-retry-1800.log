@@ -1012,4 +1012,23 @@ test git::staged_intent::tests::partial_staged_reverted_worktree_deletion_modes_
 test git::staged_intent::tests::shared_git_runner_deadline_and_drop_terminate_owned_descendant ... ok
 test git::staged_intent::tests::unborn_rename_and_sha256 ... ok
 test git::staged_intent::tests::unmerged_and_intent_to_add_refuse_without_index_changes ... ok
-test git::staged_intent::tests::unsupported_flags_sparse_and_split_index_refuse ... 
+test git::staged_intent::tests::unsupported_flags_sparse_and_split_index_refuse ... ok
+test git::staging::detect_large_blobs_ahead_regression::reports_a_blob_committed_ahead_of_upstream ... ok
+test git::staging::detect_large_blobs_ahead_regression::rev_list_failure_propagates_instead_of_empty ... ok
+test git::staging::tests::large_blob_record_preserves_spaces_in_path ... ok
+test git::staging::tests::test_build_filter_branch_args_escapes_single_quotes ... ok
+test git::staging::tests::test_build_filter_branch_args_shape ... ok
+test git::staging::tests::test_f31_noop_rewrite_deletes_backup_branch ... Parsed 1 commitsHEAD is now at 206dc08 init
+
+New history written in 0.03 seconds...
+Completely finished after 0.05 seconds.
+ok
+test git::staging::tests::test_real_rewrite_returns_outcome_with_bundle_and_lease ... Parsed 1 commitsHEAD is now at 87e2e27 c1
+
+New history written in 0.05 seconds...
+Completely finished after 0.07 seconds.
+ok
+test git::staging::tests::test_unstage_oversized_paths_exempts_gitlinks ... ok
+test git::staging::tests::test_unstage_oversized_paths_measures_staged_blob_not_worktree ... ok
+test git::staging::tests::test_unstage_oversized_paths_quotes_glob_metachars ... ok
+test git::status::installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries ... 
