@@ -1071,3 +1071,48 @@ test git::sync_lease::tests::child_process_lease_probe ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1504 filtered out; finished in 0.00s
 
+
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1504 filtered out; finished in 0.00s
+
+
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1504 filtered out; finished in 0.00s
+
+
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1504 filtered out; finished in 0.00s
+
+ok
+test git::tests::test_auto_create_all_remotes_codeberg_missing_token ... ok
+test git::tests::test_auto_create_all_remotes_codeberg_override_opt_in ... ok
+test git::tests::test_auto_create_all_remotes_empty_when_no_auto_create ... ok
+test git::tests::test_auto_create_all_remotes_generic_error ... ok
+test git::tests::test_auto_create_all_remotes_github_success ... ok
+test git::tests::test_auto_create_all_remotes_gitlab_success ... ok
+test git::tests::test_codeberg_https_url_already_https ... ok
+test git::tests::test_codeberg_https_url_non_codeberg ... ok
+test git::tests::test_codeberg_https_url_ssh_colon_path ... ok
+test git::tests::test_codeberg_https_url_ssh_protocol ... ok
+test git::tests::test_configure_all_remotes_adds_mirror ... ok
+test git::tests::test_configure_all_remotes_adds_multiple ... ok
+test git::tests::test_configure_all_remotes_idempotent ... ok
+test git::tests::test_consolidate_to_main_deletes_master_and_keeps_main ... [master (root-commit) 7cf264d] init
+ 6 files changed, 165 insertions(+)
+ create mode 100644 bare.git/HEAD
+ create mode 100644 bare.git/config
+ create mode 100755 bare.git/hooks/pre-commit
+ create mode 100755 bare.git/hooks/pre-push
+ create mode 100755 bare.git/hooks/pre-rebase
+ create mode 100644 file.txt
+To /tmp/.tmpXfy8ag/bare.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+Switched to a new branch 'main'
+[main 834af03] main commit
