@@ -3169,4 +3169,18 @@ test tests::tests::policy_roots_expand_tilde_before_existence_filtering ... ok
 test tests::tests::pre_commit_hook_allows_unmanaged_repo ... ok
 test tests::tests::pre_commit_hook_bare_repo_unmarked_passes ... ok
 test tests::tests::pre_commit_hook_blocks_managed_repo_with_drift ... ok
-test tests::tests::pre_commit_hook_blocks_managed_repo_with_only_global_filter_config ... 
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_only_global_filter_config ... ok
+test tests::tests::pre_commit_hook_blocks_when_merge_driver_key_missing ... ok
+test tests::tests::pre_commit_hook_blocks_when_only_commented_filters_remain ... ok
+test tests::tests::pre_commit_hook_blocks_when_required_key_false ... ok
+test tests::tests::pre_commit_hook_blocks_when_required_key_missing ... ok
+test tests::tests::pre_commit_hook_blocks_when_textconv_key_missing ... ok
+test tests::tests::pre_commit_hook_chains_to_foreign_repo_local_hook ... ok
+test tests::tests::pre_commit_hook_commented_filters_do_not_mark_managed ... ok
+test tests::tests::pre_commit_hook_does_not_recurse_into_warden_seeded_local_hook ... ok
+test tests::tests::pre_commit_hook_no_repo_context_exits_1_with_message ... ok
+test tests::tests::pre_commit_hook_propagates_foreign_hook_failure ... ok
+test tests::tests::pre_commit_hygiene_distinguishes_exact_visual_inputs_from_frame_caches ... ok
+test tests::tests::pre_commit_hygiene_does_not_grant_blanket_or_nested_machine_local_exemptions ... ok
+test tests::tests::pre_commit_hygiene_honors_scoped_sources_without_skipping_security ... ok
+test tests::tests::pre_commit_hygiene_visual_source_permission_is_exact_and_not_cache_permission ... 
