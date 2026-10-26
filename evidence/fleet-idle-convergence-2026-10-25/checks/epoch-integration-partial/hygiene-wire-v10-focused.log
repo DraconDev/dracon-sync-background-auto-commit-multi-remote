@@ -12,4 +12,22 @@ test sync::excluded_revert_tests::excluded_restore_foreign_lock_is_not_removed_o
 test sync::hygiene::tests::hygiene_never_absorbs_foreign_operator_staging ... ok
 test sync::hygiene::tests::hygiene_opt_out_and_dry_run_leave_tracking_and_ignore_untouched ... ok
 test sync::hygiene::tests::hygiene_preserves_active_writer_and_untracked_large_bytes ... ok
-test sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes ... 
+test sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes ... FAILED
+
+failures:
+
+---- sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes stdout ----
+🛡️ /tmp/.tmp0wW6uf auto-hardened with warden before staging
+📝 committed 4 file(s) in /tmp/.tmp0wW6uf
+
+thread 'sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes' (4034322) panicked at dracon-sync/src/sync/hygiene_tests.rs:106:5:
+assertion failed: ignore.contains("/huge.iso")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes
+
+test result: FAILED. 9 passed; 1 failed; 0 ignored; 0 measured; 1477 filtered out; finished in 2.76s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
