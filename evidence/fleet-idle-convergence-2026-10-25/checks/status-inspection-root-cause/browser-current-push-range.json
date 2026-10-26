@@ -1,0 +1,14 @@
+{
+  "repo": "/home/dracon/Dev/browser-extensions-shared",
+  "recordedAt": 1793041319.8687856,
+  "localSha": "fe1b07a2aeacbb1d89d60c91557b8aef58f00d48",
+  "remoteSha": "9a83787ea6852ac11fbf58ea7cc71846746c232e",
+  "remoteName": "gitlab",
+  "branch": "main",
+  "rangeCommitCount": 1842,
+  "changedPathCount": 1016,
+  "hook": "/home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/pre-push",
+  "hookSha256": "192dff356ea894d44b1f48e58495a8920a29bdcc4d7b433197ccbc4e1a398a72",
+  "runnerSha256": "012459268fe5c6a93500455e8940bbbabd016587f77f20b06318c17cb7db1cb3",
+  "operations": "read-only advertised ref and local objects; no fetch, push or index mutation"
+}
