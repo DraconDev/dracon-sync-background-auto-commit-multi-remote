@@ -1,1 +1,34 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+error: called `map(..).flatten()` on `Option`
+   --> dracon-sync/src/sync/excluded_revert_recovery_tests.rs:395:10
+    |
+395 |           .map(|p| {
+    |  __________^
+396 | |             std::fs::read_dir(p)
+397 | |                 .unwrap()
+398 | |                 .filter_map(|e| e.ok())
+...   |
+407 | |         })
+408 | |         .flatten()
+    | |__________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#map_flatten
+    = note: `-D clippy::map-flatten` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::map_flatten)]`
+help: try replacing `map` with `and_then` and remove the `.flatten()`
+    |
+395 ~         .and_then(|p| {
+396 +             std::fs::read_dir(p)
+397 +                 .unwrap()
+398 +                 .filter_map(|e| e.ok())
+399 +                 .map(|e| e.path())
+400 +                 .find(|p| {
+401 +                     p.file_name()
+402 +                         .unwrap()
+403 +                         .to_string_lossy()
+404 +                         .starts_with("settlement-")
+405 +                 })
+406 +                 .map(|p| std::fs::read_to_string(p).unwrap())
+407 +         })
+    |
+
