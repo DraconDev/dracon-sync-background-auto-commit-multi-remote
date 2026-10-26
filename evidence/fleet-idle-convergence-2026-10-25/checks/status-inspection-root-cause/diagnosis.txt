@@ -37,8 +37,19 @@ it cannot alter content, staging, hooks or policy. Measured:
   browser-extensions-shared 147s -> 6.0s
   dracon-platform           197s -> 1.5-2.5s (zeroed 11959 -> 22)
 
-## Why it recurs and what is NOT done
-The daemon re-runs the epoch path on each commit, zeroing the cache again.
-The durable fix is to preserve stat data for entries whose (mode, oid) are
-unchanged, or to refresh under the owned lock after install. That is a
-SOURCE change and has NOT been implemented or deployed.
+## Durable source fix (implemented, gated, deployed)
+IndexLock::install_index now calls carry_over_stat_data: it starts from the
+CURRENT index (warm cache), applies only the (mode, oid, path) delta through
+`git update-index -z --index-info`, verifies the merged index equals the private
+index via `git ls-files --stage`, and otherwise falls back to installing the
+private index byte-for-byte. Stat data is therefore retained only for entries
+whose mode and object id are unchanged, which Git re-validates by size/mtime
+before trusting; conflicted (stage != 0) indexes are never merged.
+
+## Post-fix verification (deployed build 7176180470e4e81b)
+browser-extensions-shared: after 3 daemon publications the index stayed warm
+  (zeroed 2) and `git status` took 857ms, versus 147-274s before.
+dracon-platform: after `update-index --refresh` (zeroed 12539 -> 15) and 8 further
+  daemon publications the index stayed warm (zeroed 15) and tracked-only status
+  took 2.9s, versus 167-197s before.
+No hook, guard, policy or assertion was changed to obtain this.
