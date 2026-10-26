@@ -1,1 +1,103 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+error: cannot find macro `ensure` in this scope
+  --> dracon-sync/src/sync/hygiene.rs:66:9
+   |
+66 |         ensure!(
+   |         ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+   --> dracon-sync/src/sync/hygiene.rs:102:5
+    |
+102 |     ensure!(
+    |     ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+   --> dracon-sync/src/sync/hygiene.rs:137:9
+    |
+137 |         ensure!(
+    |         ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+   --> dracon-sync/src/sync/hygiene.rs:162:9
+    |
+162 |         ensure!(
+    |         ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+   --> dracon-sync/src/sync/hygiene.rs:166:9
+    |
+166 |         ensure!(
+    |         ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+   --> dracon-sync/src/sync/hygiene.rs:190:5
+    |
+190 |     ensure!(
+    |     ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+   --> dracon-sync/src/sync/hygiene.rs:215:9
+    |
+215 |         ensure!(
+    |         ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+   --> dracon-sync/src/sync/hygiene.rs:219:9
+    |
+219 |         ensure!(
+    |         ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+   --> dracon-sync/src/sync/hygiene.rs:223:9
+    |
+223 |         ensure!(
+    |         ^^^^^^
+
+error[E0603]: function `is_build_output_dir_name` is private
+    --> dracon-sync/src/sync/hygiene.rs:15:32
+     |
+  15 |             || crate::exclude::is_build_output_dir_name(name))
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^^ private function
+     |
+note: the function `is_build_output_dir_name` is defined here
+    --> dracon-sync/src/exclude.rs:1883:1
+     |
+1883 | fn is_build_output_dir_name(name: &str) -> bool {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0603]: function `path_from_git_bytes` is private
+   --> dracon-sync/src/sync/hygiene.rs:36:34
+    |
+ 36 |         let path = staged_epoch::path_from_git_bytes(raw)?;
+    |                                  ^^^^^^^^^^^^^^^^^^^ private function
+    |
+note: the function `path_from_git_bytes` is defined here
+   --> dracon-sync/src/sync/staged_epoch.rs:951:1
+    |
+951 | fn path_from_git_bytes(raw: &[u8]) -> Result<PathBuf> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0603]: function `path_from_git_bytes` is private
+   --> dracon-sync/src/sync/hygiene.rs:70:34
+    |
+ 70 |         let path = staged_epoch::path_from_git_bytes(raw)?;
+    |                                  ^^^^^^^^^^^^^^^^^^^ private function
+    |
+note: the function `path_from_git_bytes` is defined here
+   --> dracon-sync/src/sync/staged_epoch.rs:951:1
+    |
+951 | fn path_from_git_bytes(raw: &[u8]) -> Result<PathBuf> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0603]: function `path_from_git_bytes` is private
+   --> dracon-sync/src/sync/hygiene.rs:111:51
+    |
+111 |                 artifact_component(&staged_epoch::path_from_git_bytes(raw)?, excluded)
+    |                                                   ^^^^^^^^^^^^^^^^^^^ private function
+    |
+note: the function `path_from_git_bytes` is defined here
+   --> dracon-sync/src/sync/staged_epoch.rs:951:1
+    |
+951 | fn path_from_git_bytes(raw: &[u8]) -> Result<PathBuf> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
