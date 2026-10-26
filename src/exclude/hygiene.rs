@@ -177,6 +177,29 @@ mod tests {
             .is_none());
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn hygiene_leading_whitespace_is_significant_and_literal_rules_survive_warden_trimming() {
+        let rendered=render_positive_additions(" dist/\r\n", &["dist/".into()]).unwrap().unwrap();
+        assert!(rendered.starts_with(" dist/\r\n"));
+        assert!(rendered.lines().any(|line|line=="dist/"));
+        let requested=render_positive_additions("", &[" leading/".into()]).unwrap().unwrap();
+        assert!(requested.lines().any(|line|line==" leading/"));
+        assert!(!requested.lines().any(|line|line=="leading/"));
+        let d=tempfile::tempdir().unwrap();let r=d.path();
+        assert!(native_git(r).args(["init","--template=","-q"]).status().unwrap().success());
+        for name in [" space", "\tspace", "\u{00a0}space"] {
+            let pattern=literal_directory_pattern(name).unwrap();
+            assert_eq!(pattern.trim(), pattern, "Warden preservation must not change a literal rule");
+            std::fs::write(r.join(".gitignore"),format!("{}\n",pattern.trim())).unwrap();
+            std::fs::create_dir(r.join(name)).unwrap();
+            let path=format!("{name}/probe");std::fs::write(r.join(&path),b"probe").unwrap();
+            assert!(native_git(r).args(["check-ignore","--no-index","--quiet","--",&path]).status().unwrap().success());
+            let plain=native_git(r).args(["check-ignore","--no-index","--quiet","--","space/probe"]).status().unwrap();
+            assert_eq!(plain.code(),Some(1),"literal leading whitespace must not broaden to plain space/");
+        }
+    }
+
     #[test]
     fn hygiene_render_rejects_ambiguous_blocks_and_multiline_rules_without_rewriting() {
         for source in [
