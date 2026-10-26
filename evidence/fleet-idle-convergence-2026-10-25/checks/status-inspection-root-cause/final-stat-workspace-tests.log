@@ -267,4 +267,74 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
      Running tests/security_critical_test.rs (target/debug/deps/security_critical_test-1c05470f804befc4)
 
 running 44 tests
-test test_authorize_recipient_writes_verified_direct_pair ... 
+test test_authorize_recipient_writes_verified_direct_pair ... ok
+test test_create_team_creates_private_key_without_overwrite ... ok
+test test_create_team_name_validation_rejects_backslash ... ok
+test test_create_team_name_validation_rejects_colon ... ok
+test test_create_team_name_validation_rejects_slash ... ok
+test test_decrypt_with_repo_key_too_short_ciphertext ... ok
+test test_encrypt_decrypt_repo_key_roundtrip ... ok
+test test_encrypt_for_node_uses_disk_master_identities ... ignored
+test test_encrypt_v2_for_all_uses_global_mesh_pub_without_master_identity ... ok
+test test_encrypt_with_repo_key_empty_plaintext ... ok
+test test_encrypt_with_repo_key_random_nonce_per_call ... ok
+test test_env_manager_combined ... ok
+test test_env_manager_load_from_env_file ... ok
+test test_env_manager_load_from_env_file_nonexistent ... ok
+test test_env_manager_load_from_env_file_with_embedded_equals ... ok
+test test_env_manager_load_from_env_file_with_single_quotes ... ok
+test test_env_manager_to_env_file_escapes_quotes ... ok
+test test_env_manager_to_env_file_secrets ... ok
+test test_env_manager_to_env_file_variables ... ok
+test test_gather_all_recipients_includes_global_mesh_pub_without_master_identity ... ok
+test test_gather_rejects_forged_repo_key_authorization_without_owner_proof ... ok
+test test_generate_master_identity_refuses_dedicated_master_private ... ok
+test test_generate_master_identity_refuses_dedicated_master_public ... ok
+test test_generate_master_identity_refuses_existing_identity ... ignored
+test test_generate_master_identity_refuses_legacy_identity ... ignored
+test test_list_authorized_recipients_rejects_symlink_aliases ... ok
+test test_load_repo_key_empty_keys_directory ... ok
+test test_load_repo_key_ignores_arbitrary_master_encrypted_age_blob ... ok
+test test_load_repo_key_machine_key_env_var ... ignored
+test test_load_repo_key_master_identity_success ... ok
+test test_load_repo_key_no_keys_directory ... ok
+test test_load_repo_key_team_key ... ignored
+test test_load_repo_key_with_master_identity_in_keys_dir ... ok
+test test_machine_and_team_recipients_require_authenticated_sidecars ... ok
+test test_machine_only_repo_key_requires_owner_authenticated_proof ... ok
+test test_repokey_from_file_empty ... ok
+test test_repokey_from_file_nonexistent ... ok
+test test_repokey_from_file_overlength ... ok
+test test_repokey_from_file_truncated ... ok
+test test_unlock_payload_empty ... ignored
+test test_unlock_payload_too_short ... ok
+test test_unlock_payload_v1_format ... ok
+test test_unlock_payload_v1_format_roundtrip ... ok
+test test_unlock_payload_wrong_key ... ok
+
+test result: ok. 38 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 6.35s
+
+     Running tests/team_key_test.rs (target/debug/deps/team_key_test-89871078c743c5bf)
+
+running 2 tests
+test test_add_team_member_rejects_invalid_key ... ok
+test test_create_team_invite_requires_existing_team ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/tier1_source_encrypt.rs (target/debug/deps/tier1_source_encrypt-2393e334ecabbd35)
+
+running 9 tests
+test tier1_binary_passthrough_unprotected ... ok
+test tier1_ignores_ordinary_code ... ok
+test tier1_is_subset_of_get_patterns ... ok
+test tier1_openai_boundaries_and_source_roundtrip ... ok
+test tier1_pem_block_in_source_is_caught ... ok
+test tier1_pkcs8_and_gcp_source_roundtrip ... ok
+test tier1_scanner_catches_structured_tokens ... ok
+test tier1_source_file_clean_and_roundtrip ... ok
+test tier1_square_requires_exact_body_length ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.15s
+
+     Running tests/tier_inventory.rs (target/debug/deps/tier_inventory-8bcbf4b7ff500db9)
