@@ -417,7 +417,7 @@ mod tests {
         std::fs::create_dir(&other).unwrap();
         std::fs::write(other.join("keep"), b"keep\n").unwrap();
         let objects = git_dir.join("objects");
-        std::fs::create_dir(&objects).unwrap();
+        assert!(objects.exists(), "git init already created objects");
         // Even an ancient mtime is not enough: only spool-prefixed names
         // are ever candidates.
         age_mtime(&other, 86_400);
