@@ -1918,4 +1918,20 @@ test sync::publication_actor_tests::blocked_publication_does_not_stall_cross_rep
 branch 'main' set up to track 'origin/main'.
 ok
 test sync::publication_actor_tests::secondary_owner_commits_and_reports_pending_publication ... ok
-test sync::publication_actor_tests::unpublished_tip_from_another_process_is_rediscovered ... 
+test sync::publication_actor_tests::unpublished_tip_from_another_process_is_rediscovered ... ok
+test sync::push_isolation_tests::cancelled_push_hook_cleans_owned_descendants_but_not_interactive_sentinel ... ok
+test sync::push_isolation_tests::release_tag_janitor_and_nix_hooks_yield_local_work_capacity ... ok
+test sync::push_isolation_tests::slow_push_hook_leaves_capacity_for_inspection_and_commit_and_enforces_rejection ... ok
+test sync::staged_epoch::tests::all_rejected_empty_selection_preserves_original_pack ... ok
+test sync::staged_epoch::tests::empty_candidate_does_not_install_or_require_foreign_index_admission ... ok
+test sync::staged_epoch::tests::installed_epoch_keeps_proven_identity_and_rejects_late_replacement ... ok
+test sync::staged_epoch::tests::lock_contention_is_deferred_but_filesystem_failure_is_not ... ok
+test sync::staged_epoch::tests::only_typed_intent_conflicts_are_nonfailure_deferrals ... ok
+test sync::staged_epoch::tests::ordinary_size_rejection_prunes_only_private_delta_but_refuses_captured_intent ... ok
+test sync::staged_epoch::tests::private_staging_foreign_child_is_not_a_prefix_waiver ... ok
+test sync::staged_epoch::tests::private_staging_same_path_conflict_retains_both_payloads ... ok
+test sync::staged_epoch::tests::published_epoch_deadline_is_pending_not_a_failed_commit ... ok
+test sync::staged_epoch::tests::published_epoch_releases_its_spool_and_unpublished_one_keeps_it ... ok
+test sync::staged_epoch::tests::settled_epoch_preserves_original_conflicts_and_rejected_bytes ... ok
+test sync::staged_epoch::tests::zero_batch_limit_accepts_all_captured_files_without_relaxing_positive_limit ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_concurrent_index_ref_and_deadline_refuse_without_losing_data ... 
