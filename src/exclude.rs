@@ -1880,7 +1880,7 @@ pub(crate) fn handle_large_untracked(
 /// These are checked IN ADDITION to exclude_dir_names to catch directories
 /// that aren't in the standard exclusion list but are clearly build artifacts.
 #[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
-fn is_build_output_dir_name(name: &str) -> bool {
+pub(crate) fn is_build_output_dir_name(name: &str) -> bool {
     matches!(
         name,
         ".output" | ".out" | "output" | "generated" | "gen" | ".next" | "dist-new"

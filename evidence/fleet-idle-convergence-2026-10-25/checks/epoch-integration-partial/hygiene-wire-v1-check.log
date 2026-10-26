@@ -128,3 +128,6 @@ help: there is a method `st_nlink` with a similar name
  76 |         if meta.is_file() && meta.st_nlink() == 1 && meta.len() > policy.max_stage_file_bytes {
     |                                   +++
 
+Some errors have detailed explanations: E0063, E0599, E0603.
+For more information about an error, try `rustc --explain E0063`.
+error: could not compile `dracon-sync` (bin "dracon-sync") due to 15 previous errors

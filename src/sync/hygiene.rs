@@ -4,9 +4,12 @@
 //! changes only ever touch the PRIVATE candidate.
 use super::staged_epoch;
 use super::*;
+use anyhow::ensure;
 use crate::git::staged_intent::{CachedIdentity, StagedIntentSnapshot};
 use std::collections::{BTreeMap, BTreeSet};
 use tokio::time::Instant;
+
+use std::os::unix::fs::MetadataExt;
 
 pub(super) fn artifact_component(path: &Path, excluded: &BTreeSet<String>) -> Option<String> {
     path.components().find_map(|component| {

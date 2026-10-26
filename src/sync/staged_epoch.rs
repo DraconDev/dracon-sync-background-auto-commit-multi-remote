@@ -948,7 +948,7 @@ impl Staging {
     }
 }
 
-fn path_from_git_bytes(raw: &[u8]) -> Result<PathBuf> {
+pub(super) fn path_from_git_bytes(raw: &[u8]) -> Result<PathBuf> {
     #[cfg(unix)]
     {
         use std::os::unix::ffi::OsStringExt;
