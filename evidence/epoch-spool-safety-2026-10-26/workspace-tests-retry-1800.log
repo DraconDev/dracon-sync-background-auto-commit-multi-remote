@@ -604,4 +604,90 @@ test daemon::daemon_tests::test_sync_concurrency_limit_clamps_zero ... ok
 test daemon::daemon_tests::test_trailing_drain_retains_unfinished_owners ... ok
 test daemon::daemon_tests::test_trailing_drain_seed_excludes_previous_cycle_pending ... ok
 test daemon::daemon_tests::test_unstuck_repo_nonexistent ... ok
-test daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness ... 
+test daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness ... ok
+test daemon::discovery_scheduler::tests::blocked_refresh_keeps_snapshot_without_blocking_or_duplicate_walks ... ok
+test daemon::discovery_scheduler::tests::changed_configuration_never_uses_old_snapshot ... ok
+test daemon::probe_race_tests::recovery_completed_status_racing_cancellation_retains_original_age ... ok
+test daemon::push_history::tests::observed_push_history_survives_new_edits_and_rejects_invalid_records ... ok
+test daemon::recovery::tests::execution_budget_respects_scaled_multi_remote_commands_and_still_expires ... ok
+test daemon::recovery::tests::fair_admission_serves_every_repo_despite_repeated_early_failures ... ok
+test daemon::recovery::tests::queued_workers_keep_fifo_and_execution_retries_are_bounded ... ok
+test daemon::recovery_tests::recovery_abandoned_reservations_release_without_touching_live_owners ... ok
+test daemon::recovery_tests::recovery_classification_panic_and_cancellation_release_known_owners ... ok
+test daemon::recovery_tests::recovery_fifo_healthy_syncs_run_after_hung_holder_joins ... ok
+test daemon::recovery_tests::recovery_status_waits_for_teardown_and_healthy_peer_progresses ... ok
+test daemon::recovery_tests::recovery_tagged_sync_join_releases_all_bookkeeping_on_panic_in_quiet_cycle ... ok
+test daemon::scheduler_evidence::tests::phase_stamps_report_real_execution_and_expire_when_abandoned ... ok
+test daemon::scheduler_evidence::tests::scheduler_evidence_builder_keeps_confidence_and_gate_precedence ... ok
+test daemon::scheduler_evidence::tests::scheduler_evidence_distinguishes_admission_execution_cancel_and_retry ... ok
+test daemon::scheduler_evidence::tests::scheduler_evidence_freshness_and_roundtrip_are_fail_closed ... ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_does_not_create_standalone_worktrees ... ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_leaves_existing_dirs_untouched ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_respects_total ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_wakes_early_on_notify ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_wakes_early_on_predicate ... ok
+test daemon::test_auto_skip_unowned_default_is_true ... ok
+test daemon::test_escalating_cooldown_matrix ... ok
+test daemon::test_min_commit_interval_default_is_5 ... ok
+test daemon::test_notify_state_round_trip_and_expiry ... ok
+test daemon::test_notify_throttled_escalating_streak_and_reset ... ok
+test daemon::test_notify_throttled_fires_then_suppresses_then_refires ... ok
+test daemon::test_oldest_dirty_change_secs_core_mtime_based ... ok
+test daemon::test_oldest_dirty_change_secs_core_skips_never_committed_nested_repo ... ok
+test daemon::test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age ... ok
+test daemon::test_ownership_detection_end_to_end ... ok
+test daemon::test_ownership_needs_redetect_ttl ... ok
+test daemon::test_ownership_owned_needs_revalidate_ttl ... ok
+test daemon::test_ownership_per_repo_override_forces_unowned ... ok
+test daemon::test_push_failure_notification_requires_persistent_budget_exhaustion ... ok
+test daemon::test_record_push_failure_accumulates_across_calls ... ok
+test daemon::test_resolve_stuck_repo_arg_matrix ... ok
+test daemon::test_stale_dirty_alert_due_throttle_and_disable ... ok
+test daemon::test_stale_dirty_alert_policy_default_and_serde ... ok
+test daemon::test_stale_entry_persisted_matrix ... ok
+test daemon::test_stuck_ahead_covered_by_pause_matrix ... ok
+test daemon::test_stuck_decision_backoff_inside_window ... ok
+test daemon::test_stuck_decision_exhausted_at_budget ... ok
+test daemon::test_stuck_decision_retry_after_window ... ok
+test daemon::test_stuck_decision_retry_respects_last_retry_stamp ... ok
+test daemon::test_sustained_threshold_met ... ok
+test daemon::test_transient_dns_does_not_burn_stuck_budget ... ok
+test daemon::tests::classification_cooldown_waits_then_releases_repo ... ok
+test daemon::tests::classifier_completed_during_scan_is_available_at_repo_boundary ... ok
+test daemon::tests::completed_status_is_collected_before_wedge_sweep ... ok
+test daemon::tests::eligibility_uses_dispatch_clock_and_bounds_continuous_work ... ok
+test daemon::tests::failed_status_inspectors_yield_capacity_and_retry_at_deadline ... ok
+test daemon::tests::healthy_status_task_spared_by_sweep ... ok
+test daemon::tests::needs_classification_dirty_repo_with_ahead_override_classifies ... ok
+test daemon::tests::orphan_cancelled_status_join_inserts_no_result ... ok
+test daemon::tests::pending_classification_preserves_status_transition_clock ... ok
+test daemon::tests::pending_result_collection_does_not_block_next_repo ... ok
+test daemon::tests::pre_start_dirty_activity_reaches_exact_quiet_boundary_once ... ok
+test daemon::tests::pulse_accounts_for_scan_work_and_overruns ... ok
+test daemon::tests::push_aggregation_cancellation_does_not_arm_backoff ... ok
+test daemon::tests::push_aggregation_mixed_failure_still_arms_backoff ... ok
+test daemon::tests::quiet_evidence_future_missing_and_prestart_are_bounded ... ok
+test daemon::tests::quiet_evidence_repeated_edits_keep_maximum_dirty_age ... ok
+test daemon::tests::quiet_evidence_uses_change_time_not_discovery_time ... ok
+test daemon::tests::ready_restart_work_precedes_unknown_inspection_with_fixed_pulse_budget ... ok
+test daemon::tests::refresh_publish_preserves_successfully_pushed_tracking_ref ... [main (root-commit) e1cdff4] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+branch 'main' set up to track 'origin/main'.
+ok
+test daemon::tests::shutdown_drain_does_not_burn_the_budget_without_join_results ... ok
+test daemon::tests::shutdown_drain_settles_when_owned_workers_have_stopped ... ok
+test daemon::tests::slow_status_within_execution_budget_can_make_progress ... ok
+test daemon::tests::stalled_worker_retains_exclusive_dispatch_ownership_across_cycles ... ok
+test daemon::tests::test_apply_outcome_push_paused_retains_without_cooldown ... ok
+test daemon::tests::test_apply_outcome_wedge_abort_retains_pause_memory ... ok
+test daemon::tests::test_classification_backoff_secs_matrix ... ok
+test daemon::tests::test_classification_pending_watchdog_due ... ok
+test daemon::tests::test_classification_result_expired_matrix ... ok
+test daemon::tests::test_commit_only_idle_skip_matrix ... ok
+test daemon::tests::test_configure_publish_upstream_if_missing_adds_github_upstream ... [main (root-commit) e1cdff4] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_configure_publish_upstream_if_missing_preserves_existing_upstream ... ok
+test daemon::tests::test_configure_publish_upstream_reports_nonzero_merge_config ... 
