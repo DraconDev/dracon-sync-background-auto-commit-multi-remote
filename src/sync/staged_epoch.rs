@@ -792,9 +792,11 @@ impl Staging {
 
     /// Caller has already excluded private assets and auto-stage opt-outs.
     pub(super) fn with_large_candidates(mut self, entries: &[dracon_git::types::DiffFile]) -> Self {
-        self.admitted_large = entries.iter()
+        self.admitted_large = entries
+            .iter()
             .filter(|entry| matches!(entry.status, dracon_git::types::FileStatus::Added))
-            .map(|entry| entry.path.clone()).collect();
+            .map(|entry| entry.path.clone())
+            .collect();
         self
     }
 

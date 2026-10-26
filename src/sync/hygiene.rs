@@ -33,7 +33,9 @@ async fn large_untracked(
     // Only paths admitted by the production partition can be reconciled.
     // A fresh global ls-files scan would absorb auto-stage opt-outs and private
     // materialized assets that the caller deliberately excluded.
-    if !policy.auto_stage_untracked { return Ok(Vec::new()); }
+    if !policy.auto_stage_untracked {
+        return Ok(Vec::new());
+    }
     let overrides = load_repo_override(repo);
     let excludes = crate::policy::effective_auto_commit_excludes(policy, &overrides);
     let mut patterns = Vec::new();
@@ -42,11 +44,26 @@ async fn large_untracked(
             Instant::now() < deadline,
             "large-untracked observation deadline expired; operator files retained"
         );
-        if baseline.entries.contains_key(path.as_os_str().as_encoded_bytes())
-            || crate::exclude::matches_untracked_exclude(repo, path, &policy.untracked_exclude_patterns)
-            || !crate::exclude::should_stage_entry_with_blob_size(repo, path, 0, excluded,
-                &policy.exclude_file_patterns, policy.max_stage_file_bytes, &excludes)
-        { continue; }
+        if baseline
+            .entries
+            .contains_key(path.as_os_str().as_encoded_bytes())
+            || crate::exclude::matches_untracked_exclude(
+                repo,
+                path,
+                &policy.untracked_exclude_patterns,
+            )
+            || !crate::exclude::should_stage_entry_with_blob_size(
+                repo,
+                path,
+                0,
+                excluded,
+                &policy.exclude_file_patterns,
+                policy.max_stage_file_bytes,
+                &excludes,
+            )
+        {
+            continue;
+        }
         // Recheck WITHOUT following aliases; uncertainty is not successful work.
         let meta = match std::fs::symlink_metadata(repo.join(path)) {
             Ok(meta) => meta,
@@ -64,9 +81,14 @@ async fn large_untracked(
             }
         };
         if meta.is_file() && meta.len() > policy.max_stage_file_bytes {
-            ensure!(single_link, "large-file ignore refuses an aliased operator file");
-            ensure!(path != Path::new(".gitignore") && path != Path::new(".gitattributes"),
-                "managed metadata exceeds size policy; refusing to hide it");
+            ensure!(
+                single_link,
+                "large-file ignore refuses an aliased operator file"
+            );
+            ensure!(
+                path != Path::new(".gitignore") && path != Path::new(".gitattributes"),
+                "managed metadata exceeds size policy; refusing to hide it"
+            );
             patterns.push(crate::exclude::hygiene::literal_file_pattern(path)?);
         }
     }
@@ -92,7 +114,8 @@ pub(super) async fn plan(
     admitted_large: &[PathBuf],
     deadline: Instant,
 ) -> Result<Option<Plan>> {
-    let mut patterns = large_untracked(repo, policy, excluded, baseline, admitted_large, deadline).await?;
+    let mut patterns =
+        large_untracked(repo, policy, excluded, baseline, admitted_large, deadline).await?;
     ensure!(
         baseline.changed.is_empty(),
         "hygiene requires an entry cycle without staged intent"

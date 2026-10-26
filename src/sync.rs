@@ -5871,7 +5871,9 @@ async fn sync_repo_local_with_ownership(
             );
         }
         if !to_stage.is_empty()
-            || to_restore.iter().any(|entry| crate::exclude::is_large_untracked(entry, repo, policy.max_stage_file_bytes))
+            || to_restore.iter().any(|entry| {
+                crate::exclude::is_large_untracked(entry, repo, policy.max_stage_file_bytes)
+            })
             || (!to_restore.is_empty() && repo_override.revert_excluded_to_head == Some(true))
         {
             if debug_enabled() {
