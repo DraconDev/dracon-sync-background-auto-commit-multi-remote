@@ -1,0 +1,11 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: function `apply_generated` is never used
+   --> dracon-sync/src/sync/excluded_revert.rs:184:21
+    |
+184 | pub(super) async fn apply_generated(
+    |                     ^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `dracon-sync` (bin "dracon-sync") generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.89s

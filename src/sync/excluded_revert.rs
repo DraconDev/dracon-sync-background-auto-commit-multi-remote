@@ -207,7 +207,12 @@ pub(super) async fn apply_generated(
     Ok(apply_prepared(
         repo,
         scratch,
-        vec![Target { path: path.to_path_buf(), source, before, desired_before }],
+        vec![Target {
+            path: path.to_path_buf(),
+            source,
+            before,
+            desired_before,
+        }],
         head,
         deadline,
         lock,

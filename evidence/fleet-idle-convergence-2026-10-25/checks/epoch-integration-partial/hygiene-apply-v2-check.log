@@ -1,0 +1,72 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+error: cannot find macro `ensure` in this scope
+  --> dracon-sync/src/sync/hygiene_apply.rs:57:9
+   |
+57 |         ensure!(
+   |         ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+  --> dracon-sync/src/sync/hygiene_apply.rs:67:9
+   |
+67 |         ensure!(
+   |         ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+   --> dracon-sync/src/sync/hygiene_apply.rs:103:9
+    |
+103 |         ensure!(
+    |         ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+   --> dracon-sync/src/sync/hygiene_apply.rs:108:9
+    |
+108 |         ensure!(
+    |         ^^^^^^
+
+error[E0425]: cannot find type `Instant` in this scope
+  --> dracon-sync/src/sync/hygiene_apply.rs:88:15
+   |
+88 |     deadline: Instant,
+   |               ^^^^^^^ not found in this scope
+   |
+help: consider importing this struct
+   |
+ 3 + use std::time::Instant;
+   |
+
+error[E0433]: cannot find type `StagedIntentSnapshot` in this scope
+   --> dracon-sync/src/sync/hygiene_apply.rs:107:24
+    |
+107 |         let snapshot = StagedIntentSnapshot::capture(repo, deadline).await?;
+    |                        ^^^^^^^^^^^^^^^^^^^^ use of undeclared type `StagedIntentSnapshot`
+    |
+help: consider importing this struct
+    |
+  3 + use crate::git::staged_intent::StagedIntentSnapshot;
+    |
+
+error[E0433]: cannot find type `CapturedHead` in this scope
+   --> dracon-sync/src/sync/hygiene_apply.rs:112:13
+    |
+112 |         let CapturedHead::Commit(head) = snapshot.head.clone() else {
+    |             ^^^^^^^^^^^^ use of undeclared type `CapturedHead`
+    |
+help: consider importing this enum
+    |
+  3 + use crate::git::staged_intent::CapturedHead;
+    |
+
+error[E0603]: module `hygiene` is private
+  --> dracon-sync/src/sync/hygiene_apply.rs:99:46
+   |
+99 |         let Some(rendered) = crate::exclude::hygiene::render_positive_additions(current, patterns)?
+   |                                              ^^^^^^^  ------------------------- function `render_positive_additions` is not publicly re-exported
+   |                                              |
+   |                                              private module
+   |
+note: the module `hygiene` is defined here
+  --> dracon-sync/src/exclude.rs:2:1
+   |
+ 2 | mod hygiene;
+   | ^^^^^^^^^^^^
+

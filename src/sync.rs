@@ -18,6 +18,10 @@ mod staged_epoch;
 #[path = "sync/excluded_revert.rs"]
 mod excluded_revert;
 
+#[cfg(target_os = "linux")]
+#[path = "sync/hygiene_apply.rs"]
+mod hygiene_apply;
+
 #[cfg(all(test, target_os = "linux"))]
 #[path = "sync/excluded_revert_tests.rs"]
 mod excluded_revert_tests;
