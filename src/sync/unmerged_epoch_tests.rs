@@ -236,15 +236,15 @@ async fn unmerged_entry_unknown_worktree_and_nonzero_other_index_flags_refuse_in
     let r = d.path();
     std::fs::write(r.join("a.bin"), b"unknown current WIP\n").unwrap();
     let original = std::fs::read(r.join(".git/index")).unwrap();
-    assert!(reconcile(r, true, Instant::now() + Duration::from_secs(10))
-        .await
-        .unwrap()
-        .is_none());
-    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(), original);
-    assert_eq!(
-        std::fs::read(r.join("a.bin")).unwrap(),
-        b"unknown current WIP\n"
-    );
+    for _ in 0..3 {
+        assert!(reconcile(r, true, Instant::now() + Duration::from_secs(10))
+            .await.unwrap().is_none());
+        assert_eq!(std::fs::read(r.join(".git/index")).unwrap(), original);
+        assert!(!std::fs::read_dir(r.join(".git")).unwrap().any(|entry|
+            entry.unwrap().file_name().to_string_lossy().starts_with("dracon-unmerged-recovery-")),
+            "no-progress retries must not duplicate retained payloads");
+    }
+    assert_eq!(std::fs::read(r.join("a.bin")).unwrap(),b"unknown current WIP\n");
     std::fs::write(r.join("a.bin"), b"HEAD\0binary\xff\n").unwrap();
     native(
         r,
@@ -252,10 +252,13 @@ async fn unmerged_entry_unknown_worktree_and_nonzero_other_index_flags_refuse_in
         None,
     );
     let original = std::fs::read(r.join(".git/index")).unwrap();
-    assert!(reconcile(r, true, Instant::now() + Duration::from_secs(10))
-        .await
-        .is_err());
-    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(), original);
+    for _ in 0..3 {
+        assert!(reconcile(r, true, Instant::now() + Duration::from_secs(10)).await.is_err());
+        assert_eq!(std::fs::read(r.join(".git/index")).unwrap(), original);
+        assert!(!std::fs::read_dir(r.join(".git")).unwrap().any(|entry|
+            entry.unwrap().file_name().to_string_lossy().starts_with("dracon-unmerged-recovery-")),
+            "unsupported flags must refuse before allocating recovery");
+    }
     assert!(native(r, &["ls-files", "-v", "--", "note.txt"], None).starts_with(b"S "));
 }
 
