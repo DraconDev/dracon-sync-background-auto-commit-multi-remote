@@ -162,3 +162,4 @@
     Checking notify-rust v4.18.0
     Checking dracon-system-lib v94.2.7
     Checking dracon-system v0.112.51 (/home/dracon/Dev/dracon-utilities/dracon-system)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2m 02s
