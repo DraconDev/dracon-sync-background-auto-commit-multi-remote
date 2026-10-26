@@ -33,6 +33,14 @@ mod excluded_revert_tests;
 #[path = "sync/excluded_revert_pipeline_tests.rs"]
 mod excluded_revert_pipeline_tests;
 
+// Both namespaces have used the same recovery schema. Older generated-ignore
+// records must remain visible after upgrades; recognizing them never replays a
+// canonical write or grants excluded-restore policy authorization.
+fn is_canonical_recovery_name(name: &std::ffi::OsStr) -> bool {
+    let name = name.as_encoded_bytes();
+    name.starts_with(b"dracon-excluded-recovery-") || name.starts_with(b"dracon-ignore-recovery-")
+}
+
 /// Cheap persistent concern probe, independent of raw Git dirt and NOW-enabled
 /// policy. Pending records survive restart. Archives are checked by metadata,
 /// not repeatedly hashed: late displaced writes must remain visible concerns.
@@ -41,11 +49,7 @@ pub(crate) fn has_pending_excluded_recovery(repo: &Path) -> Result<bool> {
     let gitdir = crate::git::path_gitdir(repo).context("cannot locate recovery Git directory")?;
     for entry in std::fs::read_dir(&gitdir)? {
         let entry = entry?;
-        if entry
-            .file_name()
-            .to_string_lossy()
-            .starts_with("dracon-excluded-recovery-")
-        {
+        if is_canonical_recovery_name(&entry.file_name()) {
             return Ok(true);
         }
     }

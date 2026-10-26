@@ -662,11 +662,7 @@ pub(super) async fn settle_pending(repo: &Path, deadline: Instant) -> Result<boo
             "excluded recovery inspection deadline expired"
         );
         let entry = entry?;
-        if !entry
-            .file_name()
-            .as_bytes()
-            .starts_with(b"dracon-excluded-recovery-")
-        {
+        if !super::is_canonical_recovery_name(&entry.file_name()) {
             continue;
         }
         ensure!(

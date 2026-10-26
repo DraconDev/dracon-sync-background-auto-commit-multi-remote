@@ -72,11 +72,7 @@ fn directories(repo: &Path, deadline: std::time::Instant) -> Result<Vec<PathBuf>
             "excluded archive inspection deadline expired"
         );
         let entry = entry?;
-        if entry
-            .file_name()
-            .as_bytes()
-            .starts_with(b"dracon-excluded-recovery-")
-        {
+        if crate::sync::is_canonical_recovery_name(&entry.file_name()) {
             private_directory(&entry.path())?;
             paths.push(entry.path());
         }
@@ -112,11 +108,7 @@ pub(super) fn tighten_legacy(repo: &Path) -> Result<()> {
             "excluded archive privacy repair deadline expired"
         );
         let entry = entry?;
-        if !entry
-            .file_name()
-            .as_bytes()
-            .starts_with(b"dracon-excluded-recovery-")
-        {
+        if !crate::sync::is_canonical_recovery_name(&entry.file_name()) {
             continue;
         }
         let name = CString::new(entry.file_name().as_bytes())?;
