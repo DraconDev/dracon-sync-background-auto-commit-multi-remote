@@ -32,3 +32,4 @@ help: try replacing `map` with `and_then` and remove the `.flatten()`
 407 +         })
     |
 
+error: could not compile `dracon-sync` (bin "dracon-sync" test) due to 1 previous error
