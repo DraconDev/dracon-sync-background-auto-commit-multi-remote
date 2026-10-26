@@ -58,3 +58,46 @@
    Compiling zbus v5.19.0
    Compiling reqwest v0.12.28
    Compiling notify-rust v4.18.0
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 45.99s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 7 tests
+test sync::tests::test_bootstrap_empty_repo_all_oversized_returns_false ... ok
+test sync::tests::test_bootstrap_empty_repo_auto_commit_disabled ... ok
+test sync::tests::test_bootstrap_empty_repo_creates_root_commit ... FAILED
+test sync::tests::test_bootstrap_empty_repo_nothing_to_stage ... ok
+test sync::tests::test_bootstrap_empty_repo_respects_gitignore ... FAILED
+test sync::tests::test_bootstrap_empty_repo_skips_oversized_files ... FAILED
+test sync::tests::test_bootstrap_empty_repo_unowned_skipped ... ok
+
+failures:
+
+---- sync::tests::test_bootstrap_empty_repo_creates_root_commit stdout ----
+🛡️ /tmp/.tmpKbtpc6/repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_bootstrap_empty_repo_creates_root_commit' (755154) panicked at dracon-sync/src/sync.rs:7853:24:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- sync::tests::test_bootstrap_empty_repo_respects_gitignore stdout ----
+🛡️ /tmp/.tmp8BbhwB/repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_bootstrap_empty_repo_respects_gitignore' (755521) panicked at dracon-sync/src/sync.rs:7876:24:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::tests::test_bootstrap_empty_repo_skips_oversized_files stdout ----
+ℹ️ skip large file /tmp/.tmposHWDv/repo/big.bin (2048 bytes > 1024 bytes)
+🛡️ /tmp/.tmposHWDv/repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_bootstrap_empty_repo_skips_oversized_files' (755746) panicked at dracon-sync/src/sync.rs:8026:24:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+
+failures:
+    sync::tests::test_bootstrap_empty_repo_creates_root_commit
+    sync::tests::test_bootstrap_empty_repo_respects_gitignore
+    sync::tests::test_bootstrap_empty_repo_skips_oversized_files
+
+test result: FAILED. 4 passed; 3 failed; 0 ignored; 0 measured; 1498 filtered out; finished in 1.44s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

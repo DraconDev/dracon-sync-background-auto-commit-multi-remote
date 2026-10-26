@@ -1,0 +1,22 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.56s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 1 test
+test sync::tests::unlimited_batch_bootstraps_all_related_unborn_files ... FAILED
+
+failures:
+
+---- sync::tests::unlimited_batch_bootstraps_all_related_unborn_files stdout ----
+🛡️ /tmp/.tmpMYMe1k/unlimited-unborn auto-hardened with warden before staging
+
+thread 'sync::tests::unlimited_batch_bootstraps_all_related_unborn_files' (756391) panicked at dracon-sync/src/sync.rs:12407:10:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sync::tests::unlimited_batch_bootstraps_all_related_unborn_files
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1504 filtered out; finished in 1.93s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
