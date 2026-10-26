@@ -1521,13 +1521,9 @@ mod tests {
         policy.watch_roots = vec![repo.to_string_lossy().into_owned()];
 
         // --- published path: the spool must be gone afterwards.
+        // Do a whole ordinary cycle (capture -> private staging -> finish ->
+        // commit) so `retained` is genuinely allocated, not faked.
         std::fs::write(repo.join("file"), b"published content\n").unwrap();
-        git(repo, &["add", "--", "file"], None).await.unwrap();
-        let mut epoch = Epoch::capture(repo, 60).await.unwrap();
-        let spool = repo.join(".git").join("spool-marker");
-        // A real staging epoch is what allocates the retained directory; do
-        // the whole ordinary cycle so `retained` is actually set.
-        drop(spool);
         let baseline = Epoch::capture(repo, 60).await.unwrap();
         let staging = Staging::new(repo, baseline).await.unwrap();
         let retained = staging.directory.clone();
