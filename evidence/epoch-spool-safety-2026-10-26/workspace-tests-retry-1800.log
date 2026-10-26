@@ -435,4 +435,8 @@ test storage_core::manifest::tests::private_metadata_round_trip_matches_exact_po
 test storage_core::manifest::tests::tombstones_keep_contract_while_payload_edits_do_not_change_enrollment ... ok
 test storage_core::metadata::tests::approval_publication_crashes_preserve_exact_manifest_ciphertext ... ok
 test storage_core::metadata::tests::bad_exit_plain_output_and_budget_failure_keep_source_unapproved ... ok
-test storage_core::metadata::tests::cancelling_import_releases_lease_and_terminates_security_group ... 
+test storage_core::metadata::tests::cancelling_import_releases_lease_and_terminates_security_group ... ok
+test storage_core::metadata::tests::ciphertext_selection_refuses_ambiguous_manifests_and_excessive_catalogs ... ok
+test storage_core::metadata::tests::cold_import_crashes_recover_retained_exact_ciphertext ... ok
+test storage_core::metadata::tests::cold_import_honors_retention_limits_and_preserves_corrupted_source ... ok
+test storage_core::metadata::tests::cold_import_preserves_ciphertext_versions_and_existing_preparations ... 
