@@ -1001,4 +1001,7 @@ test git::push_resources::tests::local_refresh_is_bounded_and_leaves_publication
 test git::push_resources::tests::push_commands_overlap_and_cancellation_drops_only_owned_work ... ok
 test git::push_resources::tests::push_phase_restores_local_capacity_on_error_and_nested_mirror_work ... ok
 test git::staged_intent::tests::index_lock_contention_and_replaced_inode_cleanup ... ok
-test git::staged_intent::tests::materialized_empty_root_and_invalid_input_refusals ... 
+test git::staged_intent::tests::materialized_empty_root_and_invalid_input_refusals ... ok
+test git::staged_intent::tests::materialized_tree_is_captured_not_live_and_preserves_repository ... ok
+test git::staged_intent::tests::materialized_tree_output_requires_exact_count_width_and_oid ... ok
+test git::staged_intent::tests::observation_deadline_and_caller_drop_terminate_actual_git_pid ... 
