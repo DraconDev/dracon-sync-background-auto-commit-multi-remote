@@ -46,21 +46,28 @@ writer inode targets, and ordinary in-place writes do not supply the required
 crash/cancellation/content transaction.
 
 The fresh report discovers 36 repositories, not the baseline's 37:
-`/home/dracon/Dev/warden-vid` is missing on disk and from discovery. It remains an
-explicit unresolved row in
+`/home/dracon/Dev/warden-vid` is absent on disk and from discovery; the user
+explicitly confirmed they deleted it. It is now an operator-retired historical
+row (resolved, not restored or relabelled healthy) in
 `checks/status-inspection-root-cause/post-gates-accounted-fleet-inventory.json`.
 No repository is silently removed. Dirty/staged work, browser push-stuck state,
 deferred deep checks and externally paused daemon health remain; summary
 `ok=36` is not clean-idle evidence. An ENOSPC observation failure and its later
 successful retry are separate artifacts. Another project's maintenance marker
-was not cleared.
+was not cleared by this work; a later read-only check found it absent after the
+enabled freeze watchdog fired.
 
 Operator prerequisite and exact evidence:
 `../../docs/design/canonical-publication-boundary-2026-10-26.md` (from this run
-folder). Approve a concrete universal writer-coordination integration or provide
-a proven transactional facility; confirm the missing checkout's disposition.
-The existing guarantees and `.gitignore` publication requirement are unchanged.
-Task and verification obligations remain open.
+folder). The user confirmed the retired checkout and authorized continuation.
+Bounded native probes now establish that atomic write units are unavailable and
+reflink is unsupported on the actual host; modern delegations exist but a held
+directory delegation still allows existing-file write opens. This is not a
+publication fix or approval. Investigation continues without changing external
+editors or deploying the failing candidate, including the independently blocked
+browser publication pipeline. The existing guarantees and `.gitignore`
+publication requirement are unchanged. Task and verification obligations remain
+open.
 
 ## Historical no-rollback claim — INVALIDATED, not current qualification
 
