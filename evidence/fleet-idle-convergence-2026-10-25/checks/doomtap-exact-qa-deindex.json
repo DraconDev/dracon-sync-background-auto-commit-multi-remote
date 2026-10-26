@@ -1,0 +1,51 @@
+{
+  "observedAt": "2026-10-26T07:55:27.323005+00:00",
+  "scope": "operator-authorized exact-nine de-index only; no manual commit/push",
+  "paths": [
+    "docs/screenshots/qa/hotkeybar-cooldowns.png",
+    "docs/screenshots/qa/indicator-beam-flash.png",
+    "docs/screenshots/qa/indicator-point-ring.png",
+    "docs/screenshots/qa/notice-board-panel.png",
+    "docs/screenshots/qa/pre-victory-debug.png",
+    "docs/screenshots/qa/premium-fx-combat-2.png",
+    "docs/screenshots/qa/premium-fx-combat.png",
+    "docs/screenshots/qa/premium-hub-redesign.png",
+    "docs/screenshots/qa/vendor-hall.png"
+  ],
+  "beforeSha256": {
+    "docs/screenshots/qa/hotkeybar-cooldowns.png": "7c685959c68dcff1afc8a0b4fd2e8816d2fc30dda15983140a208749d8a60f94",
+    "docs/screenshots/qa/indicator-beam-flash.png": "49d1b1e12155b0e08de7cd27f553242b854df0f2129070436a97787d162463e2",
+    "docs/screenshots/qa/indicator-point-ring.png": "ea054340204ce10221da036e1705de9735e9f45528e5b0eb725f6975df33981e",
+    "docs/screenshots/qa/notice-board-panel.png": "5834c21d431dcb5aaa1091d6be4cf4e618530716bceff699ebd67a5c601c4ce7",
+    "docs/screenshots/qa/pre-victory-debug.png": "ef6516e931e558e0b96489624c1a75a34e374a3d85e003599ac1c460e065c9ff",
+    "docs/screenshots/qa/premium-fx-combat-2.png": "fff008dcc7f49333c82befc9e92fffb32401d6890c891e2593b5d86c14be4390",
+    "docs/screenshots/qa/premium-fx-combat.png": "1a613d28ff8a8d60d3e83b6961d7caf47f53934a825c50614616ff9768b645eb",
+    "docs/screenshots/qa/premium-hub-redesign.png": "f7eb860d658d51bd23aa49f2c69e89d4aa2f47594e341c929daf539732ef54f6",
+    "docs/screenshots/qa/vendor-hall.png": "2fbdf84d66f9d2b9cd6f121e910c14ae7c3f4a42ee4a89bef0009b3ea4792595"
+  },
+  "afterSha256": {
+    "docs/screenshots/qa/hotkeybar-cooldowns.png": "7c685959c68dcff1afc8a0b4fd2e8816d2fc30dda15983140a208749d8a60f94",
+    "docs/screenshots/qa/indicator-beam-flash.png": "49d1b1e12155b0e08de7cd27f553242b854df0f2129070436a97787d162463e2",
+    "docs/screenshots/qa/indicator-point-ring.png": "ea054340204ce10221da036e1705de9735e9f45528e5b0eb725f6975df33981e",
+    "docs/screenshots/qa/notice-board-panel.png": "5834c21d431dcb5aaa1091d6be4cf4e618530716bceff699ebd67a5c601c4ce7",
+    "docs/screenshots/qa/pre-victory-debug.png": "ef6516e931e558e0b96489624c1a75a34e374a3d85e003599ac1c460e065c9ff",
+    "docs/screenshots/qa/premium-fx-combat-2.png": "fff008dcc7f49333c82befc9e92fffb32401d6890c891e2593b5d86c14be4390",
+    "docs/screenshots/qa/premium-fx-combat.png": "1a613d28ff8a8d60d3e83b6961d7caf47f53934a825c50614616ff9768b645eb",
+    "docs/screenshots/qa/premium-hub-redesign.png": "f7eb860d658d51bd23aa49f2c69e89d4aa2f47594e341c929daf539732ef54f6",
+    "docs/screenshots/qa/vendor-hall.png": "2fbdf84d66f9d2b9cd6f121e910c14ae7c3f4a42ee4a89bef0009b3ea4792595"
+  },
+  "contentPreserved": true,
+  "remainingTrackedQaPaths": [
+    "docs/screenshots/qa/gamefeel-game-kill-fx.png",
+    "docs/screenshots/qa/gamefeel-prestige-panel.png",
+    "docs/screenshots/qa/gamefeel-upgrades-panel.png",
+    "docs/screenshots/qa/hero/audit-hero-composite.png",
+    "docs/screenshots/qa/hero/audit-hero-source-arena.png",
+    "docs/screenshots/qa/hero/audit-hero-source-title.png",
+    "docs/screenshots/qa/hero/audit-hero-source-town.png",
+    "docs/screenshots/qa/skillbar-cooldowns.png"
+  ],
+  "priorStagedObservationSha256": "9ed501a6fa1b37cf32e6a814387ba68ceac9e59cc97f873848e2e69206aabfd4",
+  "gitRmStdout": "rm 'docs/screenshots/qa/hotkeybar-cooldowns.png'\nrm 'docs/screenshots/qa/indicator-beam-flash.png'\nrm 'docs/screenshots/qa/indicator-point-ring.png'\nrm 'docs/screenshots/qa/notice-board-panel.png'\nrm 'docs/screenshots/qa/pre-victory-debug.png'\nrm 'docs/screenshots/qa/premium-fx-combat-2.png'\nrm 'docs/screenshots/qa/premium-fx-combat.png'\nrm 'docs/screenshots/qa/premium-hub-redesign.png'\nrm 'docs/screenshots/qa/vendor-hall.png'\n",
+  "automaticPublicationObserved": false
+}
