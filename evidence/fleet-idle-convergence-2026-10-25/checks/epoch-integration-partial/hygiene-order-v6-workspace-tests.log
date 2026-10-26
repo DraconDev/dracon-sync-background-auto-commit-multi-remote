@@ -2190,3 +2190,6 @@ To /tmp/.tmpgtzhd5/origin.git
  * [new branch]      master -> master
 branch 'master' set up to track 'origin/master'.
 branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) 6f2ef2f] init
