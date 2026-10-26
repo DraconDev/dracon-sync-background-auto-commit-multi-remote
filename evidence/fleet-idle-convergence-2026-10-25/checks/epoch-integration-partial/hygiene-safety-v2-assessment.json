@@ -1,0 +1,37 @@
+{
+  "at": "2026-10-26T08:16:14.837573+00:00",
+  "scope": "targeted safety checks only; no full final assembly, deployment or loaded execution claim",
+  "postCheckSourceSha256": {
+    "src/sync.rs": "5249d41ea33030c558837ed57383877f3ff192c9c75c1c3a4c2bc6b31045a743",
+    "src/exclude.rs": "1f06593a15aee12460c6e906f3887df19f47473e75557366d28e74b7609c7446",
+    "src/exclude/hygiene.rs": "a61447a38fbc4358eb22b4397a49cde312e2e46f5da0016243ef82d41a385a4a",
+    "src/sync/hygiene.rs": "63ab3c2e87411dcda1a38dd34f5d089aa859651b53d77fa288631078da2df3ae",
+    "src/sync/hygiene_apply.rs": "52df622998047900dd5da7fd3ade053e233b82863175e8e74c2659205dcaf424",
+    "src/sync/hygiene_tests.rs": "d8210d92b5f5cc22ac2000673a1703eeb9614f2406d9b3142d1a123c86104895",
+    "src/sync/staged_epoch.rs": "70ff51f562a7d472fa089139b39a1631023e28abf78e95c6a9a5e1e863b29632",
+    "src/sync/excluded_revert.rs": "ed569f52fe37a9e334fd9f950ceb3b4d1ab0e025e9840f04b59548b9d6ed1c02",
+    "src/sync/excluded_revert_crash_tests.rs": "43d6c882833ef02be7fabf3621379b7148537b32be608eb0317648b7e6a2038b"
+  },
+  "checks": {
+    "hygiene-safety-v2-excluded.exit": 0,
+    "hygiene-safety-v2-sync__staged_epoch__tests.exit": 0,
+    "hygiene-safety-v2-hygiene.exit": 0,
+    "hygiene-safety-v2-clippy.exit": 0
+  },
+  "priorFourGateAssembly": "hygiene-order-v12: HISTORICAL before preservation corrections",
+  "remaining": [
+    "Explicit large-only production admission after hardening",
+    "Restrict large observation to admitted candidates, auto-stage opt-outs and private asset exclusions",
+    "Report actual canonical metadata writes as pending follow-up",
+    "Persist post-commit ignore retry intent before artifact identities vanish from HEAD",
+    "Assess legacy dracon-ignore-recovery records rather than assuming none exist",
+    "Queued-open/lease-break, precise-exchange and unsupported-FS controls",
+    "Original product gates; independent full-contract review",
+    "Fresh full coherent four gates, qualified installed/loaded execution and authorized zero-batch migration",
+    "Actual daemon publication plus every freshly enumerated watched repository clean and idle"
+  ],
+  "pinnedHelper": {
+    "path": "/tmp/dracon-hygiene-safety-v2-pttvgo/dracon-sync",
+    "sha256": "493a5de9a0b64135fd6e61689d8a768a80fd445b726452e1507a558b63745c92"
+  }
+}
