@@ -52,4 +52,17 @@ test tests::test_managed_env_body_version_line_does_not_drive_increment ... ok
 test tests::test_managed_media_patterns_override_roundtrip ... ok
 test tests::test_managed_patterns_override_roundtrip ... ok
 test tests::test_marker_migration_in_place ... ok
-test tests::test_merge_clean_inline_ancestor_stays_inline ... 
+test tests::test_merge_clean_inline_ancestor_stays_inline ... ok
+test tests::test_merge_clean_whole_file_ancestor_stays_encrypted ... ok
+test tests::test_normalize_secret_marker_invalid ... ok
+test tests::test_normalize_secret_marker_valid ... ok
+test tests::test_path_is_protected_directory_prefix ... ok
+test tests::test_path_is_protected_doublestar_components ... ok
+test tests::test_path_is_protected_env_pattern ... ok
+test tests::test_path_is_protected_legacy_empty_passes_everything ... ok
+test tests::test_path_is_protected_path_patterns_are_repository_relative ... ok
+test tests::test_path_is_protected_single_star_matches_one_component ... ok
+test tests::test_path_is_protected_source_code_excluded ... ok
+test tests::test_protection_exemptions ... ok
+test tests::test_slack_bot_token_compact ... ok
+test tests::test_slack_bot_token_compact_has_length_cap ... 
