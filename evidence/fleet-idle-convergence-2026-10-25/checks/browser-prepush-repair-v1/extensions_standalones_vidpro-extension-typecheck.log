@@ -1,0 +1,2 @@
+$ node scripts/ensure-wxt.mjs
+$ tsc --noEmit

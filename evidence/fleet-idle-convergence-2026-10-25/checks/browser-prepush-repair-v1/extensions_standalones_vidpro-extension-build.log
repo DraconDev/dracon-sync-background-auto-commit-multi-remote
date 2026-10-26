@@ -1,0 +1,2 @@
+$ node scripts/ensure-wxt.mjs
+$ tsc --noEmit && wxt build && node scripts/clean-duplicate-css.js
