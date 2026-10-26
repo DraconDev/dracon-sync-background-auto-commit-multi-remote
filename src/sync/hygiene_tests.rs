@@ -78,6 +78,49 @@ fn fixture(artifact: &str) -> tempfile::TempDir {
 }
 
 #[tokio::test]
+async fn hygiene_large_only_production_cycle_is_admitted_after_clean_warmup() {
+    let d = fixture("dist/extra.bin"); let r = d.path();
+    let mut p = policy(false); p.max_stage_file_bytes = 16 * 1024;
+    // Finish hardening and prior ordinary work BEFORE the qualifying cycle.
+    std::fs::write(r.join("note.txt"), b"warm-up ordinary edit\n").unwrap();
+    for _ in 0..4 {
+        let result = sync_repo(r, &p, &excluded(), 0, None, false, None).await;
+        assert!(result.is_ok(), "warm-up failed: {result:?}");
+        if native(r, &["status", "--porcelain", "--untracked-files=all"], None).is_empty() { break; }
+    }
+    assert!(native(r, &["status", "--porcelain", "--untracked-files=all"], None).is_empty(), "qualifying cycle requires clean prior work");
+    let head = native(r, &["rev-parse", "HEAD"], None);
+    let large = r.join("huge-only.iso"); let content = vec![b'L'; 64 * 1024];
+    std::fs::write(&large, &content).unwrap(); let inode = std::fs::metadata(&large).unwrap().ino();
+    assert_eq!(native(r, &["status", "--porcelain", "--untracked-files=all"], None), b"?? huge-only.iso\n");
+    let result = sync_repo(r, &p, &excluded(), 0, None, false, None).await.unwrap();
+    assert!(matches!(result, SyncOutcome::StagedPending), "new ignore metadata must owe follow-up: {result:?}");
+    assert!(std::fs::read_to_string(r.join(".gitignore")).unwrap().contains("/huge-only.iso\n"));
+    assert_eq!(std::fs::read(&large).unwrap(), content);
+    assert_eq!(std::fs::metadata(&large).unwrap().ino(), inode);
+    assert_eq!(native(r, &["rev-parse", "HEAD"], None), head, "large-only reconciliation must not manufacture a commit");
+}
+
+#[tokio::test]
+async fn hygiene_large_plan_cannot_expand_beyond_partition_or_override_opt_outs() {
+    let d = fixture("dist/extra.bin"); let r = d.path();
+    for path in ["allowed.iso", "private.iso", "local.iso", "excluded.iso"] {
+        std::fs::write(r.join(path), vec![b'X'; 4096]).unwrap();
+    }
+    let deadline = Instant::now() + Duration::from_secs(15);
+    let baseline = StagedIntentSnapshot::capture(r, deadline).await.unwrap();
+    let mut p = policy(false); p.untracked_exclude_patterns = vec!["local.iso".into()];
+    p.auto_commit_exclude_patterns = vec!["excluded.iso".into()];
+    let admitted = [PathBuf::from("allowed.iso"),PathBuf::from("local.iso"),PathBuf::from("excluded.iso")];
+    let plan = super::plan(r, &p, &excluded(), &baseline, false, &admitted, deadline).await.unwrap().unwrap();
+    assert_eq!(plan.patterns, vec!["/allowed.iso"], "private paths absent from partition and explicit exclusions must never be hidden");
+    p.auto_stage_untracked = false;
+    assert!(super::plan(r, &p, &excluded(), &baseline, false, &admitted, deadline).await.unwrap().is_none());
+    assert!(!r.join(".gitignore").exists(), "planning cannot change canonical metadata");
+    assert!(native(r, &["diff", "--cached", "--name-only"], None).is_empty());
+}
+
+#[tokio::test]
 async fn hygiene_successful_ignore_write_reports_followup_until_metadata_is_staged() {
     let d = fixture("dist/extra.bin");
     let r = d.path();
