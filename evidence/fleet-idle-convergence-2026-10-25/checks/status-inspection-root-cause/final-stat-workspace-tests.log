@@ -440,4 +440,46 @@ test storage_core::metadata::tests::ciphertext_selection_refuses_ambiguous_manif
 test storage_core::metadata::tests::cold_import_crashes_recover_retained_exact_ciphertext ... ok
 test storage_core::metadata::tests::cold_import_honors_retention_limits_and_preserves_corrupted_source ... ok
 test storage_core::metadata::tests::cold_import_preserves_ciphertext_versions_and_existing_preparations ... ok
-test storage_core::metadata::tests::cold_import_refuses_wrong_repo_corruption_noncanonical_and_output_overflow ... 
+test storage_core::metadata::tests::cold_import_refuses_wrong_repo_corruption_noncanonical_and_output_overflow ... ok
+test storage_core::metadata::tests::cold_import_timeout_terminates_descendant_and_publishes_no_record ... ok
+test storage_core::metadata::tests::corrupted_approved_ciphertext_is_permanent_and_never_reencrypted ... ok
+test storage_core::metadata::tests::corrupted_partial_source_requires_intervention_and_preserves_existing_bytes ... ok
+test storage_core::metadata::tests::foreign_binding_and_held_version_lease_refuse_before_capture ... ok
+test storage_core::metadata::tests::metadata_crash_child ... ignored, subprocess helper, invoked by metadata crash test
+test storage_core::metadata::tests::metadata_import_crash_child ... ignored, subprocess helper invoked by cold-import crash test
+test storage_core::metadata::tests::real_warden_manifest_restores_without_original_metadata_store ... ignored, operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary
+test storage_core::metadata::tests::source_record_and_aggregate_limits_never_evict_previous_versions ... ok
+test storage_core::metadata::tests::timeout_respects_retry_deadline_and_does_not_discard_captured_metadata ... ok
+test storage_core::metadata::tests::unchanged_manifest_reuses_ciphertext_after_reopen_without_record_churn ... ok
+test storage_core::reference::tests::canonical_pointer_round_trips_zero_and_large_lengths ... ok
+test storage_core::reference::tests::unsupported_or_malformed_pointers_fail_closed ... ok
+test storage_core::restore::tests::faulty_backend_and_byte_budgets_cannot_publish_unverified_output ... ok
+test storage_core::restore::tests::private_recovery_verifies_plain_and_encrypted_versions_and_preserves_edits ... ok
+test storage_core::restore::tests::publication_race_preserves_operator_destination_and_verified_capture ... ok
+test storage_core::restore::tests::real_cold_recovery_restores_large_encrypted_asset_without_original_source ... ignored, requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-built binary
+test storage_core::restore::tests::version_and_retention_limits_preserve_previous_recovery_and_tombstones_refuse ... ok
+test storage_core::restore::tests::wrong_grants_missing_keys_and_failed_authenticated_output_never_publish ... ok
+test storage_core::s3::credentials::tests::explicit_private_credentials_load_without_mutating_files ... ok
+test storage_core::s3::credentials::tests::git_tracked_or_unignored_credentials_refuse_without_mutation ... ok
+test storage_core::s3::credentials::tests::malformed_unknown_and_expired_records_redact_contents ... ok
+test storage_core::s3::credentials::tests::unsafe_permissions_links_and_oversized_records_refuse ... ok
+test storage_core::s3::http::tests::actual_http_corruption_and_provider_errors_produce_no_receipt_or_secret ... ok
+test storage_core::s3::http::tests::actual_http_creation_and_existing_object_require_signed_readback ... ok
+test storage_core::s3::http::tests::aws_published_get_and_put_signatures_match ... ok
+test storage_core::s3::http::tests::capability_probe_checks_competing_creates_and_preserved_conflicting_bytes ... ok
+test storage_core::s3::http::tests::capability_probe_refuses_double_create_success_and_false_refusal ... ok
+test storage_core::s3::http::tests::capability_probe_refuses_overwrite_and_corrupt_or_partial_readback ... ok
+test storage_core::s3::http::tests::conditional_header_and_session_token_are_bound_to_signature ... ok
+test storage_core::s3::http::tests::endpoints_credentials_and_namespace_fail_closed_without_echoing_input ... ok
+test storage_core::s3::http::tests::missing_and_wrong_length_objects_fail_before_publication ... ok
+test storage_core::s3::http::tests::redirects_are_not_followed_and_partial_or_encoded_bodies_are_rejected ... ok
+test storage_core::s3::http::tests::session_credentials_are_sent_signed_and_expiration_is_checked_per_request ... ok
+test storage_core::s3::http::tests::verified_write_scope_expiration_refuses_before_provider_contact ... ok
+test storage_core::s3::http::tests::whole_response_deadline_cannot_be_extended_by_trickled_bytes ... ok
+test storage_core::s3::tests::bounded_capture_refuses_before_remote_write_and_retrieval_bounds_body ... ok
+test storage_core::s3::tests::create_and_existing_both_require_complete_readback ... ok
+test storage_core::s3::tests::existing_corrupt_object_is_never_overwritten_or_accepted ... ok
+test storage_core::s3::tests::failed_readback_and_write_conflicts_cannot_issue_receipts ... ok
+test storage_core::s3::tests::interrupted_provider_body_and_destination_errors_fail_verification ... ok
+test storage_core::s3::tests::interrupted_source_cannot_contact_provider ... ok
+test storage_core::s3::tests::streaming_payload_above_git_limit_uses_bounded_reads ... 
