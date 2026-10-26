@@ -103,3 +103,5 @@ Gate exited with status 1
   ▸ extensions/standalones/clean-web TYPECHECK (31bd83ca328a)
   ▸ extensions/standalones/clean-web BUILD (31bd83ca328a)
   ▸ extensions/standalones/clean-web TEST (31bd83ca328a)
+  ▸ extensions/standalones/clean-web LINT (31bd83ca328a)
+  ▸ extensions/standalones/cursor-style TYPECHECK (31bd83ca328a)
