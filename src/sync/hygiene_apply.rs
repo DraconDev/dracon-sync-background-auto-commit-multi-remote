@@ -3,7 +3,7 @@
 use super::excluded_revert;
 use super::staged_epoch;
 use crate::git::staged_intent::{CapturedHead, StagedIntentSnapshot};
-use anyhow::{ensure, Context};
+use anyhow::{ensure, Context, Result};
 use std::ffi::CString;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
