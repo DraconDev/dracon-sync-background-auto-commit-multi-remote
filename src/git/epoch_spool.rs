@@ -339,16 +339,21 @@ mod tests {
         std::fs::create_dir(&path).unwrap();
         std::fs::write(path.join("index"), b"index\n").unwrap();
         std::fs::write(path.join("retained.pack"), vec![0u8; 4096]).unwrap();
-        let when = std::time::SystemTime::now() - Duration::from_secs(age_secs);
-        for entry in [path.clone(), path.join("index"), path.join("retained.pack")] {
-            std::fs::File::options()
-                .write(true)
-                .open(&entry)
-                .unwrap()
-                .set_modified(when)
-                .unwrap();
-        }
+        age_mtime(&path, age_secs);
+        age_mtime(&path.join("index"), age_secs);
+        age_mtime(&path.join("retained.pack"), age_secs);
         path
+    }
+
+    /// Back `path`'s mtime by `secs`. A directory needs a read-only file
+    /// handle (`File::open`); opening it with `write(true)` fails with
+    /// EISDIR, which is why this is a helper and not inlined.
+    fn age_mtime(path: &Path, secs: u64) {
+        let when = std::time::SystemTime::now() - Duration::from_secs(secs);
+        std::fs::File::open(path)
+            .unwrap()
+            .set_modified(when)
+            .unwrap();
     }
 
     #[tokio::test]
@@ -411,23 +416,12 @@ mod tests {
         let other = git_dir.join("modules");
         std::fs::create_dir(&other).unwrap();
         std::fs::write(other.join("keep"), b"keep\n").unwrap();
-        let when = std::time::SystemTime::now() - Duration::from_secs(86_400);
-        for dir in [&other, &git_dir.join("objects")] {
-            std::fs::File::options()
-                .write(true)
-                .open(dir)
-                .unwrap()
-                .set_modified(when)
-                .unwrap();
-        }
         let objects = git_dir.join("objects");
         std::fs::create_dir(&objects).unwrap();
-        std::fs::File::options()
-            .write(true)
-            .open(&objects)
-            .unwrap()
-            .set_modified(when)
-            .unwrap();
+        // Even an ancient mtime is not enough: only spool-prefixed names
+        // are ever candidates.
+        age_mtime(&other, 86_400);
+        age_mtime(&objects, 86_400);
         assert_eq!(reap_abandoned_spools(root.path(), 60, 60).await, 0);
         assert!(other.join("keep").exists(), "non-spool dirs are untouched");
         assert!(objects.exists(), "git's own dirs are untouched");
