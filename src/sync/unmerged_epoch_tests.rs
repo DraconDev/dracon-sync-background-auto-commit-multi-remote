@@ -290,6 +290,7 @@ async fn unmerged_entry_never_relocates_an_active_worktree_writer() {
     assert!(native(r,&["ls-files","--unmerged","-z"],None).is_empty());
 }
 
+#[cfg(target_os = "linux")]
 #[tokio::test]
 async fn unmerged_entry_concurrent_index_ref_and_deadline_refuse_without_losing_data() {
     const ROLE:&str="DRACON_UNMERGED_RACE_ROLE";
