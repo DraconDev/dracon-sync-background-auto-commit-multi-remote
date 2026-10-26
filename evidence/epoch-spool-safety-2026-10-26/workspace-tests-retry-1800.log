@@ -2071,3 +2071,19 @@ test sync::tests::test_m3_mirror_only_no_unwanted_push ... [master (root-commit)
 error: failed to push some refs to '/tmp/.tmpN16BUY/mirror.git'
 ok
 test sync::tests::test_mirror_failure_ledger_names_remote ... [master (root-commit) a9283fa] init
+ok
+test sync::tests::test_partition_gitignored_tracked_file_with_gitignore_rule ... ok
+test sync::tests::test_partition_gitignored_untracked_gitignored_is_skipped ... ok
+test sync::tests::test_paused_remote_names_incident_stretches_reprobe ... ok
+test sync::tests::test_paused_remote_names_lists_only_gated ... ok
+test sync::tests::test_push_succeeds_with_detached_head ... [main (root-commit) 47f86d3] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpklaj9O/origin.git'
+[main 9ad52e4] ahead
+HEAD is now at 9ad52e4 ahead
+To /tmp/.tmpklaj9O/origin.git
+ * [new branch]      HEAD -> main
+ok
+test sync::tests::test_push_with_retries_fetches_first_on_rejection ... 
