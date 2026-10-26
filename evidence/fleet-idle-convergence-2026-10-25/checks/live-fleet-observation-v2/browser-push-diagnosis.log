@@ -1,0 +1,611 @@
+Oct 26 11:30:32 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:30:33 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1562 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:30:33 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:30:35 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:32:16 nixos dracon-sync[3906273]: 📝 committed 4 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:32:17 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1563 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:32:17 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:32:17 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:33:13 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:33:14 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1564 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:33:14 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:33:15 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:33:25 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:33:25 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1565 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:33:25 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:33:26 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:35:55 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:35:56 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1566 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:35:56 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:35:57 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:37:08 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:37:09 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1567 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:37:09 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:37:09 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:42:47 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:42:47 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1568 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:42:47 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:42:47 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:43:11 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:43:12 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1569 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:43:12 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:43:12 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:43:38 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:43:38 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1570 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:43:38 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:43:39 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:44:03 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:44:03 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1571 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:44:03 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:44:03 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:45:10 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:45:10 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1572 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:45:10 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:45:12 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:45:57 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:45:57 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1573 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:45:57 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:45:58 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:46:20 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:46:20 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1574 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:46:20 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:46:22 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:46:30 nixos dracon-sync[3906273]: 📝 committed 6 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:46:30 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1575 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:46:30 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:46:31 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:47:11 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:47:11 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1576 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:47:11 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:47:13 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:49:32 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:49:32 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1577 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:49:32 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:49:34 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:50:32 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:50:32 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1578 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:50:32 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:50:33 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:52:01 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:52:01 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1579 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:52:01 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:52:03 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:52:21 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:52:21 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1580 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:52:21 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:52:22 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:52:38 nixos dracon-sync[3906273]: ⚠️ /home/dracon/Dev/browser-extensions-shared classification returned empty on status-dirty worktree (modified=0 staged=0 untracked=2) — dropped, re-probing
+Oct 26 11:53:54 nixos dracon-sync[3906273]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Mirror Degraded: github: 3 consecutive push failures — local pre-push hook failed (inspect retained hook output, product gates and the service environment; this does not establish a network failure or justify weakening policy)
+Oct 26 11:53:59 nixos dracon-sync[3906273]: 🛑 push-stuck (5 failures): local pre-push hook failed (inspect retained hook output,... — fix the recorded cause first; then dracon-sync repair stuck-unstuck '/home/dracon/Dev/browser-extensions-shared'; auto-push paused (retry budget 5)
+Oct 26 11:53:59 nixos dracon-sync[3906273]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Push Stuck (budget exhausted): 🛑 push-stuck (5 failures): local pre-push hook failed (inspect retained hook output,... — fix the recorded cause first; then dracon-sync repair stuck-unstuck '/home/dracon/Dev/browser-extensions-shared'; auto-push paused
+Oct 26 11:54:09 nixos dracon-sync[3906273]: 📝 committed 4 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:54:09 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1581 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:54:09 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:54:09 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:54:22 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:54:22 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1582 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:54:22 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:54:24 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:54:33 nixos dracon-sync[3906273]: 📝 committed 7 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:54:33 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1583 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:54:33 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:54:33 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:54:41 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:54:41 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1584 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:54:41 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:54:43 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:55:11 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:55:11 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1585 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:55:11 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:55:11 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:55:33 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:55:33 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1586 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:55:33 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:55:35 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:55:49 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:55:49 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1587 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:55:49 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:55:52 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:56:18 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:56:18 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1588 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:56:18 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:56:18 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:56:21 nixos dracon-sync[3906273]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Mirror Degraded: gitlab: 4 consecutive push failures — local pre-push hook failed (inspect retained hook output, product gates and the service environment; this does not establish a network failure or justify weakening policy)
+Oct 26 11:56:21 nixos dracon-sync[3906273]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Mirror Degraded: origin: 4 consecutive push failures — local pre-push hook failed (inspect retained hook output, product gates and the service environment; this does not establish a network failure or justify weakening policy)
+Oct 26 11:56:34 nixos dracon-sync[3906273]: 📝 committed 4 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:56:34 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1589 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:56:34 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:56:36 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:56:49 nixos dracon-sync[3906273]: 📝 committed 9 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:56:49 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1590 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:56:49 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:56:52 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:57:30 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:57:30 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1591 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:57:30 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:57:30 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:57:44 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:57:44 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1592 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:57:44 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:57:46 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:58:00 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:58:00 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1593 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:58:00 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:58:00 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:58:22 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:58:22 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1594 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:58:22 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:58:24 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:58:41 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:58:42 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1595 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:58:42 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:58:44 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:58:58 nixos dracon-sync[3906273]: 📝 committed 6 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:58:58 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1596 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:58:58 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:59:01 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:59:11 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:59:11 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1597 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:59:11 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:59:11 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 11:59:28 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 11:59:28 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1598 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 11:59:28 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 11:59:30 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:00:01 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:00:01 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1599 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:00:01 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:00:03 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:00:14 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:00:14 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1600 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:00:14 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:00:14 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:00:34 nixos dracon-sync[3906273]: 📝 committed 10 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:00:35 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1601 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:00:35 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:00:36 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:00:44 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:00:44 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1602 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:00:44 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:00:45 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:00:55 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:00:55 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1603 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:00:55 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:00:57 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:01:06 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:01:06 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1604 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:01:06 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:01:07 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:01:30 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:01:30 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1605 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:01:30 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:01:32 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:01:40 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:01:40 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1606 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:01:40 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:01:40 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:01:52 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:01:52 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1607 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:01:52 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:01:54 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:02:09 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:02:09 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1608 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:02:09 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:02:10 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:02:18 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:02:18 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1609 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:02:18 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:02:20 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:02:29 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:02:29 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1610 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:02:29 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:02:29 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:02:41 nixos dracon-sync[3906273]: 📝 committed 5 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:02:41 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1611 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:02:41 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:02:43 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:02:52 nixos dracon-sync[3906273]: 📝 committed 7 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:02:53 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1612 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:02:53 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:02:53 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:03:01 nixos dracon-sync[3906273]: 📝 committed 6 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:03:01 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1613 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:03:01 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:03:03 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:03:19 nixos dracon-sync[3906273]: 📝 committed 4 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:03:19 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1614 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:03:19 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:03:19 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:03:32 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:03:33 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1615 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:03:33 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:03:35 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:03:48 nixos dracon-sync[3906273]: 📝 committed 8 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:03:49 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1616 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:03:49 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:03:49 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:04:05 nixos dracon-sync[3906273]: 📝 committed 7 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:04:05 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1617 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:04:05 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:04:07 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:04:29 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:04:29 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1618 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:04:29 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:04:29 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:04:49 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:04:49 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1619 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:04:49 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:04:51 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:05:10 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:05:11 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1620 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:05:11 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:05:13 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:05:21 nixos dracon-sync[3906273]: 📝 committed 6 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:05:21 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1621 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:05:21 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:05:21 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:05:30 nixos dracon-sync[3906273]: 📝 committed 8 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:05:30 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1622 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:05:30 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:05:31 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:05:44 nixos dracon-sync[3906273]: 📝 committed 5 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:05:44 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1623 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:05:44 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:05:45 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:06:00 nixos dracon-sync[3906273]: 📝 committed 8 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:06:00 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1624 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:06:00 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:06:02 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:06:12 nixos dracon-sync[3906273]: 📝 committed 5 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:06:12 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1625 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:06:12 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:06:13 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:06:27 nixos dracon-sync[3906273]: 📝 committed 7 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:06:27 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1626 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:06:27 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:06:28 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:06:39 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:06:40 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1627 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:06:40 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:06:40 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:07:00 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:07:00 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1628 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:07:00 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:07:01 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:07:25 nixos dracon-sync[3906273]: 📝 committed 9 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:07:25 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1629 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:07:25 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:07:26 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:07:38 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:07:38 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1630 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:07:38 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:07:40 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:07:49 nixos dracon-sync[3906273]: 📝 committed 9 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:07:49 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1631 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:07:49 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:07:50 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:08:00 nixos dracon-sync[3906273]: 📝 committed 7 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:08:01 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1632 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:08:01 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:08:02 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:08:13 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:08:13 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1633 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:08:13 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:08:14 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:08:36 nixos dracon-sync[3906273]: 📝 committed 8 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:08:37 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1634 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:08:37 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:08:38 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:08:52 nixos dracon-sync[3906273]: 📝 committed 4 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:08:52 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1635 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:08:52 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:08:53 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:09:06 nixos dracon-sync[3906273]: 📝 committed 6 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:09:07 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1636 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:09:07 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:09:08 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:09:43 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:09:43 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1637 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:09:43 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:09:44 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:10:03 nixos dracon-sync[3906273]: 📝 committed 4 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:10:04 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1638 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:10:04 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:10:05 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:10:15 nixos dracon-sync[3906273]: 📝 committed 8 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:10:15 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1639 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:10:15 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:10:15 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:10:25 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:10:26 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1640 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:10:26 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:10:27 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:10:41 nixos dracon-sync[3906273]: 📝 committed 5 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:10:42 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1641 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:10:42 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:10:42 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:11:06 nixos dracon-sync[3906273]: 📝 committed 4 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:11:06 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1642 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:11:06 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:11:07 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:11:24 nixos dracon-sync[3906273]: 📝 committed 4 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:11:24 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1643 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:11:24 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:11:25 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:11:42 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:11:43 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1644 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:11:43 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:11:44 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:12:35 nixos dracon-sync[3906273]: 📝 committed 4 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:12:35 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1645 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:12:35 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:12:36 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:12:47 nixos dracon-sync[3906273]: 📝 committed 4 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:12:48 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1646 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:12:48 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:12:48 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:13:15 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:13:15 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1647 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:13:15 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:13:16 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:13:56 nixos dracon-sync[3906273]: 📝 committed 8 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:13:56 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1648 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:13:56 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:13:57 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:14:07 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:14:08 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1649 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:14:08 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:14:09 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:16:50 nixos dracon-sync[3906273]: 📝 committed 10 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:16:50 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1650 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:16:50 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:16:50 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:17:00 nixos dracon-sync[3906273]: 📝 committed 5 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:17:01 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1651 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:17:01 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:17:02 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:17:17 nixos dracon-sync[3906273]: 📝 committed 5 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:17:17 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1652 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:17:17 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:17:17 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:17:31 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:17:31 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1653 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:17:31 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:17:33 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:17:45 nixos dracon-sync[3906273]: 📝 committed 7 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:17:45 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1654 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:17:45 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:17:46 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:18:02 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:18:02 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1655 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:18:02 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:18:04 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:18:50 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:18:50 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1656 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:18:50 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:18:51 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:19:11 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:19:11 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1657 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:19:11 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:19:13 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:19:22 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:19:22 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1658 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:19:22 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:19:23 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:20:09 nixos dracon-sync[3906273]: 📝 committed 4 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:20:09 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1659 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:20:09 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:20:11 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:21:27 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:21:28 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1660 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:21:28 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:21:29 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:22:08 nixos dracon-sync[3906273]: 📝 committed 6 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:22:09 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1661 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:22:09 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:22:09 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:22:17 nixos dracon-sync[3906273]: 📝 committed 5 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:22:18 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1662 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:22:18 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:22:20 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:23:56 nixos dracon-sync[3906273]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Mirror Degraded: github: 3 consecutive push failures — local pre-push hook failed (inspect retained hook output, product gates and the service environment; this does not establish a network failure or justify weakening policy)
+Oct 26 12:24:01 nixos dracon-sync[3906273]: 🛑 push-stuck (5 failures): local pre-push hook failed (inspect retained hook output,... — fix the recorded cause first; then dracon-sync repair stuck-unstuck '/home/dracon/Dev/browser-extensions-shared'; auto-push paused (retry budget 5)
+Oct 26 12:24:01 nixos dracon-sync[3906273]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Push Stuck (budget exhausted): 🛑 push-stuck (5 failures): local pre-push hook failed (inspect retained hook output,... — fix the recorded cause first; then dracon-sync repair stuck-unstuck '/home/dracon/Dev/browser-extensions-shared'; auto-push paused
+Oct 26 12:24:30 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:24:31 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1663 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:24:31 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:24:31 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:24:53 nixos dracon-sync[3906273]: 📝 committed 5 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:24:54 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1664 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:24:54 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:24:54 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:25:06 nixos dracon-sync[3906273]: 📝 committed 6 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:25:06 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1665 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:25:06 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:25:07 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:26:21 nixos dracon-sync[3906273]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Mirror Degraded: gitlab: 4 consecutive push failures — local pre-push hook failed (inspect retained hook output, product gates and the service environment; this does not establish a network failure or justify weakening policy)
+Oct 26 12:26:21 nixos dracon-sync[3906273]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Mirror Degraded: origin: 4 consecutive push failures — local pre-push hook failed (inspect retained hook output, product gates and the service environment; this does not establish a network failure or justify weakening policy)
+Oct 26 12:28:06 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:28:06 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1666 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:28:06 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:28:08 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:30:40 nixos dracon-sync[3906273]: 📝 committed 4 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:30:40 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1667 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:30:40 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:30:42 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:30:51 nixos dracon-sync[3906273]: 📝 committed 8 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:30:51 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1668 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:30:51 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:30:51 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:31:03 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:31:03 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1669 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:31:03 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:31:05 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:32:43 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:32:43 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1670 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:32:43 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:32:45 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:32:53 nixos dracon-sync[3906273]: 📝 committed 8 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:32:53 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1671 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:32:53 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:32:53 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:34:03 nixos dracon-sync[3906273]: 📝 committed 9 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:34:03 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1672 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:34:03 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:34:04 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:34:25 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:34:25 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1673 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:34:25 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:34:25 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:34:38 nixos dracon-sync[3906273]: 📝 committed 9 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:34:39 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1674 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:34:39 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:34:40 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:34:58 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:34:58 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1675 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:34:58 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:34:58 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:35:15 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:35:15 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1676 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:35:15 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:35:17 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:35:33 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:35:33 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1677 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:35:33 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:35:34 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:36:04 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:36:04 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1678 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:36:04 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:36:06 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:36:19 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:36:19 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1679 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:36:19 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:36:20 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:36:47 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:36:47 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1680 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:36:47 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:36:49 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:37:29 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:37:29 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1681 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:37:29 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:37:30 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:37:51 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:37:51 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1682 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:37:51 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:37:53 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:39:08 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:39:08 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1683 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:39:08 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:39:10 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:39:22 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:39:22 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1684 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:39:22 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:39:23 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:40:23 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:40:23 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1685 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:40:23 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:40:25 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:40:34 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:40:35 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1686 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:40:35 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:40:35 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:41:25 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:41:25 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1687 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:41:25 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:41:27 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:42:12 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:42:12 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1688 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:42:12 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:42:14 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:42:23 nixos dracon-sync[3906273]: 📝 committed 8 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:42:23 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1689 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:42:23 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:42:23 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:44:55 nixos dracon-sync[3906273]: ⚠️ /home/dracon/Dev/browser-extensions-shared classification returned empty on status-dirty worktree (modified=2 staged=0 untracked=1) — dropped, re-probing
+Oct 26 12:45:06 nixos dracon-sync[3906273]: 📝 committed 9 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:45:07 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1690 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:45:07 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:45:08 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:45:20 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:45:21 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1691 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:45:21 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:45:21 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:45:38 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:45:38 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1692 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:45:38 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:45:40 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:45:50 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:45:51 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1693 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:45:51 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:45:51 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:46:07 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:46:07 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1694 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:46:07 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:46:09 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:46:22 nixos dracon-sync[3906273]: 📝 committed 5 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:46:22 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1695 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:46:22 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:46:23 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:46:45 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:46:45 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1696 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:46:45 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:46:47 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:47:02 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:47:03 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1697 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:47:03 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:47:03 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:47:52 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:47:52 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1698 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:47:52 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:47:54 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:49:28 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:49:29 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1699 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:49:29 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:49:30 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:49:47 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:49:47 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1700 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:49:47 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:49:48 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:50:05 nixos dracon-sync[3906273]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:50:05 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1701 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:50:05 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:50:07 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:50:38 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:50:38 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1702 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:50:38 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 26 12:50:39 nixos dracon-sync[3906273]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 26 12:51:39 nixos dracon-sync[3906273]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Stuck Ahead (Unpushed): commits not reaching origin for >10 min — push may be failing
+Oct 26 12:51:44 nixos dracon-sync[3906273]: ⏸️  daemon backstop: 1702 unpushed commits pending push >300s, skipping auto-commit for /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:51:44 nixos dracon-sync[3906273]: ⏫ /home/dracon/Dev/browser-extensions-shared scaling push timeout 900s → 5400s (1702 commits ahead)
+Oct 26 12:51:48 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:51:48 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1703 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:51:48 nixos dracon-sync[3906273]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 26 12:51:56 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:51:57 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1704 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:51:57 nixos dracon-sync[3906273]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 26 12:52:28 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:52:29 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1705 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:52:29 nixos dracon-sync[3906273]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 26 12:52:37 nixos dracon-sync[3906273]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:52:38 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1706 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:52:38 nixos dracon-sync[3906273]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 26 12:53:58 nixos dracon-sync[3906273]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Mirror Degraded: github: 3 consecutive push failures — local pre-push hook failed (inspect retained hook output, product gates and the service environment; this does not establish a network failure or justify weakening policy)
+Oct 26 12:54:48 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:55:03 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1707 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:55:03 nixos dracon-sync[3906273]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 26 12:55:47 nixos dracon-sync[3906273]: ⚠️ /home/dracon/Dev/browser-extensions-shared local commit during publication failed (publication unaffected): git commit-staged failed in /home/dracon/Dev/browser-extensions-shared with status exit status: 128: fatal: unable to create threaded lstat: Resource temporarily unavailable
+Oct 26 12:55:59 nixos dracon-sync[3906273]: ⚠️ /home/dracon/.dracon local commit during publication failed (publication unaffected): empty-repo bootstrap failed for /home/dracon/.dracon: failed to spawn git ls-files --others --exclude-standard in /home/dracon/.dracon: Resource temporarily unavailable (os error 11)
+Oct 26 12:56:02 nixos dracon-sync[3906273]: ⚠️ /home/dracon/Dev/browser-extensions-shared local commit during publication failed (publication unaffected): Resource temporarily unavailable (os error 11)
+Oct 26 12:56:26 nixos dracon-sync[3906273]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 26 12:56:28 nixos dracon-sync[3906273]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 1708 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 26 12:56:28 nixos dracon-sync[3906273]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 26 12:56:32 nixos dracon-sync[3906273]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Mirror Degraded: gitlab: 4 consecutive push failures — local pre-push hook failed (inspect retained hook output, product gates and the service environment; this does not establish a network failure or justify weakening policy)
+Oct 26 12:56:32 nixos dracon-sync[3906273]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Mirror Degraded: origin: 4 consecutive push failures — local pre-push hook failed (inspect retained hook output, product gates and the service environment; this does not establish a network failure or justify weakening policy)
+Oct 26 12:56:37 nixos dracon-sync[3906273]: ⚠️ background push to origin failed for /home/dracon/Dev/browser-extensions-shared: git push failed in /home/dracon/Dev/browser-extensions-shared with status exit status: 1: ❌ Pre-push: 4-gate FAILED: snapshot dependency installation exited 1; see /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.Mzc0xK/e767cd9cb995-INSTALL.log
+Oct 26 12:56:37 nixos dracon-sync[3906273]:  ERROR  The service was stopped: spawn /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.Mzc0xK/snapshot-e767cd9cb9959a601e294d0638a1e90b1d3b72dc/node_modules/.bun/@esbuild+linux-x64@0.28.1/node_modules/@esbuild/linux-x64/bin/esbuild EAGAIN
+Oct 26 12:56:37 nixos dracon-sync[3906273]:     at /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.Mzc0xK/snapshot-e767cd9cb9959a601e294d0638a1e90b1d3b72dc/node_modules/.bun/esbuild@0.28.1/node_modules/esbuild/lib/main.js:999:38
+Oct 26 12:56:37 nixos dracon-sync[3906273]:     at Object.responseCallbacks.<computed> (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.Mzc0xK/snapshot-e767cd9cb9959a601e294d0638a1e90b1d3b72dc/node_modules/.bun/esbuild@0.28.1/node_modules/esbuild/lib/main.js:884:9)
+Oct 26 12:56:37 nixos dracon-sync[3906273]:     at ChildProcess.afterClose (/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.Mzc0xK/snapshot-e767cd9cb9959a601e294d0638a1e90b1d3b72dc/node_modules/.bun/esbuild@0.28.1/node_modules/esbuild/lib/main.js:875:28)
+Oct 26 12:56:37 nixos dracon-sync[3906273]: error: failed to push some refs to 'github.com:DraconDev/browser-extensions-shared.git'
+Oct 26 12:56:37 nixos dracon-sync[3906273]: 🧾 Pre-push attempt logs: /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.Mzc0xK
+Oct 26 12:56:37 nixos dracon-sync[3906273]: 🔍 Pre-push: 43 affected workspace(s) at e767cd9cb9959a601e294d0638a1e90b1d3b72dc — running 4-gate.
