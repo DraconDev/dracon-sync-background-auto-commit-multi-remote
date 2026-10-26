@@ -1,0 +1,29 @@
+{
+  "capturedAt": "2026-10-26T02:02:25.325647+00:00",
+  "scope": "intermediate unmerged-entry assembly; NOT final implementation, installed/loaded execution or fleet-idle proof",
+  "changedSourceFiles": [],
+  "pinnedHelperUnchanged": true,
+  "observedExitCodes": {
+    "unmerged-entry-v6-release-build": 0,
+    "unmerged-entry-v6-cargo-deny": 0,
+    "unmerged-entry-v6-workspace-strict-clippy": 0,
+    "unmerged-entry-v6-workspace-tests": 0,
+    "unmerged-entry-v6-focused": 0
+  },
+  "logSha256": {
+    "unmerged-entry-v6-release-build.log": "405c6fe86f4fa640531b94ba37dcd802b37bb4997daca71a69a2a864529228b1",
+    "unmerged-entry-v6-focused.log": "c513b374f2da13990e78dee8280bc942df77d9e8cca84b4618f2cd4de95f6868",
+    "unmerged-entry-v6-cargo-deny.log": "f1a0fca39d4280363937aabd77783990ea6480bd9ca257816de3b68fc8efa845",
+    "unmerged-entry-v6-workspace-strict-clippy.log": "7514eb4d83edcfa9ec5d19b07a4dab4a4c6c89bd15c2577a4be2ab0806e589bf",
+    "unmerged-entry-v6-helper-build.log": "7911ec8fba99aefed68a6010b4e36e0eb83a5c33823b4badc6d4a7dfe8221f06",
+    "unmerged-entry-v6-workspace-tests.log": "1fd533401411e24aa9331bbb89018cf3196922205a7a7baca1349b8b9ab4c05c"
+  },
+  "releaseArtifacts": {
+    "target/release/dracon-sync": "eb3643f7f528fc35b27a591761c4e29fa6ccbdb0a61409050c1f67758debb3bc",
+    "target/release/dracon-system": "46d8dce64ae0576b00ae0d9a6f23bd2de199b0e8bf89d99569df5df89c654539",
+    "target/release/dracon-warden": "44175cf23aa1e7f981fa6d7dff2235b83e021f116c6da747e7650fd2080b512a"
+  },
+  "deploymentPerformedByThisContinuation": false,
+  "liveBatchMigrationAppliedByThisContinuation": false,
+  "originalProductGatesRefreshed": false
+}
