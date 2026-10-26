@@ -385,4 +385,11 @@ test storage_core::hydration::tests::crash_recovery_resumes_capture_and_publicat
 test storage_core::hydration::tests::hydration_preserves_index_backup_and_cache_and_restores_executable_mode ... ok
 test storage_core::hydration::tests::hydration_version_capacity_preserves_prior_backup_and_verified_cache ... ok
 test storage_core::hydration::tests::local_edits_corrupt_cache_wrong_references_and_capacity_never_replace_working_bytes ... ok
-test storage_core::hydration::tests::local_resume_needs_no_original_recovery_cache_and_preserves_edits ... 
+test storage_core::hydration::tests::local_resume_needs_no_original_recovery_cache_and_preserves_edits ... ok
+test storage_core::hydration::tests::local_resume_refuses_corrupt_output_intent_and_missing_preparation ... ok
+test storage_core::hydration::tests::missing_working_file_is_published_without_a_backup_or_index_changes ... ok
+test storage_core::hydration::tests::selected_commit_manifest_repo_and_placement_must_match_before_publication ... ok
+test storage_core::index::tests::approved_metadata_cannot_be_substituted_for_another_manifest ... ok
+test storage_core::index::tests::changed_reference_without_verified_job_and_unknown_prior_metadata_fail_closed ... ok
+test storage_core::index::tests::commit_lock_crash_helper ... ignored, commit-lock subprocess helper invoked by crash recovery test
+test storage_core::index::tests::commit_lock_preserves_foreign_locks_and_releases_only_its_inode ... 
