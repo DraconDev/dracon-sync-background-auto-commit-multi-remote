@@ -6,7 +6,9 @@ fn current_hygiene_intent_is_never_clean_without_git_dirt_or_scheduler_markers()
     row.state_flags.push("HYGIENE_PENDING".into());
     assert_ne!(classify(&row), Current::Converged);
     assert!(!label(&row).contains("CLEAN"));
-    assert!(crate::report::repo_hint(&row.state_flags, false, true).contains("dracon-hygiene-intents/"));
+    assert!(
+        crate::report::repo_hint(&row.state_flags, false, true).contains("dracon-hygiene-intents/")
+    );
     row.state_flags = vec!["HYGIENE_INSPECT_FAILED".into()];
     assert_eq!(classify(&row), Current::Blocked);
 }

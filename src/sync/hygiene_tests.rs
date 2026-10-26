@@ -259,19 +259,37 @@ async fn hygiene_durable_policy_optout_and_symlink_registry_refuse_without_mutat
 
 #[tokio::test]
 async fn hygiene_durable_malformed_record_is_inspection_failure_not_idle_or_permission_to_write() {
-    let d = fixture("dist/extra.bin"); let r=d.path(); let p=policy(true);
-    let baseline=staged_epoch::Epoch::capture(r,15).await.unwrap();
-    let staging=staged_epoch::Staging::new(r,baseline).await.unwrap();
-    let _owned=staging.finish(r,&p,&excluded(),true,false).await.unwrap();
-    let root=r.join(".git/dracon-hygiene-intents");
-    let directory=std::fs::read_dir(&root).unwrap().next().unwrap().unwrap().path();
-    std::fs::write(directory.join("intent.json"),b"{invalid JSON\n").unwrap();
-    let index=std::fs::read(r.join(".git/index")).unwrap();
-    let artifact=std::fs::read(r.join("dist/extra.bin")).unwrap();
+    let d = fixture("dist/extra.bin");
+    let r = d.path();
+    let p = policy(true);
+    let baseline = staged_epoch::Epoch::capture(r, 15).await.unwrap();
+    let staging = staged_epoch::Staging::new(r, baseline).await.unwrap();
+    let _owned = staging
+        .finish(r, &p, &excluded(), true, false)
+        .await
+        .unwrap();
+    let root = r.join(".git/dracon-hygiene-intents");
+    let directory = std::fs::read_dir(&root)
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path();
+    std::fs::write(directory.join("intent.json"), b"{invalid JSON\n").unwrap();
+    let index = std::fs::read(r.join(".git/index")).unwrap();
+    let artifact = std::fs::read(r.join("dist/extra.bin")).unwrap();
     assert!(super::has_pending(r).is_err());
-    assert!(super::retry(r,&p,&excluded(),true,Instant::now()+Duration::from_secs(10)).await.is_err());
-    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(),index);
-    assert_eq!(std::fs::read(r.join("dist/extra.bin")).unwrap(),artifact);
+    assert!(super::retry(
+        r,
+        &p,
+        &excluded(),
+        true,
+        Instant::now() + Duration::from_secs(10)
+    )
+    .await
+    .is_err());
+    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(), index);
+    assert_eq!(std::fs::read(r.join("dist/extra.bin")).unwrap(), artifact);
     assert!(!r.join(".gitignore").exists());
 }
 
