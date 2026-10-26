@@ -2,3 +2,9 @@ $ vitest run --passWithNoTests
 
  RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/collections/toolkit/gemini-toolkit
 
+
+ Test Files  27 passed (27)
+      Tests  568 passed (568)
+   Start at  11:56:54
+   Duration  7.17s (transform 581ms, setup 213ms, import 808ms, tests 4.02s, environment 6.06s)
+
