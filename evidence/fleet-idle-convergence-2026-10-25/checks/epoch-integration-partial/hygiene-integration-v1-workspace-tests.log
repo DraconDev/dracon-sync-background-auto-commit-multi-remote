@@ -1930,3 +1930,9 @@ test sync::tests::parent_gitlink_propagates_after_standalone_commit ... ok
 test sync::tests::test_alert_unpushed_threshold ... [master (root-commit) ee5d4f7] init
 ok
 test sync::tests::test_alert_unpushed_threshold_not_triggered ... [master (root-commit) ee5d4f7] init
+ok
+test sync::tests::test_auto_commit_excludes_union_global_and_per_repo ... ok
+test sync::tests::test_auto_resolve_no_unmerged ... ok
+test sync::tests::test_auto_resolve_unmerged_disabled ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_matches_head ... 
