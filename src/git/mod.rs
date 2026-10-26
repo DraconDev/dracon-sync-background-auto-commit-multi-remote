@@ -4987,12 +4987,9 @@ pub(crate) async fn sweep_stale_tmp_packs(
             continue;
         }
         let size = meta.len();
-        match std::fs::remove_file(entry.path()) {
-            Ok(()) => {
-                removed += 1;
-                freed += size;
-            }
-            Err(_) => {}
+        if std::fs::remove_file(entry.path()).is_ok() {
+            removed += 1;
+            freed += size;
         }
     }
     (removed, freed)
