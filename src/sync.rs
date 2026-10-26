@@ -5315,7 +5315,26 @@ async fn sync_repo_local_with_ownership(
     // `check_conflict_state` — v0.113.0 gc'd repos mid-merge/
     // rebase/cherry-pick even though the sync itself correctly
     // blocked two statements later.
-    if !dry_run && !commit_only && !entry_epoch.as_ref().is_some_and(|epoch| epoch.has_intent()) {
+    // CHANGED 2026-10-26 (disk-exhaustion incident): the `has_intent()`
+    // condition is GONE. It made auto-gc skip exactly the repositories that
+    // generate the garbage: a busy repo has staged intent on nearly every
+    // cycle, so it was never gc'd and its `tmp_pack_*` files (failed/
+    // interrupted pushes) accumulated without bound. Observed the same day:
+    // browser-extensions-shared held 23 `tmp_pack_*` totalling 10.71 GiB
+    // against only 3.32 GiB of real objects (76% of `.git` was dangling),
+    // and ai-auto-writer repeatedly reached 28-66 GiB of the same garbage.
+    //
+    // The removed condition was NOT a safety gate. `git gc` never reads or
+    // writes the index and never touches the worktree, so a staged epoch is
+    // unaffected; the real safety gates are preserved: `!dry_run` (never
+    // mutate on a dry run), `!commit_only` (commit-only means no unrelated
+    // maintenance), and placement below `check_conflict_state` (never gc
+    // mid-merge/rebase/cherry-pick). `git gc` also keeps its 2-week prune
+    // grace, so in-flight objects are never collected.
+    //
+    // The per-repo 1h cooldown in `maybe_auto_gc` still bounds the cost: one
+    // `count-objects` per hour per repo in the steady state.
+    if !dry_run && !commit_only {
         crate::git::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes).await;
         // ADDED 2026-07-29 (v0.113.10): opt-in janitor for stale
         // daemon-created branches + orphaned remote-tracking refs.
