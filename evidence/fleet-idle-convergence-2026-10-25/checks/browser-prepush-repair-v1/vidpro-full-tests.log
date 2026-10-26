@@ -8,3 +8,9 @@ https://svelte.dev/e/a11y_click_events_have_key_events
 https://svelte.dev/e/a11y_no_noninteractive_element_interactions
 11:57:44 [vite-plugin-svelte] entrypoints/dashboard/components/ToastItem.svelte:18:22 This reference only captures the initial value of `toast`. Did you mean to reference it inside a closure instead?
 https://svelte.dev/e/state_referenced_locally
+
+ Test Files  117 passed (117)
+      Tests  1439 passed (1439)
+   Start at  11:57:04
+   Duration  71.12s (transform 2.58s, setup 18.91s, import 3.65s, tests 16.78s, environment 20.59s)
+
