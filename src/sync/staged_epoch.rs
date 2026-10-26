@@ -260,9 +260,6 @@ impl Epoch {
 
     // Inspection errors are never eligibility decisions. Only policy/size
     // rejection may prune an OWNED ordinary candidate; captured user staging
-    // still goes through eligible() and is refused intact.
-    // Inspection errors are never eligibility decisions. Only policy/size
-    // rejection may prune an OWNED ordinary candidate; captured user staging
     // still goes through eligible() and is refused intact. The ONE exception is
     // a verified artifact de-index recorded by this epoch's own plan: the path
     // is absent from the candidate and its captured HEAD identity is retained.
@@ -387,6 +384,7 @@ impl Epoch {
             let lock = acquire_epoch_lock(index.with_extension("lock"))?;
             self.unchanged(repo, &lock).await?;
             self.eligible(repo, policy, excluded).await?;
+            super::hygiene::verify_deletions(repo, excluded, &self.deletions, deadline).await?;
             let tree = self.snapshot.materialize_tree(repo, deadline).await?;
             let private = if prepared.is_none() {
                 prepare_private(repo, policy).await?
@@ -778,23 +776,40 @@ impl Staging {
         tokio::time::timeout_at(deadline, async {
             // Hygiene is ordinary-cycle only: a captured entry epoch must never
             // re-add, delete or widen operator staging.
-            let plan = match super::hygiene::plan(
-                repo, policy, excluded, &self.baseline.snapshot, deadline,
-            ).await? {
-                Some(plan) if plan.deleted.is_empty() && !cleanup => None,
-                Some(plan) => Some(plan),
-                None => None,
-            };
+            let plan = super::hygiene::plan(
+                repo,
+                policy,
+                excluded,
+                &self.baseline.snapshot,
+                cleanup,
+                deadline,
+            )
+            .await?;
             if let Some(plan) = &plan {
                 super::hygiene::write_ignore(repo, plan, deadline).await?;
                 super::hygiene::deindex(repo, &self.index, plan, deadline).await?;
             }
             let mut command = crate::policy::tokio_git_command();
-            command.args(["write-tree"]).current_dir(repo).env("GIT_INDEX_FILE", &self.index);
-            let output = crate::git::run_command_captured_output(command.into_tokio(), 3600, "private staged tree", None).await?;
-            ensure!(output.status.success(), "cannot close private staging epoch");
+            command
+                .args(["write-tree"])
+                .current_dir(repo)
+                .env("GIT_INDEX_FILE", &self.index);
+            let output = crate::git::run_command_captured_output(
+                command.into_tokio(),
+                3600,
+                "private staged tree",
+                None,
+            )
+            .await?;
+            ensure!(
+                output.status.success(),
+                "cannot close private staging epoch"
+            );
             let tree = std::str::from_utf8(&output.stdout)?.trim();
-            ensure!(crate::git::is_valid_object_id(tree), "invalid private staged tree");
+            ensure!(
+                crate::git::is_valid_object_id(tree),
+                "invalid private staged tree"
+            );
             // A durable pack preserves candidate payloads even if an external
             // prune runs after refusal. This is not a ref/publication waiver.
             let prefix = self.directory.join("retained");
@@ -805,10 +820,24 @@ impl Staging {
                 // every unchanged historical asset on every staging pass.
                 pack_input.push_str(&format!("^{parent}\n"));
             }
-            git(repo, &["pack-objects", "--revs", "--window=0", "--depth=0", prefix.to_str().context("unsupported retention path")?], Some(pack_input.as_bytes())).await?;
+            git(
+                repo,
+                &[
+                    "pack-objects",
+                    "--revs",
+                    "--window=0",
+                    "--depth=0",
+                    prefix.to_str().context("unsupported retention path")?,
+                ],
+                Some(pack_input.as_bytes()),
+            )
+            .await?;
             for entry in std::fs::read_dir(&self.directory)? {
                 let path = entry?.path();
-                if path.extension().is_some_and(|ext| ext == "pack" || ext == "idx") {
+                if path
+                    .extension()
+                    .is_some_and(|ext| ext == "pack" || ext == "idx")
+                {
                     std::fs::File::open(path)?.sync_all()?;
                 }
             }
@@ -816,23 +845,49 @@ impl Staging {
             let entries = git(repo, &["ls-tree", "-r", "-z", "--full-tree", tree], None).await?;
             let mut candidate = std::collections::BTreeMap::new();
             for record in entries.stdout.split(|b| *b == 0).filter(|r| !r.is_empty()) {
-                let tab = record.iter().position(|b| *b == b'\t').context("invalid candidate path")?;
+                let tab = record
+                    .iter()
+                    .position(|b| *b == b'\t')
+                    .context("invalid candidate path")?;
                 let fields: Vec<_> = std::str::from_utf8(&record[..tab])?.split(' ').collect();
-                ensure!(fields.len() == 3 && crate::git::is_valid_object_id(fields[2]), "invalid candidate identity");
-                candidate.insert(record[tab+1..].to_vec(), crate::git::staged_intent::CachedIdentity {
-                    mode: u32::from_str_radix(fields[0], 8)?, oid: fields[2].to_owned(),
-                });
+                ensure!(
+                    fields.len() == 3 && crate::git::is_valid_object_id(fields[2]),
+                    "invalid candidate identity"
+                );
+                candidate.insert(
+                    record[tab + 1..].to_vec(),
+                    crate::git::staged_intent::CachedIdentity {
+                        mode: u32::from_str_radix(fields[0], 8)?,
+                        oid: fields[2].to_owned(),
+                    },
+                );
             }
             let mut changed = std::collections::BTreeMap::new();
             for (path, entry) in &candidate {
-                if self.baseline.snapshot.entries.get(path) != Some(entry) { changed.insert(path.clone(), Some(entry.clone())); }
+                if self.baseline.snapshot.entries.get(path) != Some(entry) {
+                    changed.insert(path.clone(), Some(entry.clone()));
+                }
             }
             for path in self.baseline.snapshot.entries.keys() {
-                if !candidate.contains_key(path) { changed.insert(path.clone(), None); }
+                if !candidate.contains_key(path) {
+                    changed.insert(path.clone(), None);
+                }
             }
-            let expected = StagedIntentSnapshot { head: self.baseline.snapshot.head.clone(), entries: candidate, changed };
-            let mut epoch = Epoch { snapshot: expected, reference: self.baseline.reference.clone(), deadline, retained: Some(self.directory.clone()),
-                deletions: plan.as_ref().map(|plan| plan.deleted.clone()).unwrap_or_default() };
+            let expected = StagedIntentSnapshot {
+                head: self.baseline.snapshot.head.clone(),
+                entries: candidate,
+                changed,
+            };
+            let mut epoch = Epoch {
+                snapshot: expected,
+                reference: self.baseline.reference.clone(),
+                deadline,
+                retained: Some(self.directory.clone()),
+                deletions: plan
+                    .as_ref()
+                    .map(|plan| plan.deleted.clone())
+                    .unwrap_or_default(),
+            };
             // Only this epoch's own verified artifact de-index survives the
             // exclusion gate; every other excluded path is still refused.
             let rejected = epoch.ineligible_paths(repo, policy, excluded).await?;
@@ -841,7 +896,10 @@ impl Staging {
                 // candidate to its baseline; never reset the actual index or
                 // touch the worktree. The original candidate pack is retained.
                 if let Some(original) = self.baseline.snapshot.entries.get(&path) {
-                    epoch.snapshot.entries.insert(path.clone(), original.clone());
+                    epoch
+                        .snapshot
+                        .entries
+                        .insert(path.clone(), original.clone());
                 } else {
                     epoch.snapshot.entries.remove(&path);
                 }
@@ -849,8 +907,14 @@ impl Staging {
             }
             epoch.eligible(repo, policy, excluded).await?;
             let selected = epoch.snapshot.materialize_tree(repo, deadline).await?;
-            run_index_git(repo, &["read-tree", &selected], 3600,
-                "select eligible private candidate", Some(&self.index)).await?;
+            run_index_git(
+                repo,
+                &["read-tree", &selected],
+                3600,
+                "select eligible private candidate",
+                Some(&self.index),
+            )
+            .await?;
             // No candidate delta means there is NOTHING to install or commit.
             // Requiring the actual index lock here starves already committed
             // publication behind an unrelated editor/Git index owner. Return
@@ -858,8 +922,14 @@ impl Staging {
             if !epoch.has_intent() {
                 return Ok(epoch);
             }
-            let actual_index = git(repo, &["rev-parse", "--path-format=absolute", "--git-path", "index"], None).await?;
-            let actual_index = PathBuf::from(std::str::from_utf8(&actual_index.stdout)?.trim_end_matches('\n'));
+            let actual_index = git(
+                repo,
+                &["rev-parse", "--path-format=absolute", "--git-path", "index"],
+                None,
+            )
+            .await?;
+            let actual_index =
+                PathBuf::from(std::str::from_utf8(&actual_index.stdout)?.trim_end_matches('\n'));
             let mut lock = acquire_epoch_lock(actual_index.with_extension("lock"))?;
             self.baseline.unchanged(repo, &lock).await?;
             lock.install_index(&self.index, &actual_index)?;
@@ -871,8 +941,10 @@ impl Staging {
             // install succeeded. A later foreign replacement can remove its
             // only ordinary index root before this epoch commits.
             Ok(epoch)
-        }).await.context("private staging deadline expired")?
-            .with_context(|| format!("private staging retained at {}", retained.display()))
+        })
+        .await
+        .context("private staging deadline expired")?
+        .with_context(|| format!("private staging retained at {}", retained.display()))
     }
 }
 

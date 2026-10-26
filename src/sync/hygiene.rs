@@ -95,6 +95,7 @@ pub(super) async fn plan(
     policy: &SyncPolicy,
     excluded: &BTreeSet<String>,
     baseline: &StagedIntentSnapshot,
+    cleanup: bool,
     deadline: Instant,
 ) -> Result<Option<Plan>> {
     let mut patterns = large_untracked(repo, policy, excluded, deadline).await?;
@@ -103,10 +104,11 @@ pub(super) async fn plan(
         "hygiene requires an entry cycle without staged intent"
     );
     let mut deleted = BTreeMap::new();
-    if policy.build_artifact_cleanup {
+    if cleanup {
         let mut components = BTreeSet::new();
         for (raw, entry) in &baseline.entries {
-            if let Some(name) = artifact_component(&staged_epoch::path_from_git_bytes(raw)?, excluded)
+            if let Some(name) =
+                artifact_component(&staged_epoch::path_from_git_bytes(raw)?, excluded)
             {
                 deleted.insert(raw.clone(), entry.oid.clone());
                 components.insert(name);
@@ -124,11 +126,7 @@ pub(super) async fn plan(
 
 /// Persist required ignore rules once. Absent rules defer the whole plan: the
 /// rendered bytes are evidence, not authorization to commit around them.
-pub(super) async fn write_ignore(
-    repo: &Path,
-    plan: &Plan,
-    deadline: Instant,
-) -> Result<()> {
+pub(super) async fn write_ignore(repo: &Path, plan: &Plan, deadline: Instant) -> Result<()> {
     if plan.patterns.is_empty() {
         return Ok(());
     }
@@ -194,5 +192,38 @@ pub(super) async fn deindex(
         "private artifact de-index refused: {}",
         String::from_utf8_lossy(&output.stderr)
     );
+    Ok(())
+}
+
+/// Independent re-verification before publication: every authorized removal must
+/// still correspond to an unchanged HEAD identity inside an artifact component.
+/// A HEAD advance or policy change revokes the exemption instead of widening it.
+pub(super) async fn verify_deletions(
+    repo: &Path,
+    excluded: &BTreeSet<String>,
+    deleted: &BTreeMap<Vec<u8>, String>,
+    deadline: Instant,
+) -> Result<()> {
+    if deleted.is_empty() {
+        return Ok(());
+    }
+    let tree =
+        staged_epoch::git(repo, &["ls-tree", "-r", "-z", "--full-tree", "HEAD"], None).await?;
+    let head: BTreeMap<Vec<u8>, CachedIdentity> =
+        crate::git::staged_intent::parse_entries(&tree.stdout, false, deadline)?;
+    for (raw, oid) in deleted {
+        ensure!(
+            Instant::now() < deadline,
+            "artifact authorization deadline expired"
+        );
+        ensure!(
+            artifact_component(&staged_epoch::path_from_git_bytes(raw)?, excluded).is_some(),
+            "artifact authorization no longer applies to this path"
+        );
+        ensure!(
+            head.get(raw).is_some_and(|entry| entry.oid == *oid),
+            "artifact path changed in HEAD; removal not authorized"
+        );
+    }
     Ok(())
 }

@@ -22,6 +22,10 @@ mod excluded_revert;
 #[path = "sync/hygiene_apply.rs"]
 mod hygiene_apply;
 
+#[cfg(target_os = "linux")]
+#[path = "sync/hygiene.rs"]
+mod hygiene;
+
 #[cfg(all(test, target_os = "linux"))]
 #[path = "sync/excluded_revert_tests.rs"]
 mod excluded_revert_tests;
