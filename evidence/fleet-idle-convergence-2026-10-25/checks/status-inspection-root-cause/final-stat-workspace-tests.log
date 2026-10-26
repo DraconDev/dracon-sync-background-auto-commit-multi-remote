@@ -3207,4 +3207,6 @@ test tests::tests::pre_commit_hook_does_not_recurse_into_warden_seeded_local_hoo
 test tests::tests::pre_commit_hook_no_repo_context_exits_1_with_message ... ok
 test tests::tests::pre_commit_hook_propagates_foreign_hook_failure ... ok
 test tests::tests::pre_commit_hygiene_distinguishes_exact_visual_inputs_from_frame_caches ... ok
-test tests::tests::pre_commit_hygiene_does_not_grant_blanket_or_nested_machine_local_exemptions ... 
+test tests::tests::pre_commit_hygiene_does_not_grant_blanket_or_nested_machine_local_exemptions ... ok
+test tests::tests::pre_commit_hygiene_honors_scoped_sources_without_skipping_security ... ok
+test tests::tests::pre_commit_hygiene_visual_source_permission_is_exact_and_not_cache_permission ... 
