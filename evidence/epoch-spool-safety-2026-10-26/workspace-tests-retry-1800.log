@@ -2191,3 +2191,11 @@ test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [
 [master d6d38a7] unpushed
  1 file changed, 1 insertion(+)
  create mode 100644 ahead.txt
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) c0d2e2e] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) ed1316f] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) 33bbf7b] init
+ok
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... 
