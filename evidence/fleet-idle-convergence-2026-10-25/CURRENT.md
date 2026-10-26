@@ -1,6 +1,54 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Hygiene admission v3 — CURRENT targeted repair; NOT final/deployed
+## Hygiene durable v2 — CURRENT coherent intermediate assembly; review PENDING, NOT deployed
+
+Typed artifact-ignore intent is now implemented in sync/hygiene_intent.rs.
+A private descriptor-bound dracon-hygiene-intents/ registry publishes complete
+fsynced manifests before actual-index installation. Records bind repository,
+immutable parent/path/OID/mode and exact selected candidate tree; only that exact
+cached tree can recover an owned deletion grant after process exit. A foreign
+cached delta gets no grant. Retry revalidates current policy/provenance and
+re-renders CURRENT canonical ignore bytes through the leased writer rather than
+replaying old complete files. Metadata intent does not enter the uncertain-
+canonical-recovery gate or block its own staged commit. Retirement requires
+actual committed HEAD ignore rules AND the artifact paths absent from that HEAD;
+helper success/marker alone does not retire work. Scheduling, report flags and
+current-health classification include pending intent and inspection failures.
+
+Actual controls pass: production artifact commit plus process exit while an
+existing writable ignore FD refuses reconciliation; fresh pulse merges newer
+canonical operator content and autonomously commits metadata; uncommitted own
+candidate resumes while foreign cached tree cannot inherit its authority;
+cleanup opt-out, malformed JSON and symlink registry preserve index/canonical
+bytes and refuse. Existing original controls remain unchanged.
+
+All FOUR unmodified workspace gates PASS on coherent source with ZERO before/
+after drift: workspace tests, release build, strict all-target Clippy, cargo deny.
+Proof and exact raw summaries/artifact identities:
+checks/epoch-integration-partial/hygiene-durable-v2-receipt.json and companion
+source-before/source-after/source-drift and per-gate logs/exits. V1 targeted
+hygiene19 and strict Clippy passed before malformed/current-health regressions
+were added for the v2 full workspace run. The new intent module is explicitly
+included in the source proof. No installation, live service/config migration,
+zero-batch change, real-repo manual commit/push or producer stop occurred.
+
+Independent READ-ONLY code review is PENDING, owned run
+93b97751-a9c5-4116-b065-e073e39e48ee, artifact durable-hygiene-review.md.
+Assess its actual result; do not infer approval from completion notifications.
+Parent source stays stable during review. No final goal or deployment verdict.
+
+Still open: broader queued-open/lease-break and exact-exchange/unsupported-FS
+controls, original applicable product gates on coherent revisions, installed/
+loaded identity and execution/concurrency/cancellation rehearsal, authorized
+zero-batch migration, final independent full-contract rehearsal and a NEW
+entire watched-fleet clean/idle observation backed by actual autonomous commits
+and intended-remote advertised refs. The four-gate assembly does not waive any
+of those prerequisites. Tasks2/3/4 remain in progress; task5 is not acceptance.
+
+The earlier d484c42a research artifact was assessed: architecture proposal only,
+not implementation or current-review proof. Its constraints informed integration.
+
+## Hygiene admission v3 — HISTORICAL targeted repair; NOT final/deployed
 
 Re-read the actual active goal, not the stale bucket-strategy handoff brief.
 Tasks2/3/4 remain in progress even though the next unchecked top-level task is5.

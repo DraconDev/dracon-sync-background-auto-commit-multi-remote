@@ -1,7 +1,10 @@
-# Open durable artifact-ignore retry gap (not implemented)
+# Durable artifact-ignore retry — original gap and required boundaries
 
-The current authoritative code checkpoint is admission v3. This note is a design
-assessment, not implementation or qualification evidence.
+UPDATE: implemented in hygiene durable v2; coherent four-gate intermediate proof
+is hygiene-durable-v2-receipt.json. Independent code review remains pending; no
+final acceptance/deployment claim. See CURRENT.md for the authoritative state.
+The dataflow and boundaries below are the ORIGINAL preimplementation assessment,
+not proof that every interleaving/control has been independently qualified.
 
 ## Demonstrated dataflow gap
 
