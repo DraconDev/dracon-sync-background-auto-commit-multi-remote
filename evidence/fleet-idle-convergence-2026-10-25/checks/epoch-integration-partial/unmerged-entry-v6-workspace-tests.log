@@ -3040,4 +3040,8 @@ test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 running 233 tests
 test index_batch::tests::index_batch_abrupt_owner_fixture ... ok
 test index_batch::tests::index_batch_descendant_has_no_live_process_after_cleanup ... ok
-test index_batch::tests::index_batch_descendant_retained_stdout_is_cancelled ... 
+test index_batch::tests::index_batch_descendant_retained_stdout_is_cancelled ... ok
+test index_batch::tests::index_batch_direct_helper_sigkill_cleans_descendants_without_drop ... ok
+test index_batch::tests::index_batch_drop_reaps_direct_child_and_kills_group ... ok
+test index_batch::tests::index_batch_invalid_framing_and_exit_recover ... ok
+test index_batch::tests::index_batch_nonreading_stdin_recovers ... 
