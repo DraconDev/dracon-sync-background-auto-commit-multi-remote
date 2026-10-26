@@ -155,7 +155,10 @@ impl Epoch {
         let deadline = Instant::now() + Duration::from_secs(timeout_secs.max(1));
         tokio::time::timeout_at(deadline, async {
             match Self::capture(repo, timeout_secs).await {
-                Ok(mut epoch) => { epoch.deadline = deadline; Ok(epoch) },
+                Ok(mut epoch) => {
+                    epoch.deadline = deadline;
+                    Ok(epoch)
+                }
                 Err(original) if auto_resolve => {
                     if let Some((epoch, _)) = reconcile_unmerged(repo, true, deadline).await? {
                         Ok(epoch)

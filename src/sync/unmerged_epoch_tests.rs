@@ -279,82 +279,153 @@ async fn unmerged_entry_production_sync_commits_only_verified_entry_staging_and_
 #[tokio::test]
 async fn unmerged_entry_never_relocates_an_active_worktree_writer() {
     use std::io::Write;
-    let (d,_)=fixture(Path::new("a.bin"));let r=d.path();
-    let mut writer=OpenOptions::new().write(true).open(r.join("a.bin")).unwrap();
-    let inode=writer.metadata().unwrap().ino();
-    let (epoch,_)=reconcile(r,true,Instant::now()+Duration::from_secs(10)).await.unwrap().unwrap();
+    let (d, _) = fixture(Path::new("a.bin"));
+    let r = d.path();
+    let mut writer = OpenOptions::new()
+        .write(true)
+        .open(r.join("a.bin"))
+        .unwrap();
+    let inode = writer.metadata().unwrap().ino();
+    let (epoch, _) = reconcile(r, true, Instant::now() + Duration::from_secs(10))
+        .await
+        .unwrap()
+        .unwrap();
     assert!(!epoch.has_intent());
-    writer.write_all(b"AFTER").unwrap();writer.sync_all().unwrap();
-    assert_eq!(std::fs::metadata(r.join("a.bin")).unwrap().ino(),inode);
-    assert!(std::fs::read(r.join("a.bin")).unwrap().starts_with(b"AFTER"));
-    assert!(native(r,&["ls-files","--unmerged","-z"],None).is_empty());
+    writer.write_all(b"AFTER").unwrap();
+    writer.sync_all().unwrap();
+    assert_eq!(std::fs::metadata(r.join("a.bin")).unwrap().ino(), inode);
+    assert!(std::fs::read(r.join("a.bin"))
+        .unwrap()
+        .starts_with(b"AFTER"));
+    assert!(native(r, &["ls-files", "--unmerged", "-z"], None).is_empty());
 }
 
 #[tokio::test]
 async fn unmerged_entry_production_sync_resolves_stale_slots_without_manufacturing_a_commit() {
-    let (d,_)=fixture(Path::new("a.bin"));let r=d.path();let before=head(r);
-    let result=sync_repo(r,&policy(),&BTreeSet::new(),0,None,false,None).await;
-    assert_eq!(result.unwrap(),SyncOutcome::NothingToDo);
-    assert_eq!(head(r),before,"no manual, empty or safety commit");
-    assert!(native(r,&["ls-files","--unmerged","-z"],None).is_empty());
-    assert_eq!(std::fs::read(r.join("a.bin")).unwrap(),b"HEAD\0binary\xff\n");
+    let (d, _) = fixture(Path::new("a.bin"));
+    let r = d.path();
+    let before = head(r);
+    let result = sync_repo(r, &policy(), &BTreeSet::new(), 0, None, false, None).await;
+    assert_eq!(result.unwrap(), SyncOutcome::NothingToDo);
+    assert_eq!(head(r), before, "no manual, empty or safety commit");
+    assert!(native(r, &["ls-files", "--unmerged", "-z"], None).is_empty());
+    assert_eq!(
+        std::fs::read(r.join("a.bin")).unwrap(),
+        b"HEAD\0binary\xff\n"
+    );
 }
 
 #[cfg(target_os = "linux")]
 #[tokio::test]
 async fn unmerged_entry_concurrent_index_ref_and_deadline_refuse_without_losing_data() {
-    const ROLE:&str="DRACON_UNMERGED_RACE_ROLE";
-    if let Ok(mode)=std::env::var(ROLE) {
-        let repo=PathBuf::from(std::env::var_os("DRACON_UNMERGED_RACE_REPO").unwrap());
-        let started=Instant::now();
-        let result=reconcile(&repo,true,Instant::now()+Duration::from_secs(2)).await;
-        assert!(result.is_err(),"injected {mode} must refuse, not install or accept");
-        assert!(started.elapsed()<Duration::from_secs(5),"one absolute deadline owns the held-FD hash process");
-        if mode=="deadline" {
-            let pid=std::fs::read_to_string(repo.join(".git/hash-descendant-pid")).unwrap();
-            let deadline=Instant::now()+Duration::from_secs(2);
+    const ROLE: &str = "DRACON_UNMERGED_RACE_ROLE";
+    if let Ok(mode) = std::env::var(ROLE) {
+        let repo = PathBuf::from(std::env::var_os("DRACON_UNMERGED_RACE_REPO").unwrap());
+        let started = Instant::now();
+        let result = reconcile(&repo, true, Instant::now() + Duration::from_secs(2)).await;
+        assert!(
+            result.is_err(),
+            "injected {mode} must refuse, not install or accept"
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "one absolute deadline owns the held-FD hash process"
+        );
+        if mode == "deadline" {
+            let pid = std::fs::read_to_string(repo.join(".git/hash-descendant-pid")).unwrap();
+            let deadline = Instant::now() + Duration::from_secs(2);
             loop {
-                let gone=match std::fs::read_to_string(format!("/proc/{}/stat",pid.trim())) {
-                    Err(error) if error.kind()==std::io::ErrorKind::NotFound=>true,
-                    Err(error)=>panic!("cannot inspect owned descendant: {error}"),
-                    Ok(stat)=>stat.rsplit_once(") ").unwrap().1.starts_with("Z "),
+                let gone = match std::fs::read_to_string(format!("/proc/{}/stat", pid.trim())) {
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => true,
+                    Err(error) => panic!("cannot inspect owned descendant: {error}"),
+                    Ok(stat) => stat.rsplit_once(") ").unwrap().1.starts_with("Z "),
                 };
-                if gone{break}
-                assert!(Instant::now()<deadline,"timed-out held-file hash descendant survived");
+                if gone {
+                    break;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "timed-out held-file hash descendant survived"
+                );
                 tokio::time::sleep(Duration::from_millis(10)).await;
             }
         }
-        return
+        return;
     }
     // Environment overrides exist ONLY at exec of an isolated owned test child.
     // The custom Git wrapper injects at the actual held-source hash boundary.
-    for mode in ["index","reference","deadline"] {
-        let (d,_)=fixture(Path::new("a.bin"));let r=d.path();
-        let original=std::fs::read(r.join(".git/index")).unwrap();let before=head(r);
-        std::fs::write(r.join("note.txt"),b"foreign cached C\n").unwrap();
-        let foreign=r.join(".git/foreign-index");std::fs::write(&foreign,&original).unwrap();
-        let mut command=Command::new("git");
-        for(key,_)in std::env::vars_os(){if key.to_string_lossy().starts_with("GIT_"){command.env_remove(key);}}
-        let out=command.arg("-C").arg(r).args(["add","--","note.txt"]).env("GIT_INDEX_FILE",&foreign)
-            .env("GIT_CONFIG_GLOBAL","/dev/null").env("GIT_CONFIG_NOSYSTEM","1").output().unwrap();
+    for mode in ["index", "reference", "deadline"] {
+        let (d, _) = fixture(Path::new("a.bin"));
+        let r = d.path();
+        let original = std::fs::read(r.join(".git/index")).unwrap();
+        let before = head(r);
+        std::fs::write(r.join("note.txt"), b"foreign cached C\n").unwrap();
+        let foreign = r.join(".git/foreign-index");
+        std::fs::write(&foreign, &original).unwrap();
+        let mut command = Command::new("git");
+        for (key, _) in std::env::vars_os() {
+            if key.to_string_lossy().starts_with("GIT_") {
+                command.env_remove(key);
+            }
+        }
+        let out = command
+            .arg("-C")
+            .arg(r)
+            .args(["add", "--", "note.txt"])
+            .env("GIT_INDEX_FILE", &foreign)
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .output()
+            .unwrap();
         assert!(out.status.success());
-        let foreign_bytes=std::fs::read(&foreign).unwrap();
-        let tree=String::from_utf8(native(r,&["rev-parse","HEAD^{tree}"],None)).unwrap();
-        let newer=native(r,&["commit-tree",tree.trim(),"-p",std::str::from_utf8(&before).unwrap().trim(),"-m","independent concurrent advance"],None);
-        let script=r.join(".git/race-git");
+        let foreign_bytes = std::fs::read(&foreign).unwrap();
+        let tree = String::from_utf8(native(r, &["rev-parse", "HEAD^{tree}"], None)).unwrap();
+        let newer = native(
+            r,
+            &[
+                "commit-tree",
+                tree.trim(),
+                "-p",
+                std::str::from_utf8(&before).unwrap().trim(),
+                "-m",
+                "independent concurrent advance",
+            ],
+            None,
+        );
+        let script = r.join(".git/race-git");
         std::fs::write(&script,b"#!/bin/sh\ncase \" $* \" in *' hash-object '*)\n case \"$DRACON_UNMERGED_RACE_ROLE\" in\n index) cp -- \"$DRACON_UNMERGED_RACE_REPO/.git/foreign-index\" \"$DRACON_UNMERGED_RACE_REPO/.git/index\" ;;\n reference) \"$DRACON_UNMERGED_REAL_GIT\" update-ref refs/heads/main \"$DRACON_UNMERGED_NEW_REF\" || exit 73 ;;\n deadline) sleep 10 & echo $! > \"$DRACON_UNMERGED_RACE_REPO/.git/hash-descendant-pid\"; wait; exit 74 ;;\n esac ;;\n esac\nexec \"$DRACON_UNMERGED_REAL_GIT\" \"$@\"\n").unwrap();
-        std::fs::set_permissions(&script,std::fs::Permissions::from_mode(0o755)).unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
         let output=tokio::time::timeout(Duration::from_secs(25),tokio::process::Command::new(std::env::current_exe().unwrap())
             .args(["--exact","sync::staged_epoch::unmerged::tests::unmerged_entry_concurrent_index_ref_and_deadline_refuse_without_losing_data","--nocapture"])
             .env(ROLE,mode).env("DRACON_UNMERGED_RACE_REPO",r).env("DRACON_SYNC_GIT_BIN",&script)
             .env("DRACON_UNMERGED_REAL_GIT",crate::policy::git_binary()).env("DRACON_UNMERGED_NEW_REF",std::str::from_utf8(&newer).unwrap().trim())
             .env("GIT_CONFIG_GLOBAL","/dev/null").env("GIT_CONFIG_NOSYSTEM","1").kill_on_drop(true).output()).await.expect("bounded isolated witness").unwrap();
-        assert!(output.status.success(),"{mode}: {}{}",String::from_utf8_lossy(&output.stdout),String::from_utf8_lossy(&output.stderr));
-        assert_eq!(std::fs::read(r.join(".git/index")).unwrap(),if mode=="index"{foreign_bytes}else{original});
-        assert_eq!(head(r),if mode=="reference"{newer}else{before});
-        assert_eq!(std::fs::read(r.join("a.bin")).unwrap(),b"HEAD\0binary\xff\n");
-        assert_eq!(std::fs::read(r.join("note.txt")).unwrap(),b"foreign cached C\n");
-        assert!(!r.join(".git/index.lock").exists(),"only the owned lock is released");
+        assert!(
+            output.status.success(),
+            "{mode}: {}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            std::fs::read(r.join(".git/index")).unwrap(),
+            if mode == "index" {
+                foreign_bytes
+            } else {
+                original
+            }
+        );
+        assert_eq!(head(r), if mode == "reference" { newer } else { before });
+        assert_eq!(
+            std::fs::read(r.join("a.bin")).unwrap(),
+            b"HEAD\0binary\xff\n"
+        );
+        assert_eq!(
+            std::fs::read(r.join("note.txt")).unwrap(),
+            b"foreign cached C\n"
+        );
+        assert!(
+            !r.join(".git/index.lock").exists(),
+            "only the owned lock is released"
+        );
     }
 }
-
