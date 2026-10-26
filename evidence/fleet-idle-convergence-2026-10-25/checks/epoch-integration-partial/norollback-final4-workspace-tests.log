@@ -379,4 +379,7 @@ test storage_core::clean::tests::large_source_uses_bounded_read_requests ... ok
 test storage_core::clean::tests::oversized_unknown_stream_stops_at_bounded_recognition_window ... ok
 test storage_core::clean::tests::read_failure_cannot_publish_partial_reference_or_raw_input ... ok
 test storage_core::clean::tests::unchanged_input_and_exact_unhydrated_pointer_are_deterministic ... ok
-test storage_core::hydration::tests::concurrent_edits_creation_and_parent_replacement_preserve_all_operator_bytes ... 
+test storage_core::hydration::tests::concurrent_edits_creation_and_parent_replacement_preserve_all_operator_bytes ... ok
+test storage_core::hydration::tests::crash_helper ... ignored, subprocess helper invoked by hydration crash recovery
+test storage_core::hydration::tests::crash_recovery_resumes_capture_and_publication_without_original_cache_changes ... ok
+test storage_core::hydration::tests::hydration_preserves_index_backup_and_cache_and_restores_executable_mode ... 
