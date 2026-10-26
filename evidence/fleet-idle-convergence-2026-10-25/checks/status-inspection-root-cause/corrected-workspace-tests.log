@@ -2210,3 +2210,16 @@ branch 'master' set up to track 'origin/master'.
 branch 'master' set up to track 'origin/master'.
 ok
 test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) 9936276] init
+ok
+test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-commit) 5b8dda2] init
+ok
+test sync::tests::test_sync_repo_not_git_repo_returns_false ... ok
+test sync::tests::test_sync_repo_partial_deletion_allowed ... [master (root-commit) 91a0b29] init
+ok
+test sync::tests::test_sync_repo_pull_skip_when_no_origin ... [master (root-commit) b6d2fe9] init
+ok
+test sync::tests::test_sync_repo_pushes_detached_head_ahead_commit ... [main (root-commit) 82b748e] init
+[main 6659d79] ahead
+HEAD is now at 6659d79 ahead
+ok
+test sync::tests::test_sync_repo_single_deleted_file_committed ... [master (root-commit) 82b748e] init
