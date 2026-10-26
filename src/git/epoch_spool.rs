@@ -318,6 +318,56 @@ pub(crate) async fn reap_abandoned_spools(
     removed
 }
 
+/// Operator-facing sweep: report (`apply == false`) or reclaim aged
+/// spools in one repository. Unlike [`reap_abandoned_spools`] this has NO
+/// per-repo cooldown (an explicit operator request must act now) and
+/// counts total bytes so the CLI can report what was freed.
+///
+/// Returns `(directories, bytes)`. Read-only when `apply == false`.
+pub(crate) async fn sweep_epoch_spools(repo: &Path, max_age_secs: u64, apply: bool) -> (usize, u64) {
+    let max_age = effective_max_age(max_age_secs);
+    let git_dir = match resolve_git_dir(repo, 60).await {
+        Ok(dir) => dir,
+        Err(error) => {
+            eprintln!(
+                "⚠️ cannot resolve git dir for {}: {error:#}",
+                repo.display()
+            );
+            return (0, 0);
+        }
+    };
+    let mut found = 0usize;
+    let mut bytes = 0u64;
+    for candidate in candidates(&git_dir, std::time::SystemTime::now()) {
+        if !candidate.is_real_directory || is_leased(&candidate.path) {
+            continue;
+        }
+        let Some(age) = candidate.age else {
+            continue;
+        };
+        if age < max_age {
+            continue;
+        }
+        let size = dir_size_bytes(&candidate.path);
+        if !apply {
+            found += 1;
+            bytes += size;
+            continue;
+        }
+        match std::fs::remove_dir_all(&candidate.path) {
+            Ok(()) => {
+                found += 1;
+                bytes += size;
+            }
+            Err(error) => eprintln!(
+                "⚠️ cannot reap {}: {error}",
+                candidate.path.display()
+            ),
+        }
+    }
+    (found, bytes)
+}
+
 fn human_bytes(bytes: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
     let mut value = bytes as f64;
