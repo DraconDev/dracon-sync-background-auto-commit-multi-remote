@@ -10,5 +10,5 @@
   "deploymentPerformed": false,
   "liveBatchMigrationApplied": false,
   "realRepositoryManualCommitOrPushPerformed": false,
-  "remaining": ["Restore normal version/release bump, artifact cleanup and large-untracked hygiene without losing provenance", "Finish queued-open/lease-break/exact-exchange and unsupported-filesystem qualification", "Original product gates and independent final contract rehearsal", "All four gates on final assembly, installed/loaded execution, authorized zero-batch migration", "Actual daemon publication and fresh complete watched-fleet clean-idle observation"]
+  "remaining": ["Restore demonstrated artifact-cleanup and large-untracked hygiene integration without losing provenance; version/release bump was already a pre-epoch no-op, not a new regression (preexisting-version-noop-assessment.md)", "Finish queued-open/lease-break/exact-exchange and unsupported-filesystem qualification", "Original product gates and independent final contract rehearsal", "All four gates on final assembly, installed/loaded execution, authorized zero-batch migration", "Actual daemon publication and fresh complete watched-fleet clean-idle observation"]
 }

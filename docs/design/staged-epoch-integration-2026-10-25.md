@@ -2,8 +2,10 @@
 
 Status: staged-epoch implementation with intermediate assembly qualification,
 NOT final acceptance or deployment evidence. The production path uses captured
-private candidates; normal version/release bump, artifact cleanup and large-
-untracked hygiene integration remain open. The original transaction boundaries
+private candidates; artifact cleanup and large-untracked hygiene integration
+remain open. Version/release bumping was already a no-op before the epoch repair
+(see preexisting-version-noop-assessment.md in the evidence checks directory),
+not a disabled integration to restore here. The original transaction boundaries
 below remain requirements, not an exemption. Current evidence and remaining work:
 `../../evidence/fleet-idle-convergence-2026-10-25/CURRENT.md`.
 
