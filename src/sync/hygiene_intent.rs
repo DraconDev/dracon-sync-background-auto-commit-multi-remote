@@ -58,12 +58,31 @@ fn load(path: &Path, repo: &[u8]) -> Result<Option<Loaded>> {
     }
     Ok(Some(Loaded{directory,intent,digest}))
 }
+fn registry(repo: &Path, create: bool) -> Result<Option<std::fs::File>> {
+    use std::os::unix::fs::DirBuilderExt;
+    let gitdir=crate::git::path_gitdir(repo).context("cannot locate hygiene intent Git directory")?;
+    let path=gitdir.join("dracon-hygiene-intents");
+    if create {
+        match std::fs::DirBuilder::new().mode(0o700).create(&path) {
+            Ok(()) => std::fs::File::open(&gitdir)?.sync_all()?,
+            Err(e) if e.kind()==std::io::ErrorKind::AlreadyExists => {},
+            Err(e) => return Err(e.into()),
+        }
+    }
+    let directory=match std::fs::OpenOptions::new().read(true).custom_flags(libc::O_DIRECTORY|libc::O_NOFOLLOW|libc::O_CLOEXEC).open(&path) {
+        Ok(file)=>file, Err(e) if e.kind()==std::io::ErrorKind::NotFound => return Ok(None), Err(e)=>return Err(e.into()),
+    };
+    let m=directory.metadata()?;
+    ensure!(m.uid()==unsafe{libc::geteuid()} && m.mode() & 0o077 == 0,"foreign/nonprivate hygiene registry; retained");
+    Ok(Some(directory))
+}
 fn records(repo: &Path) -> Result<Vec<Loaded>> {
     let deadline=std::time::Instant::now()+Duration::from_secs(2);
     let canonical=std::fs::canonicalize(repo)?;
-    let gitdir=crate::git::path_gitdir(repo).context("cannot locate hygiene intent Git directory")?;
+    let Some(directory)=registry(repo,false)? else {return Ok(Vec::new())};
+    let root=PathBuf::from(format!("/proc/self/fd/{}",directory.as_raw_fd()));
     let mut loaded=Vec::new();
-    for e in std::fs::read_dir(gitdir)? {
+    for e in std::fs::read_dir(root)? {
         ensure!(std::time::Instant::now()<deadline,"hygiene intent inspection deadline; retained");
         let e=e?;
         if e.file_name().as_bytes().starts_with(PREFIX.as_bytes()) {
@@ -88,13 +107,14 @@ pub(in crate::sync) fn persist(repo: &Path, baseline: &StagedIntentSnapshot,
     let CapturedHead::Commit(parent)=&baseline.head else { anyhow::bail!("artifact intent requires captured committed provenance") };
     let intent=Intent{version:1,repo:std::fs::canonicalize(repo)?.as_os_str().as_bytes().to_vec(),parent:parent.clone(),tree:tree.to_owned(),paths};
     let bytes=serde_json::to_vec(&intent)?; ensure!(bytes.len() as u64<=LIMIT,"hygiene intent exceeds durable budget");
-    let gitdir=crate::git::path_gitdir(repo).context("cannot locate hygiene intent Git directory")?;
-    let dir=tempfile::Builder::new().prefix(PREFIX).permissions(std::fs::Permissions::from_mode(0o700)).tempdir_in(&gitdir)?;
+    let directory=registry(repo,true)?.context("hygiene registry disappeared")?;
+    let root=PathBuf::from(format!("/proc/self/fd/{}",directory.as_raw_fd()));
+    let dir=tempfile::Builder::new().prefix(PREFIX).permissions(std::fs::Permissions::from_mode(0o700)).tempdir_in(&root)?;
     let mut file=std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(dir.path().join("intent.json"))?;
     file.write_all(&bytes)?; file.sync_all()?;
     std::fs::File::open(dir.path())?.sync_all()?;
     // Retain BEFORE installation/publication, including on subsequent fsync failure.
-    let _retained=dir.keep(); std::fs::File::open(gitdir)?.sync_all()?;
+    let _retained=dir.keep(); directory.sync_all()?;
     Ok(())
 }
 
@@ -105,8 +125,10 @@ pub(in crate::sync) async fn recover(repo:&Path, snapshot:&StagedIntentSnapshot,
     let mut granted=BTreeMap::new();
     if snapshot.changed.is_empty() { return Ok(granted); }
     let CapturedHead::Commit(parent)=&snapshot.head else {return Ok(granted)};
+    let pending=records(repo)?;
+    if pending.is_empty() {return Ok(granted);}
     let tree=snapshot.materialize_tree(repo,deadline).await?;
-    for record in records(repo)? {
+    for record in pending {
         if &record.intent.parent!=parent || record.intent.tree!=tree {continue;}
         let original=staged_epoch::git(repo,&["ls-tree","-r","-z","--full-tree",parent],None).await?;
         let mut identities=BTreeMap::new();
