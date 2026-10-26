@@ -2078,4 +2078,9 @@ HEAD is now at 9fb5881 ahead
 To /tmp/.tmpdawbKC/origin.git
  * [new branch]      HEAD -> main
 ok
-test sync::tests::test_push_with_retries_fetches_first_on_rejection ... 
+test sync::tests::test_push_with_retries_fetches_first_on_rejection ... ok
+test sync::tests::test_refresh_stale_upstream_ref_converges ... Initialized empty Git repository in /tmp/.tmpZcx3ln/remote.git/
+[master (root-commit) bbbf7e9] init
+ok
+test sync::tests::test_refspec_format_is_always_qualified ... ok
+test sync::tests::test_rename_token_excludes_new_del ... 
