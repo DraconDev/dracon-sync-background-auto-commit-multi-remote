@@ -1,6 +1,46 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Hygiene durable v2 — CURRENT coherent intermediate assembly; review PENDING, NOT deployed
+## Hygiene review green v1 — CURRENT fixes; recheck PENDING, NOT deployed
+
+Independent reviewer run93b97751 completed with TWO P1 blockers, not approval:
+committed .gitignore symlinks could falsely retire intent, and generic trim()
+equality mistook leading-space rules for effective artifact rules. Raw review is
+checks/epoch-integration-partial/hygiene-review-blocking-findings.md. Both were
+reproduced FIRST against old code: hygiene-review-red-v1-tests.log = 0pass/2fail,
+exactly at the symlink retirement and premature leading-space acknowledgment.
+
+Corrections now implemented: require one exact regular-file committed tree entry
+(mode100644/100755, blob, valid OID/path) before evaluating rules. Shared rendering
+preserves significant requested/existing whitespace rather than trim-equating
+it. Literal encoders escape leading whitespace to survive Warden preservation
+without broadening to a different dirname. Native probes verify space/tab/NBSP
+literal names, old leading-space rule corrected only by an actual dist/ rule,
+canonical/target/index preservation for the committed symlink, and retirement
+only after real regular metadata commits.
+
+Current targeted checks: hygiene-review-green-v1-tests.log and strict all-target
+workspace Clippy PASS with matching pinned helper. The red failures are retained.
+V2's four-gate/zero-drift assembly below is now HISTORICAL, not current source
+qualification after fixes. No deployment, install/config migration, real-repo
+manual commit/push or producer stop. Final/full-fleet acceptance remains OPEN.
+
+Owned independent READ-ONLY recheck is pending:
+05c0febe-e572-42bd-90f8-3a8934349efa, resumed prior reviewer context. Also requested
+bounded secondary analysis of an UNPROVEN queued-open/exchange concern: after
+last lease check, an old-inode queued writer may force rollback while a newer
+canonical desired-inode writable FD opened between exchange and rollback. The
+helper currently exchanges back unconditionally on lease/fingerprint mismatch.
+Do NOT assert Linux name lookup restarts or FD safety without actual evidence.
+A deterministic syscall-boundary control (e.g. owned disposable-child ptrace at
+renameat2 entry/exit) may be needed; none has yet been implemented/executed.
+Main source stays stable during review; assess saved actual result on wake.
+
+Broader queued-open/lease-break, precise exchange, unsupported FS, original
+product gates, fresh coherent four-gate qualification, installed/loaded rehearsal,
+zero-batch migration and every-watched actual clean-idle/publication proof remain
+required. No goal/task completion verdict is claimed.
+
+## Hygiene durable v2 — HISTORICAL coherent intermediate assembly, NOT deployed
 
 Typed artifact-ignore intent is now implemented in sync/hygiene_intent.rs.
 A private descriptor-bound dracon-hygiene-intents/ registry publishes complete
