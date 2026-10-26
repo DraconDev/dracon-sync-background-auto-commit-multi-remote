@@ -1,0 +1,13 @@
+{
+  "at": 1793042238.577057,
+  "path": "/home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/pre-push",
+  "beforeSha256": "192dff356ea894d44b1f48e58495a8920a29bdcc4d7b433197ccbc4e1a398a72",
+  "afterSha256": "317a8ee594a67d31df430c82d9fb23d05eb50a2f83b5ee98caa2428dabdae7c6",
+  "originalBackup": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/pre-push-before-scope-repair-192dff356ea894d44b1f48e58495a8920a29bdcc4d7b433197ccbc4e1a398a72",
+  "operation": "atomic replacement after bounded candidate controls; old running readers retain complete original inode",
+  "credentialDetectorsByteIdentical": true,
+  "noGitConfigChange": true,
+  "manualCommitOrPush": false,
+  "retryReenabled": false,
+  "controls": "16 passed, zero failures; removal/context/rename accepted; all detector families, transient-history secrets and unknown ranges rejected"
+}

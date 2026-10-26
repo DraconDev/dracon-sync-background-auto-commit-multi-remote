@@ -1,0 +1,24 @@
+✔ concurrent failures retain separate evidence and the exact gate exit code (2355.95698ms)
+✔ successful gates remain required and pass normally (1395.0964ms)
+✔ the secret phase rejects both quote styles even with the existing emergency gate flag (2848.93555ms)
+✔ secret scan retains aws detector on newly added content (182.393683ms)
+✔ secret scan retains pem detector on newly added content (257.224604ms)
+✔ secret scan retains secret detector on newly added content (222.833401ms)
+✔ secret scan retains api-key detector on newly added content (262.689307ms)
+✔ secret scan retains leading-plus detector on newly added content (272.879866ms)
+✔ secret scan accepts harmless remove of already-published fixture content (1279.899886ms)
+✔ secret scan accepts harmless context of already-published fixture content (2382.25638ms)
+✔ secret scan accepts harmless rename of already-published fixture content (10931.512617ms)
+✔ new credentials introduced then deleted still fail because pushed history contains them (2758.858808ms)
+✔ uninspectable remote range fails closed before running product gates (587.324903ms)
+✔ the gate caps the vitest worker fan-out (1207.50105ms)
+✔ the worker cap can be overridden (1005.432664ms)
+✔ the worker cap can be disabled (1224.487886ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 29377.303889
