@@ -628,6 +628,29 @@ pub(crate) struct SyncPolicy {
     /// Default: 2 GiB. Set to 0 to disable.
     #[serde(default = "default_auto_gc_garbage_threshold_bytes")]
     pub(crate) auto_gc_garbage_threshold_bytes: u64,
+    /// ADDED 2026-10-26: age before an abandoned private-epoch spool
+    /// (`<gitdir>/dracon-staging-*`) may be reaped by the daemon.
+    ///
+    /// WHY THIS EXISTS: every epoch allocates a 0700 spool holding a
+    /// FULL-tree private index plus an independent object pack, and the
+    /// epoch deliberately RETAINS it (so a later foreign index
+    /// replacement cannot make a proven candidate collectible by
+    /// prune). Nothing ever released it, and there was no sweep — on
+    /// 2026-10-26 browser-extensions-shared accumulated 141 spools
+    /// totalling 101 GiB, filled the root filesystem, and wedged the
+    /// whole watched fleet with `os error 28`.
+    ///
+    /// A spool that a live epoch still references is never reaped; only
+    /// an untouched spool older than this age goes. The sync deadline
+    /// that bounds a legitimate epoch is minutes, so the default is
+    /// generous relative to a real epoch lifetime.
+    ///
+    /// Unlike `auto_gc_garbage_threshold_bytes`, 0 does NOT disable the
+    /// sweep: it falls back to the default, because an unbounded spool
+    /// leak is a disk-exhaustion defect rather than a tuning choice.
+    /// Default: 3600s.
+    #[serde(default = "default_epoch_spool_max_age_secs")]
+    pub(crate) epoch_spool_max_age_secs: u64,
     /// ADDED 2026-07-29 (v0.113.10): opt-in janitor for stale
     /// daemon-created branches (`backup/pre-sync-largeblob-fix-*`,
     /// `daemon-standalone`) plus orphaned remote-tracking refs
@@ -1301,6 +1324,14 @@ pub(crate) fn default_auto_gc_garbage_threshold_bytes() -> u64 {
     // 2 GiB — below GitHub's per-push pack limit, large enough that
     // normal loose-object churn never triggers it.
     2 * 1024 * 1024 * 1024
+}
+
+pub(crate) fn default_epoch_spool_max_age_secs() -> u64 {
+    // One hour. A legitimate epoch lives for the sync deadline (minutes);
+    // the margin keeps a slow, loaded host from reaping a live spool while
+    // still bounding the leak to roughly one full-tree index per hour per
+    // repo instead of one per sync cycle.
+    3600
 }
 
 pub(crate) fn default_repo_sync_timeout_secs() -> u64 {
@@ -2167,6 +2198,7 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
         pull_op_timeout_secs: 30,
         push_op_timeout_secs: 300,
         auto_gc_garbage_threshold_bytes: default_auto_gc_garbage_threshold_bytes(),
+        epoch_spool_max_age_secs: default_epoch_spool_max_age_secs(),
         repo_sync_timeout_secs: 420,
         stage_op_timeout_secs: 60,
         stage_cooldown_secs: 3600,
@@ -2289,6 +2321,7 @@ mod tests {
         "auto_commit_backstop_min_age_secs",
         "auto_commit_backstop_threshold",
         "auto_gc_garbage_threshold_bytes",
+        "epoch_spool_max_age_secs",
         "auto_github_private",
         "auto_github_private_account",
         "auto_harden_with_warden",
