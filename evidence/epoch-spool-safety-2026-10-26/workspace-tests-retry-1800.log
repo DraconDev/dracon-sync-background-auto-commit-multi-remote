@@ -2406,4 +2406,45 @@ test busy_selected_job_fails_without_selecting_or_creating_another_version ... o
 test cold_clone_imports_only_committed_manifest_without_original_cache ... ok
 test cold_clone_restores_exact_asset_from_signed_https_s3 ... ignored, operational HTTPS fixture: requires openssl and python3
 test enrolled_capture_update_keeps_recorded_contract_and_refuses_pointers ... ok
-test guard_binding_requires_verified_index_and_honors_manual_alternate_index ... 
+test guard_binding_requires_verified_index_and_honors_manual_alternate_index ... ok
+test hydrate_checked_out_version_uses_required_clean_and_preserves_edits ... ok
+test index_guard_uses_staged_attributes_and_refuses_unenrolled_driver_paths ... ok
+test index_validation_catches_raw_and_missing_references_without_running_clean ... ok
+test missing_metadata_and_alternate_index_cannot_stage_an_unrestorable_pointer ... ok
+test one_repository_driver_selects_multiple_paths_and_exact_historical_versions ... ok
+test policy_capture_and_advance_encrypt_exact_version_with_actual_warden ... ignored, requires source-built Warden and age/age-keygen for isolated encryption
+test policy_capture_and_advance_preserve_versions_and_refuse_ineligible_sources ... ok
+test real_git_add_uses_only_exact_prepared_reference_and_preserves_edits ... ok
+test real_git_clean_preserves_non_utf8_path_identity ... ok
+test wrong_path_failed_job_and_foreign_repository_cannot_fall_back_to_raw ... ok
+
+test result: ok. 14 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 20.55s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_system-3dae012e9af70063)
+
+running 616 tests
+test cpu_limit::lifecycle_tests::ambiguous_application_and_failed_expiry_remain_recoverable_until_retry_succeeds ... ok
+test cpu_limit::lifecycle_tests::expiry_manager_outage_preserves_verified_lease_across_reload_then_restores ... ok
+test cpu_limit::lifecycle_tests::rejected_application_retains_debt_and_next_pass_recovers_before_reapplying ... ok
+test cpu_limit::lifecycle_tests::rejected_timer_retains_intent_without_applying_and_restart_retires_it ... ok
+test cpu_limit::lifecycle_tests::replaced_unit_before_application_and_before_expiry_is_never_mutated ... ok
+test cpu_limit::lifecycle_tests::stale_timer_and_external_quota_preserve_current_ownership ... ok
+test cpu_limit::lifecycle_tests::uncertain_unit_retains_debt_until_confirmed_disappearance_without_writes ... ok
+test cpu_limit::lifecycle_tests::workload_revalidation_failure_leaves_only_unapplied_intent ... ok
+test cpu_limit::tests::incomplete_intent_never_counts_as_enforced_quota ... ok
+test cpu_limit::tests::lease_intent_survives_restart_and_keys_cannot_escape_state_root ... ok
+test cpu_limit::tests::only_isolated_job_scopes_are_eligible ... ok
+test cpu_limit::tests::quota_round_trip_preserves_stricter_existing_limits ... ok
+test cpu_limit::tests::unavailable_unit_identity_never_discards_cpu_debt ... ok
+test doctor::tests::an_absent_systemctl_is_skipped_not_failed ... ok
+test doctor::tests::doctor_checks_show_system_root_and_failure_status ... ok
+test doctor::tests::doctor_covers_m8_watchdog_timers ... ok
+test doctor::tests::doctor_covers_the_guard_itself ... ok
+test doctor::tests::json_envelope_carries_strict_verdict ... ok
+test doctor::tests::legacy_hint_names_checked_path ... ok
+test doctor::tests::strict_ignores_optional_checks ... ok
+test events::tests::concurrent_persistence_keeps_each_record_as_a_json_line ... ok
+test events::tests::oversized_event_is_truncated_to_a_valid_bounded_record ... ok
+test events::tests::oversized_legacy_segments_are_discarded_before_new_events ... ok
+test events::tests::persistence_failure_is_reported_without_writing_outside_the_log ... ok
+test events::tests::persistent_event_log_rotates_before_append ... 
