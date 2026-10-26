@@ -129,11 +129,21 @@ async fn excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_r
     // before-exchange assertion from a lease observation alone. Both versions
     // must remain classifiable, and no late restore may replace this inode.
     let after_crash = std::fs::metadata(r.join("one.log")).unwrap();
-    let mut writer = OpenOptions::new()
-        .write(true)
-        .custom_flags(libc::O_NONBLOCK)
-        .open(r.join("one.log"))
-        .expect("parent death releases the actual kernel lease");
+    // Process state and kernel lease teardown are separate observations. Keep
+    // the SAME three-second budget from parent death; no reset, grace sleep or
+    // unbounded retry can conceal a surviving lease. Successful nonblocking
+    // open is the actual release witness, not the zombie/PID marker above.
+    let mut writer = loop {
+        match OpenOptions::new().write(true).custom_flags(libc::O_NONBLOCK).open(r.join("one.log")) {
+            Ok(writer) => break writer,
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                assert!(Instant::now() < deadline,
+                    "parent death did not release the actual kernel lease within its original bound: {error}");
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+            Err(error) => panic!("cannot observe lease release: {error}"),
+        }
+    };
     use std::io::{Read, Write};
     writer.write_all(b"LATER").unwrap();
     writer.sync_all().unwrap();
