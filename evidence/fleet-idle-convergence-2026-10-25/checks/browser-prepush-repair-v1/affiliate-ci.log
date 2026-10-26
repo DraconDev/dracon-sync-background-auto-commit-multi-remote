@@ -54,3 +54,34 @@ build.test.ts:
 (pass) N76: over-long name is rejected [666.01ms]
 (pass) N76: name implying Google/Chrome is rejected [644.01ms]
 (pass) N77: non-PNG icon is rejected [707.01ms]
+(pass) N73: default_locale with empty message is rejected [723.01ms]
+(pass) N177: duplicate JSON keys in config.json is rejected [173.00ms]
+(pass) N178: link with unknown shape is rejected [145.00ms]
+(pass) N179: retailer with unknown shape is rejected [132.00ms]
+(pass) N180: config.json missing $schema is rejected [218.00ms]
+
+schema.test.ts:
+(pass) config.schema.json enums match the engine canonical vocabulary (N112)
+(pass) price-tracker + deal-dashboard schema shape enums agree (N115)
+(pass) config.schema.json link.required pins the canonical link contract (N119)
+(pass) price-tracker.schema.json retailer.required pins the canonical contract (N120)
+(pass) price-tracker.schema.json retailer.window pins the N81 window format (N124) [1.00ms]
+(pass) config.schema.json link.tagField allows null (N128, parity N126)
+(pass) config.schema.json link.window pattern matches N81/N124 (N141)
+(pass) config.schema.json stays strict (additionalProperties:false + links required) (N143)
+(pass) build.sh SHAPES matches schema shape enums (N158)
+(pass) build.sh status allow-list matches schema status.enum (N160) [1.00ms]
+(pass) price-tracker.schema.json stays strict (N162)
+(pass) config.schema.json link additionalProperties:false (N171)
+(pass) shared config.schema.json requires disclosures (N191)
+
+enrollment.test.ts:
+(pass) affiliate config paths resolve from the affiliate test root
+(pass) deal-dashboard links are all planned in ENROLLMENT_SHEET (N62) [3.00ms]
+(pass) deal-dashboard placeholder links are exactly the known unfilled direct programs (N111) [1.00ms]
+(pass) price-tracker retailers are all planned in ENROLLMENT_SHEET (N131)
+(pass) ENROLLMENT_SHEET per-link fill map covers every config.json link (N198)
+(pass) all config.json placeholder tokens documented (N214) [1.00ms]
+(pass) config.json disclosure matches canonical text (N219)
+
+verify-urls.test.ts:
