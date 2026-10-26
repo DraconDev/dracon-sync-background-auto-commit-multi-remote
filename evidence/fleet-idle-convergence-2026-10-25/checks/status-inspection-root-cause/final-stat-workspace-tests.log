@@ -1946,3 +1946,19 @@ test sync::tests::ordinary_absolute_staging_deadline_cancels_hardener_descendant
 ok
 test sync::tests::parent_gitlink_propagates_after_standalone_commit ... ok
 test sync::tests::test_alert_unpushed_threshold ... [master (root-commit) ad4ae2f] init
+ok
+test sync::tests::test_alert_unpushed_threshold_not_triggered ... [master (root-commit) ecc4449] init
+ok
+test sync::tests::test_auto_commit_excludes_union_global_and_per_repo ... ok
+test sync::tests::test_auto_resolve_no_unmerged ... ok
+test sync::tests::test_auto_resolve_unmerged_disabled ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_matches_head ... ok
+test sync::tests::test_bootstrap_empty_repo_all_oversized_returns_false ... ok
+test sync::tests::test_bootstrap_empty_repo_auto_commit_disabled ... ok
+test sync::tests::test_bootstrap_empty_repo_creates_root_commit ... ok
+test sync::tests::test_bootstrap_empty_repo_nothing_to_stage ... ok
+test sync::tests::test_bootstrap_empty_repo_respects_gitignore ... ok
+test sync::tests::test_bootstrap_empty_repo_skips_oversized_files ... ok
+test sync::tests::test_bootstrap_empty_repo_unowned_skipped ... ok
+test sync::tests::test_bootstrap_sweep_measures_staged_blob_not_worktree ... 
