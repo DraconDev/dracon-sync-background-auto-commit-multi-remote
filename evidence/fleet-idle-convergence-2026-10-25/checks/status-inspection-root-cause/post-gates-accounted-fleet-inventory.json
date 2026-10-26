@@ -13,8 +13,7 @@
     "runtime canonical-writer preservation control fails",
     "daemon externally paused; health is paused, not idle",
     "dirty, staged and push-stuck rows exist",
-    "deep checks deferred; no advertised-ref proof in this observation",
-    "baseline checkout disappeared; not silently removed from scope"
+    "deep checks deferred; no advertised-ref proof in this observation"
   ],
   "rows": [
     {
@@ -905,8 +904,19 @@
       "repo": "/home/dracon/Dev/warden-vid",
       "source": "original baseline; missing from fresh discovery",
       "checkoutExists": false,
-      "state": "MISSING_BASELINE_CHECKOUT",
-      "resolved": false
+      "state": "OPERATOR_RETIRED",
+      "resolved": true,
+      "restoreRequired": false,
+      "authorization": "User explicitly confirmed intentional deletion"
     }
-  ]
+  ],
+  "operatorRetirements": [
+    {
+      "repo": "/home/dracon/Dev/warden-vid",
+      "authorization": "User: i deleted the wrden vid continue",
+      "recordedAt": 1793040712.3336115,
+      "restoreRequired": false
+    }
+  ],
+  "unresolvedMissingBaselineRepos": []
 }
