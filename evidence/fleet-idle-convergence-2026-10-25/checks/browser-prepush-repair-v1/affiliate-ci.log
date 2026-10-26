@@ -367,3 +367,30 @@ OK    200  https://affiliate-program.amazon.com
 OK    202  https://amazon.com
 OK    202  https://booking.com
 WARN  403  WAF-botblock(maybe-live)  https://impact.com/publisher-signup
+OK    200  https://partnernetwork.ebay.com
+OK    200  https://partnerstack.com
+OK    200  https://rakutenadvertising.com
+OK    200  https://walmart.com
+OK    200  https://www.awin.com
+OK    200  https://www.awin.com/us/getting-started-sas
+OK    200  https://www.cj.com
+OK    200  https://affiliate-program.amazon.com
+OK    200  https://chromewebstore.google.com/detail/cuslr-essential-apps-in-y/ckenonjjcacieiocdmbhcmmgahbepjab
+OK    200  https://hubspot.com/affiliates
+OK    200  https://impact.com/get-started
+WARN  403  WAF-botblock(maybe-live)  https://nordvpn.com/affiliate/
+OK    200  https://partnernetwork.ebay.com
+OK    200  https://partnerstack.com
+OK    200  https://platform.sovrn.com/account/signup
+OK    200  https://rakutenadvertising.com
+OK    200  https://semrush.com/affiliate-program
+OK    200  https://www.awin.com
+OK    200  https://www.booking.com/affiliate-program/index.html
+OK    200  https://www.cj.com
+OK    200  https://www.etsy.com/affiliates
+OK    200  https://www.grammarly.com/affiliates
+OK    200  https://www.notion.so/affiliates
+OK    200  https://www.shareasale.com/affiliates/affiliate-signup.cfm
+OK    200  https://affiliate-program.amazon.com
+OK    200  https://affiliates.nordvpn.com/users/login.
+OK    200  https://bunny.net?ref=6uevqujmyc
