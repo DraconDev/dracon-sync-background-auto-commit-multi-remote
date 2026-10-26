@@ -10,13 +10,14 @@ import datetime, hashlib, json, os, shutil, signal, subprocess, tempfile, time
 from pathlib import Path
 
 root = Path(__file__).resolve().parent
-receipt = json.loads((root / 'norollback-qualified-v3-receipt.json').read_text())
-expected = receipt['identities']['release_binary_sha256']
-assert receipt['gates']['workspace_tests'].endswith('exit=0'), 'workspace gate not green'
-assert receipt['gates']['release_build'].endswith('exit=0'), 'release build not green'
-assert receipt['gates']['clippy'].endswith('exit=0'), 'clippy not green'
-assert receipt['gates']['deny'].endswith('exit=0'), 'deny not green'
-assert 'pass=true' in receipt['regressions']['actual_syscall_release_binary'], 'syscall qualification not green'
+stat = json.loads((root.parent / 'status-inspection-root-cause' / 'statfix-receipt.json').read_text())
+norollback = json.loads((root / 'norollback-qualified-v3-receipt.json').read_text())
+expected = stat['release_binary_sha256']
+assert stat['gates']['workspace_tests'].endswith('exit=0'), 'workspace gate not green'
+assert stat['gates']['release_build'].endswith('exit=0'), 'release build not green'
+assert stat['gates']['clippy'].endswith('exit=0'), 'clippy not green'
+assert stat['gates']['deny'].endswith('exit=0'), 'deny not green'
+assert 'pass=true' in norollback['regressions']['actual_syscall_release_binary'], 'syscall qualification not green'
 
 candidate = Path('/home/dracon/Dev/dracon-utilities/target/release/dracon-sync')
 target = Path.home() / '.local/bin/dracon-sync'
@@ -39,7 +40,7 @@ assert digest(target) == old_sha, 'installed binary differs from the running one
 assert target.is_file() and not target.is_symlink()
 
 backup = Path.home() / '.local/state/dracon/deployments' / (
-    datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-no-rollback-fix')
+    datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-status-inspect-fix')
 backup.mkdir(parents=True, exist_ok=False)
 shutil.copy2(target, backup / 'dracon-sync')
 assert digest(backup / 'dracon-sync') == old_sha
@@ -98,5 +99,5 @@ except BaseException:
 finally:
     os.close(fd)
 
-(root / 'deployment.json').write_text(json.dumps(result, indent=2) + '\n')
+(root.parent / 'status-inspection-root-cause' / 'deployment.json').write_text(json.dumps(result, indent=2) + '\n')
 print(json.dumps(result, indent=2))

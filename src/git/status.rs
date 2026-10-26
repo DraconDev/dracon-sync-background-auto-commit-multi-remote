@@ -109,6 +109,17 @@ impl IndexLock {
     /// Atomically install a caller-owned private index while retaining the
     /// standard Git lock protocol. Never called unless full baseline identities
     /// and parent have been compared under this owned lock.
+    ///
+    /// The caller's private index is usually produced by `git read-tree`, which
+    /// writes every entry WITHOUT stat data. Installing it verbatim forces the
+    /// next `git status` to re-run the clean filter over every tracked file; in
+    /// a warden-filtered repo that cost measured 147-274s per inspection and
+    /// blew the inspection deadline (2026-10-26 fleet-idle repair). So the stat
+    /// cache of the CURRENT index is carried over for every entry whose
+    /// (mode, oid) the install leaves unchanged. Carrying stat data is safe
+    /// exactly because it is only reused when mode and object id still match:
+    /// Git re-validates size/mtime/ctime before trusting it, so a stale entry
+    /// can only ever cost an extra hash, never report wrong content.
     pub(crate) fn install_index(&mut self, source: &Path, index: &Path) -> Result<()> {
         use std::io::{Read, Write};
         anyhow::ensure!(self.is_owned(), "index lock replaced before install");
@@ -123,7 +134,9 @@ impl IndexLock {
             bytes.len() <= 64 * 1024 * 1024,
             "private index grew past budget"
         );
-        self.file.write_all(&bytes)?;
+        let merged = carry_over_stat_data(index, &bytes).unwrap_or(bytes);
+
+        self.file.write_all(&merged)?;
         self.file.sync_all()?;
         anyhow::ensure!(self.is_owned(), "index lock replaced during install");
         std::fs::rename(&self.path, index)?;
@@ -153,6 +166,119 @@ impl Drop for IndexLock {
         }
         // Without a stable filesystem identity, conservatively retain the lock.
     }
+}
+
+/// One staged entry: `(mode, object id, path)`. Stage 0 only — a conflicted
+/// index is never merged.
+type StageEntry = (Vec<u8>, Vec<u8>, Vec<u8>);
+
+/// Carry the previous index's stat cache onto the index being installed.
+///
+/// `read-tree`-derived indexes carry no stat data, so installing one verbatim
+/// makes the next `git status` re-run the clean filter for every tracked file
+/// (measured 147-274s in a warden-filtered repo, past the inspection deadline).
+///
+/// The merge is done with Git's own plumbing, never by patching index bytes:
+/// start from the CURRENT index (which has a warm stat cache), then apply only
+/// the delta this install introduces via `update-index --index-info`. Untouched
+/// paths are never rewritten, so they keep their stat data; paths whose
+/// (mode, oid) changed or that were added lose it and cost one hash next time,
+/// which is exactly correct. `--index-info` cannot change an object's content,
+/// so this can only affect stat bookkeeping.
+///
+/// Returns `None` when the merge cannot be produced or verified, and the caller
+/// then installs the private index byte-for-byte (the previous behaviour).
+fn carry_over_stat_data(index: &Path, wanted: &[u8]) -> Option<Vec<u8>> {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+    let repo = index.parent()?.parent()?;
+    let workspace = tempfile::Builder::new()
+        .prefix("dracon-stat-")
+        .tempdir_in(index.parent()?)
+        .ok()?;
+    let private = workspace.path().join("private.index");
+    std::fs::write(&private, wanted).ok()?;
+    let listing = |path: &Path| -> Option<Vec<StageEntry>> {
+        let output = Command::new("git")
+            .args(["ls-files", "--stage", "-z"])
+            .current_dir(repo)
+            .env("GIT_INDEX_FILE", path)
+            .env("GIT_NO_LAZY_FETCH", "1")
+            .env("GIT_OPTIONAL_LOCKS", "0")
+            .output()
+            .ok()?;
+        if !output.status.success() {
+            return None;
+        }
+        parse_stage_entries(&output.stdout)
+    };
+    let before = listing(index)?;
+    let after = listing(&private)?;
+    let merged = workspace.path().join("merged.index");
+    std::fs::copy(index, &merged).ok()?;
+    let mut delta = Vec::new();
+    for (mode, oid, path) in &after {
+        let unchanged = before
+            .iter()
+            .any(|(m, o, p)| m == mode && o == oid && p == path);
+        if !unchanged {
+            delta.extend_from_slice(mode);
+            delta.push(b' ');
+            delta.extend_from_slice(oid);
+            delta.push(b'\t');
+            delta.extend_from_slice(path);
+            delta.push(0);
+        }
+    }
+    for (_, _, path) in &before {
+        if !after.iter().any(|(_, _, p)| p == path) {
+            delta.extend_from_slice(b"0 0000000000000000000000000000000000000000\t");
+            delta.extend_from_slice(path);
+            delta.push(0);
+        }
+    }
+    if !delta.is_empty() {
+        let mut child = Command::new("git")
+            .args(["update-index", "-z", "--index-info"])
+            .current_dir(repo)
+            .env("GIT_INDEX_FILE", &merged)
+            .env("GIT_NO_LAZY_FETCH", "1")
+            .env("GIT_OPTIONAL_LOCKS", "0")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .ok()?;
+        child.stdin.as_mut()?.write_all(&delta).ok()?;
+        drop(child.stdin.take());
+        if !child.wait().ok()?.success() {
+            return None;
+        }
+    }
+    let merged_entries = listing(&merged)?;
+    if merged_entries != after {
+        return None;
+    }
+    std::fs::read(&merged).ok()
+}
+
+/// Parse `git ls-files --stage -z` into sorted `(mode, oid, path)` triples.
+fn parse_stage_entries(raw: &[u8]) -> Option<Vec<StageEntry>> {
+    let mut entries = Vec::new();
+    for record in raw.split(|byte| *byte == 0).filter(|r| !r.is_empty()) {
+        let tab = record.iter().position(|byte| *byte == b'\t')?;
+        let header = &record[..tab];
+        let mut fields = header.split(|byte| *byte == b' ');
+        let mode = fields.next()?.to_vec();
+        let oid = fields.next()?.to_vec();
+        let stage = fields.next()?;
+        if fields.next().is_some() || stage != b"0" {
+            return None;
+        }
+        entries.push((mode, oid, record[tab + 1..].to_vec()));
+    }
+    entries.sort();
+    Some(entries)
 }
 
 /// Check whether an `origin` remote exists via config or git CLI.
@@ -1033,6 +1159,91 @@ mod tests {
             .unwrap();
         assert_eq!(count_pushable_unpushed_vs_mirrors(&repo), 0);
     }
+}
+
+#[cfg(all(test, unix))]
+#[test]
+fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
+    // Reproduced defect (2026-10-26): epochs install a `read-tree` index that
+    // carries NO stat data, so the next `git status` re-runs the clean filter
+    // for every tracked file. In a warden-filtered repo that cost 147-274s and
+    // blew the status-inspection deadline. Installing must now carry stat
+    // data across for entries whose (mode, oid) are unchanged.
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path();
+    let run = |args: &[&str]| {
+        let out = std::process::Command::new("git")
+            .args(args)
+            .current_dir(repo)
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "git {args:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        out
+    };
+    run(&["init", "-q", "--template=", "-b", "main"]);
+    run(&["config", "user.email", "test@test"]);
+    run(&["config", "user.name", "test"]);
+    run(&["config", "commit.gpgsign", "false"]);
+    for name in ["one.txt", "two.txt", "three.txt"] {
+        std::fs::write(repo.join(name), format!("{name}\n")).unwrap();
+    }
+    run(&["add", "--", "one.txt", "two.txt", "three.txt"]);
+    run(&["commit", "-q", "-m", "fixture"]);
+    let index = repo.join(".git/index");
+    let zeroed = |_index: &Path| -> usize {
+        let out = std::process::Command::new("git")
+            .args(["ls-files", "--debug"])
+            .current_dir(repo)
+            .output()
+            .unwrap();
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .filter(|l| l.trim() == "ctime: 0:0")
+            .count()
+    };
+    // Warm the stat cache the way a normal checkout does.
+    run(&["update-index", "--refresh"]);
+    assert_eq!(zeroed(&index), 0, "fixture must start warm");
+    // Build a read-tree index (stat-less), exactly like the epoch path does.
+    let tree = String::from_utf8_lossy(&run(&["rev-parse", "HEAD^{tree}"]).stdout)
+        .trim()
+        .to_string();
+    let private = dir.path().join("private.index");
+    let out = std::process::Command::new("git")
+        .args(["read-tree", &tree])
+        .current_dir(repo)
+        .env("GIT_INDEX_FILE", &private)
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .output()
+        .unwrap();
+    assert!(out.status.success());
+    let mut lock = IndexLock::try_acquire_path(index.with_extension("lock")).unwrap();
+    lock.install_index(&private, &index).unwrap();
+    drop(lock);
+    assert_eq!(
+        zeroed(&index),
+        0,
+        "install must preserve stat data for unchanged (mode, oid) entries"
+    );
+    // The installed index must still describe exactly the same tree.
+    let staged = String::from_utf8_lossy(&run(&["write-tree"]).stdout)
+        .trim()
+        .to_string();
+    assert_eq!(staged, tree);
+    // And a genuine content change must still be visible afterwards.
+    std::fs::write(repo.join("two.txt"), "changed\n").unwrap();
+    let status = String::from_utf8_lossy(&run(&["status", "--porcelain=v1"]).stdout).to_string();
+    assert!(
+        status.contains("two.txt"),
+        "content change must remain visible: {status}"
+    );
 }
 
 #[cfg(all(test, not(unix)))]

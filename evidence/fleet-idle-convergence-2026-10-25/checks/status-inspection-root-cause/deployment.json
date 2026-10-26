@@ -1,0 +1,14 @@
+{
+  "started_unix": 1793027319.6029081,
+  "old_pid": 3092229,
+  "old_loaded_sha256": "8e5fb4fd744e3239e4f2b4ba095783a29414953a73fc34ff0cf8b296ab5fec4e",
+  "expected_sha256": "7176180470e4e81bd4f65fd5fb88a6662fc34af06497b2b3c41a38e2b87040d2",
+  "backup": "/home/dracon/.local/state/dracon/deployments/20261026T150839Z-status-inspect-fix",
+  "service_stop_used": false,
+  "method": "atomic binary replacement; pidfd SIGTERM; Restart=always",
+  "new_pid": 1868720,
+  "loaded_sha256": "7176180470e4e81bd4f65fd5fb88a6662fc34af06497b2b3c41a38e2b87040d2",
+  "installed_sha256": "7176180470e4e81bd4f65fd5fb88a6662fc34af06497b2b3c41a38e2b87040d2",
+  "verified_unix": 1793027327.0180998,
+  "ok": true
+}

@@ -1,0 +1,45 @@
+{
+  "at": "2026-10-26T15:08:33.572746+00:00",
+  "scope": "status-inspection timeout root-cause fix; source + gates only, deployment separate",
+  "symptom": "daemon logs 'status_failed: status inspection timed out' for browser-extensions-shared and dracon-platform",
+  "measured": {
+    "browser_status_with_zeroed_stat_cache": "147000-274000ms",
+    "browser_status_with_warm_cache": "6000ms",
+    "platform_status_zeroed": "197000ms",
+    "platform_status_warm": "1500-2500ms",
+    "diff_index_cached": "18ms",
+    "ls_files": "437ms",
+    "lstat_all_tracked": "300ms",
+    "clean_filter_per_file": "76ms vs 8ms unfiltered"
+  },
+  "rootCause": "dracon-sync builds each epoch private index with git read-tree (no stat data) and installs it over the real index; without stat data every tracked file must be re-run through warden clean filter on the next status",
+  "fix": {
+    "file": "dracon-sync/src/git/status.rs",
+    "function": "IndexLock::install_index -> carry_over_stat_data",
+    "approach": "start from the CURRENT index, apply only the (mode,oid,path) delta via git update-index -z --index-info, verify the merged index equals the private index via git ls-files --stage, else fall back to installing verbatim",
+    "safety": "stat data is only retained for entries whose mode and oid are unchanged; git re-validates size/mtime before trusting it, so stale stat can only cost a hash; conflicted (stage != 0) indexes are never merged"
+  },
+  "regression": "installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries - starts warm (0 zeroed), installs a read-tree index, asserts 0 zeroed afterwards, asserts write-tree unchanged and that a real content edit is still reported",
+  "gates": {
+    "workspace_tests": "statfix-final-workspace-tests-retry.log exit=0",
+    "clippy": "statfix-clippy.log exit=0",
+    "release_build": "statfix-final2-release-build.log exit=0",
+    "deny": "statfix-final-deny.log exit=0"
+  },
+  "release_binary_sha256": "7176180470e4e81bd4f65fd5fb88a6662fc34af06497b2b3c41a38e2b87040d2",
+  "flakes": [
+    "git::staged_intent::tests::shared_git_runner_deadline_and_drop_terminate_owned_descendant read the helper pid file between create and write under load 34-46; passes alone",
+    "sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores passed 3/3 alone under the same load"
+  ],
+  "environmentRepairPerformed": {
+    "browser-extensions-shared": "git update-index --refresh (147s -> 6s)",
+    "dracon-platform": "git update-index --refresh (197s -> 1.5-2.5s)",
+    "note": "reversible, content-neutral; used because the daemon keeping the cache warm was the defect being fixed"
+  },
+  "notProven": [
+    "deployment of this build",
+    "fleet-wide effect of the fix",
+    "doomtap/junk-runner/db-gateway convergence",
+    "final fleet idle observation"
+  ]
+}

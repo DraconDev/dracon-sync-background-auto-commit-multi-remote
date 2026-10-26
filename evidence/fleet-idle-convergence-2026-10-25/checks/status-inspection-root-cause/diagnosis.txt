@@ -1,0 +1,44 @@
+# status-inspection timeout root cause (2026-10-26T14:03:16Z)
+
+## Symptom: daemon logs 'status_failed: status inspection timed out'
+Measured on browser-extensions-shared: git status took 147-274s, over budget.
+
+## Cost isolation (same repo, same moment)
+diff-index --cached (index vs HEAD):        18ms   -> cheap
+ls-files -z (enumerate paths):             437ms
+python lstat of all 9857 tracked paths:    300ms   -> filesystem walk cheap
+diff-files (worktree vs index):            114ms   -> cheap ONLY with stat cache
+status with intact stat cache:            6000ms
+status with ZEROED stat cache:        147000-274000ms
+
+## Zeroed stat-cache entries
+browser-extensions-shared: 9859 of 9859
+dracon-platform:           12539 of 12539
+
+## Mechanism
+warden's clean filter costs ~76ms/file (vs 8ms unfiltered hash-object).
+A zeroed stat cache forces the clean filter over EVERY tracked file:
+9857 x ~76ms of filter work, parallelised to the measured 147-274s.
+With an intact cache only genuinely modified files are filtered, which is
+why the identical command drops to ~6s.
+
+## Source of zeroing (NOT user edits, NOT a hook)
+dracon-sync builds each epoch's private index with 'git read-tree' (writes
+entries with no stat data) and installs it over the real index:
+  src/sync/staged_epoch.rs:1004 -> src/git/status.rs install_index
+No 'update-index --refresh' or stat preservation exists anywhere:
+  rg 'refresh|update-index' src/git/status.rs src/sync/staged_epoch.rs = 0 matches
+So each publication leaves the repo stat-cache-free and the NEXT inspection
+re-filters everything and can exceed its deadline.
+
+## Reversible environment repair actually performed
+git update-index --refresh rewrites stat data for UNCHANGED entries only;
+it cannot alter content, staging, hooks or policy. Measured:
+  browser-extensions-shared 147s -> 6.0s
+  dracon-platform           197s -> 1.5-2.5s (zeroed 11959 -> 22)
+
+## Why it recurs and what is NOT done
+The daemon re-runs the epoch path on each commit, zeroing the cache again.
+The durable fix is to preserve stat data for entries whose (mode, oid) are
+unchanged, or to refresh under the owned lock after install. That is a
+SOURCE change and has NOT been implemented or deployed.
