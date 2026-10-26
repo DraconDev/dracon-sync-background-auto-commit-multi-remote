@@ -1,0 +1,912 @@
+{
+  "recordedAt": 1793039684.3246887,
+  "baselineRepositoryCount": 37,
+  "currentDiscoveredCount": 36,
+  "unionRepositoryCount": 37,
+  "missingBaselineRepos": [
+    "/home/dracon/Dev/warden-vid"
+  ],
+  "newRepos": [],
+  "rawFreshReport": "post-gates-fleet-repos-retry.json",
+  "allCleanIdleProven": false,
+  "whyNot": [
+    "runtime canonical-writer preservation control fails",
+    "daemon externally paused; health is paused, not idle",
+    "dirty, staged and push-stuck rows exist",
+    "deep checks deferred; no advertised-ref proof in this observation",
+    "baseline checkout disappeared; not silently removed from scope"
+  ],
+  "rows": [
+    {
+      "repo": "/home/dracon/.dracon",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "DIRTY",
+        "AHEAD:1",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 18,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "PENDING",
+      "health": {
+        "current": "paused",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/.dracon",
+          "attempted_at": 1793037812,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "daemon will push after changes settle; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/browser-extensions-shared",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "DIRTY",
+        "AHEAD:110",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 9,
+      "staged": 0,
+      "untracked": 3,
+      "push_status": "PUSH_STUCK",
+      "health": {
+        "current": "paused",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/browser-extensions-shared",
+          "attempted_at": 1793031192,
+          "succeeded": false
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "\ud83d\uded1 push-stuck (5 failures): git push returned non-zero (remotes: github, gitlab, orig... \u2014 fix the recorded cause first; then dracon-sync repair stuck-unstuck '/home/dracon/Dev/browser-extensions-shared'; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 11,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "paused",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls",
+          "attempted_at": 1793037772,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/freeport",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/freeport",
+          "attempted_at": 1793037765,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 5,
+      "push_status": "OK",
+      "health": {
+        "current": "paused",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+          "attempted_at": 1793037567,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/empire",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 4,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "paused",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/empire",
+          "attempted_at": 1793037420,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+          "attempted_at": 1793037295,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-utilities/dracon-system",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-utilities/dracon-system",
+          "attempted_at": 1793037221,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 2,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "paused",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-strategy",
+          "attempted_at": 1793037026,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
+          "attempted_at": 1793037008,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
+          "attempted_at": 1793036863,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/db-gateway",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/db-gateway",
+          "attempted_at": 1793036665,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 2,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "paused",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
+          "attempted_at": 1793036490,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 2,
+      "staged": 0,
+      "untracked": 72,
+      "push_status": "OK",
+      "health": {
+        "current": "paused",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
+          "attempted_at": 1793033258,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/pi-plugins",
+          "attempted_at": 1793022148,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
+          "attempted_at": 1793022089,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 21,
+      "staged": 7,
+      "untracked": 8,
+      "push_status": "OK",
+      "health": {
+        "current": "paused",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform",
+          "attempted_at": 1793022092,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-utilities",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-utilities",
+          "attempted_at": 1793019548,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 15,
+      "staged": 52,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "paused",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+          "attempted_at": 1793013560,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/terhub",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/terhub",
+          "attempted_at": 1792979925,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 55,
+      "staged": 127,
+      "untracked": 16,
+      "push_status": "OK",
+      "health": {
+        "current": "paused",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner",
+          "attempted_at": 1792961575,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/released/one-mil-girls",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/released/one-mil-girls",
+          "attempted_at": 1792950713,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-utilities/dracon-warden",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-utilities/dracon-warden",
+          "attempted_at": 1792932940,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/released/come-get-me",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/released/come-get-me",
+          "attempted_at": 1792841375,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/.dracon/convos",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/.dracon/convos",
+          "attempted_at": 1792795565,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/football-forever",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/football-forever",
+          "attempted_at": 1792737415,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/DraconDev",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-strategy/DraconDev",
+          "attempted_at": 1792702668,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/hellhunter",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/hellhunter",
+          "attempted_at": 1792694631,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "\u26a0\ufe0f path-owned identity/origin warning: \u2713 owned (path_owned:untrusted_email); GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/neonbreak",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/neonbreak",
+          "attempted_at": 1792694649,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/space-trucker",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/space-trucker",
+          "attempted_at": 1792694620,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/darklord",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/darklord",
+          "attempted_at": 1792694613,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/dracon/bridge-fixture",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/dracon/bridge-fixture",
+          "attempted_at": 1792454396,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "\u26a0\ufe0f path-owned identity/origin warning: \u2713 owned (path_owned:untrusted_origin); GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/mcode-plugins",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/mcode-plugins",
+          "attempted_at": 1792454420,
+          "succeeded": true
+        }
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins/pi-agnes-tools",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused"
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins/pi-use-last-selected-thinking-level",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused"
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins/pi-codebuddy-sdk",
+      "source": "fresh daemon report",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "push_status": "OK",
+      "health": {
+        "current": "converged",
+        "observed_at": 1793039523,
+        "mode": "paused"
+      },
+      "publish_state": "Ok",
+      "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+    },
+    {
+      "repo": "/home/dracon/Dev/warden-vid",
+      "source": "original baseline; missing from fresh discovery",
+      "checkoutExists": false,
+      "state": "MISSING_BASELINE_CHECKOUT",
+      "resolved": false
+    }
+  ]
+}

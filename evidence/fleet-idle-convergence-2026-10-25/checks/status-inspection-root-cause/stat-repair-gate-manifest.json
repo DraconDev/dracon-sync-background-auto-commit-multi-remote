@@ -1,0 +1,55 @@
+{
+  "recordedAt": 1793039684.1531045,
+  "scope": "source/gate evidence only; NOT deployment or goal acceptance",
+  "gates": {
+    "workspace-tests": {
+      "command": "cargo test --workspace --locked",
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/status-inspection-root-cause/final-stat-workspace-tests.log",
+      "logSha256": "aee6526f0ef8261520253aaacfed6d7af900e8ae6db4f25e26c444ffeb2afd82"
+    },
+    "release-build": {
+      "command": "cargo build --release --locked",
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/status-inspection-root-cause/final-stat-release-build.log",
+      "logSha256": "9be49da66908a922a752d2ff48e6e206889d029580f24cd62344d6bf15bf20a1"
+    },
+    "strict-clippy": {
+      "command": "cargo clippy --workspace --locked --all-targets -- -D warnings",
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/status-inspection-root-cause/final-stat-strict-clippy.log",
+      "logSha256": "404f4ce4272655d518412f3c5c45ec9cd2d08d6893855085c0e76b963026874b"
+    },
+    "dependency-policy": {
+      "command": "cargo deny check",
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/status-inspection-root-cause/final-stat-dependency-policy.log",
+      "logSha256": "f1a0fca39d4280363937aabd77783990ea6480bd9ca257816de3b68fc8efa845"
+    }
+  },
+  "phaseSnapshots": {
+    "before": "final-stat-assembly-before.json",
+    "after-tests": "final-stat-assembly-after-tests.json",
+    "after-gates": "final-stat-assembly-after-gates.json"
+  },
+  "changedTrackedInputs": [
+    "dracon-system/docs/evidence/space-cleanup-2026-10-26-correction.md"
+  ],
+  "changesClassification": {
+    "dracon-system/docs/evidence/space-cleanup-2026-10-26-correction.md": "concurrent unrelated cleanup evidence documentation; retained, not reverted or omitted"
+  },
+  "releaseSha256": "7c39f954754338aa7728cf888aac237b27ea07bdd24c8e9f01afa49d0ee3e223",
+  "loadedSha256": "7176180470e4e81bd4f65fd5fb88a6662fc34af06497b2b3c41a38e2b87040d2",
+  "installedSha256": "7176180470e4e81bd4f65fd5fb88a6662fc34af06497b2b3c41a38e2b87040d2",
+  "runtimePreservationReceipt": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/epoch-integration-partial/exchange-restored-contract-final-stat-release.json",
+  "runtimePreservationPassed": false,
+  "newDeploymentPerformed": false,
+  "eligibleForSafeDeployment": false,
+  "earlierOutcomesPreserved": [
+    "bounded-workspace-tests.exit=101 (missing-index regression, corrected)",
+    "stat-cold-bootstrap-repair.log and stat-cold-unlimited-repair.log: stale debug-helper binding mismatch, not passes",
+    "corrected-workspace-tests.exit=124 (900-second total deadline; full rerun with measured 1800-second bound passed)",
+    "exchange-restored-contract-installed.json: ENOSPC, no preservation verdict",
+    "post-gates-fleet-repos attempt: exit 101 and ENOSPC writing exit receipt; retry stored separately"
+  ]
+}

@@ -24,10 +24,43 @@ original index mtime so racy same-size edits cannot be hidden by cache transfer.
 Native regression verifies expired-deadline refusal, exact candidate tree/mode/
 add/delete/newline-path installation, unchanged local bytes, and racy-edit visibility;
 the representative 100,000-entry SHA256 delta test passes in 0.31 seconds.
-Strict full-workspace all-target Clippy passes. Raw logs are under
-`checks/status-inspection-root-cause/stat-{linear-large-delta,bounded-full-delta,bounded-clippy}.log`.
-Those targeted checks are not a final assembly, full-matrix, runtime, publication,
-or clean-idle-fleet claim. Task and verification obligations remain open.
+The repaired product inputs now pass all four required static gates: full
+workspace tests, release build, strict full-workspace/all-target Clippy and
+cargo-deny. Exact revisions, raw successful outcomes, artifact identities and
+phase input inventories are in
+`checks/status-inspection-root-cause/stat-repair-gate-manifest.json`.
+The missing-index cold-bootstrap regression introduced during this repair was
+corrected; its failed run remains recorded. A later 900-second full-suite
+attempt timed out, and the measured 1800-second bounded rerun passed. Disposable
+bad-cache negative control demonstrates the hidden same-size edit; the repaired
+installation keeps it visible. Concurrent unrelated cleanup documentation edits
+are explicitly distinguished from unchanged product inputs.
+
+This is NOT runtime or deployment qualification: the newly built release
+`7c39f954754338aa7728cf888aac237b27ea07bdd24c8e9f01afa49d0ee3e223`
+ALSO fails the restored original writer-preservation syscall control
+(`checks/epoch-integration-partial/exchange-restored-contract-final-stat-release.json`).
+No new executable was installed by this work. An independent bounded read-only
+assessment confirms that another lease/exchange variant cannot unify old/new
+writer inode targets, and ordinary in-place writes do not supply the required
+crash/cancellation/content transaction.
+
+The fresh report discovers 36 repositories, not the baseline's 37:
+`/home/dracon/Dev/warden-vid` is missing on disk and from discovery. It remains an
+explicit unresolved row in
+`checks/status-inspection-root-cause/post-gates-accounted-fleet-inventory.json`.
+No repository is silently removed. Dirty/staged work, browser push-stuck state,
+deferred deep checks and externally paused daemon health remain; summary
+`ok=36` is not clean-idle evidence. An ENOSPC observation failure and its later
+successful retry are separate artifacts. Another project's maintenance marker
+was not cleared.
+
+Operator prerequisite and exact evidence:
+`../../docs/design/canonical-publication-boundary-2026-10-26.md` (from this run
+folder). Approve a concrete universal writer-coordination integration or provide
+a proven transactional facility; confirm the missing checkout's disposition.
+The existing guarantees and `.gitignore` publication requirement are unchanged.
+Task and verification obligations remain open.
 
 ## Historical no-rollback claim — INVALIDATED, not current qualification
 
