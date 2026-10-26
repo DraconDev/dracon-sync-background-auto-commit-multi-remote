@@ -143,18 +143,31 @@ impl IndexLock {
         let previous_meta = std::fs::metadata(index)?;
         let previous_mtime = previous_meta.modified()?;
         let previous = std::fs::read(index)?;
-        anyhow::ensure!(previous.len() <= 64 * 1024 * 1024, "actual index exceeds budget");
+        anyhow::ensure!(
+            previous.len() <= 64 * 1024 * 1024,
+            "actual index exceeds budget"
+        );
         let merged = tokio::time::timeout_at(
-            deadline, carry_over_stat_data(repo, index, &previous, &bytes, previous_mtime),
-        ).await.context("stat-cache merge deadline expired; actual index preserved")?
-            .unwrap_or(bytes);
-        anyhow::ensure!(tokio::time::Instant::now() < deadline, "index installation deadline expired");
+            deadline,
+            carry_over_stat_data(repo, index, &previous, &bytes, previous_mtime),
+        )
+        .await
+        .context("stat-cache merge deadline expired; actual index preserved")?
+        .unwrap_or(bytes);
+        anyhow::ensure!(
+            tokio::time::Instant::now() < deadline,
+            "index installation deadline expired"
+        );
         anyhow::ensure!(self.is_owned(), "index lock replaced during stat merge");
-        anyhow::ensure!(std::fs::read(index)? == previous, "actual index changed during stat merge; preserved");
+        anyhow::ensure!(
+            std::fs::read(index)? == previous,
+            "actual index changed during stat merge; preserved"
+        );
         self.file.write_all(&merged)?;
         // Preserve the old racy-clean boundary too. Advancing the index mtime
         // without Git's racy-entry smudging can hide a same-size concurrent edit.
-        self.file.set_times(std::fs::FileTimes::new().set_modified(previous_mtime))?;
+        self.file
+            .set_times(std::fs::FileTimes::new().set_modified(previous_mtime))?;
         self.file.sync_all()?;
         anyhow::ensure!(self.is_owned(), "index lock replaced during install");
         std::fs::rename(&self.path, index)?;
@@ -206,7 +219,13 @@ type StageEntry = (Vec<u8>, Vec<u8>, Vec<u8>);
 ///
 /// Returns `None` when the merge cannot be produced or verified, and the caller
 /// then installs the private index byte-for-byte (the previous behaviour).
-async fn carry_over_stat_data(repo: &Path, index: &Path, previous: &[u8], wanted: &[u8], previous_mtime: std::time::SystemTime) -> Option<Vec<u8>> {
+async fn carry_over_stat_data(
+    repo: &Path,
+    index: &Path,
+    previous: &[u8],
+    wanted: &[u8],
+    previous_mtime: std::time::SystemTime,
+) -> Option<Vec<u8>> {
     let workspace = tempfile::Builder::new()
         .prefix("dracon-stat-")
         .tempdir_in(index.parent()?)
@@ -219,16 +238,22 @@ async fn carry_over_stat_data(repo: &Path, index: &Path, previous: &[u8], wanted
     let after = stat_index_listing(repo, &private).await?;
     let merged = workspace.path().join("merged.index");
     std::fs::write(&merged, previous).ok()?;
-    std::fs::File::open(&merged).ok()?.set_times(
-        std::fs::FileTimes::new().set_modified(previous_mtime),
-    ).ok()?;
+    std::fs::File::open(&merged)
+        .ok()?
+        .set_times(std::fs::FileTimes::new().set_modified(previous_mtime))
+        .ok()?;
     let delta = stat_index_delta(&before, &after);
     if !delta.is_empty() {
         let mut command = stat_index_command(repo, &merged);
         command.args(["update-index", "-z", "--index-info"]);
         let output = super::run_command_captured_output(
-            command, 60, "private stat-cache delta", Some(&delta),
-        ).await.ok()?;
+            command,
+            60,
+            "private stat-cache delta",
+            Some(&delta),
+        )
+        .await
+        .ok()?;
         if !output.status.success() {
             return None;
         }
@@ -243,31 +268,41 @@ async fn carry_over_stat_data(repo: &Path, index: &Path, previous: &[u8], wanted
 fn stat_index_command(repo: &Path, index: &Path) -> tokio::process::Command {
     let mut command = crate::policy::tokio_git_command();
     for (key, _) in std::env::vars_os() {
-        if key.to_string_lossy().starts_with("GIT_") { command.env_remove(key); }
+        if key.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(key);
+        }
     }
-    command.current_dir(repo).env("GIT_INDEX_FILE", index)
-        .env("GIT_NO_LAZY_FETCH", "1").env("GIT_OPTIONAL_LOCKS", "0");
+    command
+        .current_dir(repo)
+        .env("GIT_INDEX_FILE", index)
+        .env("GIT_NO_LAZY_FETCH", "1")
+        .env("GIT_OPTIONAL_LOCKS", "0");
     command.into_tokio()
 }
 
 async fn stat_index_listing(repo: &Path, index: &Path) -> Option<Vec<StageEntry>> {
     let mut command = stat_index_command(repo, index);
     command.args(["ls-files", "--stage", "-z"]);
-    let output = super::run_command_captured_output(
-        command, 60, "private stat-cache listing", None,
-    ).await.ok()?;
-    if !output.status.success() { return None; }
+    let output =
+        super::run_command_captured_output(command, 60, "private stat-cache listing", None)
+            .await
+            .ok()?;
+    if !output.status.success() {
+        return None;
+    }
     parse_stage_entries(&output.stdout)
 }
 
 // Path-keyed lookups avoid two quadratic scans on large (87k+ path) repos.
 fn stat_index_delta(before: &[StageEntry], after: &[StageEntry]) -> Vec<u8> {
     use std::collections::BTreeMap;
-    let old: BTreeMap<_, _> = before.iter().map(|(m,o,p)| (p, (m,o))).collect();
-    let new: BTreeMap<_, _> = after.iter().map(|(m,o,p)| (p, (m,o))).collect();
+    let old: BTreeMap<_, _> = before.iter().map(|(m, o, p)| (p, (m, o))).collect();
+    let new: BTreeMap<_, _> = after.iter().map(|(m, o, p)| (p, (m, o))).collect();
     let mut delta = Vec::new();
     for (path, (mode, oid)) in &new {
-        if old.get(path) == Some(&(*mode, *oid)) { continue; }
+        if old.get(path) == Some(&(*mode, *oid)) {
+            continue;
+        }
         delta.extend_from_slice(mode);
         delta.push(b' ');
         delta.extend_from_slice(oid);
@@ -275,7 +310,10 @@ fn stat_index_delta(before: &[StageEntry], after: &[StageEntry]) -> Vec<u8> {
         delta.extend_from_slice(path);
         delta.push(0);
     }
-    let width = before.first().or(after.first()).map_or(40, |(_,oid,_)| oid.len());
+    let width = before
+        .first()
+        .or(after.first())
+        .map_or(40, |(_, oid, _)| oid.len());
     for path in old.keys().filter(|path| !new.contains_key(*path)) {
         delta.extend_from_slice(b"0 ");
         delta.extend(std::iter::repeat_n(b'0', width));
@@ -1249,25 +1287,48 @@ async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
         .output()
         .unwrap();
     assert!(out.status.success());
-    assert_eq!(zeroed(&private), 3, "control: read-tree actually loses stat cache");
+    assert_eq!(
+        zeroed(&private),
+        3,
+        "control: read-tree actually loses stat cache"
+    );
     // A cached stat is not proof of clean content when its mtime meets the
     // index's racy-clean boundary. Preserve that boundary through the merge.
     run(&["config", "core.trustctime", "false"]);
-    let tracked_time = std::fs::metadata(repo.join("one.txt")).unwrap().modified().unwrap();
-    std::fs::File::open(&index).unwrap().set_times(
-        std::fs::FileTimes::new().set_modified(tracked_time),
-    ).unwrap();
+    let tracked_time = std::fs::metadata(repo.join("one.txt"))
+        .unwrap()
+        .modified()
+        .unwrap();
+    std::fs::File::open(&index)
+        .unwrap()
+        .set_times(std::fs::FileTimes::new().set_modified(tracked_time))
+        .unwrap();
     std::fs::write(repo.join("one.txt"), "NEW.txt\n").unwrap(); // same size
-    std::fs::File::open(repo.join("one.txt")).unwrap().set_times(
-        std::fs::FileTimes::new().set_modified(tracked_time),
-    ).unwrap();
+    std::fs::File::open(repo.join("one.txt"))
+        .unwrap()
+        .set_times(std::fs::FileTimes::new().set_modified(tracked_time))
+        .unwrap();
     let before_cancel = std::fs::read(&index).unwrap();
     let mut expired = IndexLock::try_acquire_path(index.with_extension("lock")).unwrap();
-    assert!(expired.install_index(repo, &private, &index, tokio::time::Instant::now()).await.is_err());
-    assert_eq!(std::fs::read(&index).unwrap(), before_cancel, "expired merge must not install");
+    assert!(expired
+        .install_index(repo, &private, &index, tokio::time::Instant::now())
+        .await
+        .is_err());
+    assert_eq!(
+        std::fs::read(&index).unwrap(),
+        before_cancel,
+        "expired merge must not install"
+    );
     drop(expired);
     let mut lock = IndexLock::try_acquire_path(index.with_extension("lock")).unwrap();
-    lock.install_index(repo, &private, &index, tokio::time::Instant::now() + std::time::Duration::from_secs(10)).await.unwrap();
+    lock.install_index(
+        repo,
+        &private,
+        &index,
+        tokio::time::Instant::now() + std::time::Duration::from_secs(10),
+    )
+    .await
+    .unwrap();
     drop(lock);
     assert_eq!(
         zeroed(&index),
@@ -1275,8 +1336,10 @@ async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
         "install must preserve stat data for unchanged (mode, oid) entries"
     );
     let racy_status = run(&["status", "--porcelain=v1"]);
-    assert!(String::from_utf8_lossy(&racy_status.stdout).contains("one.txt"),
-        "same-size racy-clean edit must remain visible after installing cached stats");
+    assert!(
+        String::from_utf8_lossy(&racy_status.stdout).contains("one.txt"),
+        "same-size racy-clean edit must remain visible after installing cached stats"
+    );
     // The installed index must still describe exactly the same tree.
     let staged = String::from_utf8_lossy(&run(&["write-tree"]).stdout)
         .trim()
@@ -1295,9 +1358,15 @@ async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
 #[test]
 fn stat_delta_handles_large_inventory_and_sha256_without_rescanning_every_path() {
     // A representative large inventory, not a permanent fleet-count pin.
-    let before: Vec<StageEntry> = (0..100_000).map(|i| (
-        b"100644".to_vec(), vec![b'a'; 64], format!("dir/{i:06}").into_bytes(),
-    )).collect();
+    let before: Vec<StageEntry> = (0..100_000)
+        .map(|i| {
+            (
+                b"100644".to_vec(),
+                vec![b'a'; 64],
+                format!("dir/{i:06}").into_bytes(),
+            )
+        })
+        .collect();
     let mut after = before.clone();
     after[17].0 = b"100755".to_vec();
     after[31].1 = vec![b'b'; 64];
@@ -1305,18 +1374,26 @@ fn stat_delta_handles_large_inventory_and_sha256_without_rescanning_every_path()
     after.push((b"100644".to_vec(), vec![b'c'; 64], b"new\tfile".to_vec()));
     let start = std::time::Instant::now();
     let delta = stat_index_delta(&before, &after);
-    assert!(start.elapsed() < std::time::Duration::from_secs(10), "delta exhausted a staging-scale CPU budget");
+    assert!(
+        start.elapsed() < std::time::Duration::from_secs(10),
+        "delta exhausted a staging-scale CPU budget"
+    );
     let changes = parse_stage_entries(&delta);
     // index-info has no stage column: inspect its four NUL-delimited records.
     assert!(changes.is_none());
     let records: Vec<_> = delta.split(|b| *b == 0).filter(|r| !r.is_empty()).collect();
     assert_eq!(records.len(), 4);
-    assert!(records.iter().any(|r| r.starts_with(b"100755 ") && r.ends_with(b"dir/000017")));
+    assert!(records
+        .iter()
+        .any(|r| r.starts_with(b"100755 ") && r.ends_with(b"dir/000017")));
     assert!(records.iter().any(|r| r.ends_with(b"new\tfile")));
     let mut deletion = b"0 ".to_vec();
-    deletion.extend_from_slice(&[b'0';64]);
+    deletion.extend_from_slice(&[b'0'; 64]);
     deletion.extend_from_slice(b"\tdir/099999");
-    assert!(records.contains(&deletion.as_slice()), "SHA256 deletion must use 64 zeroes");
+    assert!(
+        records.contains(&deletion.as_slice()),
+        "SHA256 deletion must use 64 zeroes"
+    );
     assert_eq!(before[17].0, b"100644", "baseline intent remains immutable");
 }
 
