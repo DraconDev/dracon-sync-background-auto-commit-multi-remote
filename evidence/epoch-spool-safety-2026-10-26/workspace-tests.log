@@ -2177,3 +2177,7 @@ ok
 test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) eb23db0] init
 ok
 test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) eb23db0] init
+ok
+test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) 57f2cef] init
+ok
+test sync::tests::test_sync_repo_bootstrap_failure_is_error_not_nothing_to_do ... 
