@@ -1537,7 +1537,7 @@ mod tests {
         )
         .await
         .unwrap();
-        let mut epoch = staging
+        let epoch = staging
             .finish(repo, &policy, &BTreeSet::new(), false, false)
             .await
             .unwrap();
