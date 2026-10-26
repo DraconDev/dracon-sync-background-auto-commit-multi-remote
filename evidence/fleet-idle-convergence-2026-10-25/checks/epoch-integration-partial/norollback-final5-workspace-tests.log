@@ -1,0 +1,13 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.78s
+     Running unittests src/lib.rs (target/debug/deps/dracon_security-89164f2f8fc61180)
+
+running 83 tests
+test modules::backup::tests::write_backup_retries_when_timestamp_already_exists ... ok
+test modules::crypto::authorization_tests::delegated_dh_cannot_forge_owner_authorization_signature ... ok
+test modules::crypto::authorization_tests::delegated_machine_identity_cannot_authorize_new_recipient ... ok
+test modules::scanner::foreign_marker_does_not_suppress_the_scan ... ok
+test modules::scanner::tests::test_hook_shapes_are_posix_ere ... ok
+test modules::scanner::tests::test_hook_shapes_cover_tier1_names ... ok
+test modules::scanner::tests::test_hook_shapes_detect_their_tokens ... ok
+test modules::scanner::tests::test_openai_hook_boundary_matches_scanner_not_asset_substrings ... ok
+test modules::scanner::tests::test_scanner_custom_patterns_empty ... 
