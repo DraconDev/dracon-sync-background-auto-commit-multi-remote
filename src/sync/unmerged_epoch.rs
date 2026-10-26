@@ -211,23 +211,46 @@ fn slots(raw: &[u8], deadline: Instant) -> Result<Slots> {
 fn slot_observation(mut raw: &[u8], deadline: Instant) -> Result<Slots> {
     let mut records = Vec::new();
     while !raw.is_empty() {
-        ensure!(Instant::now() < deadline, "unmerged observation deadline expired");
-        let nul = raw.iter().position(|byte| *byte == 0).context("missing cached path terminator")?;
+        ensure!(
+            Instant::now() < deadline,
+            "unmerged observation deadline expired"
+        );
+        let nul = raw
+            .iter()
+            .position(|byte| *byte == 0)
+            .context("missing cached path terminator")?;
         let record = &raw[..=nul];
         let parsed = slots(record, deadline)?;
         ensure!(parsed.len() == 1, "ambiguous cached identity");
         let stage = parsed.values().next().context("missing cached stage")?[0].2;
         records.extend_from_slice(record);
-        raw = &raw[nul+1..];
-        for prefix in [b"  ctime: ".as_slice(), b"  mtime: ", b"  dev: ", b"  uid: ", b"  size: "] {
-            let end = raw.iter().position(|byte| *byte == b'\n').context("truncated cached debug observation")?;
+        raw = &raw[nul + 1..];
+        for prefix in [
+            b"  ctime: ".as_slice(),
+            b"  mtime: ",
+            b"  dev: ",
+            b"  uid: ",
+            b"  size: ",
+        ] {
+            let end = raw
+                .iter()
+                .position(|byte| *byte == b'\n')
+                .context("truncated cached debug observation")?;
             let line = &raw[..end];
-            ensure!(line.starts_with(prefix), "unsupported cached debug observation");
+            ensure!(
+                line.starts_with(prefix),
+                "unsupported cached debug observation"
+            );
             if prefix == b"  size: " {
-                let (_, flags) = std::str::from_utf8(line)?.rsplit_once("\tflags: ").context("missing cached flags")?;
-                ensure!(u32::from_str_radix(flags,16)? == u32::from(stage) << 12, "unsupported cached flags; actual index preserved");
+                let (_, flags) = std::str::from_utf8(line)?
+                    .rsplit_once("\tflags: ")
+                    .context("missing cached flags")?;
+                ensure!(
+                    u32::from_str_radix(flags, 16)? == u32::from(stage) << 12,
+                    "unsupported cached flags; actual index preserved"
+                );
             }
-            raw = &raw[end+1..];
+            raw = &raw[end + 1..];
         }
     }
     slots(&records, deadline)
@@ -238,24 +261,56 @@ const RETAINED_BYTES_LIMIT: u64 = 512 * 1024 * 1024;
 fn require_free_space(parent: &Path, reserve: u64) -> Result<()> {
     let path = CString::new(parent.as_os_str().as_bytes())?;
     let mut space = std::mem::MaybeUninit::<libc::statvfs>::uninit();
-    ensure!(unsafe { libc::statvfs(path.as_ptr(), space.as_mut_ptr()) } == 0,
-        "cannot inspect recovery free space: {}", std::io::Error::last_os_error());
+    ensure!(
+        unsafe { libc::statvfs(path.as_ptr(), space.as_mut_ptr()) } == 0,
+        "cannot inspect recovery free space: {}",
+        std::io::Error::last_os_error()
+    );
     let space = unsafe { space.assume_init() };
     let available = u128::from(space.f_bavail) * u128::from(space.f_frsize);
-    ensure!(available >= u128::from(reserve), "insufficient free space for bounded unmerged recovery; actual index preserved");
+    ensure!(
+        available >= u128::from(reserve),
+        "insufficient free space for bounded unmerged recovery; actual index preserved"
+    );
     Ok(())
 }
-async fn retention_input(repo: &Path, objects: &BTreeSet<String>, budget: u64) -> Result<(String, u64)> {
-    let input = objects.iter().map(|oid| format!("{oid}\n")).collect::<String>();
-    ensure!(input.len() <= 16 * 1024 * 1024, "unmerged retention input exceeds budget");
-    let metadata = git(repo, &["cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"], Some(input.as_bytes())).await?;
+async fn retention_input(
+    repo: &Path,
+    objects: &BTreeSet<String>,
+    budget: u64,
+) -> Result<(String, u64)> {
+    let input = objects
+        .iter()
+        .map(|oid| format!("{oid}\n"))
+        .collect::<String>();
+    ensure!(
+        input.len() <= 16 * 1024 * 1024,
+        "unmerged retention input exceeds budget"
+    );
+    let metadata = git(
+        repo,
+        &[
+            "cat-file",
+            "--batch-check=%(objectname) %(objecttype) %(objectsize)",
+        ],
+        Some(input.as_bytes()),
+    )
+    .await?;
     let mut remaining = objects.clone();
     let mut bytes = 0u64;
     for line in std::str::from_utf8(&metadata.stdout)?.lines() {
         let fields: Vec<_> = line.split_ascii_whitespace().collect();
-        ensure!(fields.len() == 3 && fields[1] == "blob" && remaining.remove(fields[0]), "uncertain retained-object metadata");
-        bytes = bytes.checked_add(fields[2].parse::<u64>()?).context("recovery size overflow")?;
-        ensure!(bytes <= budget, "unmerged recovery exceeds retained-payload budget; actual index preserved");
+        ensure!(
+            fields.len() == 3 && fields[1] == "blob" && remaining.remove(fields[0]),
+            "uncertain retained-object metadata"
+        );
+        bytes = bytes
+            .checked_add(fields[2].parse::<u64>()?)
+            .context("recovery size overflow")?;
+        ensure!(
+            bytes <= budget,
+            "unmerged recovery exceeds retained-payload budget; actual index preserved"
+        );
     }
     ensure!(remaining.is_empty(), "incomplete retained-object metadata");
     Ok((input, bytes))
