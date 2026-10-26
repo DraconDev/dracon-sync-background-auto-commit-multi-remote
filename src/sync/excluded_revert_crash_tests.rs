@@ -134,7 +134,11 @@ async fn excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_r
     // unbounded retry can conceal a surviving lease. Successful nonblocking
     // open is the actual release witness, not the zombie/PID marker above.
     let mut writer = loop {
-        match OpenOptions::new().write(true).custom_flags(libc::O_NONBLOCK).open(r.join("one.log")) {
+        match OpenOptions::new()
+            .write(true)
+            .custom_flags(libc::O_NONBLOCK)
+            .open(r.join("one.log"))
+        {
             Ok(writer) => break writer,
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                 assert!(Instant::now() < deadline,
