@@ -177,3 +177,65 @@ async fn hygiene_preserves_active_writer_and_untracked_large_bytes() {
     );
     assert!(std::fs::read(&large).unwrap().starts_with(b"LATE"));
 }
+
+#[tokio::test]
+async fn hygiene_generated_ignore_preserves_existing_writer_and_visible_recovery() {
+    use std::io::Write;
+    let d=fixture("dist/extra.bin");let r=d.path();
+    let path=r.join(".gitignore");std::fs::write(&path,b"operator original\n").unwrap();
+    let mut writer=std::fs::OpenOptions::new().write(true).open(&path).unwrap();
+    let before=std::fs::read(r.join(".git/index")).unwrap();
+    let inode=writer.metadata().unwrap().ino();
+    let result=super::super::hygiene_apply::apply(r,&["cache/".into()],Instant::now()+Duration::from_secs(15)).await.unwrap();
+    assert!(!result.0 && result.1.is_some(),"writer exclusion must defer actual application");
+    assert_eq!(std::fs::read(&path).unwrap(),b"operator original\n");
+    writer.write_all(b"LATER").unwrap();writer.sync_all().unwrap();
+    assert_eq!(std::fs::metadata(&path).unwrap().ino(),inode);
+    assert!(std::fs::read(&path).unwrap().starts_with(b"LATER"));
+    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(),before);
+    let archive=r.join(".git/dracon-excluded-archive");
+    assert!(std::fs::read_dir(archive).unwrap().any(|e|e.unwrap().file_name().to_string_lossy().starts_with("dracon-excluded-recovery-")),
+        "generated recovery must use the concern observer's recognized namespace");
+}
+
+#[tokio::test]
+async fn hygiene_generated_ignore_rejects_symlink_and_hardlink_without_modifying_targets() {
+    use std::os::unix::fs::symlink;
+    let d=fixture("dist/extra.bin");let r=d.path();
+    let canary=r.join("canary");std::fs::write(&canary,b"unrelated operator content\n").unwrap();
+    let path=r.join(".gitignore");let before=std::fs::read(r.join(".git/index")).unwrap();
+    for linked in [true,false] {
+        if linked {symlink(&canary,&path).unwrap()}else{std::fs::hard_link(&canary,&path).unwrap()}
+        assert!(super::super::hygiene_apply::apply(r,&["cache/".into()],Instant::now()+Duration::from_secs(10)).await.is_err());
+        assert_eq!(std::fs::read(&canary).unwrap(),b"unrelated operator content\n");
+        assert_eq!(std::fs::read(r.join(".git/index")).unwrap(),before);
+        std::fs::remove_file(&path).unwrap();
+    }
+}
+
+#[tokio::test]
+async fn hygiene_generated_ignore_never_adopts_intervening_content_as_old_baseline() {
+    const ROLE:&str="DRACON_HYGIENE_IGNORE_RACE_REPO";
+    if let Some(repo)=std::env::var_os(ROLE) {
+        let r=PathBuf::from(repo);
+        let result=super::super::hygiene_apply::apply(&r,&["cache/".into()],Instant::now()+Duration::from_secs(15)).await.unwrap();
+        assert!(!result.0 && result.1.is_some(),"newer canonical bytes must REFUSE an older render");
+        assert_eq!(std::fs::read(r.join(".gitignore")).unwrap(),b"foreign newer content\n");
+        return
+    }
+    use std::os::unix::fs::PermissionsExt;
+    let d=fixture("dist/extra.bin");let r=d.path();
+    std::fs::write(r.join(".gitignore"),b"observed original\n").unwrap();
+    let before=std::fs::read(r.join(".git/index")).unwrap();
+    let wrapper=r.join(".git/race-ignore-helper");
+    std::fs::write(&wrapper,b"#!/bin/sh\nprintf 'foreign newer content\\n' > \"$DRACON_HYGIENE_IGNORE_RACE_REPO/.gitignore\"\nexec \"$DRACON_HYGIENE_REAL_HELPER\" \"$@\"\n").unwrap();
+    std::fs::set_permissions(&wrapper,std::fs::Permissions::from_mode(0o700)).unwrap();
+    let output=tokio::time::timeout(Duration::from_secs(25),tokio::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact","sync::hygiene::tests::hygiene_generated_ignore_never_adopts_intervening_content_as_old_baseline","--nocapture"])
+        .env(ROLE,r).env("DRACON_EPOCH_TEST_HELPER",&wrapper)
+        .env("DRACON_HYGIENE_REAL_HELPER",std::env::var_os("DRACON_EPOCH_TEST_HELPER").unwrap())
+        .kill_on_drop(true).output()).await.unwrap().unwrap();
+    assert!(output.status.success(),"{}{}",String::from_utf8_lossy(&output.stdout),String::from_utf8_lossy(&output.stderr));
+    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(),before);
+    assert_eq!(std::fs::read(r.join(".gitignore")).unwrap(),b"foreign newer content\n");
+}
