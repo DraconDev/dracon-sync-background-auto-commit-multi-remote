@@ -74,3 +74,4 @@ Gate exited with status 1
 
   ▸ extensions/standalones/ai-chat-toolkit LINT (31bd83ca328a)
   ▸ extensions/standalones/ai-search TYPECHECK (31bd83ca328a)
+  ▸ extensions/standalones/ai-search BUILD (31bd83ca328a)
