@@ -1,0 +1,59 @@
+{
+  "at": "2026-10-26T08:41:58.180503+00:00",
+  "scope": "targeted controls only, not final four gates or deployment",
+  "postCheckSourceSha256": {
+    "src/sync.rs": "5c5eb31309ea92edc8fd1113b9310debfb9f2f891c64b2c963903b3a67ac777f",
+    "src/sync/hygiene.rs": "5dff62b5712e1e3369bf5038a45a3638a20e280a805a5f2ce3d78506d689f0b0",
+    "src/sync/hygiene_tests.rs": "d55a546b67d98f5a95c50e9de4e372758b525b193389af607157c04f74b59ad6",
+    "src/sync/staged_epoch.rs": "edc39e08592a4c8730c614bfadc5edd05299accd5302aed6b4057cb70501273f",
+    "src/sync/hygiene_apply.rs": "52df622998047900dd5da7fd3ade053e233b82863175e8e74c2659205dcaf424",
+    "src/sync/excluded_revert.rs": "1155f99d6c84937d12809139fff4f43cbd3d4ae4a8ebc2452a1fc7e7feecc891",
+    "src/sync/excluded_archive.rs": "9e10e6981ff4c9dce89cf78dca86286dba8319d53e97462ed66bfa7a2cf0e314",
+    "src/sync/excluded_revert_recovery_tests.rs": "e81bd0fe33bef424b89c2abf810974e37f79f40df6fc30d386f768392b507aec",
+    "src/sync/excluded_revert_crash_tests.rs": "43d6c882833ef02be7fabf3621379b7148537b32be608eb0317648b7e6a2038b"
+  },
+  "checks": {
+    "hygiene-admission-v3-excluded.exit": 0,
+    "hygiene-admission-v3-clippy.exit": 0,
+    "hygiene-admission-v3-test_bootstrap_sweep.exit": 0,
+    "hygiene-admission-v3-sync__staged_epoch__tests.exit": 0,
+    "hygiene-admission-v3-hygiene.exit": 0
+  },
+  "testResults": {
+    "hygiene": {
+      "result": "ok",
+      "passed": 16,
+      "failed": 0,
+      "ignored": 0
+    },
+    "excluded": {
+      "result": "ok",
+      "passed": 49,
+      "failed": 0,
+      "ignored": 0
+    },
+    "sync__staged_epoch__tests": {
+      "result": "ok",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0
+    },
+    "test_bootstrap_sweep": {
+      "result": "ok",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "repaired": [
+    "Admit a large-only production cycle after an independently clean warm-up",
+    "Limit large ignore planning to admitted candidates and respect opt-outs",
+    "Treat successful canonical metadata writes as local follow-up",
+    "Observe legacy ignore recovery and late displaced archive writes"
+  ],
+  "remaining": "Durable typed artifact-ignore retry intent, broader interleaving/FS qualification, original gates, full final assembly, installed/loaded execution and fresh entire watched fleet clean/idle",
+  "pinnedHelper": {
+    "path": "/tmp/dracon-hygiene-admission-v3-ycWx0e/dracon-sync",
+    "sha256": "b30e372da97fe928e2a3928d11bb93fa830279c7e490e328113c1353252964f2"
+  }
+}
