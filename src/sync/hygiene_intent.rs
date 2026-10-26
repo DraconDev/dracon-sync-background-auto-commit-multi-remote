@@ -17,7 +17,7 @@ const LIMIT: u64 = 4 * 1024 * 1024;
 struct Proof { path: Vec<u8>, oid: String, mode: u32 }
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Intent { version: u32, repo: Vec<u8>, parent: String, paths: Vec<Proof> }
+struct Intent { version: u32, repo: Vec<u8>, parent: String, tree: String, paths: Vec<Proof> }
 struct Loaded { directory: std::fs::File, intent: Intent, digest: String }
 
 fn stamp(m: &std::fs::Metadata) -> (u64,u64,u64,u32,u32,u32,i64,i64,i64,i64) {
@@ -50,7 +50,7 @@ fn load(path: &Path, repo: &[u8]) -> Result<Option<Loaded>> {
     ensure!(bytes.len() as u64==before.len() && stamp(&before)==stamp(&file.metadata()?),"hygiene intent changed while reading; retained");
     let intent:Intent=serde_json::from_slice(&bytes)?;
     ensure!(intent.version==1 && intent.repo==repo && !intent.paths.is_empty()
-        && intent.paths.len()<=65536 && crate::git::is_valid_object_id(&intent.parent),"unverified hygiene intent identity/version; retained");
+        && intent.paths.len()<=65536 && crate::git::is_valid_object_id(&intent.parent) && crate::git::is_valid_object_id(&intent.tree),"unverified hygiene intent identity/version; retained");
     let digest=format!("{:x}",Sha256::digest(&bytes));
     if let Some(ack)=open_leaf(&directory,&ack_name(&digest),libc::O_RDONLY)? {
         let m=ack.metadata()?; owned_file(&m)?; ensure!(m.len()==0,"invalid hygiene acknowledgement; retained");
@@ -75,7 +75,8 @@ fn records(repo: &Path) -> Result<Vec<Loaded>> {
 pub(in crate::sync) fn has_pending(repo: &Path) -> Result<bool> { Ok(!records(repo)?.is_empty()) }
 
 pub(in crate::sync) fn persist(repo: &Path, baseline: &StagedIntentSnapshot,
-    selected: &StagedIntentSnapshot, deletions: &BTreeMap<Vec<u8>,String>) -> Result<()> {
+    selected: &StagedIntentSnapshot, tree: &str, deletions: &BTreeMap<Vec<u8>,String>) -> Result<()> {
+    ensure!(baseline.changed.is_empty() && crate::git::is_valid_object_id(tree), "artifact intent must originate in an unstaged ordinary cycle");
     let mut paths=Vec::new();
     for (path,oid) in deletions {
         if selected.changed.get(path)!=Some(&None) { continue; }
@@ -85,7 +86,7 @@ pub(in crate::sync) fn persist(repo: &Path, baseline: &StagedIntentSnapshot,
     }
     if paths.is_empty() { return Ok(()); }
     let CapturedHead::Commit(parent)=&baseline.head else { anyhow::bail!("artifact intent requires captured committed provenance") };
-    let intent=Intent{version:1,repo:std::fs::canonicalize(repo)?.as_os_str().as_bytes().to_vec(),parent:parent.clone(),paths};
+    let intent=Intent{version:1,repo:std::fs::canonicalize(repo)?.as_os_str().as_bytes().to_vec(),parent:parent.clone(),tree:tree.to_owned(),paths};
     let bytes=serde_json::to_vec(&intent)?; ensure!(bytes.len() as u64<=LIMIT,"hygiene intent exceeds durable budget");
     let gitdir=crate::git::path_gitdir(repo).context("cannot locate hygiene intent Git directory")?;
     let dir=tempfile::Builder::new().prefix(PREFIX).permissions(std::fs::Permissions::from_mode(0o700)).tempdir_in(&gitdir)?;
@@ -102,6 +103,7 @@ pub(in crate::sync) async fn retry(repo:&Path, policy:&SyncPolicy, excluded:&BTr
         for record in records(repo)? {
             ensure!(cleanup,"artifact ignore intent retained: current cleanup policy disabled");
             let overrides=load_repo_override(repo);
+            ensure!(overrides.build_artifact_cleanup.unwrap_or(policy.build_artifact_cleanup), "artifact intent retained: current cleanup override disabled");
             let excludes=crate::policy::effective_auto_commit_excludes(policy,&overrides);
             let head=staged_epoch::git(repo,&["rev-parse","HEAD"],None).await?;
             let head=std::str::from_utf8(&head.stdout)?.trim();
@@ -134,7 +136,14 @@ pub(in crate::sync) async fn retry(repo:&Path, policy:&SyncPolicy, excluded:&BTr
                 ensure!(body.stdout.len() as u64<=LIMIT,"committed ignore exceeds inspection budget");
                 crate::exclude::hygiene::render_positive_additions(std::str::from_utf8(&body.stdout)?,&patterns)?.is_none()
             };
-            if committed {
+            let current_tree=staged_epoch::git(repo,&["ls-tree","-r","-z","--full-tree",head],None).await?;
+            let mut present=BTreeSet::new();
+            for raw in current_tree.stdout.split(|b|*b==0).filter(|r|!r.is_empty()) {
+                let tab=raw.iter().position(|b|*b==b'\t').context("invalid current artifact tree")?;
+                present.insert(raw[tab+1..].to_vec());
+            }
+            let removed=record.intent.paths.iter().all(|proof|!present.contains(&proof.path));
+            if committed && removed {
                 // Independent immutable Git content, not a helper exit/marker,
                 // establishes that ordinary staging has caught up. Do not undo
                 // newer canonical edits made after that committed metadata.
