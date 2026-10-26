@@ -1,6 +1,51 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Hygiene safety v2 — CURRENT targeted repair; NOT final/deployed
+## Hygiene admission v3 — CURRENT targeted repair; NOT final/deployed
+
+Re-read the actual active goal, not the stale bucket-strategy handoff brief.
+Tasks2/3/4 remain in progress even though the next unchecked top-level task is5.
+
+Four additional gaps repaired:
+- A real large-only production cycle is admitted even with no ordinary stage
+  candidates. Its control warms up/commits all earlier work, proves exactly ONE
+  untracked large file is the only raw change, then verifies unchanged HEAD and
+  unchanged large-file bytes/inode while metadata follow-up is reported.
+- Large ignore planning uses only admitted partition paths, not a new global
+  untracked scan. Private materialized paths never enter this input; auto-stage,
+  untracked-pattern and explicit auto-commit/file exclusions remain binding.
+  Tracked entries and oversized managed ignore/attributes files are not hidden.
+- Actual successful canonical ignore writes now report pending local follow-up;
+  writing the metadata does not stage/publish it. The control verifies unchanged
+  index/HEAD, an actual dirty ignore file and idempotent rendering without fake
+  work. Caller diagnostics now describe local follow-up, not only failed writes.
+- Legacy dracon-ignore-recovery names are recognized consistently by cheap
+  concerns, archive scanning/privacy repair and settlement. A physical legacy-
+  namespace exchange/late-open-FD control proves archive late writes reopen a
+  concern without replaying/resetting canonical or staged work.
+
+Current observed targeted gates: hygiene16pass/0fail, excluded49pass/0fail,
+staged-epoch9pass/0fail, staged-blob bootstrap1pass/0fail and strict ALL-TARGET
+workspace Clippy PASS. Raw results and pinned helper path use
+checks/epoch-integration-partial/hygiene-admission-v3-*. The earlier v1 compile
+failure (PathBuf vs DiffFile stage-gate argument) remains retained; it was fixed,
+not retried blindly. V2 also passed before adding legacy-namespace coverage.
+
+Still NOT a final coherent four-gate assembly, deployment, loaded execution or
+fleet observation. No manual real-repo commits/pushes, service/config migration,
+zero-batch change or stopped producers. Original product gates, installed/loaded
+identity, independent full-contract rehearsal and every-watched clean/idle
+acceptance remain mandatory.
+
+Remaining demonstrated hygiene gap: artifact ignore retry intent is ephemeral
+across an index-side commit, before/if canonical reconciliation fails. The
+tracked paths then vanish from HEAD and cannot rediscover the rules. Implement a
+DURABLE typed intent with policy/provenance validation and truthful scheduling;
+do not relabel the current pending return as a durable repair. See
+checks/epoch-integration-partial/hygiene-durable-retry-open.md for the inspected
+dataflow, ownership/deadlock constraints and required controls. Broader queued-
+open/lease-break, exact-exchange and unsupported-FS qualification remains open.
+
+## Hygiene safety v2 — HISTORICAL targeted repair; NOT final/deployed
 
 The newer safety review found gaps that the preceding passing suite did not
 cover. Ignore application recaptured a fresh canonical baseline after rendering,
