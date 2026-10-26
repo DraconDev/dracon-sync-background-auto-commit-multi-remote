@@ -78,6 +78,62 @@ fn fixture(artifact: &str) -> tempfile::TempDir {
 }
 
 #[tokio::test]
+async fn hygiene_retirement_refuses_committed_symlink_without_touching_target_or_index() {
+    let d=fixture("dist/extra.bin");let r=d.path();let p=policy(true);
+    std::os::unix::fs::symlink("dist/",r.join(".gitignore")).unwrap();
+    native(r,&["add","--",".gitignore"],None);
+    native(r,&["commit","-q","-m","symlinked ignore fixture"],None);
+    let artifact=std::fs::read(r.join("dist/extra.bin")).unwrap();
+    let inode=std::fs::symlink_metadata(r.join(".gitignore")).unwrap().ino();
+    let baseline=staged_epoch::Epoch::capture(r,15).await.unwrap();
+    let staging=staged_epoch::Staging::new(r,baseline).await.unwrap();
+    let _epoch=staging.finish(r,&p,&excluded(),true,false).await.unwrap();
+    native(r,&["commit","-q","-m","fixture artifact deindex"],None);
+    let index=std::fs::read(r.join(".git/index")).unwrap();
+    assert!(native(r,&["ls-files","--","dist/extra.bin"],None).is_empty());
+    assert!(super::retry(r,&p,&excluded(),true,Instant::now()+Duration::from_secs(15)).await.is_err(),
+        "symlink text must not establish committed ignore rules");
+    assert!(super::has_pending(r).unwrap());
+    assert_eq!(std::fs::read_link(r.join(".gitignore")).unwrap(),PathBuf::from("dist/"));
+    assert_eq!(std::fs::symlink_metadata(r.join(".gitignore")).unwrap().ino(),inode);
+    assert_eq!(std::fs::read(r.join("dist/extra.bin")).unwrap(),artifact);
+    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(),index);
+}
+
+#[tokio::test]
+async fn hygiene_retirement_leading_space_is_not_an_effective_artifact_rule() {
+    let d=fixture("dist/extra.bin");let r=d.path();let p=policy(true);
+    std::fs::write(r.join(".gitignore"),b" dist/\n").unwrap();
+    native(r,&["add","--",".gitignore"],None);
+    native(r,&["commit","-q","-m","leading-space ignore fixture"],None);
+    let ignored=|path:&str| {
+        let mut cmd=std::process::Command::new("git");
+        for (key,_) in std::env::vars_os(){if key.to_string_lossy().starts_with("GIT_"){cmd.env_remove(key);}}
+        let out=cmd.args(["--no-optional-locks","-C",r.to_str().unwrap(),"check-ignore","--no-index","--quiet","--",path])
+            .env("GIT_CONFIG_GLOBAL","/dev/null").env("GIT_CONFIG_NOSYSTEM","1").output().unwrap();
+        assert!(matches!(out.status.code(),Some(0|1)),"{}",String::from_utf8_lossy(&out.stderr));
+        out.status.success()
+    };
+    std::fs::write(r.join("dist/new"),b"probe retained\n").unwrap();
+    assert!(!ignored("dist/new"),"the original leading-space rule does not match dist");
+    let baseline=staged_epoch::Epoch::capture(r,15).await.unwrap();
+    let staging=staged_epoch::Staging::new(r,baseline).await.unwrap();
+    let _epoch=staging.finish(r,&p,&excluded(),true,false).await.unwrap();
+    native(r,&["commit","-q","-m","fixture artifact deindex"],None);
+    super::retry(r,&p,&excluded(),true,Instant::now()+Duration::from_secs(15)).await.unwrap();
+    assert!(super::has_pending(r).unwrap(),"uncommitted canonical correction cannot retire intent");
+    let text=std::fs::read_to_string(r.join(".gitignore")).unwrap();
+    assert!(text.starts_with(" dist/\n"),"preserve the operator's original line");
+    assert!(text.lines().any(|line|line=="dist/"),"append the actual exact rule");
+    assert!(ignored("dist/new"));
+    native(r,&["add","--",".gitignore"],None);
+    native(r,&["commit","-q","-m","fixture corrected ignore"],None);
+    super::retry(r,&p,&excluded(),true,Instant::now()+Duration::from_secs(15)).await.unwrap();
+    assert!(!super::has_pending(r).unwrap());
+    assert_eq!(std::fs::read(r.join("dist/new")).unwrap(),b"probe retained\n");
+}
+
+#[tokio::test]
 async fn hygiene_durable_retry_survives_production_commit_and_process_exit_with_writer_refusal() {
     const ROLE: &str = "DRACON_HYGIENE_DURABLE_REPO";
     if let Some(path) = std::env::var_os(ROLE) {
