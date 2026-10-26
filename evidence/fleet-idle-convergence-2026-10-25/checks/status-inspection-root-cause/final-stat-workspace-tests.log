@@ -489,4 +489,7 @@ test storage_core::security::tests::completed_unapproved_output_after_crash_is_n
 test storage_core::security::tests::deadline_kills_child_and_retry_respects_backoff ... ok
 test storage_core::security::tests::failed_exit_and_plaintext_stdout_cannot_approve_a_payload ... ok
 test storage_core::security::tests::foreign_repo_binding_cannot_encrypt_or_adopt_a_prepared_job ... ok
-test storage_core::security::tests::oversized_stdout_and_unapproved_orphan_do_not_escape_capacity ... 
+test storage_core::security::tests::oversized_stdout_and_unapproved_orphan_do_not_escape_capacity ... ok
+test storage_core::security::tests::real_warden_large_payload_copies_and_cold_restore_use_fixture_keys ... ignored, operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary
+test storage_core::security::tests::security_crash_child ... ignored, subprocess helper, invoked by security crash recovery test
+test storage_core::security::tests::success_publishes_once_and_restart_does_not_spawn_again ... 
