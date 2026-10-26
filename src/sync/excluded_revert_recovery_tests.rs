@@ -56,10 +56,6 @@ pub(super) async fn fixture() -> (tempfile::TempDir, PathBuf, Vec<RestoreTarget>
                 .await
                 .unwrap()
                 .unwrap(),
-            displaced: super::super::excluded_revert::archive::stamp(
-                &Location::open(&tree, Path::new(name)).unwrap(),
-            )
-            .unwrap(),
         });
     }
     (d, pending, targets)

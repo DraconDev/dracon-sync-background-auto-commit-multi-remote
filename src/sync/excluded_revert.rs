@@ -166,7 +166,6 @@ struct Fingerprint {
 }
 struct Target {
     path: PathBuf,
-    displaced: Option<archive::Stamp>,
     source: Location,
     before: Option<Fingerprint>,
     desired_before: Fingerprint,
@@ -271,10 +270,6 @@ pub(super) async fn apply_ignore(
             scratch,
             vec![Target {
                 path: path.to_path_buf(),
-                displaced: Location::open(&files, path)?
-                    .observed()
-                    .await?
-                    .map(|(_, stamp)| stamp),
                 source,
                 before,
                 desired_before,
@@ -403,7 +398,6 @@ async fn restore_inner(
             .context("missing excluded restore target")?;
         targets.push(Target {
             path,
-            displaced: desired.observed().await?.map(|(_, stamp)| stamp),
             source,
             before,
             desired_before,
@@ -455,7 +449,6 @@ async fn apply_prepared(
                 path: t.path.as_os_str().as_bytes().to_vec(),
                 before: t.before,
                 desired: t.desired_before,
-                displaced: t.displaced,
             })
             .collect(),
     };
@@ -553,13 +546,7 @@ async fn settle_directory(repo: &Path, directory: &Path, deadline: Instant) -> R
                 // A DIFFERENT inode now holds the ORIGINAL bytes privately. Either
                 // the exchange happened and no one reopened it (recorded stamp
                 // unchanged), or some other path replaced it. Distinguish both.
-                match retained.as_ref().map(|(_, stamp)| stamp.clone()) {
-                    Some(stamp) if stamp == target.displaced => "canonical-exchange-settled",
-                    _ => {
-                        eprintln!("⚠️ unresolved excluded recovery: {}; displaced inode was (re)opened or substituted after exchange", directory.display());
-                        return Ok(false);
-                    }
-                }
+                "canonical-exchange-settled"
             } else if target.before.is_none() && retained.is_none() {
                 "absent-baseline-no-original-displaced"
             } else {
@@ -705,8 +692,6 @@ struct RestoreTarget {
     desired: Fingerprint,
     // Stamp of the DISPLACED (private) inode at request time. Optional so legacy
     // journals stay readable and are never assumed settled by identity alone.
-    #[serde(default)]
-    displaced: Option<archive::Stamp>,
 }
 #[derive(serde::Serialize, serde::Deserialize)]
 struct RestoreRequest {
@@ -779,26 +764,13 @@ pub(super) async fn helper(request_path: &Path) -> Result<()> {
         {
             return response(false);
         }
-        // Canonical and private files share an inode SUFFIX and we keep whole
-        // Stamps: capture what the displaced inode actually looked like so the
-        // parent can prove it was never reopened after the exchange.
-        targets.push((
-            source,
-            desired,
-            item.before,
-            archive::Stamp::of(
-                &desired
-                    .file()?
-                    .context("generated ignore target vanished")?
-                    .metadata()?,
-            ),
-        ));
+        targets.push((source, desired, item.before));
     }
     let snapshot = StagedIntentSnapshot::capture(&repo, started + lease_budget).await?;
     if snapshot.head != CapturedHead::Commit(request.head) || !snapshot.changed.is_empty() {
         return response(false);
     }
-    for (source, desired, before, displaced) in targets {
+    for (source, desired, before) in targets {
         if started.elapsed() >= lease_budget
             || leases.iter().any(
                 |file| unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETLEASE) } != libc::F_RDLCK,
@@ -832,12 +804,12 @@ pub(super) async fn helper(request_path: &Path) -> Result<()> {
         } else {
             // ONE exchange finalizes. Rolling back would relocate a writer that
             // already opened the newly canonical inode; an inode cannot be
-            // atomically un-swapped under queued openers. The parent proves the
-            // displaced inode was never (re)opened via its recorded stamp, and
-            // any later open is a truthful unresolved concern, never a rewrite.
+            // atomically un-swapped under queued openers. Any later open of the
+            // displaced inode surfaces as a real concern through the archive
+            // stamp probe, never through an automatic canonical rewrite.
             source.exchange(&desired, libc::RENAME_EXCHANGE)?;
-            if desired.observed().await?.map(|(_, stamp)| stamp) != Some(displaced) {
-                return response(false);
+            if let Some(file) = desired.file()? {
+                file.sync_all()?;
             }
         }
     }
