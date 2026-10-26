@@ -1,8 +1,42 @@
 # Staged epochs: integration plan and non-negotiable boundaries
 
-Status: implementation plan, NOT implemented acceptance or deployment evidence.
-The observed/captured-index and native mktree building blocks are tested and
-independently reviewed. The old native commit path is still in production source.
+Status: staged-epoch implementation with intermediate assembly qualification,
+NOT final acceptance or deployment evidence. The production path uses captured
+private candidates; normal version/release bump, artifact cleanup and large-
+untracked hygiene integration remain open. The original transaction boundaries
+below remain requirements, not an exemption. Current evidence and remaining work:
+`../../evidence/fleet-idle-convergence-2026-10-25/CURRENT.md`.
+
+## Policy-authorized stale unmerged selection
+
+`sync/unmerged_epoch.rs` reconciles complete, verified HEAD-equal stale conflicts
+before returning entry provenance. Active merge/rebase/cherry-pick states and
+uncertain bytes/flags/locks/refs remain untouched. An opt-out, disabled auto-commit
+or dry-run does not enable selection. A held no-follow descriptor hashes the
+regular worktree source without filters, writes, relocation or killing producers.
+The private candidate, not a later actual-index reread, defines the returned epoch.
+
+Before installation, the private0700 recovery directory retains the exact original
+index (including conflict stages and gitlink identity metadata) and an independent
+pack of parent-repository conflict blobs and changed ordinary cached payloads.
+Unchanged HEAD baseline blobs are not duplicated. Raw-index/input/payload budgets
+and native blob-size/free-space checks bound the spool; free-space checking is not
+a reservation against other writers. Recovery-directory and parent fsync precede
+replacement, followed by index-parent fsync. No actual power-cut result is claimed.
+
+Identity/stage/flag observation and complete source selection occur BEFORE spool
+allocation: stable unknown-content or unsupported-flag retries cannot keep copying
+payloads. A mixed selection with any unverifiable path refuses the whole install.
+A foreign raw-index/reference change or expired deadline cannot promote a fresh
+reread into provenance. No working file is restored or renamed by this operation.
+
+The v6 coherent intermediate assembly passes all four workspace gates. Its real
+sync_repo positives, meaningful hook, independent cold blob recovery, partial
+staging/late replacement, live writer FD, foreign index/ref, finite cancellation
+and repeated no-spool-refusal controls are in `unmerged_epoch_tests.rs`. These are
+disposable Linux execution evidence, NOT installed/loaded fleet qualification.
+Non-Unix descriptor reconciliation refuses conservatively; NFS/stalled-filesystem
+and exact-exchange qualification remain separately open.
 
 ## Why an epoch, not a pathname allowance
 
