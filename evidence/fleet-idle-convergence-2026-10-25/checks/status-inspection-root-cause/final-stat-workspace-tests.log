@@ -2105,4 +2105,24 @@ test sync::tests::test_scale_push_timeout_tiers_live_at_default_base ... ok
 test sync::tests::test_scale_push_timeout_zero_base_stays_zero ... ok
 test sync::tests::test_scope_fallback_spanning_crates_backcompat ... ok
 test sync::tests::test_scope_root_files_backcompat ... ok
-test sync::tests::test_scope_shared_subtree_keeps_bracket ... 
+test sync::tests::test_scope_shared_subtree_keeps_bracket ... ok
+test sync::tests::test_scope_single_file_full_path_drops_bracket ... ok
+test sync::tests::test_stage_existing_files_empty_after_filter_returns_ok ... ok
+test sync::tests::test_stage_existing_files_expands_directory_with_files ... [main (root-commit) cdb968e] init
+[main 31e213b] add tracked
+ 1 file changed, 1 insertion(+)
+ create mode 100644 tracked.txt
+ok
+test sync::tests::test_stage_existing_files_filtered_skips_excluded_pattern_nested ... ok
+test sync::tests::test_stage_existing_files_filtered_skips_oversized_nested ... ok
+test sync::tests::test_stage_existing_files_recurses_deeply ... [main (root-commit) 3a144f8] init
+ok
+test sync::tests::test_stage_existing_files_recurses_into_pi_dir ... ok
+test sync::tests::test_stage_existing_files_skips_directory_entries ... [main (root-commit) 3a144f8] init
+ok
+test sync::tests::test_stage_existing_files_skips_nested_git_repo ... [main (root-commit) 3a144f8] init
+ok
+test sync::tests::test_stage_existing_files_skips_node_modules_and_dotdirs ... [main (root-commit) 155d33d] init
+ok
+test sync::tests::test_stage_existing_files_skips_symlink_descendants ... ok
+test sync::tests::test_stage_existing_files_skips_vanished_files ... 
