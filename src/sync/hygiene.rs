@@ -154,7 +154,15 @@ pub(super) async fn deindex(
     command
         .current_dir(repo)
         .env("GIT_INDEX_FILE", index)
-        .args(["rm", "--cached", "-q", "--ignore-unmatch", "-z", "--stdin"]);
+        // Exact NUL-separated paths: no pathspec expansion, no argv growth.
+        .args([
+            "rm",
+            "--cached",
+            "-q",
+            "--ignore-unmatch",
+            "--pathspec-from-file=-",
+            "--pathspec-file-nul",
+        ]);
     let output = crate::git::run_command_captured_output(
         command.into_tokio(),
         3600,
