@@ -2896,4 +2896,14 @@ test tests::clean_tmp_paths_refuses_blind_cleanup_when_proc_unreadable ... ok
 test tests::clean_tmp_paths_rejects_home_search_root_before_apply ... ok
 test tests::clean_tmp_paths_reports_held_back_scratch_without_the_size_aware_floor ... ok
 test tests::clean_tmp_paths_reports_scratch_held_by_the_age_floor ... ok
-test tests::clean_tmp_paths_respects_age_dry_run_and_open_fds ... 
+test tests::clean_tmp_paths_respects_age_dry_run_and_open_fds ... ok
+test tests::clean_tmp_paths_separates_the_size_aware_share_of_the_held_back_scratch ... ok
+test tests::clean_tmp_paths_size_aware_floor_stays_off_outside_the_filling_tier ... ok
+test tests::clean_tmp_paths_skips_unreadable_root ... ok
+test tests::clean_tmp_paths_zero_min_age_disables ... ok
+test tests::cleanup_stale_cooldowns_survives_an_extreme_cooldown ... ok
+test tests::critical_tier_bypass_cleans_fresh_target ... ok
+test tests::defaults_are_expected ... ok
+test tests::disk_state_transitions_at_thresholds ... ok
+test tests::docker_prune_returns_zero_on_dry_run ... ok
+test tests::dry_run_preview_omits_user_protected_targets ... 
