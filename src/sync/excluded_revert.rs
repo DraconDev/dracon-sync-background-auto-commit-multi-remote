@@ -288,6 +288,30 @@ async fn restore_inner(
             desired_before,
         });
     }
+    apply_prepared(
+        repo,
+        scratch,
+        targets,
+        head.clone(),
+        deadline,
+        lock,
+        snapshot,
+    )
+    .await
+}
+
+/// Reusable authorization boundary for a fully prepared private desired set.
+/// Neither the excluded restore nor the generated-ignore path may skip the
+/// owned lock, unchanged-candidate check, lease/exchange helper or settlement.
+async fn apply_prepared(
+    repo: &Path,
+    scratch: tempfile::TempDir,
+    targets: Vec<Target>,
+    head: String,
+    deadline: Instant,
+    lock: crate::git::IndexLock,
+    snapshot: StagedIntentSnapshot,
+) -> Result<bool> {
     if !lock.is_owned() || snapshot != StagedIntentSnapshot::capture(repo, deadline).await? {
         return Ok(false);
     }
