@@ -1,1 +1,20 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.89s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 1 test
+test sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes ... 🛡️ /tmp/.tmpD8Iof9 auto-hardened with warden before staging
+
+thread 'sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes' (4048600) panicked at dracon-sync/src/sync/hygiene_tests.rs:91:5:
+production hygiene sync failed: Err(immutable storage verifier executable/source identity or binding mismatch)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1486 filtered out; finished in 0.85s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

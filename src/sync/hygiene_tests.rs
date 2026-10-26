@@ -47,6 +47,7 @@ fn policy(cleanup: bool) -> SyncPolicy {
     toml::from_str(&format!(
         "auto_github_private=false\nauto_commit=true\nauto_pull=false\nauto_push=false\n\
          auto_bump_versions=false\nauto_resolve_unmerged=false\nbuild_artifact_cleanup={cleanup}\n\
+         max_stage_file_bytes=1024\n\
          trusted_emails=['test@test']\ntrusted_authors=['test']\nremotes=[]\n"
     ))
     .unwrap()
@@ -99,11 +100,10 @@ async fn hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_byte
         "artifact WORKTREE bytes are preserved"
     );
     assert!(
-        std::fs::metadata(&large).unwrap().len() == 4 * 1024 * 1024,
+        std::fs::metadata(&large).unwrap().len() == 4096,
         "oversized file is ignored, never truncated or committed"
     );
     let ignore = std::fs::read_to_string(r.join(".gitignore")).unwrap();
-    eprintln!("GITIGNORE>>>{ignore}<<<");
     assert!(ignore.contains("/huge.iso"));
     assert!(ignore.contains("dist/"));
     let tracked = String::from_utf8(native(r, &["ls-files"], None)).unwrap();
@@ -165,7 +165,7 @@ async fn hygiene_preserves_active_writer_and_untracked_large_bytes() {
     let r = d.path();
     let large = r.join("huge.iso");
     let mut writer = std::fs::File::create(&large).unwrap();
-    writer.set_len(4 * 1024 * 1024).unwrap();
+    writer.set_len(4096).unwrap();
     let inode = std::fs::metadata(&large).unwrap().ino();
     let _ = sync_repo(r, &policy(true), &excluded(), 0, None, false, None).await;
     writer.write_all(b"LATE").unwrap();
