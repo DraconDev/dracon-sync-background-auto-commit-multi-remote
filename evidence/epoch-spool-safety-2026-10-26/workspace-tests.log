@@ -482,4 +482,17 @@ test storage_core::s3::tests::existing_corrupt_object_is_never_overwritten_or_ac
 test storage_core::s3::tests::failed_readback_and_write_conflicts_cannot_issue_receipts ... ok
 test storage_core::s3::tests::interrupted_provider_body_and_destination_errors_fail_verification ... ok
 test storage_core::s3::tests::interrupted_source_cannot_contact_provider ... ok
-test storage_core::s3::tests::streaming_payload_above_git_limit_uses_bounded_reads ... 
+test storage_core::s3::tests::streaming_payload_above_git_limit_uses_bounded_reads ... ok
+test storage_core::security::tests::approval_and_publication_survive_process_death_without_reencrypting ... ok
+test storage_core::security::tests::bad_recovery_representation_records_failure_on_the_latest_revision ... ok
+test storage_core::security::tests::completed_unapproved_output_after_crash_is_not_adopted ... ok
+test storage_core::security::tests::deadline_kills_child_and_retry_respects_backoff ... ok
+test storage_core::security::tests::failed_exit_and_plaintext_stdout_cannot_approve_a_payload ... ok
+test storage_core::security::tests::foreign_repo_binding_cannot_encrypt_or_adopt_a_prepared_job ... ok
+test storage_core::security::tests::oversized_stdout_and_unapproved_orphan_do_not_escape_capacity ... ok
+test storage_core::security::tests::real_warden_large_payload_copies_and_cold_restore_use_fixture_keys ... ignored, operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary
+test storage_core::security::tests::security_crash_child ... ignored, subprocess helper, invoked by security crash recovery test
+test storage_core::security::tests::success_publishes_once_and_restart_does_not_spawn_again ... ok
+test storage_core::transfer::tests::apparent_upload_success_without_readback_is_not_a_receipt ... ok
+test storage_core::transfer::tests::changed_snapshot_cannot_reach_s3_transport ... ok
+test storage_core::transfer::tests::changed_snapshot_is_rejected_before_immutable_backend_publication ... 
