@@ -144,3 +144,20 @@
    Compiling fluent-bundle v0.15.3
    Compiling ed25519-dalek v2.2.0
    Compiling aes-gcm v0.10.3
+   Compiling age-core v0.10.0
+   Compiling fluent v0.16.1
+   Compiling zbus_names v4.3.4
+   Compiling i18n-embed-impl v0.8.4
+   Compiling native-tls v0.2.18
+   Compiling dracon-git v94.7.2
+   Compiling tokio-native-tls v0.3.1
+   Compiling i18n-embed v0.14.1
+   Compiling zbus_macros v5.19.0
+   Compiling rustls-webpki v0.103.16
+   Compiling i18n-embed-fl v0.7.0
+   Compiling hyper v1.11.1
+   Compiling age v0.10.1
+   Compiling zbus v5.19.0
+   Compiling hyper-util v0.1.20
+   Compiling dracon-security v0.4.0 (/home/dracon/Dev/dracon-utilities/dracon-warden/src/security)
+   Compiling hyper-tls v0.6.0
