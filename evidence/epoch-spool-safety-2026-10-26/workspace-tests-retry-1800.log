@@ -2042,4 +2042,8 @@ test sync::tests::test_failing_remote_names_formats_sorted ... ok
 test sync::tests::test_file_extension_cases ... ok
 test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) 2c226c8] init
 ok
-test sync::tests::test_filter_only_skip_still_pushes_ahead ... 
+test sync::tests::test_filter_only_skip_still_pushes_ahead ... ok
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) cea850a] init
+ok
+test sync::tests::test_forge_incident_declares_and_shields ... [master (root-commit) cea850a] init
+[master (root-commit) 76acd19] init
