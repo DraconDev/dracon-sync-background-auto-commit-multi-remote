@@ -11,6 +11,39 @@
     "displacedSha256": "4152ec480ad1a2792ade0de86653b3d0333e20199538d192efee30d317dfea97",
     "pass": true
   },
-  "error": "AssertionError()",
+  "adversarial": {
+    "expectFinalResponse": true,
+    "helperPid": 2547860,
+    "requestOriginalInode": 37136328,
+    "requestDesiredInode": 37136346,
+    "exchangeStops": [
+      {
+        "entry": true,
+        "return": -38
+      },
+      {
+        "entry": false,
+        "return": 0
+      }
+    ],
+    "actualBreakingLeaseRows": [
+      "176: LEASE  BREAKING  UNLCK 2547860 103:02:37136328 0 EOF"
+    ],
+    "newerOpenedInode": 37136346,
+    "canonicalAtNewOpen": 37136346,
+    "helperWaitStatus": 0,
+    "helperStdout": "[\"0a696513bf4cb012aa97f56cc8c348e7518a25132728691705fc53a74a115162\",true]",
+    "helperStderr": "",
+    "oldWriter": {
+      "pid": 2547885,
+      "inode": 37136328
+    },
+    "oldWriterStillCanonical": false,
+    "canonicalAfterBothWrites": "4e45572d57524954455261642072657461696e65640a",
+    "privateAfterBothWrites": "4f4c442d575249544552524947494e414c207061796c6f61640a",
+    "indexPreserved": true,
+    "newerWriterStillCanonical": true,
+    "canonicalContainsNewerWrite": true
+  },
   "pass": false
 }
