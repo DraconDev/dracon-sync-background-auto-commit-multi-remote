@@ -1,8 +1,8 @@
 # Epoch spool leak: 101 GiB in a git dir, and the fleet-wide disk wedge
 
 Date: 2026-10-26
-Status: repair implemented (`dracon-sync` 0.113.96), historic litter reclaimed,
-deployment + fleet observation recorded below.
+Status: three independent leaks repaired (`dracon-sync` 0.113.96), historic
+litter reclaimed, deployed and observed at steady state.
 
 ## Symptom
 
@@ -148,6 +148,88 @@ younger than the 1h floor (i.e. plausibly live or just-created).
 Verified on a disposable repo (`/tmp/spool-verify`) before the fleet run: a
 3-hour-old `dracon-staging-OLD123` was reclaimed while a fresh
 `dracon-staging-NEW456` was preserved.
+
+## Two further leaks found while verifying the repair
+
+Fixing the spool leak exposed that it was **not the only** unbounded disk
+consumer. Measuring per-repo `.git` byte deltas after deploying the spool fix
+still showed growth, and chasing it found two more causes.
+
+### Leak 2: `tmp_pack_*` leftovers had no reclaimer at all
+
+browser-extensions-shared held **23 `tmp_pack_*` files totalling 10.71 GiB**
+in a repository whose real pack is only **3.32 GiB** — 76% of `.git` was
+dangling. `git count-objects` reported all of it as `size-garbage`.
+
+The existing `maybe_auto_gc` could never reclaim it, for two compounding
+reasons:
+
+1. **`git gc` does not delete recent `tmp_pack_*` files.** Verified
+   empirically on a disposable repo: a fresh 1 MB `tmp_pack_*` survived both
+   `git gc` and `git gc --quiet`, and was collected only by
+   `git gc --prune=now`. (The 2-week prune grace is about unreachable
+   *objects*; a tmp pack is an incomplete *packfile*.) So gc reported 10.71 GiB
+   of garbage while being unable to remove it — the app was told there was
+   garbage and given no way to act.
+2. The codebase deliberately never uses `--prune=now` (SYNC-H3: it removes the
+   2-week grace, risking the prune race and expiring the reflog safety net),
+   and that decision is correct.
+
+Fix: `git::sweep_stale_tmp_packs` removes only regular `tmp_pack_*` files in
+the real `objects/pack` dir, only when untouched for the configured age floor,
+never following symlinks. This is strictly safer than `--prune=now`: a tmp
+pack holds no object any ref can reach, because a pack only becomes
+authoritative when its rename to `pack-<sha>.pack` completes.
+
+Result on the live fleet: browser-extensions-shared 23 files / **10.72 GiB
+reclaimed**; dracon-strategy/ai-auto-writer **11.48 GiB** on top of a 47.29 GiB
+gc. Both now sit at `size-garbage: 0 bytes`.
+
+### Leak 3: two gates made the janitors skip exactly the affected repos
+
+**3a — gc gated on "no staged intent".** The call site read
+
+```rust
+if !dry_run && !commit_only && !entry_epoch.as_ref().is_some_and(|e| e.has_intent())
+```
+
+so a repo with staged work skipped auto-gc. But a busy repo has staged intent on
+*nearly every cycle* — the very condition that generates the garbage. The gate
+was not a safety gate (`git gc` never reads or writes the index and never
+touches the worktree), and the real guards — `!dry_run`, placement below
+`check_conflict_state` so it never runs mid-merge/rebase/cherry-pick — are
+preserved. Removed.
+
+**3b — maintenance gated on `!commit_only`.** `commit_only` is what a repo
+falls INTO after its push is declared stuck, and a push-stuck repo is precisely
+the one leaking a tmp pack per failed push. browser-extensions-shared was being
+skipped on every cycle because the stuck ledger had put it in commit-only mode,
+so the sweeper could never heal the repo that needed it most. Reclaiming
+dangling bytes creates no commits and touches no refs, so it is independent of
+publication; the gate was removed and `!dry_run` remains.
+
+After 3a+3b the same cycle logged:
+
+```
+🗑️ browser-extensions-shared has 10.72 GiB dangling garbage (> threshold 2.00 GiB) — running git gc
+🗑️ gc done for browser-extensions-shared in 153.0s (reclaimed ~10.72 GiB garbage)
+🗑️ browser-extensions-shared reclaimed 23 abandoned tmp_pack file(s) (10.72 GiB)
+```
+
+### Steady-state verification
+
+Measured per-repo `.git` byte deltas over a 6-minute window after the final
+deploy and backlog clear:
+
+| Repository | Delta |
+| --- | --- |
+| `~/.dracon` | +29.1 MiB (legitimate commits) |
+| every other watched repo | 0 (below the 1 MiB reporting floor) |
+
+Spool count stayed at 2-3 while browser-extensions-shared committed roughly
+once per minute, i.e. allocation and release are now balanced.
+`browser-extensions-shared/.git` went from **115 GiB → 4.2 GiB**, and root free
+space from **1.6 GiB (100%) → 158 GiB (82% used)**.
 
 ## Follow-up (not done here)
 
