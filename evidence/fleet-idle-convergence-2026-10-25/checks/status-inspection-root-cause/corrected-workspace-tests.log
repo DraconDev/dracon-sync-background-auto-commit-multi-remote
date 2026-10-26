@@ -1888,4 +1888,24 @@ test sync::excluded_revert_tests::excluded_restore_required_smudge_refusal_and_l
 test sync::hygiene::tests::hygiene_durable_malformed_record_is_inspection_failure_not_idle_or_permission_to_write ... ok
 test sync::hygiene::tests::hygiene_durable_policy_optout_and_symlink_registry_refuse_without_mutation ... ok
 test sync::hygiene::tests::hygiene_durable_retry_survives_production_commit_and_process_exit_with_writer_refusal ... ok
-test sync::hygiene::tests::hygiene_durable_uncommitted_candidate_recovers_only_exact_owned_tree_after_restart ... 
+test sync::hygiene::tests::hygiene_durable_uncommitted_candidate_recovers_only_exact_owned_tree_after_restart ... ok
+test sync::hygiene::tests::hygiene_generated_ignore_never_adopts_intervening_content_as_old_baseline ... ok
+test sync::hygiene::tests::hygiene_generated_ignore_preserves_existing_writer_and_visible_recovery ... ok
+test sync::hygiene::tests::hygiene_generated_ignore_rejects_symlink_and_hardlink_without_modifying_targets ... ok
+test sync::hygiene::tests::hygiene_large_only_production_cycle_is_admitted_after_clean_warmup ... ok
+test sync::hygiene::tests::hygiene_large_plan_cannot_expand_beyond_partition_or_override_opt_outs ... ok
+test sync::hygiene::tests::hygiene_never_absorbs_foreign_operator_staging ... ok
+test sync::hygiene::tests::hygiene_opt_out_and_dry_run_leave_tracking_and_ignore_untouched ... ok
+test sync::hygiene::tests::hygiene_preserves_active_writer_and_untracked_large_bytes ... ok
+test sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes ... ok
+test sync::hygiene::tests::hygiene_retirement_leading_space_is_not_an_effective_artifact_rule ... ok
+test sync::hygiene::tests::hygiene_retirement_refuses_committed_symlink_without_touching_target_or_index ... ok
+test sync::hygiene::tests::hygiene_successful_ignore_write_reports_followup_until_metadata_is_staged ... ok
+test sync::owned_commit_tests::a_refusing_commit_hook_blocks_the_auto_commit_and_keeps_the_work ... ok
+test sync::owned_commit_tests::a_repository_without_commit_hooks_still_commits ... ok
+test sync::owned_commit_tests::another_publication_owner_allows_a_real_commit_without_a_push_or_failure_reset ... ok
+test sync::owned_commit_tests::cancelled_or_timed_out_publication_kills_owned_hook_descendants ... ok
+test sync::owned_commit_tests::configured_hook_runner_propagates_refusal_without_mutating_head ... ok
+test sync::owned_commit_tests::owned_commit_runs_the_configured_hook_chain_and_preserves_worktree_edits ... ok
+test sync::owned_commit_tests::the_ordinary_commit_path_runs_each_hook_exactly_once ... ok
+test sync::publication_actor_tests::abandoned_fixture_hook_exits_when_its_checkout_disappears ... 
