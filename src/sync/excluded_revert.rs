@@ -271,6 +271,7 @@ pub(super) async fn apply_ignore(
             scratch,
             vec![Target {
                 path: path.to_path_buf(),
+                displaced: Location::open(&files, path)?.observed().await?.map(|(_, stamp)| stamp),
                 source,
                 before,
                 desired_before,
@@ -399,6 +400,7 @@ async fn restore_inner(
             .context("missing excluded restore target")?;
         targets.push(Target {
             path,
+            displaced: desired.observed().await?.map(|(_, stamp)| stamp),
             source,
             before,
             desired_before,
