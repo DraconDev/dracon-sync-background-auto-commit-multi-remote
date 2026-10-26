@@ -17,7 +17,8 @@ current-health classification include pending intent and inspection failures.
 
 Actual controls pass: production artifact commit plus process exit while an
 existing writable ignore FD refuses reconciliation; fresh pulse merges newer
-canonical operator content and autonomously commits metadata; uncommitted own
+canonical operator content and commits metadata through the production sync
+function in a disposable fixture (NOT running-daemon proof); uncommitted own
 candidate resumes while foreign cached tree cannot inherit its authority;
 cleanup opt-out, malformed JSON and symlink registry preserve index/canonical
 bytes and refuse. Existing original controls remain unchanged.
