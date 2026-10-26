@@ -1,6 +1,17 @@
 use super::*;
 
 #[test]
+fn current_hygiene_intent_is_never_clean_without_git_dirt_or_scheduler_markers() {
+    let mut row = RepoReportRow::for_tests("/fixture");
+    row.state_flags.push("HYGIENE_PENDING".into());
+    assert_ne!(classify(&row), Current::Converged);
+    assert!(!label(&row).contains("CLEAN"));
+    assert!(crate::report::repo_hint(&row.state_flags, false, true).contains("dracon-hygiene-intents/"));
+    row.state_flags = vec!["HYGIENE_INSPECT_FAILED".into()];
+    assert_eq!(classify(&row), Current::Blocked);
+}
+
+#[test]
 fn current_convergence_output_table_is_independent_of_push_history_and_commit_age() {
     // name, dirty, ahead, phase, eligible dirty age, admission age, excluded,
     // legacy dispatch status, expected current state, visible label.
