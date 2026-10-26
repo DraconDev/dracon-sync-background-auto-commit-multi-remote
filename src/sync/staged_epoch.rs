@@ -225,6 +225,36 @@ impl Epoch {
         .context("empty epoch follow-up deadline expired")?
     }
 
+    /// Release the retained spool. Idempotent and best-effort.
+    ///
+    /// ADDED 2026-10-26 (disk-exhaustion incident). Only call this once the
+    /// candidate's future is SETTLED: it is published (so normal history
+    /// makes the objects reachable), or it is an empty candidate with
+    /// nothing to commit. A refusal, deadline or unpublished error leaves
+    /// the spool on disk for diagnosis; the age-based reaper in
+    /// `git::epoch_spool` bounds those.
+    ///
+    /// Removal is skipped while the lease is still held because the lease
+    /// is what tells the reaper this directory is in use; releasing the
+    /// lease therefore has to come first.
+    pub(super) fn release_spool(&mut self) {
+        let directory = self.retained.take();
+        // Drop the lease BEFORE removing, so the reaper never sees a live
+        // lease on a directory that is already gone.
+        self.spool_lease = crate::git::SpoolLease::new(None);
+        if let Some(directory) = directory {
+            if let Err(error) = std::fs::remove_dir_all(&directory) {
+                // Best-effort: the periodic reaper retries an aged spool.
+                if error.kind() != std::io::ErrorKind::NotFound {
+                    eprintln!(
+                        "⚠️ cannot release epoch spool {}: {error}",
+                        directory.display()
+                    );
+                }
+            }
+        }
+    }
+
     pub(super) fn entries(&self) -> Result<Vec<dracon_git::types::DiffFile>> {
         use dracon_git::types::{DiffFile, FileStatus};
         self.snapshot
@@ -592,12 +622,34 @@ impl Epoch {
                 None => !paths.is_empty(),
             };
             let branch_changed = reference(repo).await? != self.reference;
-            Ok(lock_retained
+            let pending = lock_retained
                 || post_failed
                 || branch_changed
                 || !after.changed.is_empty()
                 || !status.success()
-                || untracked_pending)
+                || untracked_pending;
+            // ADDED 2026-10-26: release the retained spool now that the epoch
+            // is PUBLISHED and its follow-up is fully observed.
+            //
+            // This is the deterministic half of the leak fix. The original
+            // rationale ("a later foreign index replacement can remove its
+            // only ordinary index root before this epoch commits") is
+            // satisfied by this point: the commit is already on the ref, so
+            // the candidate is reachable through normal history and the
+            // pack's only remaining purpose was crash diagnosis. Keeping it
+            // until an hourly age floor instead leaked a full-tree index
+            // plus pack per cycle (~875 MiB per cycle on
+            // browser-extensions-shared, 101 GiB in one afternoon).
+            //
+            // `pending` does NOT block this: a follow-up (unstaged edits,
+            // untracked files, a post-commit hook failure) is new work for
+            // the NEXT epoch, which allocates its own fresh spool.
+            //
+            // Refused/deadline paths never reach here, so an unpublished
+            // candidate keeps its spool exactly as before, and the age-based
+            // reaper still bounds those.
+            self.release_spool();
+            Ok(pending)
         })
         .await;
         match result {
