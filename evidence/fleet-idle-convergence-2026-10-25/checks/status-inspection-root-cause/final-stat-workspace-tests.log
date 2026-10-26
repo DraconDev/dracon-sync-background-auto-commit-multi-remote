@@ -3153,4 +3153,58 @@ test tests::tests::filter_transform_batch_matches_oneshot ... ok
 test tests::tests::generated_gitattributes_and_filter_gate_match_single_star_paths ... ok
 test tests::tests::gitattributes_block_protects_conversation_dumps ... ok
 test tests::tests::gitignore_block_negates_conversation_dumps ... ok
-test tests::tests::global_hook_install_preserves_and_chains_foreign_hooks ... 
+test tests::tests::global_hook_install_preserves_and_chains_foreign_hooks ... ok
+test tests::tests::harden_repo_changes_files_and_writes_key ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_repo_1qfUj6/repo/.git/
+ok
+test tests::tests::harden_repo_preserves_operator_content_outside_managed_block ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_preserve_GECRQ3/repo/.git/
+ok
+test tests::tests::harden_repo_rejects_symlinked_dotfiles_without_republishing_target ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_symlink_dotfiles_NTNKAe/repo/.git/
+ok
+test tests::tests::harden_repo_sets_local_dracon_filter_config ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_repo_filter_cfg_JDIraF/repo/.git/
+ok
+test tests::tests::harden_repo_surfaces_hook_install_failure ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_error_v89Kk5/repo/.git/
+ok
+test tests::tests::harden_repos_fails_when_global_refresh_fails ... ok
+test tests::tests::hook_replacement_is_atomic_and_executable ... ok
+test tests::tests::index_batch_lock_skips_and_recovers ... ok
+test tests::tests::index_batch_respawns_after_stage ... ok
+test tests::tests::index_batch_returns_staged_blob_not_worktree ... ok
+test tests::tests::install_hooks_for_repo_skips_shadowed_git_hooks ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_shadowed_rtFZbo/repo/.git/
+ok
+test tests::tests::is_encrypted_env_content_detects_markers ... ok
+test tests::tests::is_env_file_name_detects_common_variants ... ok
+test tests::tests::is_legacy_warden_hook_matrix ... ok
+test tests::tests::is_marker_string_detects_both_markers ... ok
+test tests::tests::is_marker_string_edge_cases ... ok
+test tests::tests::linked_worktree_gitfile_uses_real_gitdir_for_checkout_lock ... ok
+test tests::tests::marker_prefix_at_edge_cases ... ok
+test tests::tests::marker_prefix_at_finds_correct_positions ... ok
+test tests::tests::media_protected_patterns_default_off_and_parse ... ok
+test tests::tests::merge_driver_decrypt_failure_is_err_with_current_untouched ... ok
+test tests::tests::merge_driver_encrypted_roundtrip_clean_merge ... ok
+test tests::tests::merge_driver_merge_file_error_is_not_a_conflict ... ok
+test tests::tests::merge_driver_text_merge_clean_and_conflict ... ok
+test tests::tests::merge_driver_untagged_files_clean_and_conflict ... ok
+test tests::tests::newest_file_picks_newest_existing ... ok
+test tests::tests::normalize_filter_path_relativizes_inside_root_and_refuses_outside ... ok
+test tests::tests::omitted_hygiene_patterns_use_product_defaults ... ok
+test tests::tests::owner_pubkeys_in_filters_only_owner_pub ... ok
+test tests::tests::pkt_encode_panics_on_oversize_payload - should panic ... ok
+test tests::tests::plaintext_cannot_overlap_protected_or_disable_env_encryption ... ok
+test tests::tests::policy_roots_expand_tilde_before_existence_filtering ... ok
+test tests::tests::pre_commit_hook_allows_unmanaged_repo ... ok
+test tests::tests::pre_commit_hook_bare_repo_unmarked_passes ... ok
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_drift ... ok
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_only_global_filter_config ... ok
+test tests::tests::pre_commit_hook_blocks_when_merge_driver_key_missing ... ok
+test tests::tests::pre_commit_hook_blocks_when_only_commented_filters_remain ... ok
+test tests::tests::pre_commit_hook_blocks_when_required_key_false ... ok
+test tests::tests::pre_commit_hook_blocks_when_required_key_missing ... ok
+test tests::tests::pre_commit_hook_blocks_when_textconv_key_missing ... ok
+test tests::tests::pre_commit_hook_chains_to_foreign_repo_local_hook ... ok
+test tests::tests::pre_commit_hook_commented_filters_do_not_mark_managed ... ok
+test tests::tests::pre_commit_hook_does_not_recurse_into_warden_seeded_local_hook ... ok
+test tests::tests::pre_commit_hook_no_repo_context_exits_1_with_message ... ok
+test tests::tests::pre_commit_hook_propagates_foreign_hook_failure ... ok
+test tests::tests::pre_commit_hygiene_distinguishes_exact_visual_inputs_from_frame_caches ... ok
+test tests::tests::pre_commit_hygiene_does_not_grant_blanket_or_nested_machine_local_exemptions ... 
