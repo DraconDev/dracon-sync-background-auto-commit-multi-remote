@@ -1941,4 +1941,8 @@ ok
 test sync::tests::committed_epoch_outcome_keeps_local_pending_and_transport_failure_distinct ... ok
 test sync::tests::github_mirror_comparison_accepts_transport_variants ... ok
 test sync::tests::github_mirror_comparison_uses_repository_identity_not_host_only ... ok
-test sync::tests::index_deferral_backlog_publication_preserves_meaningful_hook_refusal ... 
+test sync::tests::index_deferral_backlog_publication_preserves_meaningful_hook_refusal ... ok
+test sync::tests::ordinary_absolute_staging_deadline_cancels_hardener_descendants ... [main (root-commit) c229b1a] disposable fixture baseline
+ok
+test sync::tests::parent_gitlink_propagates_after_standalone_commit ... ok
+test sync::tests::test_alert_unpushed_threshold ... [master (root-commit) ad4ae2f] init
