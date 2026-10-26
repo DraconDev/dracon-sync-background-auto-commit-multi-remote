@@ -222,8 +222,10 @@ pub(super) async fn apply_ignore(
         let scratch = tempfile::Builder::new().prefix("dracon-excluded-recovery-")
             .permissions(std::fs::Permissions::from_mode(0o700)).tempdir_in(&gitdir)?;
         let files = scratch.path().join("files");
-        std::fs::DirBuilder::new().recursive(false).create(&files)?;
-        std::fs::set_permissions(&files, std::fs::Permissions::from_mode(0o700))?;
+        {
+            use std::os::unix::fs::DirBuilderExt;
+            std::fs::DirBuilder::new().mode(0o700).create(&files)?;
+        }
         let mut file = OpenOptions::new().write(true).create_new(true)
             .mode(before.as_ref().map_or(0o600, |f| f.identity.3 & 0o777)).open(files.join(path))?;
         file.write_all(rendered.as_bytes())?;
