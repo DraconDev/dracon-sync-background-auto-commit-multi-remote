@@ -1,0 +1,5 @@
+captured_at=2026-10-26T11:46:35Z
+loaded_exe=/home/dracon/.local/bin/dracon-sync
+loaded_sha256=8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad
+main_pid=3906273
+assembly_sha256=8e5fb4fd744e3239e4f2b4ba095783a29414953a73fc34ff0cf8b296ab5fec4e
