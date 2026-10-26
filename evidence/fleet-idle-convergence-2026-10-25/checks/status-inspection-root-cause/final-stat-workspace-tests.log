@@ -2395,4 +2395,6 @@ running 17 tests
 test actual_warden_hook_blocks_invalid_storage_commit_and_keeps_user_hook ... ignored, requires DRACON_STORAGE_TEST_WARDEN pointing to the built source Warden binary
 test advance_job_copies_retained_version_without_touching_git_or_current_edits ... ok
 test busy_selected_job_fails_without_selecting_or_creating_another_version ... ok
-test cold_clone_imports_only_committed_manifest_without_original_cache ... 
+test cold_clone_imports_only_committed_manifest_without_original_cache ... ok
+test cold_clone_restores_exact_asset_from_signed_https_s3 ... ignored, operational HTTPS fixture: requires openssl and python3
+test enrolled_capture_update_keeps_recorded_contract_and_refuses_pointers ... 
