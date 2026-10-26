@@ -392,7 +392,7 @@ async fn excluded_recovery_finalizes_once_and_never_relocates_a_later_canonical_
         .filter_map(|e| e.ok())
         .map(|e| e.path())
         .find(|p| p.is_dir())
-        .map(|p| {
+        .and_then(|p| {
             std::fs::read_dir(p)
                 .unwrap()
                 .filter_map(|e| e.ok())
@@ -403,9 +403,8 @@ async fn excluded_recovery_finalizes_once_and_never_relocates_a_later_canonical_
                         .to_string_lossy()
                         .starts_with("settlement-")
                 })
-                .map(|p| std::fs::read_to_string(p).unwrap())
         })
-        .flatten()
+        .map(|p| std::fs::read_to_string(p).unwrap())
         .expect("settlement record retained");
     assert!(record.contains("canonical-exchange-settled"), "{record}");
     assert!(!record.contains("untouched-or-rolled-back"), "{record}");
