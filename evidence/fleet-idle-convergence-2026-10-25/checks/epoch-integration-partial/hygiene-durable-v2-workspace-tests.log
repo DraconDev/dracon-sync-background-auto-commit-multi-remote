@@ -2180,3 +2180,25 @@ test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [
  create mode 100644 ahead.txt
 ok
 test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) 91c71fd] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) 91c71fd] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) 91c71fd] init
+ok
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... ok
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) 2ca47f1] init
+ok
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) 2ca47f1] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) 2ca47f1] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) d584f6a] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpoDF3ox/origin.git'
+ok
+test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (root-commit) 1b74d4b] init
+To /tmp/.tmp69czwj/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
