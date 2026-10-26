@@ -2178,3 +2178,69 @@ ok
 test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) cbfd58f] init
 ok
 test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) 000047a] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) 5623148] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpnR3c5r/origin.git'
+ok
+test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (root-commit) 09e09e3] init
+To /tmp/.tmp7oZ3FI/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) f055b84] init
+ok
+test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-commit) 48a8fc2] init
+ok
+test sync::tests::test_sync_repo_not_git_repo_returns_false ... ok
+test sync::tests::test_sync_repo_partial_deletion_allowed ... [master (root-commit) da522c4] init
+ok
+test sync::tests::test_sync_repo_pull_skip_when_no_origin ... [master (root-commit) da522c4] init
+ok
+test sync::tests::test_sync_repo_pushes_detached_head_ahead_commit ... [main (root-commit) da522c4] init
+[main ca0b129] ahead
+HEAD is now at ca0b129 ahead
+ok
+test sync::tests::test_sync_repo_single_deleted_file_committed ... [master (root-commit) f11f528] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_dirty ... [master (root-commit) f11f528] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_not_behind ... [master (root-commit) f11f528] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_origin ... [master (root-commit) f11f528] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_upstream ... [master (root-commit) f11f528] init
+ok
+test sync::tests::test_sync_repo_skips_bisect_in_progress ... [master (root-commit) f11f528] init
+ok
+test sync::tests::test_sync_repo_skips_cherry_pick_in_progress ... [master (root-commit) f11f528] init
+ok
+test sync::tests::test_sync_repo_skips_merge_in_progress ... [master (root-commit) f11f528] init
+ok
+test sync::tests::test_sync_repo_skips_rebase_in_progress ... [master (root-commit) f11f528] init
+ok
+test sync::tests::test_sync_repo_skips_revert_in_progress ... [master (root-commit) f11f528] init
+ok
+test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) f11f528] init
+ok
+test sync::tests::test_sync_repo_unstages_excluded_dir_paths ... [master (root-commit) 2c52b23] init
+ok
+test sync::tests::test_sync_repo_unstages_oversized_file ... [master (root-commit) 2c52b23] init
+ok
+test sync::tests::test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked ... [master (root-commit) 2c52b23] init
+ok
+test sync::tests::test_sync_repo_with_duplicate_subjects_succeeds ... [master (root-commit) 797d7b5] init
+ok
+test sync::tests::test_truncate_task_at_sentence_boundary ... ok
+test sync::tests::test_truncate_task_hard_cutoff ... ok
+test sync::tests::test_truncate_task_multibyte_utf8 ... ok
+test sync::tests::test_truncate_task_short ... ok
+test sync::tests::test_warden_auto_harden_disabled_never_forks ... ok
+test sync::tests::test_warden_auto_harden_hardens_once ... ok
+test sync::tests::test_warden_auto_harden_skips_dry_run ... ok
+test sync::tests::unlimited_batch_bootstraps_all_related_unborn_files ... ok
+test sync::tests::unlimited_batch_commits_all_related_worktree_files_in_one_epoch ... [master (root-commit) ec42e0c] init
