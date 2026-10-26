@@ -204,7 +204,7 @@ pub(super) async fn apply_generated(
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => return Ok(false),
         Err(error) => return Err(error.into()),
     };
-    Ok(apply_prepared(
+    apply_prepared(
         repo,
         scratch,
         vec![Target {
@@ -218,7 +218,7 @@ pub(super) async fn apply_generated(
         lock,
         StagedIntentSnapshot::capture(repo, deadline).await?,
     )
-    .await?)
+    .await
 }
 
 /// false = uncertain ownership/content; callers preserve work and drain backlog.
