@@ -4,3 +4,7 @@
   ▸ extensions/collections/new-tab/bookmarks-new-tab TYPECHECK (548a3a10a563)
   ▸ extensions/collections/new-tab/bookmarks-new-tab BUILD (548a3a10a563)
   ▸ extensions/collections/new-tab/bookmarks-new-tab TEST (548a3a10a563)
+  ▸ extensions/collections/new-tab/bookmarks-new-tab LINT (548a3a10a563)
+  ▸ extensions/collections/new-tab/dark-new-tab TYPECHECK (548a3a10a563)
+  ▸ extensions/collections/new-tab/dark-new-tab BUILD (548a3a10a563)
+  ▸ extensions/collections/new-tab/dark-new-tab TEST (548a3a10a563)
