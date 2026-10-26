@@ -104,6 +104,7 @@ async fn hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_byte
         "oversized file is ignored, never truncated or committed"
     );
     let ignore = std::fs::read_to_string(r.join(".gitignore")).unwrap();
+    eprintln!("GITIGNORE>>>{ignore}<<<");
     assert!(ignore.contains("/huge.iso"));
     assert!(ignore.contains("dist/"));
     let tracked = String::from_utf8(native(r, &["ls-files"], None)).unwrap();
