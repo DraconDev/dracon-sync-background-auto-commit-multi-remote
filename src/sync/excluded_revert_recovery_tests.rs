@@ -84,6 +84,29 @@ fn exchange(repo: &Path, pending: &Path, name: &str) {
         .unwrap();
 }
 #[tokio::test]
+async fn excluded_recovery_legacy_ignore_namespace_retains_concerns_and_late_displaced_writes() {
+    use std::io::Write;
+    let (d, pending, targets) = fixture().await; let r = d.path();
+    let legacy = r.join(".git").join(format!("dracon-ignore-recovery-{}", pending.file_name().unwrap().to_string_lossy()));
+    std::fs::rename(&pending, &legacy).unwrap();
+    request(r, &legacy, targets);
+    exchange(r, &legacy, "one.log");
+    std::fs::write(r.join("one.log"), b"later canonical producer\n").unwrap();
+    let mut displaced_writer = OpenOptions::new().write(true).open(legacy.join("files/one.log")).unwrap();
+    let index = std::fs::read(r.join(".git/index")).unwrap();
+    assert!(super::super::has_pending_excluded_recovery(r).unwrap(), "legacy pending must not disappear from read-only concerns");
+    assert!(settle_pending(r, Instant::now() + Duration::from_secs(5)).await.unwrap());
+    assert!(!super::super::has_pending_excluded_recovery(r).unwrap());
+    let archived = r.join(".git/dracon-excluded-archive").join(legacy.file_name().unwrap());
+    assert_eq!(std::fs::read(archived.join("files/one.log")).unwrap(), b"operator one.log\n");
+    displaced_writer.write_all(b"LATE").unwrap(); displaced_writer.sync_all().unwrap();
+    assert!(super::super::has_pending_excluded_recovery(r).unwrap(), "legacy archive late writes must reopen a concern");
+    assert_eq!(std::fs::read(r.join("one.log")).unwrap(), b"later canonical producer\n");
+    assert_eq!(std::fs::read(r.join("two.log")).unwrap(), b"operator two.log\n");
+    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(), index);
+}
+
+#[tokio::test]
 async fn excluded_recovery_partial_transaction_settles_without_replaying_or_resetting_user_work() {
     let (d, pending, targets) = fixture().await;
     let r = d.path();
