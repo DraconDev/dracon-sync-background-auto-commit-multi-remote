@@ -290,6 +290,16 @@ async fn unmerged_entry_never_relocates_an_active_worktree_writer() {
     assert!(native(r,&["ls-files","--unmerged","-z"],None).is_empty());
 }
 
+#[tokio::test]
+async fn unmerged_entry_production_sync_resolves_stale_slots_without_manufacturing_a_commit() {
+    let (d,_)=fixture(Path::new("a.bin"));let r=d.path();let before=head(r);
+    let result=sync_repo(r,&policy(),&BTreeSet::new(),0,None,false,None).await;
+    assert_eq!(result.unwrap(),SyncOutcome::NothingToDo);
+    assert_eq!(head(r),before,"no manual, empty or safety commit");
+    assert!(native(r,&["ls-files","--unmerged","-z"],None).is_empty());
+    assert_eq!(std::fs::read(r.join("a.bin")).unwrap(),b"HEAD\0binary\xff\n");
+}
+
 #[cfg(target_os = "linux")]
 #[tokio::test]
 async fn unmerged_entry_concurrent_index_ref_and_deadline_refuse_without_losing_data() {
