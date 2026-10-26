@@ -143,11 +143,16 @@ impl IndexLock {
         let read_previous = || -> Result<(std::fs::Metadata, Vec<u8>)> {
             let file = std::fs::File::open(index)?;
             let metadata = file.metadata()?;
-            anyhow::ensure!(metadata.is_file() && metadata.len() <= 64 * 1024 * 1024,
-                "actual index exceeds installation budget");
+            anyhow::ensure!(
+                metadata.is_file() && metadata.len() <= 64 * 1024 * 1024,
+                "actual index exceeds installation budget"
+            );
             let mut bytes = Vec::new();
             file.take(64 * 1024 * 1024 + 1).read_to_end(&mut bytes)?;
-            anyhow::ensure!(bytes.len() <= 64 * 1024 * 1024, "actual index grew past budget");
+            anyhow::ensure!(
+                bytes.len() <= 64 * 1024 * 1024,
+                "actual index grew past budget"
+            );
             Ok((metadata, bytes))
         };
         let (previous_meta, previous) = read_previous()?;

@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-root = Path(__file__).resolve().parents[6]
+root = Path(__file__).resolve().parents[5]
 # This script lives in <workspace>/dracon-sync/evidence/<run>/checks/<area>/.
 if not (root / 'Cargo.toml').exists():
     root = next(p for p in Path(__file__).resolve().parents
