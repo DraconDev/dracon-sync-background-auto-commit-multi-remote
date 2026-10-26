@@ -1851,4 +1851,18 @@ test storage::tests::rule_order_threshold_and_no_universal_media_policy ... ok
 test storage::tests::sealed_commit_honors_a_refusing_reference_transaction_hook ... ok
 test storage::tests::sealed_commit_rejects_a_message_emptied_by_commit_msg ... ok
 test storage::tests::staged_nested_macro_and_quoted_storage_declarations_require_binding ... ok
-test storage::tests::storage_bootstrap_cannot_bypass_guard_with_no_verify ... 
+test storage::tests::storage_bootstrap_cannot_bypass_guard_with_no_verify ... ok
+test storage::tests::storage_bootstrap_without_local_driver_cannot_commit_hydrated_bytes ... ok
+test storage::tests::symlinks_and_non_utf8_paths_are_not_silently_followed_or_conflated ... ok
+test stuck_route::tests::cause_falls_back_to_first_lines ... ok
+test stuck_route::tests::dedups_same_tip_episode ... ok
+test stuck_route::tests::new_tip_is_a_new_episode ... ok
+test stuck_route::tests::rederive_files_despite_misclassified_summary ... warning: You appear to have cloned an empty repository.
+ok
+test stuck_route::tests::routes_hook_refusal_with_guard_json_cause ... ok
+test stuck_route::tests::skips_repo_without_ledger ... ok
+test stuck_route::tests::skips_transient_network ... ok
+test stuck_route::tests::skips_young_stuck ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_concurrent_manifest_preserves_independent_writer ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery ... 
