@@ -1,0 +1,41 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.30s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-142349144eb24e59)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 157 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-4bdda7ff3bc2c558)
+
+running 4 tests
+test git::tmp_pack_sweep_tests::aged_tmp_pack_is_reclaimed_and_reported ... ok
+test git::tmp_pack_sweep_tests::fresh_tmp_pack_survives_because_it_may_still_be_writing ... ok
+test git::tmp_pack_sweep_tests::non_repo_path_is_a_silent_no_op ... ok
+test git::tmp_pack_sweep_tests::real_packs_and_other_object_files_are_never_touched ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1508 filtered out; finished in 0.08s
+
+     Running tests/excluded_recovery_report.rs (target/debug/deps/excluded_recovery_report-9cddcb73585f4d66)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-f64b5c4e438875f1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/report_json_detail.rs (target/debug/deps/report_json_detail-e02524361083ea73)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/storage_clean.rs (target/debug/deps/storage_clean-449ac56b8c6e3877)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+

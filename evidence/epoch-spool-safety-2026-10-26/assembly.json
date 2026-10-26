@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-26T22:55:31.968987+00:00",
+  "revisions": {
+    ".": {
+      "head": "26f7e331e1223dcfd0b670b5f1a3045aaade39f6",
+      "status": ""
+    },
+    "dracon-sync": {
+      "head": "ea90014a856a2ddd84f35cdd39a755e082fadd21",
+      "status": " M docs/design/epoch-spool-disk-leak-2026-10-26.md\n?? evidence/epoch-spool-safety-2026-10-26/\n"
+    },
+    "dracon-system": {
+      "head": "88922741ef03057c0e11f4e74013a725dd17f5c0",
+      "status": ""
+    },
+    "dracon-warden": {
+      "head": "01100f94b21c029fba98cf3dc2ba3fff16b59609",
+      "status": ""
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "unit": "dracon-sync-operator.service",
+  "method": "atomic replace + SIGTERM via pidfd; unit Restart=always reloads",
+  "label": "spool-safety-preserve-unpublished",
+  "started_at": "20261026T225434Z",
+  "old_pid": 1827908,
+  "previous_sha256": "c9566f98b7a071db1b884cbd4fc0f2add7c53282836fbdb0182f016405989d05",
+  "expected_sha256": "01b2a5bb4c4f9dff7a4dc0a2bd71d4b437eaeb8452a4e3f32e355cbb158497f9",
+  "backup": "/home/dracon/.local/state/dracon-sync/deployments/20261026T225434Z-spool-safety-preserve-unpublished",
+  "new_pid": 3349544,
+  "running_sha256": "01b2a5bb4c4f9dff7a4dc0a2bd71d4b437eaeb8452a4e3f32e355cbb158497f9",
+  "finished_at": "2026-10-26T22:54:42Z",
+  "loaded_revision": "verified from /proc/<new-pid>/exe"
+}
