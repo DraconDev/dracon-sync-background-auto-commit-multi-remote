@@ -17,8 +17,8 @@ The returned epoch is derived from the private candidate, not the actual index.
 Opt-out, disabled auto-commit and dry-run cannot enable this reconciliation.
 
 Before conditional actual-index installation, an owned0700 recovery directory
-contains the exact original index and a fsynced independent pack of all conflict
-payloads and changed ordinary cached blobs. Unchanged stage0 HEAD baseline blobs
+contains the exact original index (including gitlink identity metadata) and a
+fsynced independent pack of parent-repository conflict/changed cached blobs. Unchanged stage0 HEAD baseline blobs
 are NOT duplicated. Metadata/object checks bound the raw index at64MiB,
 retention input at16MiB and retained payloads at512MiB. Free-space preflight is
 best-effort, NOT a global reservation against concurrent disk use. Recovery and
@@ -54,8 +54,12 @@ assembly and v5's targeted assembly are HISTORICAL, not mixed with v6 evidence.
 
 No installation/service/config migration, real-repo manual commit/push or fresh
 loaded-execution/full-fleet observation was performed by this continuation.
-Do not deploy this INTERMEDIATE assembly while normal version/release bump,
-artifact cleanup and large-untracked hygiene remain unwired. Also finish the
+Do not deploy this INTERMEDIATE assembly while the demonstrated artifact-cleanup
+and large-untracked hygiene integration gaps remain. CORRECTION: version/release
+bumping was ALREADY a no-op in known-green5cf3391 and is blamed to June16, not
+introduced by epoch integration. Do not implement unrelated new release behavior
+based on the earlier inaccurate TODO. Evidence: checks/epoch-integration-partial/
+preexisting-version-noop-assessment.md. No committed scope is removed. Finish the
 queued-open/lease-break/exact-exchange and unsupported-FS controls, actual daemon
 restart/admission rehearsal, original product gates and independent review.
 Then re-run all four gates on the coherent FINAL assembly, qualify installed and
