@@ -140,13 +140,18 @@ impl IndexLock {
             bytes.len() <= 64 * 1024 * 1024,
             "private index grew past budget"
         );
-        let previous_meta = std::fs::metadata(index)?;
+        let read_previous = || -> Result<(std::fs::Metadata, Vec<u8>)> {
+            let file = std::fs::File::open(index)?;
+            let metadata = file.metadata()?;
+            anyhow::ensure!(metadata.is_file() && metadata.len() <= 64 * 1024 * 1024,
+                "actual index exceeds installation budget");
+            let mut bytes = Vec::new();
+            file.take(64 * 1024 * 1024 + 1).read_to_end(&mut bytes)?;
+            anyhow::ensure!(bytes.len() <= 64 * 1024 * 1024, "actual index grew past budget");
+            Ok((metadata, bytes))
+        };
+        let (previous_meta, previous) = read_previous()?;
         let previous_mtime = previous_meta.modified()?;
-        let previous = std::fs::read(index)?;
-        anyhow::ensure!(
-            previous.len() <= 64 * 1024 * 1024,
-            "actual index exceeds budget"
-        );
         let merged = tokio::time::timeout_at(
             deadline,
             carry_over_stat_data(repo, index, &previous, &bytes, previous_mtime),
@@ -160,7 +165,7 @@ impl IndexLock {
         );
         anyhow::ensure!(self.is_owned(), "index lock replaced during stat merge");
         anyhow::ensure!(
-            std::fs::read(index)? == previous,
+            read_previous()?.1 == previous,
             "actual index changed during stat merge; preserved"
         );
         self.file.write_all(&merged)?;
