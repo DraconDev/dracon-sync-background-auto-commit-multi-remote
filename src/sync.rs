@@ -5334,7 +5334,17 @@ async fn sync_repo_local_with_ownership(
     //
     // The per-repo 1h cooldown in `maybe_auto_gc` still bounds the cost: one
     // `count-objects` per hour per repo in the steady state.
-    if !dry_run && !commit_only {
+    // CHANGED 2026-10-26: `!commit_only` REMOVED from these two maintenance
+    // calls. `commit_only` is what a repo falls INTO after its push is
+    // declared stuck — and a push-stuck repo is precisely the one generating
+    // `tmp_pack_*` garbage on every failed push (browser-extensions-shared
+    // held 23 files / 10.71 GiB, and it was being skipped here every cycle
+    // because the stuck ledger had put it in commit-only mode). Reclaiming
+    // dangling bytes is independent of publication, single-repository-local,
+    // and reversible-by-nothing (it creates no commits and touches no refs),
+    // so it must not be gated on push mode or it can never heal the exact
+    // repos that need it. It remains gated on `!dry_run`.
+    if !dry_run {
         crate::git::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes).await;
         // ADDED 2026-10-26: sweep stale `tmp_pack_*` leftovers.
         // `git gc` reports these as garbage but does NOT remove recent ones
