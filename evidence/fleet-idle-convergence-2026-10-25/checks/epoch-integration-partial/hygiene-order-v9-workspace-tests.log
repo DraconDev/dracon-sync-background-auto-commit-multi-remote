@@ -1933,4 +1933,12 @@ test sync::tests::test_auto_commit_excludes_union_global_and_per_repo ... FAILED
 test sync::tests::test_auto_resolve_no_unmerged ... ok
 test sync::tests::test_auto_resolve_unmerged_disabled ... ok
 test sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head ... ok
-test sync::tests::test_auto_resolve_unmerged_working_tree_matches_head ... 
+test sync::tests::test_auto_resolve_unmerged_working_tree_matches_head ... ok
+test sync::tests::test_bootstrap_empty_repo_all_oversized_returns_false ... ok
+test sync::tests::test_bootstrap_empty_repo_auto_commit_disabled ... ok
+test sync::tests::test_bootstrap_empty_repo_creates_root_commit ... FAILED
+test sync::tests::test_bootstrap_empty_repo_nothing_to_stage ... ok
+test sync::tests::test_bootstrap_empty_repo_respects_gitignore ... FAILED
+test sync::tests::test_bootstrap_empty_repo_skips_oversized_files ... FAILED
+test sync::tests::test_bootstrap_empty_repo_unowned_skipped ... ok
+test sync::tests::test_bootstrap_sweep_measures_staged_blob_not_worktree ... 
