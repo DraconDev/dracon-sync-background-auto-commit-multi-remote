@@ -99,7 +99,7 @@ def baseline(helper, parent):
     return {'response': json.loads(result.stdout), 'canonicalSha256': fingerprint(source)['sha256'],
             'displacedSha256': fingerprint(desired)['sha256'], 'pass': True}
 
-def adversarial(helper, parent):
+def adversarial(helper, parent, cancel_after_exchange=False):
     repo, source, desired, request_path, request = fixture(parent, helper)
     before_index = (repo / '.git' / 'index').read_bytes()
     stdout_path, stderr_path = parent / 'helper.stdout', parent / 'helper.stderr'
@@ -119,7 +119,8 @@ def adversarial(helper, parent):
             os._exit(111)
     output.close()
     error.close()
-    observations = {'helperPid': pid, 'requestOriginalInode': request['targets'][0]['before']['identity'][1],
+    observations = {'cancelAfterFirstExchange': cancel_after_exchange,
+                    'helperPid': pid, 'requestOriginalInode': request['targets'][0]['before']['identity'][1],
                     'requestDesiredInode': request['targets'][0]['desired']['identity'][1], 'exchangeStops': []}
     try:
         _, status = os.waitpid(pid, 0)
@@ -172,6 +173,14 @@ def adversarial(helper, parent):
                             newer_fd = os.open(source, os.O_RDWR | os.O_NONBLOCK)
                             observations['newerOpenedInode'] = os.fstat(newer_fd).st_ino
                             observations['canonicalAtNewOpen'] = source.stat().st_ino
+                            if cancel_after_exchange:
+                                # Owned-child cancellation at the exact first
+                                # exchange exit; never signal a real producer.
+                                os.kill(pid, signal.SIGKILL)
+                                _, killed = os.waitpid(pid, 0)
+                                alive = False
+                                observations['helperWaitStatus'] = killed
+                                break
                         elif exchanged == 2:
                             observations['canonicalAfterRollback'] = source.stat().st_ino
                             observations['newerFdAfterRollback'] = os.fstat(newer_fd).st_ino
@@ -181,13 +190,18 @@ def adversarial(helper, parent):
                 ptrace(SYSCALL, pid, 0, 0 if stopped == signal.SIGTRAP else stopped)
         observations['helperStdout'] = stdout_path.read_text()
         observations['helperStderr'] = stderr_path.read_text()
-        assert exchanged == 2 and newer_fd is not None, ('schedule did not reach actual rollback', observations)
-        assert json.loads(observations['helperStdout']) == [request['source_id'], False]
+        assert exchanged == (1 if cancel_after_exchange else 2) and newer_fd is not None, ('schedule did not reach selected exchange boundary', observations)
+        if cancel_after_exchange:
+            killed = observations['helperWaitStatus']
+            assert os.WIFSIGNALED(killed) and os.WTERMSIG(killed) == signal.SIGKILL
+        else:
+            assert json.loads(observations['helperStdout']) == [request['source_id'], False]
         deadline = time.monotonic() + 3
         while not marker.exists():
             assert time.monotonic() < deadline, 'old queued open did not finish after lease release'
             time.sleep(.002)
         observations['oldWriter'] = json.loads(marker.read_text())
+        observations['oldWriterStillCanonical'] = source.stat().st_ino == observations['oldWriter']['inode']
         go.touch()
         assert queued.wait(timeout=5) == 0
         os.pwrite(newer_fd, b'NEW-WRITER', 0)
@@ -212,6 +226,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--helper', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--cancel-after-first-exchange', action='store_true',
+                        help='cancel the owned helper instead of permitting rollback')
     args = parser.parse_args()
     helper = args.helper.resolve()
     record = {'scope': 'actual isolated helper / owned disposable processes only; no deployment/fleet claim',
@@ -227,8 +243,10 @@ def main():
             for name in ['baseline', 'adversarial']:
                 (root / name).mkdir()
             record['baseline'] = baseline(helper, root / 'baseline')
-            record['adversarial'] = adversarial(helper, root / 'adversarial')
-            record['pass'] = record['adversarial']['newerWriterStillCanonical'] and record['adversarial']['canonicalContainsNewerWrite']
+            record['adversarial'] = adversarial(helper, root / 'adversarial', args.cancel_after_first_exchange)
+            record['pass'] = (record['adversarial']['oldWriterStillCanonical']
+                              and record['adversarial']['newerWriterStillCanonical']
+                              and record['adversarial']['canonicalContainsNewerWrite'])
     except BaseException as exc:
         record['error'] = repr(exc)
         record['pass'] = False

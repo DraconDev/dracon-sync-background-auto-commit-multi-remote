@@ -1,0 +1,49 @@
+{
+  "scope": "actual isolated helper / owned disposable processes only; no deployment/fleet claim",
+  "helper": "/tmp/dracon-hygiene-review-green-v1-DshSBH/dracon-sync",
+  "helperSha256": "b7b98b2b7251858261a1e3227e654bda5e1b84b9aeeb25f114453ecb354a0d49",
+  "baseline": {
+    "response": [
+      "58fc1f87097e7b8abbe2df4d867f2c43ec83f0e6baf7f37868eb401afd3ef29d",
+      true
+    ],
+    "canonicalSha256": "bf5bdfc0c458cb1606589bf152214bd4a0f2ea16ee37ac6d7ab98039bd00b9d4",
+    "displacedSha256": "4152ec480ad1a2792ade0de86653b3d0333e20199538d192efee30d317dfea97",
+    "pass": true
+  },
+  "adversarial": {
+    "cancelAfterFirstExchange": true,
+    "helperPid": 2327501,
+    "requestOriginalInode": 35660643,
+    "requestDesiredInode": 35660672,
+    "exchangeStops": [
+      {
+        "entry": true,
+        "return": -38
+      },
+      {
+        "entry": false,
+        "return": 0
+      }
+    ],
+    "actualBreakingLeaseRows": [
+      "148: LEASE  BREAKING  UNLCK 2327501 103:02:35660643 0 EOF"
+    ],
+    "newerOpenedInode": 35660672,
+    "canonicalAtNewOpen": 35660672,
+    "helperWaitStatus": 9,
+    "helperStdout": "",
+    "helperStderr": "",
+    "oldWriter": {
+      "pid": 2327528,
+      "inode": 35660643
+    },
+    "oldWriterStillCanonical": false,
+    "canonicalAfterBothWrites": "4e45572d57524954455261642072657461696e65640a",
+    "privateAfterBothWrites": "4f4c442d575249544552524947494e414c207061796c6f61640a",
+    "indexPreserved": true,
+    "newerWriterStillCanonical": true,
+    "canonicalContainsNewerWrite": true
+  },
+  "pass": false
+}
