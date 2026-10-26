@@ -155,3 +155,5 @@ Gate exited with status 1
   ▸ extensions/standalones/youtube-dislike BUILD (31bd83ca328a)
   ▸ extensions/standalones/youtube-dislike TEST (31bd83ca328a)
   ▸ extensions/standalones/youtube-filter TYPECHECK (31bd83ca328a)
+  ▸ extensions/standalones/youtube-filter BUILD (31bd83ca328a)
+  ▸ extensions/standalones/youtube-filter TEST (31bd83ca328a)
