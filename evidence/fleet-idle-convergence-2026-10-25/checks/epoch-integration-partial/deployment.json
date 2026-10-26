@@ -1,0 +1,14 @@
+{
+  "started_unix": 1793020226.320756,
+  "old_pid": 3906273,
+  "old_loaded_sha256": "8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad",
+  "expected_sha256": "8e5fb4fd744e3239e4f2b4ba095783a29414953a73fc34ff0cf8b296ab5fec4e",
+  "backup": "/home/dracon/.local/state/dracon/deployments/20261026T131026Z-no-rollback-fix",
+  "service_stop_used": false,
+  "method": "atomic binary replacement; pidfd SIGTERM; Restart=always",
+  "new_pid": 3092229,
+  "loaded_sha256": "8e5fb4fd744e3239e4f2b4ba095783a29414953a73fc34ff0cf8b296ab5fec4e",
+  "installed_sha256": "8e5fb4fd744e3239e4f2b4ba095783a29414953a73fc34ff0cf8b296ab5fec4e",
+  "verified_unix": 1793020234.4881585,
+  "ok": true
+}
