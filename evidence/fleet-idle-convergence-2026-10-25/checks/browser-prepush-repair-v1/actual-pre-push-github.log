@@ -166,3 +166,4 @@ Gate exited with status 1
   ▸ packages/brand-icon BUILD (31bd83ca328a)
   ▸ packages/brand-icon TEST (31bd83ca328a)
   ▸ packages/extension-core TYPECHECK (31bd83ca328a)
+  ▸ packages/extension-core BUILD (31bd83ca328a)
