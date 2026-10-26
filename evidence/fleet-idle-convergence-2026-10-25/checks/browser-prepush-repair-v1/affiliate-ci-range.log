@@ -455,3 +455,6 @@ OK    200  https://www.awin.com/us/getting-started-sas
 OK    200  https://www.cj.com
 OK    200  https://affiliate-program.amazon.com
 OK    200  https://chromewebstore.google.com/detail/cuslr-essential-apps-in-y/ckenonjjcacieiocdmbhcmmgahbepjab
+OK    200  https://hubspot.com/affiliates
+OK    200  https://impact.com/get-started
+WARN  403  WAF-botblock(maybe-live)  https://nordvpn.com/affiliate/
