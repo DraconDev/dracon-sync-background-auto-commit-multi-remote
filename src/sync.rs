@@ -4160,7 +4160,8 @@ async fn stage_commit_and_push(
                 #[cfg(not(target_os = "linux"))]
                 anyhow::bail!("explicit excluded restore needs atomic no-replace/exchange support; files retained");
             }
-            let staging = staged_epoch::Staging::new(repo, baseline).await?;
+            let staging = staged_epoch::Staging::new(repo, baseline).await?
+                .with_large_candidates(to_restore);
 
             // Stale conflict selection is part of entry capture, not a live
             // actual-index mutator after private staging has already begun.
@@ -5870,6 +5871,7 @@ async fn sync_repo_local_with_ownership(
             );
         }
         if !to_stage.is_empty()
+            || to_restore.iter().any(|entry| crate::exclude::is_large_untracked(entry, repo, policy.max_stage_file_bytes))
             || (!to_restore.is_empty() && repo_override.revert_excluded_to_head == Some(true))
         {
             if debug_enabled() {
