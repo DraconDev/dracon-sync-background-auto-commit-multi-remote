@@ -1050,6 +1050,13 @@ impl Staging {
             // publication behind an unrelated editor/Git index owner. Return
             // only the empty epoch; foreign actual staging remains untouched.
             if !epoch.has_intent() {
+                // ADDED 2026-10-26: an empty candidate commits NOTHING, so
+                // there is no future commit its pack could protect. Release
+                // it here instead of waiting for the age-based reaper; a
+                // repo that keeps producing empty candidates (filter churn,
+                // hygiene re-adds) would otherwise still leak one full-tree
+                // index per cycle.
+                epoch.release_spool();
                 return Ok(epoch);
             }
             // Persist typed artifact intent before installing an index that a
