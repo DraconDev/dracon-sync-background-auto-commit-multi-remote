@@ -3229,3 +3229,8 @@ test tests::tests::pre_push_hook_blocks_secret_in_added_binary ... ok
 test tests::tests::pre_push_hook_blocks_secret_in_space_filename ... ok
 test tests::tests::pre_push_hook_blocks_secret_introduced_by_merge_resolution ... ok
 test tests::tests::pre_push_hook_blocks_secret_removed_or_reverted_before_tip ... rm 'new-asset'
+rm 'new-asset'
+ok
+test tests::tests::pre_push_hook_blocks_single_quoted_secret_warden_m2_idiom ... ok
+test tests::tests::pre_push_hook_blocks_stripe_live_key_shape ... ok
+test tests::tests::pre_push_hook_blocks_unquoted_padded_password ... 
