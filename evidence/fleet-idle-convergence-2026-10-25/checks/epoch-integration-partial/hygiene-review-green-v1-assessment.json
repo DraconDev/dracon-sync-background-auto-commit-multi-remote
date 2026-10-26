@@ -1,0 +1,24 @@
+{
+  "at": "2026-10-26T09:40:18.639431+00:00",
+  "scope": "review corrections and targeted checks only; v2 full gates historical; recheck pending; NOT installed/deployed",
+  "redExit": 101,
+  "greenExit": 0,
+  "clippyExit": 0,
+  "redSummary": [
+    "test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 1499 filtered out; finished in 0.35s"
+  ],
+  "greenSummary": [
+    "test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 1478 filtered out; finished in 6.58s"
+  ],
+  "postCheckSourceSha256": {
+    "src/exclude/hygiene.rs": "08716fbdc7da068e9291e2486e8444da82d67848177db72d6cd3ab872d19ab7d",
+    "src/sync/hygiene_intent.rs": "6c7bdc5d21ff7c2e357e2cab73786b7f59f628d8188f8cdcec7ef080d988a7ef",
+    "src/sync/hygiene_tests.rs": "935deb11a2098e84baba7bf1c9d677a073171ed2e2ca6ea5c6819059ab1b0cb7"
+  },
+  "recheckRun": "05c0febe-e572-42bd-90f8-3a8934349efa",
+  "queuedOpenExchangeConcern": "UNPROVEN; deterministic syscall-boundary qualification not yet executed",
+  "pinnedHelper": {
+    "path": "/tmp/dracon-hygiene-review-green-v1-DshSBH/dracon-sync",
+    "sha256": "b7b98b2b7251858261a1e3227e654bda5e1b84b9aeeb25f114453ecb354a0d49"
+  }
+}
