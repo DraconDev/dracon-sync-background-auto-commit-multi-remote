@@ -38,6 +38,12 @@ fn native(repo: &Path, args: &[&str], input: Option<&[u8]>) -> Vec<u8> {
     out.stdout
 }
 
+fn excluded() -> BTreeSet<String> {
+    crate::policy::default_exclude_dir_names()
+        .into_iter()
+        .collect()
+}
+
 fn policy(cleanup: bool) -> SyncPolicy {
     toml::from_str(&format!(
         "auto_github_private=false\nauto_commit=true\nauto_pull=false\nauto_push=false\n\
@@ -82,7 +88,7 @@ async fn hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_byte
         .set_len(4 * 1024 * 1024)
         .unwrap();
     std::fs::write(r.join("note.txt"), b"operator edit\n").unwrap();
-    let result = sync_repo(r, &policy(true), &BTreeSet::new(), 0, None, false, None).await;
+    let result = sync_repo(r, &policy(true), &excluded(), 0, None, false, None).await;
     assert!(result.is_ok(), "production hygiene sync failed: {result:?}");
     assert!(
         native(r, &["ls-files", "--", "dist/extra.bin"], None).is_empty(),
@@ -119,7 +125,7 @@ async fn hygiene_opt_out_and_dry_run_leave_tracking_and_ignore_untouched() {
         let d = fixture("dist/extra.bin");
         let r = d.path();
         let before = String::from_utf8(native(r, &["ls-files"], None)).unwrap();
-        let result = sync_repo(r, &policy(cleanup), &BTreeSet::new(), 0, None, dry, None).await;
+        let result = sync_repo(r, &policy(cleanup), &excluded(), 0, None, dry, None).await;
         assert!(result.is_ok(), "{}", result.unwrap_err());
         assert_eq!(
             String::from_utf8(native(r, &["ls-files"], None)).unwrap(),
@@ -140,7 +146,7 @@ async fn hygiene_never_absorbs_foreign_operator_staging() {
     native(r, &["add", "--", "note.txt"], None);
     let staged = native(r, &["rev-parse", ":note.txt"], None);
     let before = String::from_utf8(native(r, &["ls-files"], None)).unwrap();
-    let _ = sync_repo(r, &policy(true), &BTreeSet::new(), 0, None, false, None).await;
+    let _ = sync_repo(r, &policy(true), &excluded(), 0, None, false, None).await;
     assert_eq!(
         native(r, &["rev-parse", ":note.txt"], None),
         staged,
@@ -152,7 +158,7 @@ async fn hygiene_never_absorbs_foreign_operator_staging() {
             .contains("dist/extra.bin"),
         "cleanup must not run around foreign staged intent"
     );
-    assert_eq!(before.contains("dist/extra.bin"), true);
+    assert!(before.contains("dist/extra.bin"));
 }
 
 #[tokio::test]
@@ -164,7 +170,7 @@ async fn hygiene_preserves_active_writer_and_untracked_large_bytes() {
     let mut writer = std::fs::File::create(&large).unwrap();
     writer.set_len(4 * 1024 * 1024).unwrap();
     let inode = std::fs::metadata(&large).unwrap().ino();
-    let _ = sync_repo(r, &policy(true), &BTreeSet::new(), 0, None, false, None).await;
+    let _ = sync_repo(r, &policy(true), &excluded(), 0, None, false, None).await;
     writer.write_all(b"LATE").unwrap();
     writer.sync_all().unwrap();
     assert_eq!(
