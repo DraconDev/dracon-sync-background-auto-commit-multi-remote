@@ -3230,4 +3230,9 @@ test tests::tests::pre_push_hook_still_blocks_secrets_around_tags ... ok
 test tests::tests::pre_push_hook_tag_does_not_rescan_published_history ... ok
 test tests::tests::pre_push_hook_test_identity_on_non_first_parent_merge_passes ... ok
 test tests::tests::pre_push_modified_binary_still_blocks_new_pem_material ... ok
-test tests::tests::pre_push_review_receipt_binds_blob_and_individual_match ... 
+test tests::tests::pre_push_review_receipt_binds_blob_and_individual_match ... ok
+test tests::tests::pre_rebase_hook_allows_unpublished_commits ... ok
+test tests::tests::pre_rebase_hook_blocks_published_boundary_commit ... ok
+test tests::tests::pre_rebase_hook_blocks_published_commit_deeper_than_100 ... ok
+test tests::tests::pre_rebase_hook_chains_and_propagates_local_hook_failure ... ok
+test tests::tests::pre_rebase_hook_chains_to_repo_local_hook ... 
