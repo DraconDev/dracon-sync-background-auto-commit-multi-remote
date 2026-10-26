@@ -290,8 +290,13 @@ pub(super) async fn reconcile(
         let current_head=git(repo,&["rev-parse","--verify","HEAD"],None).await?;
         ensure!(std::str::from_utf8(&current_head.stdout)?.trim()==head,EpochConflict::ReferenceChanged);
         for(path,source)in &sources{ensure!(source.unchanged(repo,path)?,"unmerged working source changed; original index retained");}
+        // Child-directory fsync alone does not persist its name in the Git
+        // directory. Make recovery reachable BEFORE replacing the actual index.
+        let index_parent=actual.parent().context("index parent missing")?;
+        File::open(index_parent)?.sync_all()?;
         ensure!(Instant::now()<deadline,"unmerged selection deadline expired");
         lock.install_index(&candidate,&actual)?;
+        File::open(index_parent)?.sync_all().with_context(||format!("index installed; original recovery retained at {}",directory.display()))?;
         eprintln!("🛟 {} reconciled {} HEAD-equal stale conflict paths; exact original index/payloads retained at {}",repo.display(),sources.len(),directory.display());
         Ok(Some((Epoch{snapshot,reference,deadline,retained:Some(directory)},sources.len())))
     }).await.context("unmerged reconciliation deadline expired; actual data and private recovery retained")?
