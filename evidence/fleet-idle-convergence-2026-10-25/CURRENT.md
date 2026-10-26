@@ -1,6 +1,30 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Unmerged-entry v6 — CURRENT; four-gate intermediate assembly, NOT final/deployed
+## Hygiene v12 — CURRENT; coherent four-gate intermediate assembly, NOT deployed
+
+Artifact cleanup and large-untracked ignore handling were genuinely disabled by
+the staged-epoch refactor and are now restored through the private-candidate
+model. See checks/epoch-integration-partial/hygiene-integration.md for the design,
+the exact ordering constraint (index-side de-index in the candidate, canonical
+ignore rules only AFTER the commit lands), and the retained failed/flaked runs.
+
+CURRENT coherent gates, zero source drift, unchanged pinned helper:
+- cargo test --workspace --locked: PASS; sync1484pass, system616, warden233,
+  integration144 (security/stream suites in the raw log).
+- cargo build --release --locked, strict all-target Clippy and cargo deny: PASS.
+Proof: hygiene-order-v10-source-before.json and hygiene-order-v12-source-after.json.
+One crash-lease control failed once under full-suite load and passed immediately
+in isolation and in the re-run; that run is retained, not deleted or weakened.
+
+This is still NOT final acceptance, deployment, loaded execution or fleet-idle
+proof. No install/config migration, real-repo manual commit/push or loaded
+execution was performed. Remaining prerequisites are unchanged: queued-open/
+lease-break and exact-exchange qualification, unsupported-FS controls, actual
+daemon restart/admission rehearsal, original product gates, independent review,
+installed/loaded receipt, the authorized zero-batch migration, and a fresh
+complete watched-fleet clean-idle observation.
+
+## Unmerged-entry v6 — HISTORICAL four-gate intermediate assembly
 
 The active fleet-convergence objective/contract in .pi-glla remains authoritative.
 The pending task5 label does not waive the still-open implementation, original
@@ -54,8 +78,9 @@ assembly and v5's targeted assembly are HISTORICAL, not mixed with v6 evidence.
 
 No installation/service/config migration, real-repo manual commit/push or fresh
 loaded-execution/full-fleet observation was performed by this continuation.
-Do not deploy this INTERMEDIATE assembly while the demonstrated artifact-cleanup
-and large-untracked hygiene integration gaps remain. CORRECTION: version/release
+The artifact-cleanup and large-untracked hygiene gaps recorded in that header are
+now addressed by the hygiene v12 assembly above; its own remaining prerequisites
+still forbid deployment. CORRECTION: version/release
 bumping was ALREADY a no-op in known-green5cf3391 and is blamed to June16, not
 introduced by epoch integration. Do not implement unrelated new release behavior
 based on the earlier inaccurate TODO. Evidence: checks/epoch-integration-partial/
