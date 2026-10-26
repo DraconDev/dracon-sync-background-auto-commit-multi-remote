@@ -538,4 +538,14 @@ test bucket_runner_bridge::bucket_runner_bridge_tests::oversized_stdout_is_refus
 test bucket_runner_bridge::bucket_runner_bridge_tests::refused_spawn_is_indexed_and_refused ... ok
 test bucket_runner_bridge::bucket_runner_bridge_tests::shared_routing_defaults_fail_closed_on_invalid_data ... ok
 test bucket_runner_bridge::bucket_runner_bridge_tests::shared_routing_defaults_validate_and_preserve_measured_bytes ... ok
-test bucket_runner_bridge::bucket_runner_bridge_tests::timeout_is_refused ... 
+test bucket_runner_bridge::bucket_runner_bridge_tests::timeout_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::unconfigured_repo_does_not_spawn_bundle ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::unsafe_config_paths_are_refused ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_accepts_literal_colon_paths_without_revision_interpretation ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_actual_git_bytes_drive_inclusive_runner_pressure_boundaries ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_ignores_replacements_for_outgoing_deleted_history ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_keeps_lagging_mirror_objects_and_respects_exclusions ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_missing_tip_and_unreadable_git_object_fail_closed ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_potential_codeberg_destination_cannot_be_omitted_by_quota_guess ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_real_git_deduplicates_history_and_selected_worktree ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_refuses_unsupported_encoding_without_transcoding ... 
