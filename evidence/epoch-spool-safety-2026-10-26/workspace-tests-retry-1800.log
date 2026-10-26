@@ -2198,4 +2198,15 @@ test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [maste
 ok
 test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) 33bbf7b] init
 ok
-test sync::tests::test_sync_repo_empty_repo_end_to_end ... 
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... ok
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) 2937134] init
+ok
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) e4dd659] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) da4c36a] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) b96529c] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpltuT2Q/origin.git'
