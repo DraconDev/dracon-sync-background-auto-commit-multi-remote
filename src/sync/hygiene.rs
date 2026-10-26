@@ -25,29 +25,33 @@ pub(super) fn artifact_component(path: &Path, excluded: &BTreeSet<String>) -> Op
 async fn large_untracked(
     repo: &Path,
     policy: &SyncPolicy,
+    excluded: &BTreeSet<String>,
+    baseline: &StagedIntentSnapshot,
+    admitted: &[PathBuf],
     deadline: Instant,
 ) -> Result<Vec<String>> {
-    let output = staged_epoch::git(
-        repo,
-        &["ls-files", "--others", "--exclude-standard", "-z"],
-        None,
-    )
-    .await?;
+    // Only paths admitted by the production partition can be reconciled.
+    // A fresh global ls-files scan would absorb auto-stage opt-outs and private
+    // materialized assets that the caller deliberately excluded.
+    if !policy.auto_stage_untracked { return Ok(Vec::new()); }
+    let overrides = load_repo_override(repo);
+    let excludes = crate::policy::effective_auto_commit_excludes(policy, &overrides);
     let mut patterns = Vec::new();
-    for raw in output
-        .stdout
-        .split(|byte| *byte == 0)
-        .filter(|item| !item.is_empty())
-    {
+    for path in admitted {
         ensure!(
             Instant::now() < deadline,
             "large-untracked observation deadline expired; operator files retained"
         );
-        let path = staged_epoch::path_from_git_bytes(raw)?;
-        // A regular single-link file only: directories, symlinks and FIFOs are
-        // never adopted, and the rule must be an exact representable name.
-        let Ok(meta) = std::fs::symlink_metadata(repo.join(&path)) else {
-            continue;
+        if baseline.entries.contains_key(path.as_os_str().as_encoded_bytes())
+            || crate::exclude::matches_untracked_exclude(repo, path, &policy.untracked_exclude_patterns)
+            || !crate::exclude::should_stage_entry_with_blob_size(repo, path, 0, excluded,
+                &policy.exclude_file_patterns, policy.max_stage_file_bytes, &excludes)
+        { continue; }
+        // Recheck WITHOUT following aliases; uncertainty is not successful work.
+        let meta = match std::fs::symlink_metadata(repo.join(path)) {
+            Ok(meta) => meta,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error.into()),
         };
         let single_link = {
             #[cfg(target_os = "linux")]
@@ -59,8 +63,11 @@ async fn large_untracked(
                 true
             }
         };
-        if meta.is_file() && single_link && meta.len() > policy.max_stage_file_bytes {
-            patterns.push(crate::exclude::hygiene::literal_file_pattern(&path)?);
+        if meta.is_file() && meta.len() > policy.max_stage_file_bytes {
+            ensure!(single_link, "large-file ignore refuses an aliased operator file");
+            ensure!(path != Path::new(".gitignore") && path != Path::new(".gitattributes"),
+                "managed metadata exceeds size policy; refusing to hide it");
+            patterns.push(crate::exclude::hygiene::literal_file_pattern(path)?);
         }
     }
     Ok(patterns)
@@ -82,9 +89,10 @@ pub(super) async fn plan(
     excluded: &BTreeSet<String>,
     baseline: &StagedIntentSnapshot,
     cleanup: bool,
+    admitted_large: &[PathBuf],
     deadline: Instant,
 ) -> Result<Option<Plan>> {
-    let mut patterns = large_untracked(repo, policy, deadline).await?;
+    let mut patterns = large_untracked(repo, policy, excluded, baseline, admitted_large, deadline).await?;
     ensure!(
         baseline.changed.is_empty(),
         "hygiene requires an entry cycle without staged intent"

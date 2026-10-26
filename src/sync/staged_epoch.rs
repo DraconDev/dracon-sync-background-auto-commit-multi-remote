@@ -740,6 +740,7 @@ pub(super) struct Staging {
     baseline: Epoch,
     directory: PathBuf,
     index: PathBuf,
+    admitted_large: Vec<PathBuf>,
 }
 impl Staging {
     pub(super) async fn new(repo: &Path, baseline: Epoch) -> Result<Self> {
@@ -763,6 +764,7 @@ impl Staging {
             baseline,
             directory,
             index,
+            admitted_large: Vec::new(),
         };
         let deadline = staging.baseline.deadline;
         tokio::time::timeout_at(deadline, async {
@@ -788,6 +790,14 @@ impl Staging {
         &self.index
     }
 
+    /// Caller has already excluded private assets and auto-stage opt-outs.
+    pub(super) fn with_large_candidates(mut self, entries: &[dracon_git::types::DiffFile]) -> Self {
+        self.admitted_large = entries.iter()
+            .filter(|entry| matches!(entry.status, dracon_git::types::FileStatus::Added))
+            .map(|entry| entry.path.clone()).collect();
+        self
+    }
+
     pub(super) async fn finish(
         self,
         repo: &Path,
@@ -810,6 +820,7 @@ impl Staging {
                 excluded,
                 &self.baseline.snapshot,
                 cleanup,
+                &self.admitted_large,
                 deadline,
             )
             .await?;
