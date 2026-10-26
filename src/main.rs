@@ -515,6 +515,27 @@ enum RepairCommands {
         #[arg(long)]
         apply: bool,
     },
+    /// Reclaim abandoned private-epoch spool directories in git dirs.
+    ///
+    /// Every sync epoch allocates `<gitdir>/dracon-staging-*` (a full-tree
+    /// index plus an independent object pack, ~875 MiB on a large repo) and
+    /// keeps it after publication. The daemon now reaps these itself, but
+    /// this subcommand reports and reclaims historic litter (dry-run by
+    /// default).
+    Spools {
+        /// Actually delete the abandoned spools (default: report only).
+        #[arg(long)]
+        apply: bool,
+        /// Only scan this repository path.
+        #[arg(long)]
+        repo: Option<PathBuf>,
+        /// Maximum age in seconds before a spool counts as abandoned.
+        #[arg(long)]
+        max_age_secs: Option<u64>,
+        /// Emit machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// List repos that are permanently stuck on push.
     StuckList,
     /// Unstuck a repo that was marked as permanently stuck.
@@ -1402,6 +1423,77 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     println!("✅ no orphan origins found");
                 } else if !apply {
                     println!("\n🔧 Run 'dracon-sync repair origins --apply' to fix them");
+                }
+            }
+            RepairCommands::Spools {
+                apply,
+                repo,
+                max_age_secs,
+                json,
+            } => {
+                let policy = SyncPolicy::load(&policy_path)?;
+                let max_age = max_age_secs.unwrap_or(policy.epoch_spool_max_age_secs);
+                let repos = match repo {
+                    Some(repo) => vec![repo],
+                    None => git::discover_git_repos(
+                        &policy.watch_root_paths(),
+                        &excluded_dir_names_set(&policy),
+                        &policy.exclude_repos,
+                        Some(&policy.system_repo),
+                    ),
+                };
+                // Dry-run reports; --apply reclaims. Either way the walk is
+                // READ-ONLY until a directory is both aged and unleased, so a
+                // dry-run can never race a live epoch.
+                let mut total_dirs = 0usize;
+                let mut total_bytes = 0u64;
+                let mut per_repo: Vec<(PathBuf, usize, u64)> = Vec::new();
+                for repo in repos {
+                    let (dirs, bytes) =
+                        git::sweep_epoch_spools(&repo, max_age, apply).await;
+                    if dirs > 0 {
+                        per_repo.push((repo.clone(), dirs, bytes));
+                        total_dirs += dirs;
+                        total_bytes += bytes;
+                    }
+                }
+                if json {
+                    let rows: Vec<String> = per_repo
+                        .iter()
+                        .map(|(repo, dirs, bytes)| {
+                            format!(
+                                "{{\"repo\":{:?},\"dirs\":{dirs},\"bytes\":{bytes}}}",
+                                repo.display().to_string()
+                            )
+                        })
+                        .collect();
+                    println!(
+                        "{{\"applied\":{apply},\"max_age_secs\":{max_age},\"dirs\":{total_dirs},\"bytes\":{total_bytes},\"repos\":[{}]}}",
+                        rows.join(",")
+                    );
+                } else {
+                    for (repo, dirs, bytes) in &per_repo {
+                        println!(
+                            "   {} — {} dir(s), {}",
+                            repo.display(),
+                            dirs,
+                            git::human_bytes(*bytes)
+                        );
+                    }
+                    println!(
+                        "{} {} dir(s), {} (age floor {}s)",
+                        if apply {
+                            "\n🗑️ Reclaimed"
+                        } else {
+                            "\n📦 Abandoned"
+                        },
+                        total_dirs,
+                        git::human_bytes(total_bytes),
+                        max_age
+                    );
+                    if !apply && total_dirs > 0 {
+                        println!("\n🔧 Run 'dracon-sync repair spools --apply' to reclaim them");
+                    }
                 }
             }
             RepairCommands::StuckList => {
