@@ -543,9 +543,10 @@ async fn settle_directory(repo: &Path, directory: &Path, deadline: Instant) -> R
                 // have happened (canonical now holds it) or not. Never assume.
                 "private-desired-payload-retained"
             } else if target.before.is_some() && retained_identity == target.before.as_ref() {
-                // A DIFFERENT inode now holds the ORIGINAL bytes privately. Either
-                // the exchange happened and no one reopened it (recorded stamp
-                // unchanged), or some other path replaced it. Distinguish both.
+                // A different inode now holds the ORIGINAL bytes privately, so
+                // the single exchange completed. Reuse of that inode after
+                // archival is detected by the archive stamp probe, and the
+                // canonical inode is never rewritten by a rollback.
                 "canonical-exchange-settled"
             } else if target.before.is_none() && retained.is_none() {
                 "absent-baseline-no-original-displaced"
