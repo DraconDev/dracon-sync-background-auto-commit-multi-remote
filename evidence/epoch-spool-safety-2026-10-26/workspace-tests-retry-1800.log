@@ -1999,4 +1999,18 @@ test sync::tests::test_concurrent_staging_defers_then_captured_and_worktree_epoc
 ok
 test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) ec28aee] init
 ok
-test sync::tests::test_count_ahead_commits_no_origin ... 
+test sync::tests::test_count_ahead_commits_no_origin ... ok
+test sync::tests::test_count_ahead_commits_returns_zero_when_synced ... [main (root-commit) db3b254] init
+ok
+test sync::tests::test_count_ahead_commits_takes_max_across_tracking_refs ... [main (root-commit) 0f0a7d9] c0
+[main 3592a59] c1
+[main 44c6aa2] c2
+[main 2599d40] c3
+[main f8a9a53] c4
+ok
+test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [main (root-commit) 7698518] c1
+[main 2689371] c2
+ok
+test sync::tests::test_degraded_success_reports_paused_not_synced ... [master (root-commit) 33d42f1] init
+To /tmp/.tmpLWv2r6/mirror.git
+ * [new branch]      master -> master
