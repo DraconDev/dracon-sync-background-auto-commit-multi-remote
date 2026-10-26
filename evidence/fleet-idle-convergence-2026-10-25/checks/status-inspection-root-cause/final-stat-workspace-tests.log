@@ -3233,4 +3233,21 @@ rm 'new-asset'
 ok
 test tests::tests::pre_push_hook_blocks_single_quoted_secret_warden_m2_idiom ... ok
 test tests::tests::pre_push_hook_blocks_stripe_live_key_shape ... ok
-test tests::tests::pre_push_hook_blocks_unquoted_padded_password ... 
+test tests::tests::pre_push_hook_blocks_unquoted_padded_password ... ok
+test tests::tests::pre_push_hook_chains_and_propagates_local_hook_failure ... ok
+test tests::tests::pre_push_hook_chains_to_repo_local_hook ... ok
+test tests::tests::pre_push_hook_checks_all_refs_before_chaining_and_replays_input ... ok
+test tests::tests::pre_push_hook_distinguishes_interpolated_placeholder_from_literal ... ok
+test tests::tests::pre_push_hook_enumerates_remote_objects_once_per_push ... ok
+test tests::tests::pre_push_hook_hatch_found_from_subdir_cwd ... ok
+test tests::tests::pre_push_hook_ignores_unpaired_assignment_quote ... ok
+test tests::tests::pre_push_hook_ignores_warden_ciphertext_assignment ... ok
+test tests::tests::pre_push_hook_openai_boundary_canonicalizes_inherited_binary_matches ... ok
+test tests::tests::pre_push_hook_openai_boundary_ignores_asset_names_not_credentials ... ok
+test tests::tests::pre_push_hook_openai_boundary_preserves_real_text_and_binary_detection ... ok
+test tests::tests::pre_push_hook_passes_on_clean_binary ... ok
+test tests::tests::pre_push_hook_passes_on_clean_commit ... ok
+test tests::tests::pre_push_hook_passes_trusted_author ... ok
+test tests::tests::pre_push_hook_preserves_explicit_plaintext_sibling_exception ... ok
+test tests::tests::pre_push_hook_rejects_test_identity_author ... ok
+test tests::tests::pre_push_hook_scan_survives_local_hook_stdin_consumption ... 
