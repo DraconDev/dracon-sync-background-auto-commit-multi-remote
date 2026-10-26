@@ -548,4 +548,6 @@ test bucket_runner_bridge::outgoing::tests::accounting_keeps_lagging_mirror_obje
 test bucket_runner_bridge::outgoing::tests::accounting_missing_tip_and_unreadable_git_object_fail_closed ... ok
 test bucket_runner_bridge::outgoing::tests::accounting_potential_codeberg_destination_cannot_be_omitted_by_quota_guess ... ok
 test bucket_runner_bridge::outgoing::tests::accounting_real_git_deduplicates_history_and_selected_worktree ... ok
-test bucket_runner_bridge::outgoing::tests::accounting_refuses_unsupported_encoding_without_transcoding ... 
+test bucket_runner_bridge::outgoing::tests::accounting_refuses_unsupported_encoding_without_transcoding ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_refuses_zero_ceiling_for_a_filtered_candidate_that_would_be_admitted ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_reserves_enforced_output_ceiling_without_executing_filter ... 
