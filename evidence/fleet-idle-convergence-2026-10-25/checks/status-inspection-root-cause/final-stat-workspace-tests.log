@@ -177,4 +177,94 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 running 2 tests
 test prop_test_binary_passthrough_integrity ... ok
-test prop_test_hybrid_security_logic ... 
+test prop_test_hybrid_security_logic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 33.34s
+
+     Running tests/massive_secret_scan.rs (target/debug/deps/massive_secret_scan-eee5e26c6b5f79ce)
+
+running 1 test
+test test_massive_dataset_permutations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.06s
+
+     Running tests/pattern_integrity.rs (target/debug/deps/pattern_integrity-8d60532305725d35)
+
+running 2 tests
+test test_no_nested_quantifiers_in_patterns ... ok
+test test_patterns_compile_and_have_reasonable_length ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests/plaintext_sibling_test.rs (target/debug/deps/plaintext_sibling_test-641eae5c2a85ee83)
+
+running 11 tests
+test clean_encrypts_absolute_hatched_path_fail_closed ... ok
+test clean_encrypts_normally_without_plaintext_sibling ... ok
+test clean_skips_encryption_when_plaintext_sibling_exists ... ok
+test clean_with_empty_sibling_path_is_a_noop ... ok
+test clean_with_plaintext_sibling_does_not_add_env_version_header ... ok
+test clean_with_plaintext_sibling_preserves_binary_content ... ok
+test is_hatched_in_repo_accepts_contained_paths ... ok
+test is_hatched_in_repo_rejects_escape_even_when_sibling_exists ... ok
+test is_hatched_rejects_absolute_and_dotdot ... ok
+test is_hatched_returns_false_for_empty_path ... ok
+test is_hatched_returns_false_when_sibling_missing ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.99s
+
+     Running tests/redos_stress_test.rs (target/debug/deps/redos_stress_test-da1d1779664b1d49)
+
+running 6 tests
+test test_azure_sas_scan ... ok
+test test_generic_assignment_pattern_completes_in_reasonable_time ... ok
+test test_nested_quantifier_patterns_do_not_cause_exponential_blowup ... ok
+test test_scanner_detects_known_secret_patterns ... ok
+test test_scanner_performance_mixed_secret_and_filler ... ok
+test test_scanner_performance_under_large_evil_input ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.42s
+
+     Running tests/registry_credentials_test.rs (target/debug/deps/registry_credentials_test-6c12fb5bf9bf840f)
+
+running 1 test
+test test_load_registry_credentials_when_none_exist ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.92s
+
+     Running tests/restore_test.rs (target/debug/deps/restore_test-ec1da6168d22ed90)
+
+running 1 test
+test test_restore_workflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
+
+     Running tests/scanner_edge_cases_test.rs (target/debug/deps/scanner_edge_cases_test-a5f32595b6c32f78)
+
+running 12 tests
+test test_patterns_are_valid_regexes ... ok
+test test_scanner_completes_quickly_on_large_clean_input ... ok
+test test_scanner_detects_aws_access_key ... ok
+test test_scanner_detects_github_token ... ok
+test test_scanner_detects_private_key_formats_by_specific_name ... ok
+test test_scanner_detects_stripe_key ... ok
+test test_scanner_detects_unquoted_padded_generic_secret ... ok
+test test_scanner_detects_unquoted_padded_password ... ok
+test test_scanner_handles_clean_text ... ok
+test test_scanner_handles_empty_input ... ok
+test test_scanner_handles_unicode_content ... ok
+test test_scanner_ignores_too_short_unquoted_password ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.24s
+
+     Running tests/scanner_stress.rs (target/debug/deps/scanner_stress-50bc52a869597c2a)
+
+running 1 test
+test test_scanner_stress_1000 ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.16s
+
+     Running tests/security_critical_test.rs (target/debug/deps/security_critical_test-1c05470f804befc4)
+
+running 44 tests
+test test_authorize_recipient_writes_verified_direct_pair ... 
