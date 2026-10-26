@@ -366,3 +366,5 @@ Ran 89 tests across 5 files. [24.00ms]
 OK    200  https://affiliate-program.amazon.com
 OK    202  https://amazon.com
 OK    202  https://booking.com
+WARN  403  WAF-botblock(maybe-live)  https://impact.com/publisher-signup
+OK    200  https://partnernetwork.ebay.com
