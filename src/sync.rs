@@ -5373,12 +5373,14 @@ async fn sync_repo_local_with_ownership(
         // `check_conflict_state` (never mutates refs mid-merge/
         // rebase), and gated off in dry-run. Opt-in via
         // `auto_prune_stale_backup_branches` (default false).
-        crate::git::maybe_prune_stale_backup_branches(
-            repo,
-            policy.auto_prune_stale_backup_branches,
-            &policy.backup_dir,
-        )
-        .await;
+        if !commit_only && !entry_epoch.as_ref().is_some_and(|epoch| epoch.has_intent()) {
+            crate::git::maybe_prune_stale_backup_branches(
+                repo,
+                policy.auto_prune_stale_backup_branches,
+                &policy.backup_dir,
+            )
+            .await;
+        }
         // ADDED 2026-10-26: reclaim abandoned private-epoch spools.
         // Every epoch allocates `<gitdir>/dracon-staging-*` (a full-tree
         // index + an independent pack) and RETAINS it after publication so

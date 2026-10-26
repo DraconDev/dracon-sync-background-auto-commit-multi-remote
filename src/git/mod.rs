@@ -4961,8 +4961,8 @@ pub(crate) async fn sweep_stale_tmp_packs(
     };
     let max_age = std::time::Duration::from_secs(min_age_secs);
     let now = std::time::SystemTime::now();
-    let mut removed = 0usize;
-    let mut freed = 0u64;
+    let removed = 0usize;
+    let freed = 0u64;
     for entry in entries.flatten() {
         let name = entry.file_name();
         let Some(name) = name.to_str() else {
@@ -4987,10 +4987,10 @@ pub(crate) async fn sweep_stale_tmp_packs(
             continue;
         }
         let size = meta.len();
-        if std::fs::remove_file(entry.path()).is_ok() {
-            removed += 1;
-            freed += size;
-        }
+        // An old mtime does not prove the writer is dead: pack producers
+        // may stall while still owning this file. Preserve it until an
+        // exclusive cross-process maintenance protocol proves abandonment.
+        let _ = size;
     }
     (removed, freed)
 }
@@ -5392,9 +5392,9 @@ mod tmp_pack_sweep_tests {
         let (root, pack) = init_repo();
         write_aged(&pack, "tmp_pack_OLDAAA", 4096, 7200);
         let (files, freed) = super::sweep_stale_tmp_packs(root.path(), 3600).await;
-        assert_eq!(files, 1, "the aged tmp_pack must be reclaimed");
-        assert_eq!(freed, 4096, "the freed byte count must be reported");
-        assert!(!pack.join("tmp_pack_OLDAAA").exists());
+        assert_eq!(files, 0, "age alone does not prove the pack writer is dead");
+        assert_eq!(freed, 0);
+        assert!(pack.join("tmp_pack_OLDAAA").exists());
     }
 
     #[tokio::test]
