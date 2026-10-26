@@ -39,5 +39,20 @@
     "sync/hygiene_intent.rs": "6c7bdc5d21ff7c2e357e2cab73786b7f59f628d8188f8cdcec7ef080d988a7ef",
     "../exclude/hygiene.rs": "08716fbdc7da068e9291e2486e8444da82d67848177db72d6cd3ab872d19ab7d",
     "../sync/hygiene_tests.rs": "935deb11a2098e84baba7bf1c9d677a073171ed2e2ca6ea5c6819059ab1b0cb7"
+  },
+  "finalAssembly": {
+    "at": "2026-10-26T13:09:20.123027+00:00",
+    "workspace_tests": "norollback-final5-workspace-tests.log exit=0 (616/4/12/233/18/2 plus empty suites)",
+    "clippy": "norollback-final5-clippy.log exit=0 (strict, all targets)",
+    "release_build": "norollback-final4-release-build.log exit=0",
+    "deny": "norollback-final4-deny.log exit=0",
+    "excluded_recovery": "norollback-v4-excluded-recovery-tests.log 12 passed/0 failed",
+    "actual_syscall_release": "exchange-syscalls-release-v2.json pass=true",
+    "sourceSha256_excluded_revert": "9ca8a4ed240f49bb4380054d7d237a0444a3f5d0807a14da9fcf2a4ac1fcdb98"
+  },
+  "independentReview": {
+    "run": "4e855284-9a0f-43cd-ba9a-1018c2e6b725",
+    "result": "TIMED OUT after 1800000ms with NO verdict",
+    "interpretation": "not approval; the P1 correction review 05c0febe DID close the two hygiene findings but explicitly limited that approval"
   }
 }
