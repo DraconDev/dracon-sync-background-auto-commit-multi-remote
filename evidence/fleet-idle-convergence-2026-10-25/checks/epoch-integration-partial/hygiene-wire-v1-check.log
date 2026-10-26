@@ -101,3 +101,30 @@ note: the function `path_from_git_bytes` is defined here
 951 | fn path_from_git_bytes(raw: &[u8]) -> Result<PathBuf> {
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+error[E0063]: missing field `deletions` in initializer of `sync::staged_epoch::Epoch`
+   --> dracon-sync/src/sync/unmerged_epoch.rs:422:18
+    |
+422 |         Ok(Some((Epoch{snapshot,reference,deadline,retained:Some(directory)},sources.len())))
+    |                  ^^^^^ missing `deletions`
+
+error[E0599]: no method named `nlink` found for struct `Metadata` in the current scope
+   --> dracon-sync/src/sync/hygiene.rs:76:35
+    |
+ 76 |         if meta.is_file() && meta.nlink() == 1 && meta.len() > policy.max_stage_file_bytes {
+    |                                   ^^^^^
+    |
+   ::: /home/dracon/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/os/unix/fs.rs:610:8
+    |
+610 |     fn nlink(&self) -> u64;
+    |        ----- the method is available for `Metadata` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `MetadataExt` which provides `nlink` is implemented but not in scope; perhaps you want to import it
+    |
+  5 + use std::os::unix::fs::MetadataExt;
+    |
+help: there is a method `st_nlink` with a similar name
+    |
+ 76 |         if meta.is_file() && meta.st_nlink() == 1 && meta.len() > policy.max_stage_file_bytes {
+    |                                   +++
+
