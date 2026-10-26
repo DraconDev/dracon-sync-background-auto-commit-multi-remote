@@ -193,9 +193,12 @@ observation was performed here.
   substitute destructive writes or call these refusals successful restoration.
 - Rehearse actual daemon restart/admission and original hooks/storage/security
   boundaries, not only direct worker, kernel-lease and real report controls.
-- Reconcile the other disabled policy integration (version bump/release, unmerged
-  resolution, artifact cleanup and large-untracked hygiene) without weakening
-  staging ownership or meaningful tests.
+- Reconcile the demonstrated artifact-cleanup and large-untracked integration
+  gaps without weakening staging ownership or meaningful tests. Stale-unmerged
+  entry handling has separate v6 intermediate qualification. CORRECTION: version/
+  release bumping was already a no-op in pre-epoch5cf3391 (blamed to June16), not
+  a regression to restore here; see preexisting-version-noop-assessment.md under
+  the epoch-integration-partial evidence directory. Do not add unrelated behavior.
 - After the remaining implementation edits, requalify a fresh coherent workspace
   suite, release build, deny and strict Clippy, independently review and qualify
   actual installed/loaded execution,
