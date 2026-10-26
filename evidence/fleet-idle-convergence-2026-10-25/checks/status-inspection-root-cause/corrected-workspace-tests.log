@@ -1984,3 +1984,5 @@ test sync::tests::test_commit_guard_honors_owned_override_with_custom_identity .
 test sync::tests::test_commit_only_commits_but_never_pushes ... [master (root-commit) baf74f6] init
 ok
 test sync::tests::test_commit_only_control_pushes_and_fails ... [master (root-commit) fa0f559] init
+ok
+test sync::tests::test_compute_blast_radius_merge_prefix ... 
