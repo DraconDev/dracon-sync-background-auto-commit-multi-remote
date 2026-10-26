@@ -2039,3 +2039,6 @@ test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-com
 ok
 test sync::tests::test_forge_incident_declares_and_shields ... [master (root-commit) 076761e] init
 [master (root-commit) 076761e] init
+ok
+test sync::tests::test_goal_metrics_multibyte_utf8_no_panic ... ok
+test sync::tests::test_index_lock_contention_preserves_work_and_recovers ... [master (root-commit) b8bc826] init
