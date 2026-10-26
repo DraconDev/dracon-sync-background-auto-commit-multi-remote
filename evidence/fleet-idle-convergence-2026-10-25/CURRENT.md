@@ -1,6 +1,49 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Hygiene v12 — CURRENT; coherent four-gate intermediate assembly, NOT deployed
+## Hygiene safety v1 — CURRENT targeted repair; NOT final/deployed
+
+The newer safety review found gaps that the preceding passing suite did not
+cover. Ignore application recaptured a fresh canonical baseline after rendering,
+which could overwrite a newer closed-writer edit. It now observes/renders/applies
+under one authority and carries the ORIGINAL fingerprint through lease/exchange.
+Real isolated boundary injection replaces the file immediately before the helper:
+the old render is refused and the foreign canonical bytes/index remain intact.
+Existing writable-FD, symlink and hardlink controls likewise refuse safely.
+Generated requests now use the recognized dracon-excluded-recovery namespace;
+previous dracon-ignore-recovery records were invisible to concern/archive scans.
+Directory0600/0700 protections apply at creation. Artifact de-index uses literal
+pathspec input, never glob expansion, never a gitlink checkout or filename-only
+artifact match. Eligibility no longer waives explicit file/per-repo opt-outs.
+
+Observed current targeted gates: hygiene13pass/0fail and strict ALL-TARGET
+workspace Clippy PASS. Matching frozen helper path and raw results use
+checks/epoch-integration-partial/hygiene-safety-v1-*. No current full-workspace,
+release-build or cargo-deny qualification is claimed after these edits; v12 below
+is HISTORICAL. No service/binary/config deployment or zero-batch migration.
+
+Remaining demonstrated hygiene gaps: large-only admission still needs a true
+post-harden production control (existing positive also edited note.txt);
+large observation must respect auto-stage opt-outs and private-asset exclusions,
+not enumerate every untracked file indiscriminately; applied canonical metadata
+must force follow-up rather than report NothingToDo; and failed post-commit
+artifact ignore writes need durable retry intent so the deleted HEAD paths do
+not erase their plan. Do not call these repaired merely because focused tests
+pass. Original gates, installed/loaded behavior and every-watched clean/idle
+acceptance remain required. The crash-lease EAGAIN root cause is NOT established
+by an isolated retry passing; retain that limitation and inspect finite cleanup.
+
+Operator-approved Doomtap scope change: only the exact nine QA frame names were
+de-indexed under maintenance, with exact positive ignore rules OUTSIDE the
+unchanged74-name curated comparison block. An initial glob selected13 files;
+the daemon re-staged them before the corrected exact-nine operation. Receipt
+checks/doomtap-exact-qa-deindex.json proves all nine canonical hashes unchanged
+and eight other QA paths remain tracked. Original publication-contract test
+passes. Later checks/doomtap-exact-qa-followup.json observes no approved paths
+still tracked, identical canonical hashes and the same HEAD advertised by GitHub
+and GitLab. No manual commit or push; loaded-runtime/publication witness still
+needs journal correlation and this is NOT a complete fleet observation.
+
+## Hygiene v12 — HISTORICAL coherent four-gate intermediate assembly
 
 Artifact cleanup and large-untracked ignore handling were genuinely disabled by
 the staged-epoch refactor and are now restored through the private-candidate
