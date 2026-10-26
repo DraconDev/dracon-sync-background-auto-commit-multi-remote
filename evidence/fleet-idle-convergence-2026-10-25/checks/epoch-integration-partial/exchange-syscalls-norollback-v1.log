@@ -11,6 +11,40 @@
     "displacedSha256": "4152ec480ad1a2792ade0de86653b3d0333e20199538d192efee30d317dfea97",
     "pass": true
   },
-  "error": "UnboundLocalError(\"cannot access local variable 'adversarial' where it is not associated with a value\")",
-  "pass": false
+  "adversarial": {
+    "expectFinalResponse": true,
+    "helperPid": 2557788,
+    "requestOriginalInode": 37136326,
+    "requestDesiredInode": 37136344,
+    "exchangeStops": [
+      {
+        "entry": true,
+        "return": -38
+      },
+      {
+        "entry": false,
+        "return": 0
+      }
+    ],
+    "actualBreakingLeaseRows": [
+      "1: LEASE  BREAKING  UNLCK 2557788 103:02:37136326 0 EOF"
+    ],
+    "newerOpenedInode": 37136344,
+    "canonicalAtNewOpen": 37136344,
+    "helperWaitStatus": 0,
+    "helperStdout": "[\"0a696513bf4cb012aa97f56cc8c348e7518a25132728691705fc53a74a115162\",true]",
+    "helperStderr": "",
+    "oldWriter": {
+      "pid": 2557866,
+      "inode": 37136326
+    },
+    "oldWriterLandedOnCanonical": false,
+    "oldWriterLandedDisplaced": true,
+    "canonicalAfterBothWrites": "4e45572d57524954455261642072657461696e65640a",
+    "privateAfterBothWrites": "4f4c442d575249544552524947494e414c207061796c6f61640a",
+    "indexPreserved": true,
+    "newerWriterStillCanonical": true,
+    "canonicalContainsNewerWrite": true
+  },
+  "pass": true
 }

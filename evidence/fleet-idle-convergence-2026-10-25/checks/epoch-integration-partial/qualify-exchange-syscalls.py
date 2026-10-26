@@ -234,11 +234,11 @@ def main():
                 (root / name).mkdir()
             record['baseline'] = baseline(helper, root / 'baseline')
             record['adversarial'] = adversarial(helper, root / 'adversarial', args.expect_final == 'true')
-            adversarial = record['adversarial']
-            record['pass'] = (adversarial['newerWriterStillCanonical']
-                              and adversarial['canonicalContainsNewerWrite']
-                              and adversarial['indexPreserved']
-                              and not adversarial['oldWriterLandedOnCanonical'])
+            a = record['adversarial']
+            record['pass'] = (a['newerWriterStillCanonical']
+                              and a['canonicalContainsNewerWrite']
+                              and a['indexPreserved']
+                              and not a['oldWriterLandedOnCanonical'])
     except BaseException as exc:
         record['error'] = repr(exc)
         record['pass'] = False
