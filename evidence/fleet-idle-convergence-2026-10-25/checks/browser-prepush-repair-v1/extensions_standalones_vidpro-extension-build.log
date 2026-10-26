@@ -1,2 +1,88 @@
 $ node scripts/ensure-wxt.mjs
 $ tsc --noEmit && wxt build && node scripts/clean-duplicate-css.js
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+- Preparing...
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+11:59:13 [vite-plugin-svelte] entrypoints/dashboard/components/ToastItem.svelte:18:22 This reference only captures the initial value of `toast`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+16:   // it (audit 2026-09-13). Success/warning auto-dismiss, pausable below.
+17:   const AUTO_DISMISS_MS = 5000;
+18:   const autoDismiss = toast.type !== "error";
+                               ^
+19:   let deadline = 0;
+20:   let remainingMs = AUTO_DISMISS_MS;
+11:59:13 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:592:8 Visible, non-interactive element `<label>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+590:              The hint follows the switch instead of standing still: a fixed
+591:              "off by default" next to a switch reading "On" was a lie. -->
+592:         <label
+                   ^
+593:           class="block cursor-pointer"
+594:           onclick={(e) => {
+11:59:13 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:592:8 Non-interactive element `<label>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+590:              The hint follows the switch instead of standing still: a fixed
+591:              "off by default" next to a switch reading "On" was a lie. -->
+592:         <label
+                   ^
+593:           class="block cursor-pointer"
+594:           onclick={(e) => {
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+
+ WARN  Duplicated imports "MIN_TREND_POINTS", the one from "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelTrend.ts" has been ignored and "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/utils/channelViews.ts" is used
+
+[1G✔ Built extension in 4.847 s
+  ├─ .output/chrome-mv3/manifest.json                                  1.27 kB  
+  ├─ .output/chrome-mv3/dashboard.html                                 687 B    
+  ├─ .output/chrome-mv3/popup.html                                     695 B    
+  ├─ .output/chrome-mv3/welcome.html                                   2.62 kB  
+  ├─ .output/chrome-mv3/background.js                                  68.38 kB 
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-html-plugins-DPbbfBKe.js   779 B    
+  ├─ .output/chrome-mv3/chunks/ApiSettings-cOnJbo9i.js                 19.91 kB 
+  ├─ .output/chrome-mv3/chunks/ChannelInsightsSettings-B1PH2x3M.js     22.34 kB 
+  ├─ .output/chrome-mv3/chunks/dashboard-CynMz7KV.js                   59.83 kB 
+  ├─ .output/chrome-mv3/chunks/HelpTooltip-4CFCDydj.js                 1.8 kB   
+  ├─ .output/chrome-mv3/chunks/Input-L3JJZNsE.js                       2.69 kB  
+  ├─ .output/chrome-mv3/chunks/popup-ijq270LV.js                       4.35 kB  
+  ├─ .output/chrome-mv3/chunks/ProfileSettings-BfMU8iON.js             7.17 kB  
+  ├─ .output/chrome-mv3/chunks/PublishingDefaultsSettings-Ds8QCk2K.js  41.4 kB  
+  ├─ .output/chrome-mv3/chunks/SettingsTab-DMLSF7dj.js                 8.83 kB  
+  ├─ .output/chrome-mv3/chunks/style-Bw31k3oB.js                       46.17 kB 
+  ├─ .output/chrome-mv3/chunks/welcome-JSEpM3uv.js                     1.41 kB  
+  ├─ .output/chrome-mv3/content-scripts/channel.js                     127.14 kB
+  ├─ .output/chrome-mv3/content-scripts/studio.js                      125.86 kB
+  ├─ .output/chrome-mv3/content-scripts/watch.js                       86.26 kB 
+  ├─ .output/chrome-mv3/assets/dashboard-CTqVjQcP.css                  1.28 kB  
+  ├─ .output/chrome-mv3/assets/popup-CA46ENda.css                      207 B    
+  ├─ .output/chrome-mv3/assets/style-B0K3HVU6.css                      36.52 kB 
+  ├─ .output/chrome-mv3/assets/style.css                               36.52 kB 
+  ├─ .output/chrome-mv3/assets/welcome-BJetjVnv.css                    6.19 kB  
+  ├─ .output/chrome-mv3/_locales/en/messages.json                      8.77 kB  
+  ├─ .output/chrome-mv3/icon/128.png                                   5.2 kB   
+  ├─ .output/chrome-mv3/icon/16.png                                    757 B    
+  ├─ .output/chrome-mv3/icon/32.png                                    705 B    
+  ├─ .output/chrome-mv3/icon/48.png                                    1.93 kB  
+  └─ .output/chrome-mv3/icon/96.png                                    2.05 kB  
+Σ Total size: 729.72 kB                                              
+✔ Finished in 6.006 s
+Removed duplicate CSS: style.css (identical to style-B0K3HVU6.css)
+Removed duplicate CSS: style.css (identical to style-B0K3HVU6.css)
+CSS cleanup complete.
