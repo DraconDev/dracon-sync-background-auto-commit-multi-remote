@@ -439,4 +439,5 @@ test storage_core::metadata::tests::cancelling_import_releases_lease_and_termina
 test storage_core::metadata::tests::ciphertext_selection_refuses_ambiguous_manifests_and_excessive_catalogs ... ok
 test storage_core::metadata::tests::cold_import_crashes_recover_retained_exact_ciphertext ... ok
 test storage_core::metadata::tests::cold_import_honors_retention_limits_and_preserves_corrupted_source ... ok
-test storage_core::metadata::tests::cold_import_preserves_ciphertext_versions_and_existing_preparations ... 
+test storage_core::metadata::tests::cold_import_preserves_ciphertext_versions_and_existing_preparations ... ok
+test storage_core::metadata::tests::cold_import_refuses_wrong_repo_corruption_noncanonical_and_output_overflow ... 
