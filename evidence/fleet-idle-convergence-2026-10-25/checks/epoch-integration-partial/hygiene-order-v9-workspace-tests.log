@@ -2194,3 +2194,531 @@ test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-
 FAILED
 test sync::tests::test_sync_repo_not_git_repo_returns_false ... ok
 test sync::tests::test_sync_repo_partial_deletion_allowed ... [master (root-commit) c91f7c8] init
+FAILED
+test sync::tests::test_sync_repo_pull_skip_when_no_origin ... [master (root-commit) c91f7c8] init
+ok
+test sync::tests::test_sync_repo_pushes_detached_head_ahead_commit ... [main (root-commit) c91f7c8] init
+[main ec33fdf] ahead
+HEAD is now at ec33fdf ahead
+ok
+test sync::tests::test_sync_repo_single_deleted_file_committed ... [master (root-commit) 803e762] init
+FAILED
+test sync::tests::test_sync_repo_skip_pull_when_dirty ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_not_behind ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_origin ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_upstream ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_sync_repo_skips_bisect_in_progress ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_sync_repo_skips_cherry_pick_in_progress ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_sync_repo_skips_merge_in_progress ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_sync_repo_skips_rebase_in_progress ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_sync_repo_skips_revert_in_progress ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) 803e762] init
+FAILED
+test sync::tests::test_sync_repo_unstages_excluded_dir_paths ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_sync_repo_unstages_oversized_file ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_sync_repo_with_duplicate_subjects_succeeds ... [master (root-commit) 803e762] init
+ok
+test sync::tests::test_truncate_task_at_sentence_boundary ... ok
+test sync::tests::test_truncate_task_hard_cutoff ... ok
+test sync::tests::test_truncate_task_multibyte_utf8 ... ok
+test sync::tests::test_truncate_task_short ... ok
+test sync::tests::test_warden_auto_harden_disabled_never_forks ... ok
+test sync::tests::test_warden_auto_harden_hardens_once ... ok
+test sync::tests::test_warden_auto_harden_skips_dry_run ... ok
+test sync::tests::unlimited_batch_bootstraps_all_related_unborn_files ... FAILED
+test sync::tests::unlimited_batch_commits_all_related_worktree_files_in_one_epoch ... [master (root-commit) 257f0ac] init
+FAILED
+test test_helpers::tests::test_create_test_repo_registers_temp_dir ... ok
+test test_helpers::tests::test_env_restorer_remove_round_trip ... ok
+test test_helpers::tests::test_env_restorer_round_trip ... ok
+test tests::one_shot_cancellation_reaps_owned_children_and_releases_repository_lease ... ok
+test tests::test_env_freeze_takes_precedence ... ok
+test tests::test_freeze_marker_paths ... ok
+test tests::test_freeze_reason_none_when_no_marker ... ok
+test tests::test_metrics_contains_all_expected_metrics ... ok
+test tests::test_metrics_output_has_expected_format ... ok
+test tests::test_parent_pid_is_readable_on_procfs ... ok
+test tests::test_pause_marker_records_caller_provenance ... ok
+test tests::test_run_maintenance_pauses_runs_resumes ... ok
+test tests::test_run_maintenance_preserves_existing_freeze ... ok
+test tests::test_run_maintenance_resumes_even_on_failure ... ok
+test tests::test_run_maintenance_spawn_failure_returns_127_and_resumes ... ok
+test tests::test_scaffold_does_not_delete_symlinked_external_directory ... ok
+test tests::test_scaffold_rejects_root_target_without_deleting_repo ... ok
+test tests::test_scaffold_rejects_symlink_directory_escape ... ok
+test vanished::tests::detect_is_sorted_by_path_for_deterministic_reports ... ok
+test vanished::tests::detect_reports_only_unexpired_vanished_entries ... ok
+test vanished::tests::ledger_roundtrips_through_json ... ok
+test vanished::tests::mark_seen_adds_and_clears_vanished_stamp ... ok
+test vanished::tests::quantum_holds_heartbeat_but_not_vanish_signals ... ok
+test vanished::tests::save_skips_identical_content ... ok
+test vanished::tests::save_stable_across_reload_round_trip ... ok
+test vanished::tests::update_stamps_newly_absent_and_clears_returned ... ok
+test visibility::tests::test_cache_not_written_on_unparseable_origin ... ok
+test visibility::tests::test_cache_not_written_when_gh_visibility_unknown ... ok
+test visibility::tests::test_cache_prevents_repeated_api_calls ... ok
+test visibility::tests::test_cached_repo_visibility_returns_none_when_no_file ... ok
+test visibility::tests::test_cached_repo_visibility_returns_private ... ok
+test visibility::tests::test_cached_repo_visibility_returns_public ... ok
+test visibility::tests::test_cached_repo_visibility_treats_legacy_format_as_unknown ... ok
+test visibility::tests::test_cached_repo_visibility_window_follows_interval_hours ... ok
+test visibility::tests::test_codeberg_api_url_construction ... ok
+test visibility::tests::test_flip_repo_visibility_uses_single_remote_identity ... ok
+test visibility::tests::test_get_github_metadata_returns_empty_on_error ... ok
+test visibility::tests::test_get_github_visibility_returns_safe_default_on_error ... ok
+test visibility::tests::test_github_visibility_at_creation_disabled ... ok
+test visibility::tests::test_github_visibility_at_creation_enabled_private ... ok
+test visibility::tests::test_gitlab_api_url_construction ... ok
+test visibility::tests::test_last_known_visibility_survives_stale_cache_for_display_only ... ok
+test visibility::tests::test_parse_github_owner_repo_empty_string ... ok
+test visibility::tests::test_parse_github_owner_repo_gitlab_url ... ok
+test visibility::tests::test_parse_github_owner_repo_https ... ok
+test visibility::tests::test_parse_github_owner_repo_invalid_url ... ok
+test visibility::tests::test_parse_github_owner_repo_no_git_suffix ... ok
+test visibility::tests::test_parse_github_owner_repo_ssh ... ok
+test visibility::tests::test_parse_github_owner_repo_ssh_scheme_and_userinfo ... ok
+test visibility::tests::test_parse_github_owner_repo_with_dots ... ok
+test visibility::tests::test_parse_github_owner_repo_with_hyphens ... ok
+test visibility::tests::test_parse_github_owner_repo_with_name_mapping ... ok
+test visibility::tests::test_parse_visibility_cache_new_format_private ... ok
+test visibility::tests::test_parse_visibility_cache_new_format_public ... ok
+test visibility::tests::test_parse_visibility_cache_rejects_legacy_timestamp_only ... ok
+test visibility::tests::test_parse_visibility_cache_rejects_malformed ... ok
+test visibility::tests::test_refresh_falls_back_to_unknown_when_gh_unavailable ... ok
+test visibility::tests::test_refresh_handles_legacy_file_correctly_via_ssh_url ... ok
+test visibility::tests::test_refresh_idempotent ... ok
+test visibility::tests::test_refresh_preserves_new_format ... ok
+test visibility::tests::test_refresh_upgrades_legacy_to_new_format ... ok
+test visibility::tests::test_repo_metadata_default ... ok
+test visibility::tests::test_resolve_account_explicit_overrides ... ok
+test visibility::tests::test_resolve_account_from_https_url ... ok
+test visibility::tests::test_resolve_account_from_ssh_url ... ok
+test visibility::tests::test_same_host_project_divergence_detects_splits ... ok
+test visibility::tests::test_select_github_remote_falls_back_to_origin ... ok
+test visibility::tests::test_select_github_remote_prefers_github_over_origin ... ok
+test visibility::tests::test_select_github_remote_returns_none_when_nothing ... ok
+test visibility::tests::test_select_github_remote_skips_empty_github_uses_origin ... ok
+test visibility::tests::test_set_codeberg_metadata_does_not_panic ... ok
+test visibility::tests::test_set_codeberg_visibility_builds_correct_request ... ok
+test visibility::tests::test_set_gitlab_metadata_does_not_panic ... ok
+test visibility::tests::test_set_gitlab_visibility_builds_correct_request ... ok
+test visibility::tests::test_strip_ansi_passthrough_plain_text ... ok
+test visibility::tests::test_strip_ansi_removes_color_codes ... ok
+test visibility::tests::test_sync_metadata_defaults_in_policy ... ok
+test visibility::tests::test_sync_metadata_parses_true ... ok
+test visibility::tests::test_sync_metadata_with_missing_tokens ... ok
+test visibility::tests::test_sync_mirror_metadata_does_not_panic ... ok
+test visibility::tests::test_sync_mirror_metadata_handles_unparseable_origin ... ok
+test visibility::tests::test_sync_mirror_visibility_does_not_panic_on_all_failures ... ok
+test visibility::tests::test_sync_mirror_visibility_handles_unparseable_origin ... ok
+test visibility::tests::test_sync_mirror_visibility_skips_when_cache_fresh ... ok
+test visibility::tests::test_sync_visibility_defaults_in_policy ... ok
+test visibility::tests::test_sync_visibility_parses_true ... ok
+test visibility::tests::test_visibility_cache_corrupt_file ... ok
+test visibility::tests::test_visibility_cache_fresh_when_recent ... ok
+test visibility::tests::test_visibility_cache_freshness_works_for_both_formats ... ok
+test visibility::tests::test_visibility_cache_in_the_future_is_not_fresh ... ok
+test visibility::tests::test_visibility_cache_not_fresh_when_missing ... ok
+test visibility::tests::test_visibility_cache_stale_when_old ... ok
+test visibility::tests::test_visibility_cache_updates_timestamp ... ok
+
+failures:
+
+---- bucket_assets::tests::daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure stdout ----
+
+thread 'bucket_assets::tests::daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure' (887962) panicked at dracon-sync/src/bucket_assets.rs:707:9:
+daemon fixture failed: Err(immutable storage verifier executable/source identity or binding mismatch)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness stdout ----
+⚠️ /tmp/dracon-failure-recovery-4Zb88N/watched/bucket private bucket preparation refused; no commit: private bucket upload refused; staged/worktree content retained
+
+thread 'daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness' (918999) panicked at dracon-sync/src/daemon/failure_recovery_tests.rs:138:33:
+fixture sync /tmp/dracon-failure-recovery-4Zb88N/watched/healthy failed: immutable storage verifier executable/source identity or binding mismatch
+
+---- storage::tests::a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit stdout ----
+
+thread 'storage::tests::a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit' (948104) panicked at dracon-sync/src/storage/tests.rs:1043:5:
+the commit-msg refusal must reach the caller: immutable storage verifier executable/source identity or binding mismatch
+
+---- storage::tests::a_refusing_hook_blocks_a_storage_sealed_commit stdout ----
+
+thread 'storage::tests::a_refusing_hook_blocks_a_storage_sealed_commit' (948270) panicked at dracon-sync/src/storage/tests.rs:829:5:
+the hook's refusal must reach the caller: immutable storage verifier executable/source identity or binding mismatch
+
+---- storage::tests::a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order stdout ----
+
+thread 'storage::tests::a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order' (948377) panicked at dracon-sync/src/storage/tests.rs:923:14:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- storage::tests::sealed_commit_honors_a_refusing_reference_transaction_hook stdout ----
+
+thread 'storage::tests::sealed_commit_honors_a_refusing_reference_transaction_hook' (949134) panicked at dracon-sync/src/storage/tests.rs:1114:5:
+assertion failed: format!("{error:#}").contains("ref policy refused")
+
+---- storage::tests::sealed_commit_rejects_a_message_emptied_by_commit_msg stdout ----
+
+thread 'storage::tests::sealed_commit_rejects_a_message_emptied_by_commit_msg' (949284) panicked at dracon-sync/src/storage/tests.rs:1160:5:
+assertion failed: format!("{error:#}").contains("message empty")
+
+---- storage::tests::storage_bootstrap_cannot_bypass_guard_with_no_verify stdout ----
+
+thread 'storage::tests::storage_bootstrap_cannot_bypass_guard_with_no_verify' (949397) panicked at dracon-sync/src/storage/tests.rs:1203:28:
+valid protected metadata must commit: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore stdout ----
+
+thread 'sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore' (950619) panicked at dracon-sync/src/sync/bucket_qualification_tests.rs:173:10:
+worker result: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery stdout ----
+⚠️ /tmp/.tmpDSFwDO/repo bucket runner bridge refused; no commit: bundle refused
+qualification operations: [Object {"op": String("consumer-diagnostic"), "reason": String("managed-bootstrap-text-verified"), "status": String("supported")}, Object {"key": String("games/788000bf-d047-429d-b962-436a72837e90/db4b373cca38cf0faa3a1613512dab8cae665cfd9de3e6dd34dbb2c8b367aa96.png"), "op": String("head"), "role": String("uploader")}, Object {"op": String("close"), "role": String("uploader")}, Object {"op": String("plan-diagnostic"), "outcomes": Array [Object {"path": String("public/a.png"), "reason": String("new-registration"), "status": String("eligible")}, Object {"path": String("public/b.png"), "reason": String("new-registration"), "status": String("eligible")}], "status": String("planned")}, Object {"commitEligible": Bool(false), "op": String("verdict"), "status": String("refused")}]
+staged paths: 
+
+thread 'sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery' (951244) panicked at dracon-sync/src/sync/bucket_qualification_tests.rs:173:10:
+worker result: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::bucket_qualification_tests::bucket_qualification_later_materialized_bytes_never_become_false_no_work stdout ----
+
+thread 'sync::bucket_qualification_tests::bucket_qualification_later_materialized_bytes_never_become_false_no_work' (951899) panicked at dracon-sync/src/sync/bucket_qualification_tests.rs:173:10:
+worker result: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores stdout ----
+
+thread 'sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores' (952593) panicked at dracon-sync/src/sync/excluded_revert_crash_tests.rs:62:9:
+no actual helper lease observed before parent crash
+
+---- sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late stdout ----
+
+thread 'sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late' (965381) panicked at dracon-sync/src/sync/excluded_revert_recovery_tests.rs:226:5:
+the actual helper must hold a kernel lease before the cancellation claim
+
+---- sync::excluded_revert_pipeline_tests::excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_push_hook_work stdout ----
+🛟 /tmp/.tmph1SGqJ explicit excluded restore recovery: /tmp/.tmph1SGqJ/.git/dracon-excluded-recovery-R37QJA
+
+thread 'sync::excluded_revert_pipeline_tests::excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_push_hook_work' (971945) panicked at dracon-sync/src/sync/excluded_revert_pipeline_tests.rs:135:16:
+called `Result::unwrap()` on an `Err` value: excluded restore helper refused: Error: excluded helper source identity mismatch
+
+
+---- sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes stdout ----
+🛟 /tmp/.tmpxIVXa4 explicit excluded restore recovery: /tmp/.tmpxIVXa4/.git/dracon-excluded-recovery-rpOToq
+
+thread 'sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes' (972046) panicked at dracon-sync/src/sync/excluded_revert_pipeline_tests.rs:87:16:
+called `Result::unwrap()` on an `Err` value: excluded restore helper refused: Error: excluded helper source identity mismatch
+
+
+---- sync::excluded_revert_pipeline_tests::excluded_restore_only_excluded_work_needs_no_commit_and_dry_run_preserves_bytes stdout ----
+🛟 /tmp/.tmppSxB2N explicit excluded restore recovery: /tmp/.tmppSxB2N/.git/dracon-excluded-recovery-otUwBL
+
+thread 'sync::excluded_revert_pipeline_tests::excluded_restore_only_excluded_work_needs_no_commit_and_dry_run_preserves_bytes' (972145) panicked at dracon-sync/src/sync/excluded_revert_pipeline_tests.rs:62:5:
+assertion failed: sync_repo(r, &p, &BTreeSet::new(), 0, None, false, None).await.is_ok()
+
+---- sync::excluded_revert_tests::excluded_restore_defers_active_writer_without_relocating_its_future_bytes stdout ----
+🛟 /tmp/.tmpI8nhZh explicit excluded restore recovery: /tmp/.tmpI8nhZh/.git/dracon-excluded-recovery-JYa8xv
+
+thread 'sync::excluded_revert_tests::excluded_restore_defers_active_writer_without_relocating_its_future_bytes' (973691) panicked at dracon-sync/src/sync/excluded_revert_tests.rs:117:30:
+called `Result::unwrap()` on an `Err` value: excluded restore helper refused: Error: excluded helper source identity mismatch
+
+
+---- sync::excluded_revert_tests::excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untracked stdout ----
+🛟 /tmp/.tmpDgnLXY explicit excluded restore recovery: /tmp/.tmpDgnLXY/.git/dracon-excluded-recovery-xNyTOG
+
+thread 'sync::excluded_revert_tests::excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untracked' (973753) panicked at dracon-sync/src/sync/excluded_revert_tests.rs:78:6:
+called `Result::unwrap()` on an `Err` value: excluded restore helper refused: Error: excluded helper source identity mismatch
+
+
+---- sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes stdout ----
+ℹ️ skip large file /tmp/.tmprFMtjo/huge.iso (4096 bytes > 1024 bytes)
+🛡️ /tmp/.tmprFMtjo auto-hardened with warden before staging
+
+thread 'sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes' (974148) panicked at dracon-sync/src/sync/hygiene_tests.rs:92:5:
+production hygiene sync failed: Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::owned_commit_tests::another_publication_owner_allows_a_real_commit_without_a_push_or_failure_reset stdout ----
+
+thread 'sync::owned_commit_tests::another_publication_owner_allows_a_real_commit_without_a_push_or_failure_reset' (974475) panicked at dracon-sync/src/sync/owned_commit_tests.rs:253:6:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::owned_commit_tests::the_ordinary_commit_path_runs_each_hook_exactly_once stdout ----
+
+thread 'sync::owned_commit_tests::the_ordinary_commit_path_runs_each_hook_exactly_once' (976295) panicked at dracon-sync/src/sync/owned_commit_tests.rs:417:6:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits stdout ----
+🛡️ /tmp/.tmpXgpLDN/a auto-hardened with warden before staging
+
+thread 'sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits' (976424) panicked at dracon-sync/src/sync/publication_actor_tests.rs:125:18:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+thread 'sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits' (976424) panicked at dracon-sync/src/sync/publication_actor_tests.rs:100:29:
+/tmp/.tmpXgpLDN/hook-entered never appeared
+
+---- sync::publication_actor_tests::secondary_owner_commits_and_reports_pending_publication stdout ----
+🛡️ /tmp/.tmpO8Nq5q/pending auto-hardened with warden before staging
+
+thread 'sync::publication_actor_tests::secondary_owner_commits_and_reports_pending_publication' (986361) panicked at dracon-sync/src/sync/publication_actor_tests.rs:350:6:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::staged_epoch::tests::published_epoch_deadline_is_pending_not_a_failed_commit stdout ----
+
+thread 'sync::staged_epoch::tests::published_epoch_deadline_is_pending_not_a_failed_commit' (988759) panicked at dracon-sync/src/sync/staged_epoch.rs:1345:9:
+known publication must remain pending, not failure: Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_commits_only_verified_entry_staging_and_preserves_worktree stdout ----
+🛟 /tmp/.tmpXFBSzi reconciled 1 HEAD-equal stale conflict paths; exact original index/payloads retained at /tmp/.tmpXFBSzi/.git/dracon-unmerged-recovery-npcJlw
+
+thread 'sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_commits_only_verified_entry_staging_and_preserves_worktree' (990469) panicked at dracon-sync/src/sync/unmerged_epoch_tests.rs:296:5:
+real production sync failed: Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::tests::captured_epoch_commits_partial_index_and_keeps_unstaged_work stdout ----
+
+thread 'sync::tests::captured_epoch_commits_partial_index_and_keeps_unstaged_work' (991542) panicked at dracon-sync/src/sync.rs:12468:9:
+Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::tests::test_auto_commit_excludes_union_global_and_per_repo stdout ----
+🛡️ /tmp/.tmpBkfpla/repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_auto_commit_excludes_union_global_and_per_repo' (993503) panicked at dracon-sync/src/sync.rs:8850:9:
+sync_repo failed: Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::tests::test_bootstrap_empty_repo_creates_root_commit stdout ----
+🛡️ /tmp/.tmpid1iqD/repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_bootstrap_empty_repo_creates_root_commit' (994133) panicked at dracon-sync/src/sync.rs:7794:24:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::tests::test_bootstrap_empty_repo_respects_gitignore stdout ----
+🛡️ /tmp/.tmpKPQAG2/repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_bootstrap_empty_repo_respects_gitignore' (994401) panicked at dracon-sync/src/sync.rs:7817:24:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::tests::test_bootstrap_empty_repo_skips_oversized_files stdout ----
+ℹ️ skip large file /tmp/.tmpBONFUL/repo/big.bin (2048 bytes > 1024 bytes)
+🛡️ /tmp/.tmpBONFUL/repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_bootstrap_empty_repo_skips_oversized_files' (994586) panicked at dracon-sync/src/sync.rs:7967:24:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::tests::test_commit_only_commits_but_never_pushes stdout ----
+🛡️ /tmp/.tmp2NHfF8/test-repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_commit_only_commits_but_never_pushes' (995172) panicked at dracon-sync/src/sync.rs:9715:29:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::tests::test_commit_only_control_pushes_and_fails stdout ----
+🛡️ /tmp/.tmp1lRF1S/test-repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_commit_only_control_pushes_and_fails' (995427) panicked at dracon-sync/src/sync.rs:9765:29:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::tests::test_concurrent_staging_defers_then_captured_and_worktree_epochs_converge stdout ----
+🛡️ /tmp/.tmpLJydch/concurrent-stage-repo auto-hardened with warden before staging
+⏳ /tmp/.tmpLJydch/concurrent-stage-repo private staging deferred; concurrent intent retained: private staging retained at /tmp/.tmpLJydch/concurrent-stage-repo/.git/dracon-staging-FLYdDz: candidate backup: None: epoch index or parent changed; actual staged/worktree data retained
+
+thread 'sync::tests::test_concurrent_staging_defers_then_captured_and_worktree_epochs_converge' (995987) panicked at dracon-sync/src/sync.rs:12631:9:
+Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::tests::test_degraded_success_reports_paused_not_synced stdout ----
+🛡️ /tmp/.tmpO3hYZ4/test-repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_degraded_success_reports_paused_not_synced' (996507) panicked at dracon-sync/src/sync.rs:9863:29:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::tests::test_deletions_committed_when_intentional stdout ----
+🛡️ /tmp/.tmpUIFWYy/deletion-commit-repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_deletions_committed_when_intentional' (996848) panicked at dracon-sync/src/sync.rs:11820:9:
+assertion `left == right` failed: the original pass must commit the surviving file
+  left: [99, 111, 110, 116, 101, 110, 116, 48]
+ right: [109, 111, 100, 105, 102, 105, 101, 100]
+
+---- sync::tests::test_excluded_tracked_file_edits_preserved_by_default stdout ----
+🛡️ /tmp/.tmpgtXzPD/repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_excluded_tracked_file_edits_preserved_by_default' (997171) panicked at dracon-sync/src/sync.rs:8755:9:
+sync_repo failed: Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::tests::test_excluded_tracked_file_reverted_when_opted_in stdout ----
+🛟 /tmp/.tmpNmNddh/repo explicit excluded restore recovery: /tmp/.tmpNmNddh/repo/.git/dracon-excluded-recovery-kOjfd0
+
+thread 'sync::tests::test_excluded_tracked_file_reverted_when_opted_in' (997391) panicked at dracon-sync/src/sync.rs:8935:9:
+sync_repo failed: Err(excluded restore helper refused: Error: excluded helper source identity mismatch
+)
+
+---- sync::tests::test_forge_incident_declares_and_shields stdout ----
+🛡️ /tmp/.tmp8FyFWW/repo-a auto-hardened with warden before staging
+
+thread 'sync::tests::test_forge_incident_declares_and_shields' (998209) panicked at dracon-sync/src/sync.rs:10020:28:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::tests::test_index_lock_contention_preserves_work_and_recovers stdout ----
+🛡️ /tmp/.tmpDBubKf/lock-recovery-repo auto-hardened with warden before staging
+⏳ /tmp/.tmpDBubKf/lock-recovery-repo private staging deferred; concurrent intent retained: private staging retained at /tmp/.tmpDBubKf/lock-recovery-repo/.git/dracon-staging-AjPYz3: epoch index lock held by another operation
+
+thread 'sync::tests::test_index_lock_contention_preserves_work_and_recovers' (998556) panicked at dracon-sync/src/sync.rs:12220:9:
+retry after lock release: Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::tests::test_index_lock_contention_retries_then_succeeds stdout ----
+🛡️ /tmp/.tmpHBRR4g/lock-retry-repo auto-hardened with warden before staging
+⏳ /tmp/.tmpHBRR4g/lock-retry-repo git add hit index.lock contention (retry 1/2)
+
+thread 'sync::tests::test_index_lock_contention_retries_then_succeeds' (998953) panicked at dracon-sync/src/sync.rs:12293:9:
+retry must commit the intended file in THIS pass: Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::tests::test_sc05_post_stage_sweep_catches_filter_inflated_blob stdout ----
+ℹ️ skip large staged blob big.bin (2148 bytes > 1024 bytes)
+
+thread 'sync::tests::test_sc05_post_stage_sweep_catches_filter_inflated_blob' (1002815) panicked at dracon-sync/src/sync.rs:7927:9:
+sync must succeed (sweep unstages, never errors): Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::tests::test_sync_repo_auto_commit_creates_commit stdout ----
+
+thread 'sync::tests::test_sync_repo_auto_commit_creates_commit' (1003555) panicked at dracon-sync/src/sync.rs:6997:9:
+sync_repo should succeed: Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo stdout ----
+🛡️ /tmp/.tmpJYkWu3/test-repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo' (1003656) panicked at dracon-sync/src/sync.rs:7365:9:
+sync_repo should succeed: Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::tests::test_sync_repo_empty_repo_end_to_end stdout ----
+
+thread 'sync::tests::test_sync_repo_empty_repo_end_to_end' (1005288) panicked at dracon-sync/src/sync.rs:8420:9:
+sync_repo failed: Err(empty-repo bootstrap failed for /tmp/.tmpOf3g0L/repo
+
+Caused by:
+    immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::tests::test_sync_repo_exact_50_del stdout ----
+
+thread 'sync::tests::test_sync_repo_exact_50_del' (1005500) panicked at dracon-sync/src/sync.rs:11399:9:
+sync_repo should succeed
+
+---- sync::tests::test_sync_repo_mirror_push_failure_second stdout ----
+🛡️ /tmp/.tmpJ0kSbG/test-repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_sync_repo_mirror_push_failure_second' (1007005) panicked at dracon-sync/src/sync.rs:9604:9:
+assertion failed: result.is_ok()
+
+---- sync::tests::test_sync_repo_mirror_push_success_returns_true stdout ----
+🛡️ /tmp/.tmpZdgAvZ/test-repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_sync_repo_mirror_push_success_returns_true' (1007522) panicked at dracon-sync/src/sync.rs:10268:14:
+mirror publication must not fail: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::tests::test_sync_repo_mixed_tracked_and_untracked stdout ----
+🛡️ /tmp/.tmp9kq8Tf/mixed-repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_sync_repo_mixed_tracked_and_untracked' (1007847) panicked at dracon-sync/src/sync.rs:11542:9:
+sync_repo should succeed
+
+---- sync::tests::test_sync_repo_new_branch_auto_push_attempted stdout ----
+🛡️ /tmp/.tmpZ59EAH/new-branch-repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_sync_repo_new_branch_auto_push_attempted' (1008111) panicked at dracon-sync/src/sync.rs:12751:9:
+sync_repo should succeed for new branch without upstream
+
+---- sync::tests::test_sync_repo_partial_deletion_allowed stdout ----
+
+thread 'sync::tests::test_sync_repo_partial_deletion_allowed' (1008373) panicked at dracon-sync/src/sync.rs:11354:9:
+sync_repo should succeed
+
+---- sync::tests::test_sync_repo_single_deleted_file_committed stdout ----
+
+thread 'sync::tests::test_sync_repo_single_deleted_file_committed' (1008780) panicked at dracon-sync/src/sync.rs:11309:9:
+sync_repo should succeed
+
+---- sync::tests::test_sync_repo_stages_and_commits_untracked_file stdout ----
+🛡️ /tmp/.tmpWm6PHt/test-repo auto-hardened with warden before staging
+
+thread 'sync::tests::test_sync_repo_stages_and_commits_untracked_file' (1009307) panicked at dracon-sync/src/sync.rs:7639:9:
+sync_repo should succeed: Err(immutable storage verifier executable/source identity or binding mismatch)
+
+---- sync::tests::unlimited_batch_bootstraps_all_related_unborn_files stdout ----
+🛡️ /tmp/.tmpJ0CjQd/unlimited-unborn auto-hardened with warden before staging
+
+thread 'sync::tests::unlimited_batch_bootstraps_all_related_unborn_files' (1010047) panicked at dracon-sync/src/sync.rs:12348:10:
+called `Result::unwrap()` on an `Err` value: immutable storage verifier executable/source identity or binding mismatch
+
+---- sync::tests::unlimited_batch_commits_all_related_worktree_files_in_one_epoch stdout ----
+🛡️ /tmp/.tmpgGT0QG/unlimited-related-epoch auto-hardened with warden before staging
+
+thread 'sync::tests::unlimited_batch_commits_all_related_worktree_files_in_one_epoch' (1010606) panicked at dracon-sync/src/sync.rs:12411:9:
+Err(immutable storage verifier executable/source identity or binding mismatch)
+
+
+failures:
+    bucket_assets::tests::daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure
+    daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness
+    storage::tests::a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit
+    storage::tests::a_refusing_hook_blocks_a_storage_sealed_commit
+    storage::tests::a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order
+    storage::tests::sealed_commit_honors_a_refusing_reference_transaction_hook
+    storage::tests::sealed_commit_rejects_a_message_emptied_by_commit_msg
+    storage::tests::storage_bootstrap_cannot_bypass_guard_with_no_verify
+    sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore
+    sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery
+    sync::bucket_qualification_tests::bucket_qualification_later_materialized_bytes_never_become_false_no_work
+    sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores
+    sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late
+    sync::excluded_revert_pipeline_tests::excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_push_hook_work
+    sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes
+    sync::excluded_revert_pipeline_tests::excluded_restore_only_excluded_work_needs_no_commit_and_dry_run_preserves_bytes
+    sync::excluded_revert_tests::excluded_restore_defers_active_writer_without_relocating_its_future_bytes
+    sync::excluded_revert_tests::excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untracked
+    sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes
+    sync::owned_commit_tests::another_publication_owner_allows_a_real_commit_without_a_push_or_failure_reset
+    sync::owned_commit_tests::the_ordinary_commit_path_runs_each_hook_exactly_once
+    sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits
+    sync::publication_actor_tests::secondary_owner_commits_and_reports_pending_publication
+    sync::staged_epoch::tests::published_epoch_deadline_is_pending_not_a_failed_commit
+    sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_commits_only_verified_entry_staging_and_preserves_worktree
+    sync::tests::captured_epoch_commits_partial_index_and_keeps_unstaged_work
+    sync::tests::test_auto_commit_excludes_union_global_and_per_repo
+    sync::tests::test_bootstrap_empty_repo_creates_root_commit
+    sync::tests::test_bootstrap_empty_repo_respects_gitignore
+    sync::tests::test_bootstrap_empty_repo_skips_oversized_files
+    sync::tests::test_commit_only_commits_but_never_pushes
+    sync::tests::test_commit_only_control_pushes_and_fails
+    sync::tests::test_concurrent_staging_defers_then_captured_and_worktree_epochs_converge
+    sync::tests::test_degraded_success_reports_paused_not_synced
+    sync::tests::test_deletions_committed_when_intentional
+    sync::tests::test_excluded_tracked_file_edits_preserved_by_default
+    sync::tests::test_excluded_tracked_file_reverted_when_opted_in
+    sync::tests::test_forge_incident_declares_and_shields
+    sync::tests::test_index_lock_contention_preserves_work_and_recovers
+    sync::tests::test_index_lock_contention_retries_then_succeeds
+    sync::tests::test_sc05_post_stage_sweep_catches_filter_inflated_blob
+    sync::tests::test_sync_repo_auto_commit_creates_commit
+    sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo
+    sync::tests::test_sync_repo_empty_repo_end_to_end
+    sync::tests::test_sync_repo_exact_50_del
+    sync::tests::test_sync_repo_mirror_push_failure_second
+    sync::tests::test_sync_repo_mirror_push_success_returns_true
+    sync::tests::test_sync_repo_mixed_tracked_and_untracked
+    sync::tests::test_sync_repo_new_branch_auto_push_attempted
+    sync::tests::test_sync_repo_partial_deletion_allowed
+    sync::tests::test_sync_repo_single_deleted_file_committed
+    sync::tests::test_sync_repo_stages_and_commits_untracked_file
+    sync::tests::unlimited_batch_bootstraps_all_related_unborn_files
+    sync::tests::unlimited_batch_commits_all_related_worktree_files_in_one_epoch
+
+test result: FAILED. 1430 passed; 54 failed; 3 ignored; 0 measured; 0 filtered out; finished in 217.30s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
