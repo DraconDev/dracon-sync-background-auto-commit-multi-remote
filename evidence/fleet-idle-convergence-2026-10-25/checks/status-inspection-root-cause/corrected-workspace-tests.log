@@ -1909,4 +1909,10 @@ test sync::owned_commit_tests::configured_hook_runner_propagates_refusal_without
 test sync::owned_commit_tests::owned_commit_runs_the_configured_hook_chain_and_preserves_worktree_edits ... ok
 test sync::owned_commit_tests::the_ordinary_commit_path_runs_each_hook_exactly_once ... ok
 test sync::publication_actor_tests::abandoned_fixture_hook_exits_when_its_checkout_disappears ... ok
-test sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits ... 
+test sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits ... branch 'main' set up to track 'origin/main'.
+branch 'main' set up to track 'origin/main'.
+ok
+test sync::publication_actor_tests::secondary_owner_commits_and_reports_pending_publication ... ok
+test sync::publication_actor_tests::unpublished_tip_from_another_process_is_rediscovered ... ok
+test sync::push_isolation_tests::cancelled_push_hook_cleans_owned_descendants_but_not_interactive_sentinel ... ok
+test sync::push_isolation_tests::release_tag_janitor_and_nix_hooks_yield_local_work_capacity ... 
