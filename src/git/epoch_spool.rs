@@ -50,6 +50,18 @@ use std::time::{Duration, Instant};
 /// `sync/staged_epoch.rs` (pinned by a regression test).
 pub(crate) const SPOOL_PREFIX: &str = "dracon-staging-";
 
+/// Prefix of the sealed-commit-message directory (`sync.rs`
+/// `run_sealed_commit_hooks`). Same defect class, same owner: the
+/// directory is `keep()`d on a hook refusal so the hook-edited message
+/// survives, and nothing ever released it (65 orphans observed
+/// 2026-10-26). Far smaller than a staging spool, but unbounded.
+pub(crate) const MESSAGE_PREFIX: &str = "dracon-epoch-message-";
+
+/// Every directory prefix this daemon creates inside a git dir and is
+/// responsible for reclaiming. Kept as a slice so a future artifact only
+/// has to be added once.
+pub(crate) const REAPED_PREFIXES: [&str; 2] = [SPOOL_PREFIX, MESSAGE_PREFIX];
+
 /// Default age before an unregistered spool is considered abandoned.
 /// Deliberately generous: a legitimate epoch lifetime is bounded by the
 /// sync deadline (minutes), not hours.
@@ -145,7 +157,10 @@ fn candidates(git_dir: &Path, now: std::time::SystemTime) -> Vec<Candidate> {
         let Some(name) = name.to_str() else {
             continue;
         };
-        if !name.starts_with(SPOOL_PREFIX) {
+        if !REAPED_PREFIXES
+            .iter()
+            .any(|prefix| name.starts_with(prefix))
+        {
             continue;
         }
         // `symlink_metadata` (NOT `metadata`) so a symlinked
@@ -447,5 +462,21 @@ mod tests {
             source.contains(&format!("builder.prefix(\"{SPOOL_PREFIX}\")")),
             "staged_epoch must build spools with the reaped prefix"
         );
+        let sync = include_str!("../sync.rs");
+        assert!(
+            sync.contains(&format!(".prefix(\"{MESSAGE_PREFIX}\")")),
+            "run_sealed_commit_hooks must build its message dir with the reaped prefix"
+        );
+    }
+
+    #[tokio::test]
+    async fn abandoned_sealed_message_dir_is_reaped() {
+        let (root, git_dir) = init_repo();
+        let path = git_dir.join(format!("{MESSAGE_PREFIX}abc123"));
+        std::fs::create_dir(&path).unwrap();
+        std::fs::write(path.join("COMMIT_EDITMSG"), b"hook-edited message\n").unwrap();
+        age_mtime(&path, 7200);
+        assert_eq!(reap_abandoned_spools(root.path(), 3600, 60).await, 1);
+        assert!(!path.exists(), "an aged message dir is reclaimed");
     }
 }
