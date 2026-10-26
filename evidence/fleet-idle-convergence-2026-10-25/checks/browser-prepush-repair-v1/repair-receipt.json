@@ -1,0 +1,43 @@
+{
+  "at": "2026-10-26T11:58:32.094145+00:00",
+  "scope": "browser-extensions-shared pre-push gate repairs in the live working tree; unit/targeted gates only. NOT pushed, NOT fleet proof.",
+  "failuresObserved": {
+    "affiliateCI": "SELFTEST FAIL: expected [OK] got [DEAD] (gate log dracon-pre-push.sEnCol/affiliate-CI.log)",
+    "geminiToolkitTEST": "page-tools test: expected \"24 Oct\" not to be \"24 Oct\" (badges identical)",
+    "vidproTEST": "releaseMetadata: expected 1.17.0 to be 1.16.0 (hardcoded stale version)",
+    "bookmarksNewTabTEST": "vitest forks worker timeout (14 test files failed, 255 tests passed)"
+  },
+  "rootCauses": {
+    "affiliateSelfTest": "verify-urls.sh self-test hardcoded port 8731; an unrelated long-lived local server (node /tmp/save-html.mjs, pid documented in evidence) answered 404 there, so the liveness probe classified DEAD. Environmental collision, not a real drift.",
+    "geminiTimestamp": "formatTimestamp documented \"24 Oct, 14:32\" but returned the date only; two answers on the same day produced identical badges.",
+    "vidproRelease": "test pinned a historical version instead of asserting the pending/lastUpload invariant; the 1.17.0 bump is deliberate (release.json pending entry dated 2026-10-25).",
+    "bookmarksNewTab": "worker-start timeout under host load (load avg ~30-86 during the failing run), not an assertion failure."
+  },
+  "repairs": {
+    "affiliate": "bind an ephemeral port via a helper that publishes the bound port; no fixed port is assumed. Verified 3 consecutive self-test runs plus full ci.sh.",
+    "gemini": "return \"<date>, <time>\"; added regression proving same-day answers differ and the documented shape holds.",
+    "vidpro": "assert release.json/package.json invariants (pending contains pkg.version, uploaded never pending, historical 1.14/1.15 absent)."
+  },
+  "gateEvidence": {
+    "affiliate_selfTest": "self-test-run1..3.log exit=0",
+    "affiliate_ci": "affiliate-ci-range.log exit=0 (pushed-range narrowing: extensions untouched, skipped by design)",
+    "gemini_tests": [
+      "Test Files  27 passed (27)",
+      "Tests  568 passed (568)"
+    ],
+    "vidpro_tests": [
+      "Test Files  117 passed (117)",
+      "Tests  1439 passed (1439)"
+    ],
+    "newtab_tests": [
+      "Test Files  37 passed (37)",
+      "Tests  322 passed (322)"
+    ]
+  },
+  "notProven": [
+    "a full daemon-driven pre-push of the 1581-commit range",
+    "GitHub 2GiB pack guard resolution",
+    "fleet idle/clean observation",
+    "any deployment"
+  ]
+}
