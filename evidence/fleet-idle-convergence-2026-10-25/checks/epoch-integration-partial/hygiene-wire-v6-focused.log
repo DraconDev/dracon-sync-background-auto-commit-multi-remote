@@ -20,4 +20,23 @@ test exclude::hygiene::tests::hygiene_render_rejects_ambiguous_blocks_and_multil
 test sync::excluded_revert_tests::excluded_restore_foreign_lock_is_not_removed_or_used_as_hygiene_ownership ... ok
 test sync::hygiene::tests::hygiene_never_absorbs_foreign_operator_staging ... ok
 test sync::hygiene::tests::hygiene_opt_out_and_dry_run_leave_tracking_and_ignore_untouched ... ok
-test sync::hygiene::tests::hygiene_preserves_active_writer_and_untracked_large_bytes ... 
+test sync::hygiene::tests::hygiene_preserves_active_writer_and_untracked_large_bytes ... ok
+test sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes ... FAILED
+
+failures:
+
+---- sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes stdout ----
+🛡️ /tmp/.tmpyLgCgC auto-hardened with warden before staging
+📝 committed 4 file(s) in /tmp/.tmpyLgCgC
+
+thread 'sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes' (3947303) panicked at dracon-sync/src/sync/hygiene_tests.rs:102:5:
+assertion failed: std::fs::read_to_string(r.join("huge.iso")).unwrap().is_empty()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sync::hygiene::tests::hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes
+
+test result: FAILED. 9 passed; 1 failed; 0 ignored; 0 measured; 1477 filtered out; finished in 3.54s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

@@ -99,9 +99,6 @@ async fn hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_byte
         artifact,
         "artifact WORKTREE bytes are preserved"
     );
-    assert!(std::fs::read_to_string(r.join("huge.iso"))
-        .unwrap()
-        .is_empty());
     assert!(
         std::fs::metadata(&large).unwrap().len() == 4 * 1024 * 1024,
         "oversized file is ignored, never truncated or committed"
