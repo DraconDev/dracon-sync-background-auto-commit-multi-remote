@@ -402,4 +402,41 @@ test storage_core::index::tests::matched_index_pair_preserves_unrelated_staging_
 test storage_core::index::tests::matched_pair_recovers_before_and_after_atomic_publication ... ok
 test storage_core::index::tests::oversized_physical_index_is_rejected_before_libgit2_decode ... ok
 test storage_core::index::tests::saved_intent_conflict_releases_only_its_owned_lock ... ok
-test storage_core::index::tests::sticky_contracts_cannot_disappear_or_change_without_migration ... 
+test storage_core::index::tests::sticky_contracts_cannot_disappear_or_change_without_migration ... ok
+test storage_core::journal::tests::aggregate_capture_budget_refuses_new_work_without_deleting_retained_versions ... ok
+test storage_core::journal::tests::cancelled_and_changed_sources_do_not_overwrite_old_jobs ... ok
+test storage_core::journal::tests::complete_capture_recovers_after_death_before_or_after_snapshot_publish ... ok
+test storage_core::journal::tests::corrupt_unknown_or_unsafe_records_are_retained_and_not_green ... ok
+test storage_core::journal::tests::crash_child ... ignored, subprocess helper, invoked by the crash recovery test
+test storage_core::journal::tests::enrolled_clean_selection_refuses_ambiguous_sources_and_catalog_over_budget ... ok
+test storage_core::journal::tests::exact_version_identity_separates_source_policy_path_and_repository ... ok
+test storage_core::journal::tests::exclusive_leases_and_revision_checks_refuse_stale_updates ... ok
+test storage_core::journal::tests::forged_regression_and_plaintext_encryption_are_rejected ... ok
+test storage_core::journal::tests::payload_crash_child ... ignored, subprocess helper, invoked by payload crash recovery test
+test storage_core::journal::tests::payload_spools_resume_matching_prefix_and_have_independent_byte_budget ... ok
+test storage_core::journal::tests::prepared_payload_is_retained_once_and_cannot_change_across_restart ... ok
+test storage_core::journal::tests::prepared_payload_recovers_process_death_without_repeating_security_processing ... ok
+test storage_core::journal::tests::previously_tracked_runtime_and_changed_ignore_fail_before_private_capture ... ok
+test storage_core::journal::tests::private_runtime_inside_watched_repo_is_ignored_and_cannot_be_the_repo_root ... ok
+test storage_core::journal::tests::process_death_releases_lease_and_atomic_write_has_old_or_new_record ... ok
+test storage_core::journal::tests::record_budget_and_read_only_status_never_delete_or_create_state ... ok
+test storage_core::journal::tests::relative_paths_and_required_sets_are_validated ... ok
+test storage_core::journal::tests::required_copies_and_git_destinations_gate_preservation ... ok
+test storage_core::journal::tests::restart_preserves_upload_evidence_and_retry_backoff ... ok
+test storage_core::journal::tests::snapshot_crash_child ... ignored, subprocess helper, invoked by snapshot crash recovery test
+test storage_core::journal::tests::source_snapshots_resume_partial_capture_and_reuse_exact_completed_version ... ok
+test storage_core::journal::tests::symlinks_hard_links_and_public_permissions_fail_closed ... ok
+test storage_core::journal::tests::unmarked_nonempty_root_does_not_hide_or_overwrite_existing_user_files ... ok
+test storage_core::journal::tests::wrong_capture_prefix_and_corrupt_snapshot_fail_without_overwriting ... ok
+test storage_core::manifest::tests::ambiguous_paths_and_copy_sets_are_rejected ... ok
+test storage_core::manifest::tests::encoding_stops_at_metadata_budget_before_producing_oversized_output ... ok
+test storage_core::manifest::tests::malformed_untrusted_manifest_fails_without_echoing_private_fields ... ok
+test storage_core::manifest::tests::private_metadata_round_trip_matches_exact_pointer_and_lossless_path ... ok
+test storage_core::manifest::tests::tombstones_keep_contract_while_payload_edits_do_not_change_enrollment ... ok
+test storage_core::metadata::tests::approval_publication_crashes_preserve_exact_manifest_ciphertext ... ok
+test storage_core::metadata::tests::bad_exit_plain_output_and_budget_failure_keep_source_unapproved ... ok
+test storage_core::metadata::tests::cancelling_import_releases_lease_and_terminates_security_group ... ok
+test storage_core::metadata::tests::ciphertext_selection_refuses_ambiguous_manifests_and_excessive_catalogs ... ok
+test storage_core::metadata::tests::cold_import_crashes_recover_retained_exact_ciphertext ... ok
+test storage_core::metadata::tests::cold_import_honors_retention_limits_and_preserves_corrupted_source ... ok
+test storage_core::metadata::tests::cold_import_preserves_ciphertext_versions_and_existing_preparations ... 
