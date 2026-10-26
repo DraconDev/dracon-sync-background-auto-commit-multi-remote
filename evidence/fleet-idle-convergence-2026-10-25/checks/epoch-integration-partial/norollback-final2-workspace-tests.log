@@ -2040,3 +2040,5 @@ test sync::tests::test_forge_incident_declares_and_shields ... [master (root-com
 ok
 test sync::tests::test_goal_metrics_multibyte_utf8_no_panic ... ok
 test sync::tests::test_index_lock_contention_preserves_work_and_recovers ... [master (root-commit) 1f1c5b8] init
+ok
+test sync::tests::test_index_lock_contention_retries_then_succeeds ... [master (root-commit) 10810f3] init
