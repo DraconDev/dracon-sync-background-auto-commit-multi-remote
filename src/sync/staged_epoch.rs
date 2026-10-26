@@ -66,13 +66,9 @@ pub(super) struct Epoch {
     // Keep the independent pack after installation: a later actual-index
     // replacement must not make the proven candidate collectible by prune.
     retained: Option<PathBuf>,
-    // ADDED 2026-10-26: the spool is RETAINED for diagnosis but must not be
-    // retained forever. Holding the lease for the epoch's lifetime makes
-    // the periodic reaper skip this directory while it is in use, and
-    // dropping it on EVERY exit path (early return, refusal, deadline,
-    // success) releases the spool so `git::reap_abandoned_spools` can
-    // reclaim it. Before this, 141 spools x ~875 MiB filled the root
-    // filesystem to 100%.
+    // Diagnostic path holder only: it is not a cross-process lease and
+    // dropping it never authorizes deletion. Unsettled recovery remains
+    // retained until its exact contents can be proven safe to remove.
     spool_lease: crate::git::SpoolLease,
     // Verified artifact de-index authorization: raw path -> captured HEAD object
     // id. Re-proved against HEAD in the commit transaction; never a general
@@ -231,12 +227,10 @@ impl Epoch {
     /// candidate's future is SETTLED: it is published (so normal history
     /// makes the objects reachable), or it is an empty candidate with
     /// nothing to commit. A refusal, deadline or unpublished error leaves
-    /// the spool on disk for diagnosis; the age-based reaper in
-    /// `git::epoch_spool` bounds those.
-    ///
-    /// Removal is skipped while the lease is still held because the lease
-    /// is what tells the reaper this directory is in use; releasing the
-    /// lease therefore has to come first.
+    /// the spool on disk for diagnosis. There is no age-based deletion:
+    /// recovery retention is intentionally unbounded pending a safe policy.
+    /// Original conflicts and rejected payloads remain retained even after
+    /// publication of the selected candidate.
     pub(super) fn release_spool(&mut self) {
         // Conflict recovery retains original stages which need not be in the
         // selected commit. Never discard that evidence on commit success.
@@ -244,12 +238,11 @@ impl Epoch {
             return;
         }
         let directory = self.retained.take();
-        // Drop the lease BEFORE removing, so the reaper never sees a live
-        // lease on a directory that is already gone.
+        // Clear the diagnostic path before removing this owned directory.
         self.spool_lease = crate::git::SpoolLease::new(None);
         if let Some(directory) = directory {
             if let Err(error) = std::fs::remove_dir_all(&directory) {
-                // Best-effort: the periodic reaper retries an aged spool.
+                // Best-effort: preserve and diagnose any removal failure.
                 if error.kind() != std::io::ErrorKind::NotFound {
                     eprintln!(
                         "⚠️ cannot release epoch spool {}: {error}",
@@ -292,9 +285,7 @@ impl Epoch {
             EpochConflict::ReferenceChanged
         );
         if self.snapshot != StagedIntentSnapshot::capture(repo, self.deadline).await? {
-            // Name the retained spool AND hold its lease for the error path:
-            // the reaper must not reclaim a candidate we are still telling
-            // an operator to inspect.
+            // Include the retained candidate path in the conflict diagnosis.
             let retained = self.spool_lease.named().or(self.retained.as_deref());
             return Err(anyhow::Error::new(EpochConflict::IndexChanged))
                 .with_context(|| format!("candidate backup: {retained:?}"));
@@ -648,8 +639,7 @@ impl Epoch {
         // measured after 0.113.96 shipped the age-only sweep).
         //
         // ONLY a published commit releases the spool. A refusal, conflict or
-        // deadline leaves it for diagnosis, and `git::epoch_spool`'s aged
-        // reaper still bounds those.
+        // deadline leaves it for diagnosis; age alone never permits deletion.
         //
         // `pending` deliberately does NOT block the release: an unstaged
         // edit, untracked file or post-commit hook failure is follow-up work
