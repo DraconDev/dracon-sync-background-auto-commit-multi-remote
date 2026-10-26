@@ -1,0 +1,71 @@
+{
+  "at": "2026-10-26T12:58:25.571338+00:00",
+  "scope": "read-only fleet observation via dracon-sync repos, plus targeted root-cause repairs. NOT final acceptance.",
+  "inspected": 37,
+  "clean": 31,
+  "nonClean": [
+    {
+      "n": 1,
+      "status": "\ud83d\udfe1 QUEUED",
+      "repo": "db-gateway"
+    },
+    {
+      "n": 4,
+      "status": "\ud83d\udce4",
+      "repo": "browser-extensi\u2026"
+    },
+    {
+      "n": 5,
+      "status": "\ud83d\udd04 WORKING",
+      "repo": "dracon-platform"
+    },
+    {
+      "n": 7,
+      "status": "\u2754 UNKNOWN",
+      "repo": "dracon-sync"
+    },
+    {
+      "n": 15,
+      "status": "\ud83d\udeab BLOCKED",
+      "repo": "doomtap"
+    },
+    {
+      "n": 21,
+      "status": "\ud83d\udeab BLOCKED",
+      "repo": "junk-runner"
+    }
+  ],
+  "loadedBinary": {
+    "path": "/home/dracon/.local/bin/dracon-sync",
+    "sha256": "8b5114899bbf1681bc4f37c2eb9d6a55edf9615356aff93b09de395de2ed22ad"
+  },
+  "qualifiedButNotDeployed": {
+    "release_binary_sha256": "8e5fb4fd744e3239e4f2b4ba095783a29414953a73fc34ff0cf8b296ab5fec4e",
+    "note": "dracon-sync no-rollback excluded-recovery fix passes all 4 gates and an actual ptrace syscall qualification; the RUNNING daemon is a different older binary and does not contain it. Deployment deliberately not attempted in this segment."
+  },
+  "blockers": [
+    {
+      "repo": "browser-extensions-shared",
+      "kind": "partly repaired; host-resource limited",
+      "fixed": [
+        "affiliate verify-urls.sh self-test hardcoded port 8731 collided with an unrelated local server -> now binds an ephemeral port",
+        "gemini-toolkit formatTimestamp dropped the clock so same-day answers rendered identical badges",
+        "vidpro releaseMetadata pinned a stale version instead of asserting the pending/lastUpload invariant"
+      ],
+      "verified": "actual pre-push hook at HEAD 548a3a10a563 passed all 4 gates for every affected workspace",
+      "remaining": "1708 unpushed commits; GitHub leg permanently skipped by the 2 GiB pack guard (documented in the daemon config); push retries fail with EAGAIN while host memory is exhausted (27/30 GiB used, 22 GiB swap)"
+    },
+    {
+      "repo": "doomtap",
+      "kind": "policy gate refuses staged artifacts owned by another goal",
+      "evidence": "pre-commit exits 1 on docs/screenshots/qa/ascension-{before,after,armed,narrow}.png; they are not declared curated comparison inputs and the repo policy test rejects undeclared frames",
+      "owner": "doomtap goal 20261026111553-iczgfg, whose audit returned DISAPPROVED with 2 required fixes"
+    },
+    {
+      "repo": "junk-runner",
+      "kind": "staged set outside cycle intent",
+      "evidence": "4 paths repeatedly staged by an external producer; the daemon correctly defers rather than committing foreign intent"
+    }
+  ],
+  "finalAcceptanceBlocked": true
+}
