@@ -168,3 +168,4 @@ Gate exited with status 1
   ▸ packages/extension-core TYPECHECK (31bd83ca328a)
   ▸ packages/extension-core BUILD (31bd83ca328a)
   ▸ packages/extension-core TEST (31bd83ca328a)
+  ▸ packages/extension-core LINT (31bd83ca328a)
