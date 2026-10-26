@@ -282,7 +282,7 @@ async fn unmerged_entry_unknown_worktree_and_nonzero_other_index_flags_refuse_in
 #[tokio::test]
 async fn unmerged_entry_production_sync_commits_only_verified_entry_staging_and_preserves_worktree()
 {
-    let (d, _) = fixture(Path::new("a.bin"));
+    let (d, saved) = fixture(Path::new("a.bin"));
     let r = d.path();
     let before = String::from_utf8(head(r)).unwrap().trim().to_owned();
     std::fs::write(r.join("note.txt"), b"captured staged B\n").unwrap();
@@ -292,6 +292,7 @@ async fn unmerged_entry_production_sync_commits_only_verified_entry_staging_and_
     let hook = r.join(".git/fixture-hooks/pre-commit");
     std::fs::write(&hook,b"#!/bin/sh\ntest \"$(git show :note.txt)\" = 'captured staged B' || exit 41\nif git ls-files --error-unmatch unrelated.txt >/dev/null 2>&1; then exit 42; fi\nprintf 'pre-commit\\n' >> .git/meaningful-hook-called\n").unwrap();
     std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let original_index = std::fs::read(r.join(".git/index")).unwrap();
     let result = sync_repo(r, &policy(), &BTreeSet::new(), 0, None, false, None).await;
     assert!(result.is_ok(), "real production sync failed: {result:?}");
     let commits = String::from_utf8(native(
@@ -324,6 +325,19 @@ async fn unmerged_entry_production_sync_commits_only_verified_entry_staging_and_
         b"pre-commit\n",
         "meaningful original hook executes exactly once"
     );
+    let recovery = std::fs::read_dir(r.join(".git")).unwrap().map(|e| e.unwrap().path())
+        .find(|p| p.file_name().unwrap().to_string_lossy().starts_with("dracon-unmerged-recovery-")).unwrap();
+    assert_eq!(std::fs::read(recovery.join("original-index")).unwrap(), original_index,
+        "publication must preserve the original conflict index");
+    let pack = std::fs::read_dir(&recovery).unwrap().map(|e| e.unwrap().path())
+        .find(|p| p.extension().is_some_and(|ext| ext == "pack")).unwrap();
+    let cold = tempfile::tempdir().unwrap();
+    native(cold.path(), &["init", "--bare", "--template=", "-q"], None);
+    native(cold.path(), &["index-pack", "--stdin"], Some(&std::fs::read(pack).unwrap()));
+    for (oid, bytes) in saved {
+        assert_eq!(native(cold.path(), &["cat-file", "blob", &oid], None), bytes,
+            "original conflict payload must remain cold-recoverable after publication");
+    }
 }
 
 #[tokio::test]

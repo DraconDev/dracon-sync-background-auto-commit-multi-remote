@@ -1294,8 +1294,10 @@ mod tests {
 
     #[tokio::test]
     async fn ordinary_size_rejection_prunes_only_private_delta_but_refuses_captured_intent() {
-        let (root, policy) = fixture().await;
+        let (root, mut policy) = fixture().await;
         let repo = root.path();
+        policy.auto_commit = true;
+        policy.watch_roots = vec![repo.to_string_lossy().into_owned()];
         let baseline = Epoch::capture(repo, 60).await.unwrap();
         let staging = Staging::new(repo, baseline).await.unwrap();
         std::fs::write(repo.join("file"), b"eligible change\n").unwrap();
@@ -1352,6 +1354,12 @@ mod tests {
             "even the rejected candidate blob must survive independently of loose-object pruning"
         );
 
+        epoch.commit(repo, "publish eligible subset", &policy, &BTreeSet::new(), None).await.unwrap();
+        assert_eq!(git(repo, &["show", "HEAD:file"], None).await.unwrap().stdout, b"eligible change\n");
+        let packed_after_commit = git(repo, &["verify-pack", "-v", pack_index.to_str().unwrap()], None).await.unwrap();
+        assert!(String::from_utf8(packed_after_commit.stdout).unwrap().contains(large_oid.trim()),
+            "publishing the eligible subset must preserve the rejected original payload");
+
         // A user's existing oversized staging is not OUR candidate to prune.
         git(repo, &["add", "--", "large"], None).await.unwrap();
         let bytes = std::fs::read(repo.join(".git/index")).unwrap();
@@ -1362,6 +1370,26 @@ mod tests {
             .is_err());
         assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), bytes);
         assert_eq!(std::fs::read(repo.join("large")).unwrap(), large);
+    }
+
+    #[tokio::test]
+    async fn all_rejected_empty_selection_preserves_original_pack() {
+        let (root, policy) = fixture().await;
+        let repo = root.path();
+        let staging = Staging::new(repo, Epoch::capture(repo, 60).await.unwrap()).await.unwrap();
+        let retained = staging.directory.clone();
+        let bytes = vec![b'x'; 2048];
+        std::fs::write(repo.join("oversized"), &bytes).unwrap();
+        run_index_git(repo, &["add", "--", "oversized"], 60, "all rejected", Some(staging.index())).await.unwrap();
+        let epoch = staging.finish(repo, &policy, &BTreeSet::new(), false, false).await.unwrap();
+        assert!(!epoch.has_intent());
+        assert!(retained.join("preserve-rejected").exists());
+        let index = std::fs::read_dir(&retained).unwrap().map(|e| e.unwrap().path())
+            .find(|p| p.extension().is_some_and(|ext| ext == "idx")).unwrap();
+        let oid = git(repo, &["hash-object", "--stdin"], Some(&bytes)).await.unwrap();
+        let packed = git(repo, &["verify-pack", "-v", index.to_str().unwrap()], None).await.unwrap();
+        assert!(String::from_utf8(packed.stdout).unwrap().contains(std::str::from_utf8(&oid.stdout).unwrap().trim()));
+        assert_eq!(std::fs::read(repo.join("oversized")).unwrap(), bytes);
     }
 
     #[tokio::test]
@@ -1483,8 +1511,12 @@ mod tests {
         .await
         .unwrap();
         std::fs::write(repo.join("file"), b"published before follow-up\n").unwrap();
-        git(repo, &["add", "--", "file"], None).await.unwrap();
-        let epoch = Epoch::capture(repo, 10).await.unwrap();
+        let baseline = Epoch::capture(repo, 60).await.unwrap();
+        let staging = Staging::new(repo, baseline).await.unwrap();
+        let retained = staging.directory.clone();
+        run_index_git(repo, &["add", "--", "file"], 60, "deadline private candidate", Some(staging.index())).await.unwrap();
+        let mut epoch = staging.finish(repo, &policy, &BTreeSet::new(), false, false).await.unwrap();
+        epoch.deadline = Instant::now() + Duration::from_secs(10);
         let result = tokio::time::timeout(
             Duration::from_secs(15),
             epoch.commit(
@@ -1501,6 +1533,7 @@ mod tests {
             matches!(result, Ok(true)),
             "known publication must remain pending, not failure: {result:?}"
         );
+        assert!(!retained.exists(), "a published ordinary spool must be released even when post-commit times out");
         assert_eq!(
             git(repo, &["show", "HEAD:file"], None)
                 .await
