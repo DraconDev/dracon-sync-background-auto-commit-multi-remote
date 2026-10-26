@@ -1,6 +1,69 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Archive-safety v3f — CURRENT; targeted gates green, NOT final/deployed
+## Unmerged-entry v6 — CURRENT; four-gate intermediate assembly, NOT final/deployed
+
+The active fleet-convergence objective/contract in .pi-glla remains authoritative.
+The pending task5 label does not waive the still-open implementation, original
+product-gate, deployment, installed-execution and full-fleet prerequisites.
+
+Restored policy-enabled stale-unmerged handling BEFORE ordinary entry capture
+could reject that index. The production path no longer runs a late live-index
+reset. It verifies the raw index, native identity/stage/flags observation,
+explicit branch/HEAD and held no-follow regular-file descriptors. Only a complete
+HEAD-equal selection is eligible. Active merge/rebase/cherry-pick, uncertain
+bytes, unsupported flags/paths, foreign locks/index/ref changes and deadlines
+preserve actual content rather than granting provenance to a later reread.
+The returned epoch is derived from the private candidate, not the actual index.
+Opt-out, disabled auto-commit and dry-run cannot enable this reconciliation.
+
+Before conditional actual-index installation, an owned0700 recovery directory
+contains the exact original index and a fsynced independent pack of all conflict
+payloads and changed ordinary cached blobs. Unchanged stage0 HEAD baseline blobs
+are NOT duplicated. Metadata/object checks bound the raw index at64MiB,
+retention input at16MiB and retained payloads at512MiB. Free-space preflight is
+best-effort, NOT a global reservation against concurrent disk use. Recovery and
+its parent directory are fsynced before replacement; the index parent is fsynced
+afterward. This is ordering evidence, NOT an actual power-cut qualification.
+Unknown worktree/flag refusals allocate no spool; repeated no-progress controls
+preserve exact index bytes without growing recovery directories.
+
+Executed v6 controls include real sync_repo accepting the verified staged B
+without absorbing later C/untracked work, meaningful pre-commit executing once,
+stale-slot-only reconciliation making NO empty/safety commit, cold recovery of
+all three conflict versions into an unrelated empty object database, exact raw
+names including non-UTF8/newlines, a live producer FD writing AFTER reconciliation
+to the SAME canonical inode, and real index/ref race injection and held-FD hash
+cancellation with actual descendant termination. Synthetic tests run only in
+owned disposable repositories; they are NOT installed or loaded-fleet evidence.
+Current positive qualification is Linux; non-Unix descriptor reconciliation
+refuses conservatively, and no NFS/stalled-filesystem timing claim is made.
+
+CURRENT complete intermediate gates, zero source drift, unchanged pinned helper:
+- cargo test --workspace --locked: PASS; sync1475pass/0fail/3ignored,
+  system616pass, warden233pass, plus security/integration suites in the raw log.
+- cargo build --release --locked: PASS.
+- cargo clippy --workspace --locked --all-targets -- -D warnings: PASS.
+- cargo deny check: PASS, no dependency/security guard weakening.
+- Focused unmerged controls9pass/0fail; original unmerged controls also remain
+  in the passing full workspace suite. Counts are observations, not new pins.
+Proof: checks/epoch-integration-partial/unmerged-entry-v6-source-before.json and
+unmerged-entry-v6-source-after.json identify source/helper/release artifacts,
+per-command exits and log hashes. v1 failed original controls and v2 Clippy
+failure remain archived; no assertions were weakened. v4's complete four-gate
+assembly and v5's targeted assembly are HISTORICAL, not mixed with v6 evidence.
+
+No installation/service/config migration, real-repo manual commit/push or fresh
+loaded-execution/full-fleet observation was performed by this continuation.
+Do not deploy this INTERMEDIATE assembly while normal version/release bump,
+artifact cleanup and large-untracked hygiene remain unwired. Also finish the
+queued-open/lease-break/exact-exchange and unsupported-FS controls, actual daemon
+restart/admission rehearsal, original product gates and independent review.
+Then re-run all four gates on the coherent FINAL assembly, qualify installed and
+loaded execution, safely apply the authorized zero-batch migration, and prove
+actual daemon publication plus EVERY freshly enumerated watched repo clean/idle.
+The earlier37-repository count is a BASELINE observation, never an inventory cap.
+
+## Archive-safety v3f — HISTORICAL targeted assembly, NOT final/deployed
 
 The active fleet-convergence objective/contract in .pi-glla remains authoritative;
 ignore the stale bucket-strategy handoff. Task5 is NOT ready merely because it is
