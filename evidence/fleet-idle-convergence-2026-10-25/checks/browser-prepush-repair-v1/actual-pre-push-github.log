@@ -33,3 +33,4 @@
   ▸ extensions/collections/toolkit/chatgpt-toolkit LINT (31bd83ca328a)
   ▸ extensions/collections/toolkit/gemini-toolkit TYPECHECK (31bd83ca328a)
   ▸ extensions/collections/toolkit/gemini-toolkit BUILD (31bd83ca328a)
+  ▸ extensions/collections/toolkit/gemini-toolkit TEST (31bd83ca328a)
