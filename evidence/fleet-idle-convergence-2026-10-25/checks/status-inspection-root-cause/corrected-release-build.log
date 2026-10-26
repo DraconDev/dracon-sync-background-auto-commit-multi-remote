@@ -322,3 +322,12 @@
    Compiling aes-gcm v0.10.3
    Compiling fs2 v0.4.3
    Compiling pin-project v1.1.13
+   Compiling age v0.10.1
+   Compiling notify-rust v4.18.0
+   Compiling tokio-rustls v0.26.5
+   Compiling hyper-rustls v0.27.9
+   Compiling dracon-security v0.4.0 (/home/dracon/Dev/dracon-utilities/dracon-warden/src/security)
+   Compiling reqwest v0.12.28
+   Compiling ssh2 v0.9.6
+   Compiling dracon-system-lib v94.2.7
+   Compiling dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
