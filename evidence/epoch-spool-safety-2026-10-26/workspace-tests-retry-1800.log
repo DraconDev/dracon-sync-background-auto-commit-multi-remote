@@ -1996,3 +1996,7 @@ ok
 test sync::tests::test_compute_blast_radius_merge_prefix ... ok
 test sync::tests::test_compute_diff_entries_propagates_filter_diff_failure ... ok
 test sync::tests::test_concurrent_staging_defers_then_captured_and_worktree_epochs_converge ... [master (root-commit) 2cb0555] init
+ok
+test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) ec28aee] init
+ok
+test sync::tests::test_count_ahead_commits_no_origin ... 
