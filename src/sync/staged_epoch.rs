@@ -1164,6 +1164,19 @@ mod tests {
         (root, policy)
     }
 
+    #[tokio::test]
+    async fn settled_epoch_preserves_original_conflicts_and_rejected_bytes() {
+        for marker in ["original-index", "preserve-rejected"] {
+            let (root, _) = fixture().await;
+            let mut epoch = Epoch::capture(root.path(), 60).await.unwrap();
+            let directory = tempfile::tempdir_in(root.path().join(".git")).unwrap();
+            std::fs::write(directory.path().join(marker), b"unpublished evidence").unwrap();
+            epoch.retained = Some(directory.path().to_owned());
+            epoch.release_spool();
+            assert_eq!(std::fs::read(directory.path().join(marker)).unwrap(), b"unpublished evidence");
+        }
+    }
+
     async fn private_candidate(repo: &Path) -> (Staging, String) {
         let baseline = Epoch::capture(repo, 60).await.unwrap();
         let staging = Staging::new(repo, baseline).await.unwrap();
