@@ -1966,3 +1966,27 @@ test sync::tests::test_commit_guard_honors_owned_override_with_custom_identity .
 test sync::tests::test_commit_only_commits_but_never_pushes ... [master (root-commit) ce714ab] init
 ok
 test sync::tests::test_commit_only_control_pushes_and_fails ... [master (root-commit) 60bd64f] init
+ok
+test sync::tests::test_compute_blast_radius_merge_prefix ... ok
+test sync::tests::test_compute_diff_entries_propagates_filter_diff_failure ... ok
+test sync::tests::test_concurrent_staging_defers_then_captured_and_worktree_epochs_converge ... [master (root-commit) d6e1c33] init
+ok
+test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) 87cff9d] init
+ok
+test sync::tests::test_count_ahead_commits_no_origin ... ok
+test sync::tests::test_count_ahead_commits_returns_zero_when_synced ... [main (root-commit) 87cff9d] init
+ok
+test sync::tests::test_count_ahead_commits_takes_max_across_tracking_refs ... [main (root-commit) 758df34] c0
+[main 792d863] c1
+[main 84967b8] c2
+[main 8e2bb83] c3
+[main b7db7fc] c4
+ok
+test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [main (root-commit) 5d87c6f] c1
+[main 867a0a1] c2
+ok
+test sync::tests::test_degraded_success_reports_paused_not_synced ... [master (root-commit) 719b70c] init
+To /tmp/.tmpN9KTSY/mirror.git
+ * [new branch]      master -> master
+ok
+test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) e444dee] init
