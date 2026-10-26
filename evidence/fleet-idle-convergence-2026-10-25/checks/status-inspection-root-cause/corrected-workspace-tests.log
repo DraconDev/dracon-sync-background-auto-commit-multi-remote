@@ -2167,4 +2167,8 @@ test sync::tests::test_sync_repo_auto_commit_creates_commit ... [master (root-co
 ok
 test sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo ... [master (root-commit) 5c38a2a] init
 ok
-test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... 
+test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) 287cd15] init
+ok
+test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) 1e62c75] init
+ok
+test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) 959ff5d] init
