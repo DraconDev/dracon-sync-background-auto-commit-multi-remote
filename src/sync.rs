@@ -45,6 +45,10 @@ fn is_canonical_recovery_name(name: &std::ffi::OsStr) -> bool {
 /// policy. Pending records survive restart. Archives are checked by metadata,
 /// not repeatedly hashed: late displaced writes must remain visible concerns.
 /// Inspection errors are not healthy/idle evidence.
+pub(crate) fn has_pending_local_reconciliation(repo: &Path) -> Result<bool> {
+    Ok(has_pending_excluded_recovery(repo)? || hygiene::has_pending(repo)?)
+}
+
 pub(crate) fn has_pending_excluded_recovery(repo: &Path) -> Result<bool> {
     let gitdir = crate::git::path_gitdir(repo).context("cannot locate recovery Git directory")?;
     for entry in std::fs::read_dir(&gitdir)? {
@@ -5169,6 +5173,12 @@ pub(crate) async fn sync_repo_with_ahead_since(
     {
         return Ok(SyncOutcome::PublicationPending);
     }
+    if is_repo && matches!(result, Ok(SyncOutcome::Synced | SyncOutcome::NothingToDo | SyncOutcome::FilterOnly)) {
+        let pending = hygiene::has_pending(repo).unwrap_or_else(|error| {
+            eprintln!("⚠️ {} hygiene intent inspection failed; follow-up retained: {error:#}", repo.display()); true
+        });
+        if pending { return Ok(SyncOutcome::StagedPending); }
+    }
     result
 }
 
@@ -5512,6 +5522,17 @@ async fn sync_repo_local_with_ownership(
         return Ok(publish_backlog_after_index_deferral(&svc, &mut ctx)
             .await?
             .unwrap_or(SyncOutcome::Blocked));
+    }
+
+    // Metadata intent is NOT uncertain canonical recovery: never gate its own
+    // staged artifact commit behind successful metadata application. An index
+    // owner/writer may defer the retry while normal commit/backlog work proceeds.
+    #[cfg(target_os = "linux")]
+    if policy.auto_commit && !dry_run {
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(policy.stage_op_timeout_secs.max(1));
+        if let Err(error) = hygiene::retry(repo, policy, excluded_dir_names, build_artifact_cleanup, deadline).await {
+            eprintln!("⏳ {} artifact ignore intent retained for retry: {error:#}", repo.display());
+        }
     }
 
     if entry_epoch.as_ref().is_some_and(|epoch| epoch.has_intent()) {

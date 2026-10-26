@@ -9198,11 +9198,11 @@ pub(crate) async fn run_daemon(
             // when the classification job happens to finish — otherwise the
             // 2s window starts a full pulse late (observed 2026-09-17:
             // changed_at reset at ~2.2s for a 1.0s edit, dispatch at 4.3s).
-            let recovery_pending = match crate::sync::has_pending_excluded_recovery(&repo) {
+            let recovery_pending = match crate::sync::has_pending_local_reconciliation(&repo) {
                 Ok(pending) => pending,
                 Err(error) => {
                     eprintln!(
-                        "⚠️ {} excluded recovery inspection failed: {error:#}",
+                        "⚠️ {} local reconciliation inspection failed: {error:#}",
                         repo.display()
                     );
                     true

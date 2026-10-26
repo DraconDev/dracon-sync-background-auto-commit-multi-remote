@@ -4421,7 +4421,12 @@ pub(crate) async fn run_repos_report(
             Ok(false) => None,
             Err(_) => Some("EXCLUDED_RECOVERY_INSPECT_FAILED"),
         };
-        if recovery_flag.is_some() { concern = true; }
+        let hygiene_flag = match crate::sync::hygiene_pending_for_report(&repo) {
+            Ok(true) => Some("HYGIENE_PENDING"),
+            Ok(false) => None,
+            Err(_) => Some("HYGIENE_INSPECT_FAILED"),
+        };
+        if recovery_flag.is_some() || hygiene_flag.is_some() { concern = true; }
         let mut warn = !concern && real_is_dirty;
 
         // Flags still use effective_status for ahead/behind/origin detection.
@@ -4440,6 +4445,7 @@ pub(crate) async fn run_repos_report(
             flags = apply_intentional_no_upstream(flags);
         }
         if let Some(flag) = recovery_flag { flags.push(flag.to_owned()); }
+        if let Some(flag) = hygiene_flag { flags.push(flag.to_owned()); }
 
         if report_checks_deferred {
             flags.push("REPORT_CHECKS_DEFERRED".to_string());
