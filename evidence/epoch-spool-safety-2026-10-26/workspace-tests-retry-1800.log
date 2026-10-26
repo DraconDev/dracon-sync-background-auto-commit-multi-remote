@@ -2014,3 +2014,32 @@ ok
 test sync::tests::test_degraded_success_reports_paused_not_synced ... [master (root-commit) 33d42f1] init
 To /tmp/.tmpLWv2r6/mirror.git
  * [new branch]      master -> master
+ok
+test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) 33dbd12] init
+ok
+test sync::tests::test_doc_lock_predicates ... ok
+test sync::tests::test_docsonly_mirror_and_negative ... ok
+test sync::tests::test_excluded_tracked_file_edits_preserved_by_default ... ok
+test sync::tests::test_excluded_tracked_file_reverted_when_opted_in ... ok
+test sync::tests::test_ext_excludes_gitlink_paths ... warning: adding embedded git repository: sub.mod
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sub.mod
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sub.mod
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_extension_histogram_top3_order ... ok
+test sync::tests::test_failing_remote_names_formats_sorted ... ok
+test sync::tests::test_file_extension_cases ... ok
+test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) 2c226c8] init
+ok
+test sync::tests::test_filter_only_skip_still_pushes_ahead ... 
