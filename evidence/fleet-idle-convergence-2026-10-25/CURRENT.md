@@ -1,6 +1,67 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Canonical-write preservation P1 — CURRENT reproduced blocker; NOT deployed
+## No-rollback fix QUALIFIED but NOT deployed; fleet NOT idle
+
+Operator decision received: KEEP .gitignore publication and existing guarantees;
+no separate metadata scheme. The reproduced rollback defect was therefore fixed
+in the canonical exchange path rather than routed around.
+
+Reproduced defect (legacy): checks/epoch-integration-partial/exchange-syscalls-v1.json.
+Second reproduced fact: simply DELETING rollback was NOT sufficient — with one
+exchange plus cancellation, a queued old-inode writer resolved onto the NEW
+canonical file (exchange-syscalls-cancel-v1.json, oldWriterLandedOnCanonical).
+
+Current protocol: ONE finalizing RENAME_EXCHANGE for an existing inode, then a
+BILATERAL post-exchange fingerprint proof (private==before, canonical==desired).
+A mismatch reports uncertainty; it never performs a second exchange. Absent-path
+NOREPLACE creation is unchanged. Settlement now states
+private-desired-payload-retained vs canonical-exchange-settled instead of
+assuming the private copy proves "untouched". Later access to the displaced
+inode still surfaces as a real concern through the archive stamp probe.
+
+Evidence: norollback-qualified-v3-receipt.json. cargo test --workspace (616+4
++12+233+18+2 and bin suites), cargo build --release, strict all-target Clippy
+and cargo deny all exit 0; 12 excluded-recovery tests pass including the new
+regression; the RELEASE binary passes the actual ptrace syscall qualification
+(pass:true, helperShA256 8e5fb4fd...).
+
+NOT proven and NOT claimed: the running daemon (shA256 8b511489...) is a
+DIFFERENT older binary, so the fix is not deployed; no installed/loaded
+rehearsal, no zero-batch migration, no cancellation/ENOSPC/restart/unsupported-FS
+matrix, no concurrent canonical-leaf replacement control. An independent review
+run 4e855284 TIMED OUT with no verdict — that is not approval.
+
+Fleet at live-fleet-observation-v2/observation.json: 37 inspected, 31 clean,
+6 with evidenced causes (db-gateway QUEUED, browser-extensions-shared
+PUBLISHING, dracon-platform WORKING, dracon-sync UNKNOWN transient,
+doomtap BLOCKED, junk-runner BLOCKED). Final acceptance remains BLOCKED.
+
+## Browser pre-push repairs (committed; real hook passes at HEAD)
+
+Three gate failures had real root causes and are fixed in the repo:
+1. affiliate verify-urls.sh self-test hardcoded port 8731; an unrelated
+   long-lived local server answered 404 there, so a live probe classified DEAD
+   and failed the whole affiliate CI gate. Now binds an ephemeral port via a
+   helper that publishes the bound port. Verified over 3 runs + full ci.sh.
+2. gemini-toolkit formatTimestamp documented "24 Oct, 14:32" but returned the
+   date only, so two same-day answers rendered IDENTICAL badges. Fixed + regression.
+3. vidpro releaseMetadata pinned version 1.16.0 and failed on the legitimate
+   1.17.0 bump that release.json already listed as pending. Now asserts the
+   invariant (pending contains pkg.version, uploaded never pending).
+
+Gate evidence (checks/browser-prepush-repair-v1/): gemini 568 pass, vidpro 1439
+pass, bookmarks-new-tab 322 pass, plus typecheck/lint/build for all three, and
+the ACTUAL pre-push hook at HEAD 548a3a10a563 reported "4-gate passed for all
+affected workspaces".
+
+Still open for that repo: 1708 unpushed commits (GitHub leg permanently skipped
+by the documented 2 GiB pack guard) and push retries failing with EAGAIN while
+the host is memory-exhausted (27/30 GiB RAM, 22 GiB swap). That is resource
+pressure, not a code defect; no guard was weakened.
+
+## Historical: canonical-write preservation P1 / hygiene review
+
+## Hygiene review green v1 — HISTORICAL targeted fixes, NOT deployed
 
 Both retirement P1 corrections were independently CLOSED by recheck05c0febe;
 that approval is explicitly limited to those corrections, not canonical-write
