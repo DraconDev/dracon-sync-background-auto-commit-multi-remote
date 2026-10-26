@@ -67,5 +67,15 @@
       "evidence": "4 paths repeatedly staged by an external producer; the daemon correctly defers rather than committing foreign intent"
     }
   ],
-  "finalAcceptanceBlocked": true
+  "finalAcceptanceBlocked": true,
+  "machineReadable": {
+    "source": "repos.json",
+    "repos": 37,
+    "ok": 32,
+    "active": 3,
+    "warn": 2,
+    "concern": 0,
+    "failures": 0
+  },
+  "nonCleanDetailed": []
 }
