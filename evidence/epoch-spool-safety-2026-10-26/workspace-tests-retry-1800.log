@@ -386,4 +386,45 @@ test storage_core::hydration::tests::hydration_preserves_index_backup_and_cache_
 test storage_core::hydration::tests::hydration_version_capacity_preserves_prior_backup_and_verified_cache ... ok
 test storage_core::hydration::tests::local_edits_corrupt_cache_wrong_references_and_capacity_never_replace_working_bytes ... ok
 test storage_core::hydration::tests::local_resume_needs_no_original_recovery_cache_and_preserves_edits ... ok
-test storage_core::hydration::tests::local_resume_refuses_corrupt_output_intent_and_missing_preparation ... 
+test storage_core::hydration::tests::local_resume_refuses_corrupt_output_intent_and_missing_preparation ... ok
+test storage_core::hydration::tests::missing_working_file_is_published_without_a_backup_or_index_changes ... ok
+test storage_core::hydration::tests::selected_commit_manifest_repo_and_placement_must_match_before_publication ... ok
+test storage_core::index::tests::approved_metadata_cannot_be_substituted_for_another_manifest ... ok
+test storage_core::index::tests::changed_reference_without_verified_job_and_unknown_prior_metadata_fail_closed ... ok
+test storage_core::index::tests::commit_lock_crash_helper ... ignored, commit-lock subprocess helper invoked by crash recovery test
+test storage_core::index::tests::commit_lock_preserves_foreign_locks_and_releases_only_its_inode ... ok
+test storage_core::index::tests::commit_lock_recovers_owned_git_lock_after_process_death ... ok
+test storage_core::index::tests::index_crash_helper ... ignored, subprocess helper invoked by crash recovery test
+test storage_core::index::tests::lossless_non_utf8_paths_are_staged_as_exact_index_entries ... ok
+test storage_core::index::tests::manual_index_changes_and_foreign_locks_are_preserved ... ok
+test storage_core::index::tests::manual_managed_deletion_is_preserved_but_explicit_tombstone_stages ... ok
+test storage_core::index::tests::matched_index_pair_preserves_unrelated_staging_and_source ... ok
+test storage_core::index::tests::matched_pair_recovers_before_and_after_atomic_publication ... ok
+test storage_core::index::tests::oversized_physical_index_is_rejected_before_libgit2_decode ... ok
+test storage_core::index::tests::saved_intent_conflict_releases_only_its_owned_lock ... ok
+test storage_core::index::tests::sticky_contracts_cannot_disappear_or_change_without_migration ... ok
+test storage_core::journal::tests::aggregate_capture_budget_refuses_new_work_without_deleting_retained_versions ... ok
+test storage_core::journal::tests::cancelled_and_changed_sources_do_not_overwrite_old_jobs ... ok
+test storage_core::journal::tests::complete_capture_recovers_after_death_before_or_after_snapshot_publish ... ok
+test storage_core::journal::tests::corrupt_unknown_or_unsafe_records_are_retained_and_not_green ... ok
+test storage_core::journal::tests::crash_child ... ignored, subprocess helper, invoked by the crash recovery test
+test storage_core::journal::tests::enrolled_clean_selection_refuses_ambiguous_sources_and_catalog_over_budget ... ok
+test storage_core::journal::tests::exact_version_identity_separates_source_policy_path_and_repository ... ok
+test storage_core::journal::tests::exclusive_leases_and_revision_checks_refuse_stale_updates ... ok
+test storage_core::journal::tests::forged_regression_and_plaintext_encryption_are_rejected ... ok
+test storage_core::journal::tests::payload_crash_child ... ignored, subprocess helper, invoked by payload crash recovery test
+test storage_core::journal::tests::payload_spools_resume_matching_prefix_and_have_independent_byte_budget ... ok
+test storage_core::journal::tests::prepared_payload_is_retained_once_and_cannot_change_across_restart ... ok
+test storage_core::journal::tests::prepared_payload_recovers_process_death_without_repeating_security_processing ... ok
+test storage_core::journal::tests::previously_tracked_runtime_and_changed_ignore_fail_before_private_capture ... ok
+test storage_core::journal::tests::private_runtime_inside_watched_repo_is_ignored_and_cannot_be_the_repo_root ... ok
+test storage_core::journal::tests::process_death_releases_lease_and_atomic_write_has_old_or_new_record ... ok
+test storage_core::journal::tests::record_budget_and_read_only_status_never_delete_or_create_state ... ok
+test storage_core::journal::tests::relative_paths_and_required_sets_are_validated ... ok
+test storage_core::journal::tests::required_copies_and_git_destinations_gate_preservation ... ok
+test storage_core::journal::tests::restart_preserves_upload_evidence_and_retry_backoff ... ok
+test storage_core::journal::tests::snapshot_crash_child ... ignored, subprocess helper, invoked by snapshot crash recovery test
+test storage_core::journal::tests::source_snapshots_resume_partial_capture_and_reuse_exact_completed_version ... ok
+test storage_core::journal::tests::symlinks_hard_links_and_public_permissions_fail_closed ... ok
+test storage_core::journal::tests::unmarked_nonempty_root_does_not_hide_or_overwrite_existing_user_files ... ok
+test storage_core::journal::tests::wrong_capture_prefix_and_corrupt_snapshot_fail_without_overwriting ... 
