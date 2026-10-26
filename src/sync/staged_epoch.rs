@@ -1495,6 +1495,114 @@ mod tests {
         assert!(!repo.join(".git/index.lock").exists());
     }
 
+    /// REGRESSION (2026-10-26 disk-exhaustion incident): a PUBLISHED epoch
+    /// must release its retained spool.
+    ///
+    /// Every epoch allocates `<gitdir>/dracon-staging-*` containing a
+    /// full-tree index plus an independent pack (~875 MiB on a large repo)
+    /// and deliberately retains it so prune cannot collect a proven
+    /// candidate. Nothing ever released it, so the leak was one full spool
+    /// PER SYNC CYCLE: browser-extensions-shared reached 141 spools / 101 GiB
+    /// in one afternoon and filled the root filesystem, wedging the fleet
+    /// with `os error 28`.
+    ///
+    /// An age-based sweep alone was not enough (9 GiB still leaked in 4
+    /// minutes after 0.113.96 shipped it), because the sweep can only ever
+    /// lag the leak. Once the commit is on the ref the candidate is reachable
+    /// through normal history, so the spool has no remaining purpose.
+    ///
+    /// The companion guarantee is asserted too: an UNPUBLISHED epoch (here a
+    /// deadline before any commit) must still keep its spool for diagnosis.
+    #[tokio::test]
+    async fn published_epoch_releases_its_spool_and_unpublished_one_keeps_it() {
+        let (root, mut policy) = fixture().await;
+        let repo = root.path();
+        policy.auto_commit = true;
+        policy.watch_roots = vec![repo.to_string_lossy().into_owned()];
+
+        // --- published path: the spool must be gone afterwards.
+        std::fs::write(repo.join("file"), b"published content\n").unwrap();
+        git(repo, &["add", "--", "file"], None).await.unwrap();
+        let mut epoch = Epoch::capture(repo, 60).await.unwrap();
+        let spool = repo.join(".git").join("spool-marker");
+        // A real staging epoch is what allocates the retained directory; do
+        // the whole ordinary cycle so `retained` is actually set.
+        drop(spool);
+        let baseline = Epoch::capture(repo, 60).await.unwrap();
+        let staging = Staging::new(repo, baseline).await.unwrap();
+        let retained = staging.directory.clone();
+        std::fs::write(repo.join("file"), b"published content\n").unwrap();
+        run_index_git(
+            repo,
+            &["add", "--", "file"],
+            60,
+            "fixture publish add",
+            Some(staging.index()),
+        )
+        .await
+        .unwrap();
+        let mut epoch = staging
+            .finish(repo, &policy, &BTreeSet::new(), false, false)
+            .await
+            .unwrap();
+        assert!(epoch.has_intent(), "fixture must produce a candidate");
+        assert_eq!(
+            epoch.spool_lease.named(),
+            Some(retained.as_path()),
+            "the epoch must lease the spool it retained"
+        );
+        let committed = epoch
+            .commit(repo, "fixture publishes", &policy, &BTreeSet::new(), None)
+            .await
+            .unwrap();
+        let _ = committed;
+        assert!(
+            !retained.exists(),
+            "a PUBLISHED epoch must release its spool: {} still exists",
+            retained.display()
+        );
+        assert_eq!(
+            git(repo, &["show", "HEAD:file"], None)
+                .await
+                .unwrap()
+                .stdout,
+            b"published content\n",
+            "the release must not disturb the published commit"
+        );
+
+        // --- unpublished path: the spool must survive for diagnosis.
+        std::fs::write(repo.join("file"), b"never published\n").unwrap();
+        let baseline = Epoch::capture(repo, 60).await.unwrap();
+        let staging = Staging::new(repo, baseline).await.unwrap();
+        let unpublished = staging.directory.clone();
+        run_index_git(
+            repo,
+            &["add", "--", "file"],
+            60,
+            "fixture unpublished add",
+            Some(staging.index()),
+        )
+        .await
+        .unwrap();
+        // Expire the deadline so nothing can publish.
+        let mut expired = staging
+            .finish(repo, &policy, &BTreeSet::new(), false, false)
+            .await
+            .unwrap();
+        expired.deadline = tokio::time::Instant::now();
+        let result = expired
+            .commit(repo, "must not publish", &policy, &BTreeSet::new(), None)
+            .await;
+        assert!(result.is_err(), "an expired deadline cannot publish");
+        // `commit` consumed `expired`, so assert on the directory the epoch
+        // was leasing: the reset above does not clear `spool_lease`.
+        assert!(
+            unpublished.exists(),
+            "an UNPUBLISHED epoch must keep its spool for diagnosis: {} is gone",
+            unpublished.display()
+        );
+    }
+
     #[tokio::test]
     async fn installed_epoch_keeps_proven_identity_and_rejects_late_replacement() {
         let (root, policy) = fixture().await;
