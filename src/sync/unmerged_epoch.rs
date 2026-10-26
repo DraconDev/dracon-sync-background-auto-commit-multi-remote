@@ -416,7 +416,7 @@ pub(super) async fn reconcile(
         // directory. Make recovery reachable BEFORE replacing the actual index.
         File::open(index_parent)?.sync_all()?;
         ensure!(Instant::now()<deadline,"unmerged selection deadline expired");
-        lock.install_index(&candidate,&actual)?;
+        lock.install_index(repo,&candidate,&actual,deadline).await?;
         File::open(index_parent)?.sync_all().with_context(||format!("index installed; original recovery retained at {}",directory.display()))?;
         eprintln!("🛟 {} reconciled {} HEAD-equal stale conflict paths; exact original index/payloads retained at {}",repo.display(),sources.len(),directory.display());
         Ok(Some((Epoch{snapshot,reference,deadline,retained:Some(directory),deletions:std::collections::BTreeMap::new(),ignore_patterns:Vec::new()},sources.len())))

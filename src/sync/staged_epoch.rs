@@ -1001,7 +1001,7 @@ impl Staging {
                 PathBuf::from(std::str::from_utf8(&actual_index.stdout)?.trim_end_matches('\n'));
             let mut lock = acquire_epoch_lock(actual_index.with_extension("lock"))?;
             self.baseline.unchanged(repo, &lock).await?;
-            lock.install_index(&self.index, &actual_index)?;
+            lock.install_index(repo, &self.index, &actual_index, deadline).await?;
             // The returned identities are the proven private candidate, not
             // a read-after-install observation of a concurrently replaced index.
             // Commit's unchanged check must reject any later delta intact.
