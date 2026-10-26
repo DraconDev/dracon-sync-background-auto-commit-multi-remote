@@ -118,4 +118,20 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 running 5 tests
 test test_auto_key_generation ... ok
 test test_backup_functionality ... ok
-test test_corpus_roundtrip ... 
+test test_corpus_roundtrip ... ok
+test test_dracon_security_singleton_same_instance ... ok
+test test_encrypt_decrypt_multiple_recipients ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.25s
+
+     Running tests/conversation_dump_full_encrypt.rs (target/debug/deps/conversation_dump_full_encrypt-07769a44d7c11d24)
+
+running 9 tests
+test conversation_source_file_is_not_whole_file_encrypted ... ok
+test conversation_txt_gets_whole_file_encryption ... ok
+test conversation_txt_round_trips_through_smudge ... ok
+test dump_predicate_matches_only_dump_extensions ... ok
+test pi_session_html_at_depth_gets_whole_file_encryption ... ok
+test pi_session_systemd_unit_is_not_whole_file_encrypted ... ok
+test rollout_jsonl_gets_whole_file_encryption ... ok
+test rollout_prose_doc_is_not_whole_file_encrypted ... 
