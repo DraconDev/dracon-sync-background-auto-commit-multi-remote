@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  11:56:49
+   Duration  1.13s (transform 396ms, setup 653ms, import 8ms, tests 33ms, environment 314ms)
+
