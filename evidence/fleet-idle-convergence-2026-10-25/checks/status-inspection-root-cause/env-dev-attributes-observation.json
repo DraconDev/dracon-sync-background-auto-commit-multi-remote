@@ -1,0 +1,36 @@
+[
+  {
+    "repo": "/home/dracon/Dev/dracon-platform",
+    "path": ".env.dev",
+    "worktreeExists": false,
+    "worktreeAttributes": {
+      "exit": 0,
+      "output": ".env.dev: filter: dracon\n.env.dev: diff: dracon\n.env.dev: merge: dracon"
+    },
+    "indexAttributes": {
+      "exit": 0,
+      "output": ".env.dev: filter: dracon\n.env.dev: diff: dracon\n.env.dev: merge: dracon"
+    },
+    "indexEntry": {
+      "exit": 0,
+      "output": ""
+    }
+  },
+  {
+    "repo": "/home/dracon/Dev/browser-extensions-shared",
+    "path": ".env.dev",
+    "worktreeExists": false,
+    "worktreeAttributes": {
+      "exit": 0,
+      "output": ".env.dev: filter: dracon\n.env.dev: diff: unspecified\n.env.dev: merge: unspecified"
+    },
+    "indexAttributes": {
+      "exit": 0,
+      "output": ".env.dev: filter: dracon\n.env.dev: diff: unspecified\n.env.dev: merge: unspecified"
+    },
+    "indexEntry": {
+      "exit": 0,
+      "output": ""
+    }
+  }
+]
