@@ -181,7 +181,7 @@ fn slots(raw: &[u8], deadline: Instant) -> Result<Slots> {
             .context("invalid unmerged path header")?;
         let fields: Vec<_> = std::str::from_utf8(&record[..tab])?.split(' ').collect();
         ensure!(
-            fields.len() == 3 && crate::git::is_valid_object_id(fields[1]),
+            fields.len() == 3 && crate::git::is_valid_object_id(fields[1]) && !fields[1].bytes().all(|byte| byte == b'0'),
             "invalid unmerged identity"
         );
         let mode = u32::from_str_radix(fields[0], 8)?;
