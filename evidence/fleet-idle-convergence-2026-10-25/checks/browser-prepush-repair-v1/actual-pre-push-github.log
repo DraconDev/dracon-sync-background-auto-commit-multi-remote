@@ -51,3 +51,26 @@ Gate exited with status 2
 
   ▸ extensions/standalones/ai-chat-toolkit BUILD (31bd83ca328a)
   ▸ extensions/standalones/ai-chat-toolkit TEST (31bd83ca328a)
+  - extensions/standalones/ai-chat-toolkit/TEST exited 1 (see /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.eHcf3w/extensions_standalones_ai-chat-toolkit-TEST.log)
+
+ ❯ tests/icon-geometry.test.ts:141:23
+    139|     // generator is free to invent: if either is hard-coded here, an e…
+    140|     // glyph.ts silently stops applying to the PNGs.
+    141|     expect(generator).toContain('GLYPH_TAIL_POINTS');
+       |                       ^
+    142|     expect(generator).toContain('GLYPH_BOLT_POINTS');
+    143|     expect(generator).toContain('GLYPH_GRADIENT_START');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  2 failed | 13 passed (15)
+      Tests  5 failed | 163 passed (168)
+   Start at  12:08:51
+   Duration  18.80s (transform 607ms, setup 238ms, import 733ms, tests 26.09s, environment 7.17s)
+
+
+Gate exited with status 1
+
+  ▸ extensions/standalones/ai-chat-toolkit LINT (31bd83ca328a)
+  ▸ extensions/standalones/ai-search TYPECHECK (31bd83ca328a)
