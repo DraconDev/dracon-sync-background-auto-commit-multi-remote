@@ -2382,4 +2382,11 @@ test policy_capture_and_advance_encrypt_exact_version_with_actual_warden ... ign
 test policy_capture_and_advance_preserve_versions_and_refuse_ineligible_sources ... ok
 test real_git_add_uses_only_exact_prepared_reference_and_preserves_edits ... ok
 test real_git_clean_preserves_non_utf8_path_identity ... ok
-test wrong_path_failed_job_and_foreign_repository_cannot_fall_back_to_raw ... 
+test wrong_path_failed_job_and_foreign_repository_cannot_fall_back_to_raw ... ok
+
+test result: ok. 14 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 31.20s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_system-3dae012e9af70063)
+
+running 616 tests
+test cpu_limit::lifecycle_tests::ambiguous_application_and_failed_expiry_remain_recoverable_until_retry_succeeds ... 
