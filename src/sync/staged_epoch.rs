@@ -66,6 +66,10 @@ pub(super) struct Epoch {
     // Keep the independent pack after installation: a later actual-index
     // replacement must not make the proven candidate collectible by prune.
     retained: Option<PathBuf>,
+    // Verified artifact de-index authorization: raw path -> captured HEAD object
+    // id. Re-proved against HEAD in the commit transaction; never a general
+    // exclusion waiver, and empty for every captured (user) entry epoch.
+    deletions: std::collections::BTreeMap<Vec<u8>, String>,
 }
 
 pub(super) async fn git(
@@ -139,6 +143,7 @@ impl Epoch {
                 reference,
                 deadline,
                 retained: None,
+                deletions: std::collections::BTreeMap::new(),
             })
         })
         .await
@@ -256,23 +261,16 @@ impl Epoch {
     // Inspection errors are never eligibility decisions. Only policy/size
     // rejection may prune an OWNED ordinary candidate; captured user staging
     // still goes through eligible() and is refused intact.
+    // Inspection errors are never eligibility decisions. Only policy/size
+    // rejection may prune an OWNED ordinary candidate; captured user staging
+    // still goes through eligible() and is refused intact. The ONE exception is
+    // a verified artifact de-index recorded by this epoch's own plan: the path
+    // is absent from the candidate and its captured HEAD identity is retained.
     async fn ineligible_paths(
         &self,
         repo: &Path,
         policy: &SyncPolicy,
         excluded: &BTreeSet<String>,
-    ) -> Result<Vec<Vec<u8>>> {
-        self.ineligible_paths_with_deletions(repo, policy, excluded, None).await
-    }
-
-    /// `deletions` carries the verified artifact authorization. Nothing else may
-    /// relax the exclusion gate; `None` keeps the historical behavior exactly.
-    async fn ineligible_paths_with_deletions(
-        &self,
-        repo: &Path,
-        policy: &SyncPolicy,
-        excluded: &BTreeSet<String>,
-        deletions: Option<&std::collections::BTreeMap<Vec<u8>, String>>,
     ) -> Result<Vec<Vec<u8>>> {
         let overrides = load_repo_override(repo);
         let excludes = crate::policy::effective_auto_commit_excludes(policy, &overrides);
@@ -324,12 +322,9 @@ impl Epoch {
         let mut rejected = Vec::new();
         for ((raw, entry), path) in self.snapshot.changed.iter().zip(self.entries()?) {
             let size = measured.get(raw).copied().unwrap_or(0);
-            if deletions.is_some_and(|deleted| {
-                entry.is_none() && deleted.get(raw).is_some_and(|oid|
-                    self.baseline_oid(raw).is_some_and(|head| head == *oid))
-            }) {
-                // Explicitly authorized: the captured HEAD identity proves the
-                // path came from the artifact directory we are de-indexing.
+            if entry.is_none() && self.deletions.contains_key(raw) {
+                // Explicitly authorized de-index of a build-artifact path. The
+                // HEAD identity and component are re-proved at commit time.
                 continue;
             }
             if !(crate::exclude::should_stage_entry_with_blob_size(
@@ -358,12 +353,6 @@ impl Epoch {
             }
         }
         Ok(rejected)
-    }
-
-    /// Captured HEAD identity for a raw path, used only to re-prove that an
-    /// authorized deletion is the same object we planned to de-index.
-    fn baseline_oid(&self, _raw: &[u8]) -> Option<String> {
-        None
     }
 
     /// Returns true when index/worktree follow-up remains. One absolute deadline
@@ -842,10 +831,11 @@ impl Staging {
                 if !candidate.contains_key(path) { changed.insert(path.clone(), None); }
             }
             let expected = StagedIntentSnapshot { head: self.baseline.snapshot.head.clone(), entries: candidate, changed };
-            let mut epoch = Epoch { snapshot: expected, reference: self.baseline.reference.clone(), deadline, retained: Some(self.directory.clone()) };
-            // Only plan-authorized artifact deletions survive the exclusion gate.
-            let deletions = plan.as_ref().map(|plan| &plan.deleted);
-            let rejected = epoch.ineligible_paths_with_deletions(repo, policy, excluded, deletions).await?;
+            let mut epoch = Epoch { snapshot: expected, reference: self.baseline.reference.clone(), deadline, retained: Some(self.directory.clone()),
+                deletions: plan.as_ref().map(|plan| plan.deleted.clone()).unwrap_or_default() };
+            // Only this epoch's own verified artifact de-index survives the
+            // exclusion gate; every other excluded path is still refused.
+            let rejected = epoch.ineligible_paths(repo, policy, excluded).await?;
             for path in rejected {
                 // This view began without staged intent. Restore only our
                 // candidate to its baseline; never reset the actual index or
