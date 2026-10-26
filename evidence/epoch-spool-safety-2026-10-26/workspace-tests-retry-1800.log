@@ -151,4 +151,30 @@ test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
      Running tests/github_format_review.rs (target/debug/deps/github_format_review-1b5e476c8a2934f0)
 
 running 2 tests
-test github_invalid_boundaries_and_lengths_do_not_match ... 
+test github_invalid_boundaries_and_lengths_do_not_match ... ok
+test github_supported_formats_are_replaced_in_full ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s
+
+     Running tests/index_reuse.rs (target/debug/deps/index_reuse-735efb28c06cd903)
+
+running 3 tests
+test newly_detected_secrets_in_index_force_reencryption ... ok
+test policy_upgrade_does_not_reuse_partially_protected_index ... ok
+test unchanged_ciphertext_is_reused_but_edits_and_plaintext_are_not ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.85s
+
+     Running tests/keys_json_full_encrypt.rs (target/debug/deps/keys_json_full_encrypt-307851ad30f45a33)
+
+running 2 tests
+test keys_json_gets_whole_file_encryption ... ok
+test keys_json_round_trips_through_smudge ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/leak_prevention_test.rs (target/debug/deps/leak_prevention_test-0aab4a5f0d1183ff)
+
+running 2 tests
+test prop_test_binary_passthrough_integrity ... ok
+test prop_test_hybrid_security_logic ... 
