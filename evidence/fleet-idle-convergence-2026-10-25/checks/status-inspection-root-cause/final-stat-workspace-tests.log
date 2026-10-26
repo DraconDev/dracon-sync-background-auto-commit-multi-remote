@@ -1843,4 +1843,7 @@ test storage::tests::reject_unapproved_backend_and_repo_backend_injection ... ok
 test storage::tests::repo_policy_symlinks_cannot_read_outside_repository ... ok
 test storage::tests::repository_cannot_downgrade_operator_backend_encryption ... ok
 test storage::tests::rule_order_threshold_and_no_universal_media_policy ... ok
-test storage::tests::sealed_commit_honors_a_refusing_reference_transaction_hook ... 
+test storage::tests::sealed_commit_honors_a_refusing_reference_transaction_hook ... ok
+test storage::tests::sealed_commit_rejects_a_message_emptied_by_commit_msg ... ok
+test storage::tests::staged_nested_macro_and_quoted_storage_declarations_require_binding ... ok
+test storage::tests::storage_bootstrap_cannot_bypass_guard_with_no_verify ... 
