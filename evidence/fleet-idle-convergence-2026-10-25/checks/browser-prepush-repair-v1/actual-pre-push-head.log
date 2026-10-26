@@ -69,3 +69,7 @@
   ▸ extensions/standalones/clean-web TYPECHECK (548a3a10a563)
   ▸ extensions/standalones/clean-web BUILD (548a3a10a563)
   ▸ extensions/standalones/clean-web TEST (548a3a10a563)
+  ▸ extensions/standalones/clean-web LINT (548a3a10a563)
+  ▸ extensions/standalones/cursor-style TYPECHECK (548a3a10a563)
+  ▸ extensions/standalones/cursor-style BUILD (548a3a10a563)
+  ▸ extensions/standalones/cursor-style TEST (548a3a10a563)
