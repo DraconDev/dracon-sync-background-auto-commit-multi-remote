@@ -4,3 +4,7 @@
   ▸ extensions/collections/new-tab/bookmarks-new-tab TYPECHECK (31bd83ca328a)
   ▸ extensions/collections/new-tab/bookmarks-new-tab BUILD (31bd83ca328a)
   ▸ extensions/collections/new-tab/bookmarks-new-tab TEST (31bd83ca328a)
+  ▸ extensions/collections/new-tab/bookmarks-new-tab LINT (31bd83ca328a)
+  ▸ extensions/collections/new-tab/dark-new-tab TYPECHECK (31bd83ca328a)
+  ▸ extensions/collections/new-tab/dark-new-tab BUILD (31bd83ca328a)
+  ▸ extensions/collections/new-tab/dark-new-tab TEST (31bd83ca328a)
