@@ -207,6 +207,32 @@ fn slots(raw: &[u8], deadline: Instant) -> Result<Slots> {
     Ok(paths)
 }
 
+/// Keep identity, raw path, stage and flags from ONE native observation.
+fn slot_observation(mut raw: &[u8], deadline: Instant) -> Result<Slots> {
+    let mut records = Vec::new();
+    while !raw.is_empty() {
+        ensure!(Instant::now() < deadline, "unmerged observation deadline expired");
+        let nul = raw.iter().position(|byte| *byte == 0).context("missing cached path terminator")?;
+        let record = &raw[..=nul];
+        let parsed = slots(record, deadline)?;
+        ensure!(parsed.len() == 1, "ambiguous cached identity");
+        let stage = parsed.values().next().context("missing cached stage")?[0].2;
+        records.extend_from_slice(record);
+        raw = &raw[nul+1..];
+        for prefix in [b"  ctime: ".as_slice(), b"  mtime: ", b"  dev: ", b"  uid: ", b"  size: "] {
+            let end = raw.iter().position(|byte| *byte == b'\n').context("truncated cached debug observation")?;
+            let line = &raw[..end];
+            ensure!(line.starts_with(prefix), "unsupported cached debug observation");
+            if prefix == b"  size: " {
+                let (_, flags) = std::str::from_utf8(line)?.rsplit_once("\tflags: ").context("missing cached flags")?;
+                ensure!(u32::from_str_radix(flags,16)? == u32::from(stage) << 12, "unsupported cached flags; actual index preserved");
+            }
+            raw = &raw[end+1..];
+        }
+    }
+    slots(&records, deadline)
+}
+
 /// Recovery is a bounded delta spool, not a duplicate of the whole repository.
 const RETAINED_BYTES_LIMIT: u64 = 512 * 1024 * 1024;
 fn require_free_space(parent: &Path, reserve: u64) -> Result<()> {
@@ -255,13 +281,10 @@ pub(super) async fn reconcile(
         ensure!(crate::git::is_valid_object_id(&head),"invalid unmerged parent");
         let (original,original_stamp)=index_bytes(&actual).await?;
         let index_parent=actual.parent().context("index parent missing")?;
-        require_free_space(index_parent, original.len() as u64 * 3 + 64 * 1024 * 1024)?;
-        let directory=tempfile::Builder::new().prefix("dracon-unmerged-recovery-")
-            .permissions(std::fs::Permissions::from_mode(0o700)).tempdir_in(actual.parent().context("index parent missing")?)?.keep();
-        let candidate=directory.join("index");
-        private_file(&directory.join("original-index"),&original)?; private_file(&candidate,&original)?;
-        let cached=private_read(repo,&candidate,&["ls-files","--stage","-z"]).await?;
-        let all=slots(&cached,deadline)?;
+        let cached=private_read(repo,&actual,&["ls-files","--stage","--debug","-z"]).await?;
+        let all=slot_observation(&cached,deadline)?;
+        let observed=index_bytes(&actual).await?;
+        ensure!(observed.0==original && observed.1==original_stamp,EpochConflict::IndexChanged);
         ensure!(all.iter().filter(|(_,entries)|entries.iter().any(|(_,_,stage)|*stage!=0)).map(|(p,e)|(p.clone(),e.iter().filter(|(_,_,stage)|*stage!=0).cloned().collect::<Vec<_>>())).collect::<BTreeMap<_,_>>()==conflicts,
             "conflict slots changed before lock; retained original index");
         let tree=git(repo,&["ls-tree","-r","-z","--full-tree",&head],None).await?;
@@ -275,10 +298,6 @@ pub(super) async fn reconcile(
             }
         }}
         let (input,payload_bytes)=retention_input(repo,&objects,RETAINED_BYTES_LIMIT).await?;
-        require_free_space(index_parent,payload_bytes + original.len() as u64 + 64 * 1024 * 1024)?;
-        let prefix=directory.join("retained");
-        git(repo,&["pack-objects","--revs","--window=0","--depth=0",prefix.to_str().context("unsupported unmerged retention path")?],Some(input.as_bytes())).await?;
-        for entry in std::fs::read_dir(&directory)?{let path=entry?.path();if path.extension().is_some_and(|e|e=="pack"||e=="idx"){File::open(path)?.sync_all()?;}}
         let mut sources=Vec::new();
         for path in conflicts.keys(){
             let Some(entry)=base.get(path) else { continue };
@@ -294,10 +313,27 @@ pub(super) async fn reconcile(
             let out=crate::git::run_command_captured_file(command.into_tokio(),3600,"unmerged held source hash",source.file.try_clone()?).await?;
             ensure!(out.status.success(),"unmerged source hash refused");
             if std::str::from_utf8(&out.stdout)?.trim()!=entry.oid || !source.unchanged(repo,&path)?{continue}
+            sources.push((path,source,entry.mode,entry.oid.clone()));
+        }
+        if sources.len()!=conflicts.len(){
+            eprintln!("⚠️ {} unverified conflict content; actual index/worktree preserved, no recovery spool created",repo.display());
+            return Ok(None)
+        }
+        // Only a verified, installable selection can allocate a retained spool.
+        // Stable unknown/flagged retries must not duplicate payloads forever.
+        require_free_space(index_parent,payload_bytes + original.len() as u64 * 3 + 64 * 1024 * 1024)?;
+        let directory=tempfile::Builder::new().prefix("dracon-unmerged-recovery-")
+            .permissions(std::fs::Permissions::from_mode(0o700)).tempdir_in(index_parent)?.keep();
+        let candidate=directory.join("index");
+        private_file(&directory.join("original-index"),&original)?; private_file(&candidate,&original)?;
+        let prefix=directory.join("retained");
+        git(repo,&["pack-objects","--revs","--window=0","--depth=0",prefix.to_str().context("unsupported unmerged retention path")?],Some(input.as_bytes())).await?;
+        for entry in std::fs::read_dir(&directory)?{let path=entry?.path();if path.extension().is_some_and(|e|e=="pack"||e=="idx"){File::open(path)?.sync_all()?;}}
+        for(path,_,mode,oid)in &sources {
             // Exact path bytes; no pathspec expansion, filtering or worktree write.
-            let mut update=format!("0 {}\t", "0".repeat(entry.oid.len())).into_bytes();
+            let mut update=format!("0 {}\t", "0".repeat(oid.len())).into_bytes();
             update.extend_from_slice(path.as_os_str().as_bytes());update.push(0);
-            update.extend_from_slice(format!("{:o} {}\t",entry.mode,entry.oid).as_bytes());
+            update.extend_from_slice(format!("{mode:o} {oid}\t").as_bytes());
             update.extend_from_slice(path.as_os_str().as_bytes());update.push(0);
             let mut command=crate::policy::tokio_git_command();
             for(key,_)in std::env::vars_os(){if key.to_string_lossy().starts_with("GIT_"){command.env_remove(key);}}
@@ -305,18 +341,13 @@ pub(super) async fn reconcile(
                 .args(["update-index","-z","--index-info"]);
             let out=crate::git::run_command_captured_output(command.into_tokio(),3600,"private conflict selection",Some(&update)).await?;
             ensure!(out.status.success(),"private conflict selection failed");
-            sources.push((path,source));
-        }
-        if sources.is_empty(){
-            eprintln!("⚠️ {} unresolved conflict content retained; original index/payload backup: {}",repo.display(),directory.display());
-            return Ok(None)
         }
         // Remaining uncertain slots deliberately refuse the whole install.
         let snapshot=StagedIntentSnapshot::capture_index(repo,Some(&candidate),deadline).await?;
         ensure!(snapshot.head==CapturedHead::Commit(head.clone()),"parent changed during conflict selection");
         private_file(&directory.join("recovery.json"),&serde_json::to_vec_pretty(&serde_json::json!({
             "source":env!("DRACON_EPOCH_SOURCE_ID"),"head":head,"reference":reference,
-            "resolved":sources.iter().map(|(p,_)|p.as_os_str().as_bytes()).collect::<Vec<_>>(),
+            "resolved":sources.iter().map(|(p,_,_,_)|p.as_os_str().as_bytes()).collect::<Vec<_>>(),
             "action":"policy-enabled HEAD-equal stale conflict selection; original-index and cached pack retained"}))?)?;
         File::open(&directory)?.sync_all()?;
         ensure!(lock.is_owned(),EpochConflict::LockReplaced);
@@ -325,7 +356,7 @@ pub(super) async fn reconcile(
         ensure!(reference==super::reference(repo).await?,EpochConflict::ReferenceChanged);
         let current_head=git(repo,&["rev-parse","--verify","HEAD"],None).await?;
         ensure!(std::str::from_utf8(&current_head.stdout)?.trim()==head,EpochConflict::ReferenceChanged);
-        for(path,source)in &sources{ensure!(source.unchanged(repo,path)?,"unmerged working source changed; original index retained");}
+        for(path,source,_,_)in &sources{ensure!(source.unchanged(repo,path)?,"unmerged working source changed; original index retained");}
         // Child-directory fsync alone does not persist its name in the Git
         // directory. Make recovery reachable BEFORE replacing the actual index.
         File::open(index_parent)?.sync_all()?;
