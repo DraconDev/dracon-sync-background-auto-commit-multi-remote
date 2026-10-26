@@ -427,4 +427,12 @@ test storage_core::journal::tests::snapshot_crash_child ... ignored, subprocess 
 test storage_core::journal::tests::source_snapshots_resume_partial_capture_and_reuse_exact_completed_version ... ok
 test storage_core::journal::tests::symlinks_hard_links_and_public_permissions_fail_closed ... ok
 test storage_core::journal::tests::unmarked_nonempty_root_does_not_hide_or_overwrite_existing_user_files ... ok
-test storage_core::journal::tests::wrong_capture_prefix_and_corrupt_snapshot_fail_without_overwriting ... 
+test storage_core::journal::tests::wrong_capture_prefix_and_corrupt_snapshot_fail_without_overwriting ... ok
+test storage_core::manifest::tests::ambiguous_paths_and_copy_sets_are_rejected ... ok
+test storage_core::manifest::tests::encoding_stops_at_metadata_budget_before_producing_oversized_output ... ok
+test storage_core::manifest::tests::malformed_untrusted_manifest_fails_without_echoing_private_fields ... ok
+test storage_core::manifest::tests::private_metadata_round_trip_matches_exact_pointer_and_lossless_path ... ok
+test storage_core::manifest::tests::tombstones_keep_contract_while_payload_edits_do_not_change_enrollment ... ok
+test storage_core::metadata::tests::approval_publication_crashes_preserve_exact_manifest_ciphertext ... ok
+test storage_core::metadata::tests::bad_exit_plain_output_and_budget_failure_keep_source_unapproved ... ok
+test storage_core::metadata::tests::cancelling_import_releases_lease_and_terminates_security_group ... 
