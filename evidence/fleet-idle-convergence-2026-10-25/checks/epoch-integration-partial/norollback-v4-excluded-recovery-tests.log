@@ -1,1 +1,9 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 24.82s
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 12 tests
+test sync::excluded_revert::crash_tests::excluded_recovery_legacy_permission_repair_never_follows_archive_symlinks ... ok
+test sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_reseal_changed_records ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late ... 
