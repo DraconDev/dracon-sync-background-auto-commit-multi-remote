@@ -2893,4 +2893,9 @@ test tests::clean_tmp_paths_large_floor_respects_the_liveness_gates ... ok
 test tests::clean_tmp_paths_large_unheld_entry_beats_the_general_floor ... ok
 test tests::clean_tmp_paths_refuses_blind_cleanup_when_proc_unreadable ... ok
 test tests::clean_tmp_paths_rejects_home_search_root_before_apply ... ok
-test tests::clean_tmp_paths_reports_held_back_scratch_without_the_size_aware_floor ... 
+test tests::clean_tmp_paths_reports_held_back_scratch_without_the_size_aware_floor ... ok
+test tests::clean_tmp_paths_reports_scratch_held_by_the_age_floor ... ok
+test tests::clean_tmp_paths_respects_age_dry_run_and_open_fds ... ok
+test tests::clean_tmp_paths_separates_the_size_aware_share_of_the_held_back_scratch ... ok
+test tests::clean_tmp_paths_size_aware_floor_stays_off_outside_the_filling_tier ... ok
+test tests::clean_tmp_paths_skips_unreadable_root ... 
