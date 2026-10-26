@@ -2267,4 +2267,5 @@ test sync::tests::test_truncate_task_short ... ok
 test sync::tests::test_warden_auto_harden_disabled_never_forks ... ok
 test sync::tests::test_warden_auto_harden_hardens_once ... ok
 test sync::tests::test_warden_auto_harden_skips_dry_run ... ok
-test sync::tests::unlimited_batch_bootstraps_all_related_unborn_files ... 
+test sync::tests::unlimited_batch_bootstraps_all_related_unborn_files ... ok
+test sync::tests::unlimited_batch_commits_all_related_worktree_files_in_one_epoch ... [master (root-commit) 72afd97] init
