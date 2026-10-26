@@ -8,3 +8,6 @@
   ▸ extensions/collections/new-tab/dark-new-tab TYPECHECK (548a3a10a563)
   ▸ extensions/collections/new-tab/dark-new-tab BUILD (548a3a10a563)
   ▸ extensions/collections/new-tab/dark-new-tab TEST (548a3a10a563)
+  ▸ extensions/collections/new-tab/dark-new-tab LINT (548a3a10a563)
+  ▸ extensions/collections/new-tab/infinite-new-tab TYPECHECK (548a3a10a563)
+  ▸ extensions/collections/new-tab/infinite-new-tab BUILD (548a3a10a563)
