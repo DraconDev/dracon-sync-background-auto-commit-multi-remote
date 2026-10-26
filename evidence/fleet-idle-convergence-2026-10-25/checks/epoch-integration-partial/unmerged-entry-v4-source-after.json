@@ -1,0 +1,34 @@
+{
+  "capturedAt": "2026-10-26T00:25:02.441293+00:00",
+  "scope": "unmerged-entry intermediate Rust assembly gates only; NOT final implementation, installed/loaded execution or fleet-idle proof",
+  "changedSourceFiles": [],
+  "pinnedHelperUnchanged": true,
+  "observedExitCodes": {
+    "unmerged-entry-v4-workspace-strict-clippy": 0,
+    "unmerged-entry-v4-unmerged_entry": 0,
+    "unmerged-entry-v4-strict-clippy": 0,
+    "unmerged-entry-v4-cargo-deny": 0,
+    "unmerged-entry-v4-release-build": 0,
+    "unmerged-entry-v4-sync__staged_epoch__tests": 0,
+    "unmerged-entry-v4-workspace-tests": 0,
+    "unmerged-entry-v4-test_auto_resolve_unmerged": 0
+  },
+  "logSha256": {
+    "unmerged-entry-v4-cargo-deny.log": "f1a0fca39d4280363937aabd77783990ea6480bd9ca257816de3b68fc8efa845",
+    "unmerged-entry-v4-helper-build.log": "88a36eda010494514d1748bd1cb7d41e27fb65d41f6479da58293c6109850905",
+    "unmerged-entry-v4-release-build.log": "e7d2fd656995bd253b483c66c419ecb98b90144bf2eb4b9b002b0067dcdd96a5",
+    "unmerged-entry-v4-strict-clippy.log": "6cc65e7b35d9add8c6a69e4bce49d42d891e8016d65227f91404c327bd16841c",
+    "unmerged-entry-v4-sync__staged_epoch__tests.log": "f4758f01c6d42e5d2d2c8fb0025fc7f1a67bf84f5a4c046898b68f1ddb3bf677",
+    "unmerged-entry-v4-test_auto_resolve_unmerged.log": "fae8f050075f40170b2f1dba187eba75c1f90e9facf9acae7928952056261125",
+    "unmerged-entry-v4-unmerged_entry.log": "9ab7cc19a299523a7540f3e17a23b58e7a968a597d1e76980e8e06ea31ead97b",
+    "unmerged-entry-v4-workspace-strict-clippy.log": "a7123a9cc37019db6f4578f51e52e222a1dbefd228ab75985bd022267b6d3241",
+    "unmerged-entry-v4-workspace-tests.log": "c9ded63487aab19d48d2d47756f67945cf446d1fa37e9f8dc124dd880ab179e3"
+  },
+  "releaseArtifacts": {
+    "target/release/dracon-sync": "f6c5457a5849475cfa79ef6067084e581aec81b9489c3627a55b884370b4d22d",
+    "target/release/dracon-system": "46d8dce64ae0576b00ae0d9a6f23bd2de199b0e8bf89d99569df5df89c654539",
+    "target/release/dracon-warden": "44175cf23aa1e7f981fa6d7dff2235b83e021f116c6da747e7650fd2080b512a"
+  },
+  "deploymentPerformedByThisContinuation": false,
+  "liveBatchMigrationAppliedByThisContinuation": false
+}
