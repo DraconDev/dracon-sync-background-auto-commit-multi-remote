@@ -109,3 +109,7 @@
   ▸ extensions/standalones/vidpro-extension TYPECHECK (548a3a10a563)
   ▸ extensions/standalones/vidpro-extension BUILD (548a3a10a563)
   ▸ extensions/standalones/vidpro-extension TEST (548a3a10a563)
+  ▸ extensions/standalones/vidpro-extension LINT (548a3a10a563)
+  ▸ extensions/standalones/volume-and-video-pro TYPECHECK (548a3a10a563)
+  ▸ extensions/standalones/volume-and-video-pro BUILD (548a3a10a563)
+  ▸ extensions/standalones/volume-and-video-pro TEST (548a3a10a563)
