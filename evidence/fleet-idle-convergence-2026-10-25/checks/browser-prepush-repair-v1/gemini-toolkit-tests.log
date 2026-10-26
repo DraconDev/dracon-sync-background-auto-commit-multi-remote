@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/collections/toolkit/gemini-toolkit
+
+
+ Test Files  2 passed (2)
+      Tests  42 passed (42)
+   Start at  11:56:30
+   Duration  883ms (transform 264ms, setup 87ms, import 233ms, tests 165ms, environment 870ms)
+
