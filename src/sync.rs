@@ -5330,6 +5330,20 @@ async fn sync_repo_local_with_ownership(
             &policy.backup_dir,
         )
         .await;
+        // ADDED 2026-10-26: reclaim abandoned private-epoch spools.
+        // Every epoch allocates `<gitdir>/dracon-staging-*` (a full-tree
+        // index + an independent pack) and RETAINS it after publication so
+        // prune cannot collect a proven candidate. Nothing released those
+        // directories: browser-extensions-shared accumulated 141 of them
+        // (101 GiB), filled the root filesystem and wedged every watched
+        // repo with `os error 28`. Bounded per-repo-hour like the two
+        // janitors above; a live epoch's spool is leased and skipped.
+        crate::git::reap_abandoned_spools(
+            repo,
+            policy.epoch_spool_max_age_secs,
+            policy.stage_op_timeout_secs,
+        )
+        .await;
     }
 
     if !is_repo_ready(repo) {
