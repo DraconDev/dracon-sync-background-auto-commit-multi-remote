@@ -311,3 +311,7 @@
    Compiling i18n-embed v0.14.1
     Checking tower-http v0.6.11
    Compiling zvariant v5.15.0
+   Compiling i18n-embed-fl v0.7.0
+    Checking hyper v1.11.1
+    Checking tokio-rustls v0.26.5
+    Checking ssh2 v0.9.6
