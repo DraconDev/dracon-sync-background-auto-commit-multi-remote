@@ -1,0 +1,10 @@
+✔ publication names match the original visual comparison contract exactly (6.10423ms)
+✔ harmless comments pass; omissions, broad exemptions and unknown frames fail (0.226688ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 70.172666
