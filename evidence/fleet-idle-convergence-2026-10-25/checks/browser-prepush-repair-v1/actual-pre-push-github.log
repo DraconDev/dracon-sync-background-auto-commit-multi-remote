@@ -10,3 +10,8 @@
   ▸ extensions/collections/new-tab/dark-new-tab TEST (31bd83ca328a)
   ▸ extensions/collections/new-tab/dark-new-tab LINT (31bd83ca328a)
   ▸ extensions/collections/new-tab/infinite-new-tab TYPECHECK (31bd83ca328a)
+  ▸ extensions/collections/new-tab/infinite-new-tab BUILD (31bd83ca328a)
+  ▸ extensions/collections/new-tab/infinite-new-tab TEST (31bd83ca328a)
+  ▸ extensions/collections/new-tab/minimalist-new-tab TYPECHECK (31bd83ca328a)
+  ▸ extensions/collections/new-tab/minimalist-new-tab BUILD (31bd83ca328a)
+  ▸ extensions/collections/new-tab/minimalist-new-tab TEST (31bd83ca328a)
