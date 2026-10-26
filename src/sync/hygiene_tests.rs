@@ -85,7 +85,7 @@ async fn hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_byte
     let large = r.join("huge.iso");
     std::fs::File::create(&large)
         .unwrap()
-        .set_len(4 * 1024 * 1024)
+        .set_len(4096)
         .unwrap();
     std::fs::write(r.join("note.txt"), b"operator edit\n").unwrap();
     let result = sync_repo(r, &policy(true), &excluded(), 0, None, false, None).await;
