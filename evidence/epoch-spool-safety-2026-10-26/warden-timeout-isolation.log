@@ -22,3 +22,12 @@
    Compiling syn v2.0.119
    Compiling proc-macro-error-attr v1.0.4
    Compiling proc-macro-error v1.0.4
+   Compiling crossterm v0.29.0
+   Compiling tempfile v3.27.0
+   Compiling comfy-table v7.2.2
+   Compiling serde_derive v1.0.229
+   Compiling displaydoc v0.2.7
+   Compiling futures-macro v0.3.34
+   Compiling tokio-macros v2.7.2
+   Compiling clap_derive v4.6.7
+   Compiling tokio v1.53.3
