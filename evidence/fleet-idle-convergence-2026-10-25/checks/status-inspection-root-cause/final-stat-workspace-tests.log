@@ -65,4 +65,8 @@ test tests::test_path_is_protected_path_patterns_are_repository_relative ... ok
 test tests::test_path_is_protected_single_star_matches_one_component ... ok
 test tests::test_path_is_protected_source_code_excluded ... ok
 test tests::test_protection_exemptions ... ok
-test tests::test_slack_bot_token_compact ... 
+test tests::test_slack_bot_token_compact ... ok
+test tests::test_slack_bot_token_compact_has_length_cap ... ok
+test tests::test_smart_clean_skips_unprotected_large_input_when_patterns_set ... ok
+test tests::test_smart_clean_with_path_honors_single_star_attributes ... ok
+test tests::test_smart_clean_with_path_tier1_covers_unprotected_source_code ... 
