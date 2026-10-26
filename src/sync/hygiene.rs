@@ -245,10 +245,13 @@ pub(super) use intent::{persist, recover, retry};
 
 pub(super) fn has_pending(repo: &Path) -> Result<bool> {
     #[cfg(target_os = "linux")]
-    { intent::has_pending(repo) }
+    {
+        intent::has_pending(repo)
+    }
     #[cfg(not(target_os = "linux"))]
     {
-        let gitdir = crate::git::path_gitdir(repo).context("cannot locate hygiene intent Git directory")?;
+        let gitdir =
+            crate::git::path_gitdir(repo).context("cannot locate hygiene intent Git directory")?;
         match std::fs::symlink_metadata(gitdir.join("dracon-hygiene-intents")) {
             Ok(_) => Ok(true), // unsupported registry inspection is never idle proof
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),

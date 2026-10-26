@@ -45,7 +45,9 @@ fn is_canonical_recovery_name(name: &std::ffi::OsStr) -> bool {
 /// policy. Pending records survive restart. Archives are checked by metadata,
 /// not repeatedly hashed: late displaced writes must remain visible concerns.
 /// Inspection errors are not healthy/idle evidence.
-pub(crate) fn hygiene_pending_for_report(repo: &Path) -> Result<bool> { hygiene::has_pending(repo) }
+pub(crate) fn hygiene_pending_for_report(repo: &Path) -> Result<bool> {
+    hygiene::has_pending(repo)
+}
 
 pub(crate) fn has_pending_local_reconciliation(repo: &Path) -> Result<bool> {
     Ok(has_pending_excluded_recovery(repo)? || hygiene::has_pending(repo)?)
@@ -5175,11 +5177,22 @@ pub(crate) async fn sync_repo_with_ahead_since(
     {
         return Ok(SyncOutcome::PublicationPending);
     }
-    if is_repo && matches!(result, Ok(SyncOutcome::Synced | SyncOutcome::NothingToDo | SyncOutcome::FilterOnly)) {
+    if is_repo
+        && matches!(
+            result,
+            Ok(SyncOutcome::Synced | SyncOutcome::NothingToDo | SyncOutcome::FilterOnly)
+        )
+    {
         let pending = hygiene::has_pending(repo).unwrap_or_else(|error| {
-            eprintln!("⚠️ {} hygiene intent inspection failed; follow-up retained: {error:#}", repo.display()); true
+            eprintln!(
+                "⚠️ {} hygiene intent inspection failed; follow-up retained: {error:#}",
+                repo.display()
+            );
+            true
         });
-        if pending { return Ok(SyncOutcome::StagedPending); }
+        if pending {
+            return Ok(SyncOutcome::StagedPending);
+        }
     }
     result
 }
@@ -5531,9 +5544,21 @@ async fn sync_repo_local_with_ownership(
     // owner/writer may defer the retry while normal commit/backlog work proceeds.
     #[cfg(target_os = "linux")]
     if policy.auto_commit && !dry_run {
-        let deadline = tokio::time::Instant::now() + Duration::from_secs(policy.stage_op_timeout_secs.max(1));
-        if let Err(error) = hygiene::retry(repo, policy, excluded_dir_names, build_artifact_cleanup, deadline).await {
-            eprintln!("⏳ {} artifact ignore intent retained for retry: {error:#}", repo.display());
+        let deadline =
+            tokio::time::Instant::now() + Duration::from_secs(policy.stage_op_timeout_secs.max(1));
+        if let Err(error) = hygiene::retry(
+            repo,
+            policy,
+            excluded_dir_names,
+            build_artifact_cleanup,
+            deadline,
+        )
+        .await
+        {
+            eprintln!(
+                "⏳ {} artifact ignore intent retained for retry: {error:#}",
+                repo.display()
+            );
         }
     }
 
@@ -5733,7 +5758,8 @@ async fn sync_repo_local_with_ownership(
     // gitlinks prevents the early-return so the rest of the apply
     // phase runs and the parent commits the gitlink advance.
     if should_short_circuit_filter_only(filter_only_cleared, stale_gitlink_injected)
-        && !private_followup_pending && !hygiene_followup_pending
+        && !private_followup_pending
+        && !hygiene_followup_pending
     {
         // CHANGED 2026-07-26 (v0.113.1): run the push phase BEFORE
         // returning FilterOnly. Pre-fix, a repo whose only dirty

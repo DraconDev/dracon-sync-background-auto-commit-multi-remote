@@ -40,7 +40,9 @@ pub(super) struct Evidence {
 }
 
 pub(super) fn classify(row: &RepoReportRow) -> Current {
-    let pending = row.modified + row.staged + row.untracked > 0 || row.ahead > 0 || row.behind > 0
+    let pending = row.modified + row.staged + row.untracked > 0
+        || row.ahead > 0
+        || row.behind > 0
         || row.state_flags.iter().any(|flag| flag == "HYGIENE_PENDING");
     let blocked = row.pack_too_large
         || row.missing_objects > 0
