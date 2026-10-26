@@ -1,1 +1,19 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: unused variable: `excluded`
+  --> dracon-sync/src/sync/hygiene.rs:54:5
+   |
+54 |     excluded: &BTreeSet<String>,
+   |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_excluded`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `authorized` is never used
+  --> dracon-sync/src/sync/hygiene.rs:29:15
+   |
+29 | pub(super) fn authorized(
+   |               ^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `dracon-sync` (bin "dracon-sync") generated 2 warnings (run `cargo fix --bin "dracon-sync" -p dracon-sync` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.22s

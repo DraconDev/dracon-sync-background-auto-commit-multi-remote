@@ -20,38 +20,10 @@ pub(super) fn artifact_component(path: &Path, excluded: &BTreeSet<String>) -> Op
     })
 }
 
-/// Authorized tracking removals: the path is gone from the candidate, is still
-/// present with an unchanged identity in captured HEAD, and still resolves into
-/// a build-artifact component under the CURRENT policy.
-///
-/// Both the private staging closure and the commit transaction re-run this, so a
-/// later policy change, HEAD advance or re-added payload revokes the exception.
-pub(super) fn authorized(
-    changed: &BTreeMap<Vec<u8>, Option<CachedIdentity>>,
-    head: &BTreeMap<Vec<u8>, CachedIdentity>,
-    excluded: &BTreeSet<String>,
-) -> Result<BTreeSet<Vec<u8>>> {
-    let mut authorized = BTreeSet::new();
-    for (raw, entry) in changed {
-        if entry.is_some() {
-            continue;
-        }
-        let path = staged_epoch::path_from_git_bytes(raw)?;
-        if artifact_component(&path, excluded).is_none() {
-            continue;
-        }
-        if head.get(raw).is_some() {
-            authorized.insert(raw.clone());
-        }
-    }
-    Ok(authorized)
-}
-
 /// Above-threshold untracked regular files: ignored, never committed or deleted.
 async fn large_untracked(
     repo: &Path,
     policy: &SyncPolicy,
-    excluded: &BTreeSet<String>,
     deadline: Instant,
 ) -> Result<Vec<String>> {
     let output = staged_epoch::git(
@@ -101,7 +73,7 @@ pub(super) async fn plan(
     cleanup: bool,
     deadline: Instant,
 ) -> Result<Option<Plan>> {
-    let mut patterns = large_untracked(repo, policy, excluded, deadline).await?;
+    let mut patterns = large_untracked(repo, policy, deadline).await?;
     ensure!(
         baseline.changed.is_empty(),
         "hygiene requires an entry cycle without staged intent"
