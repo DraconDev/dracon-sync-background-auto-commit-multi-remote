@@ -474,4 +474,11 @@ test storage_core::s3::http::tests::missing_and_wrong_length_objects_fail_before
 test storage_core::s3::http::tests::redirects_are_not_followed_and_partial_or_encoded_bodies_are_rejected ... ok
 test storage_core::s3::http::tests::session_credentials_are_sent_signed_and_expiration_is_checked_per_request ... ok
 test storage_core::s3::http::tests::verified_write_scope_expiration_refuses_before_provider_contact ... ok
-test storage_core::s3::http::tests::whole_response_deadline_cannot_be_extended_by_trickled_bytes ... 
+test storage_core::s3::http::tests::whole_response_deadline_cannot_be_extended_by_trickled_bytes ... ok
+test storage_core::s3::tests::bounded_capture_refuses_before_remote_write_and_retrieval_bounds_body ... ok
+test storage_core::s3::tests::create_and_existing_both_require_complete_readback ... ok
+test storage_core::s3::tests::existing_corrupt_object_is_never_overwritten_or_accepted ... ok
+test storage_core::s3::tests::failed_readback_and_write_conflicts_cannot_issue_receipts ... ok
+test storage_core::s3::tests::interrupted_provider_body_and_destination_errors_fail_verification ... ok
+test storage_core::s3::tests::interrupted_source_cannot_contact_provider ... ok
+test storage_core::s3::tests::streaming_payload_above_git_limit_uses_bounded_reads ... 
