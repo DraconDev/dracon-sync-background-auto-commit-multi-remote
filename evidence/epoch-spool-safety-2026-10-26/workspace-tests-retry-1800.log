@@ -3192,4 +3192,27 @@ test tests::tests::merge_driver_decrypt_failure_is_err_with_current_untouched ..
 test tests::tests::merge_driver_encrypted_roundtrip_clean_merge ... ok
 test tests::tests::merge_driver_merge_file_error_is_not_a_conflict ... ok
 test tests::tests::merge_driver_text_merge_clean_and_conflict ... ok
-test tests::tests::merge_driver_untagged_files_clean_and_conflict ... 
+test tests::tests::merge_driver_untagged_files_clean_and_conflict ... ok
+test tests::tests::newest_file_picks_newest_existing ... ok
+test tests::tests::normalize_filter_path_relativizes_inside_root_and_refuses_outside ... ok
+test tests::tests::omitted_hygiene_patterns_use_product_defaults ... ok
+test tests::tests::owner_pubkeys_in_filters_only_owner_pub ... ok
+test tests::tests::pkt_encode_panics_on_oversize_payload - should panic ... ok
+test tests::tests::plaintext_cannot_overlap_protected_or_disable_env_encryption ... ok
+test tests::tests::policy_roots_expand_tilde_before_existence_filtering ... ok
+test tests::tests::pre_commit_hook_allows_unmanaged_repo ... ok
+test tests::tests::pre_commit_hook_bare_repo_unmarked_passes ... ok
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_drift ... ok
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_only_global_filter_config ... ok
+test tests::tests::pre_commit_hook_blocks_when_merge_driver_key_missing ... ok
+test tests::tests::pre_commit_hook_blocks_when_only_commented_filters_remain ... ok
+test tests::tests::pre_commit_hook_blocks_when_required_key_false ... ok
+test tests::tests::pre_commit_hook_blocks_when_required_key_missing ... ok
+test tests::tests::pre_commit_hook_blocks_when_textconv_key_missing ... ok
+test tests::tests::pre_commit_hook_chains_to_foreign_repo_local_hook ... ok
+test tests::tests::pre_commit_hook_commented_filters_do_not_mark_managed ... ok
+test tests::tests::pre_commit_hook_does_not_recurse_into_warden_seeded_local_hook ... ok
+test tests::tests::pre_commit_hook_no_repo_context_exits_1_with_message ... ok
+test tests::tests::pre_commit_hook_propagates_foreign_hook_failure ... ok
+test tests::tests::pre_commit_hygiene_distinguishes_exact_visual_inputs_from_frame_caches ... ok
+test tests::tests::pre_commit_hygiene_does_not_grant_blanket_or_nested_machine_local_exemptions ... 
