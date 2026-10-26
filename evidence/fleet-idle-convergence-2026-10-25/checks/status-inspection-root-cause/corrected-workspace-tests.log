@@ -2028,3 +2028,14 @@ hint: 	git rm --cached sub.mod
 hint:
 hint: See "git help submodule" for more information.
 hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_extension_histogram_top3_order ... ok
+test sync::tests::test_failing_remote_names_formats_sorted ... ok
+test sync::tests::test_file_extension_cases ... ok
+test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) 44f45bb] init
+ok
+test sync::tests::test_filter_only_skip_still_pushes_ahead ... ok
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) 6b6628d] init
+ok
+test sync::tests::test_forge_incident_declares_and_shields ... [master (root-commit) 4fb5b39] init
+[master (root-commit) bc0a16e] init
