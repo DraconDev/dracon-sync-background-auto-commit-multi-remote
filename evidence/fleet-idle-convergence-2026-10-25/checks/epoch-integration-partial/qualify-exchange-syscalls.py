@@ -186,7 +186,12 @@ def adversarial(helper, parent, expect_final=True):
             assert time.monotonic() < deadline, 'old queued open did not finish after lease release'
             time.sleep(.002)
         observations['oldWriter'] = json.loads(marker.read_text())
-        observations['oldWriterStillCanonical'] = source.stat().st_ino == observations['oldWriter']['inode']
+        # A writer whose open predates the exchange resolves to the DISPLACED
+        # inode; it must NOT be pulled onto the canonical path (that is exactly
+        # the rollback defect). Its later bytes land privately and are surfaced
+        # by the archive stamp probe as an unresolved concern.
+        observations['oldWriterLandedOnCanonical'] = source.stat().st_ino == observations['oldWriter']['inode']
+        observations['oldWriterLandedDisplaced'] = desired.stat().st_ino == observations['oldWriter']['inode']
         go.touch()
         assert queued.wait(timeout=5) == 0
         os.pwrite(newer_fd, b'NEW-WRITER', 0)
@@ -229,9 +234,11 @@ def main():
                 (root / name).mkdir()
             record['baseline'] = baseline(helper, root / 'baseline')
             record['adversarial'] = adversarial(helper, root / 'adversarial', args.expect_final == 'true')
-            record['pass'] = (record['adversarial']['oldWriterStillCanonical']
-                              and record['adversarial']['newerWriterStillCanonical']
-                              and record['adversarial']['canonicalContainsNewerWrite'])
+            adversarial = record['adversarial']
+            record['pass'] = (adversarial['newerWriterStillCanonical']
+                              and adversarial['canonicalContainsNewerWrite']
+                              and adversarial['indexPreserved']
+                              and not adversarial['oldWriterLandedOnCanonical'])
     except BaseException as exc:
         record['error'] = repr(exc)
         record['pass'] = False
