@@ -368,3 +368,41 @@ OK    202  https://amazon.com
 OK    202  https://booking.com
 WARN  403  WAF-botblock(maybe-live)  https://impact.com/publisher-signup
 OK    200  https://partnernetwork.ebay.com
+OK    200  https://partnerstack.com
+OK    200  https://rakutenadvertising.com
+OK    200  https://walmart.com
+OK    200  https://www.awin.com
+OK    200  https://www.awin.com/us/getting-started-sas
+OK    200  https://www.cj.com
+OK    200  https://affiliate-program.amazon.com
+OK    200  https://chromewebstore.google.com/detail/cuslr-essential-apps-in-y/ckenonjjcacieiocdmbhcmmgahbepjab
+OK    200  https://hubspot.com/affiliates
+OK    200  https://impact.com/get-started
+WARN  403  WAF-botblock(maybe-live)  https://nordvpn.com/affiliate/
+OK    200  https://partnernetwork.ebay.com
+OK    200  https://partnerstack.com
+OK    200  https://platform.sovrn.com/account/signup
+OK    200  https://rakutenadvertising.com
+OK    200  https://semrush.com/affiliate-program
+OK    200  https://www.awin.com
+OK    200  https://www.booking.com/affiliate-program/index.html
+OK    200  https://www.cj.com
+OK    200  https://www.etsy.com/affiliates
+OK    200  https://www.grammarly.com/affiliates
+OK    200  https://www.notion.so/affiliates
+OK    200  https://www.shareasale.com/affiliates/affiliate-signup.cfm
+OK    200  https://affiliate-program.amazon.com
+OK    200  https://affiliates.nordvpn.com/users/login.
+OK    200  https://bunny.net?ref=6uevqujmyc
+OK    200  https://cloud.google.com/free/docs/free-cloud-features
+OK    200  https://cloud.google.com/terms/supplemental-paid-credit
+OK    200  https://cloud.hi.cj.com/US-CJ-Lead-Form
+OK    200  https://cloud.vast.ai/?ref_id=210569
+OK    200  https://developers.google.com/terms
+OK    200  https://dracon.uk
+WARN  403  WAF-botblock(maybe-live)  https://go.nordpass.io/aff_c?offer_id=488&aff_id=153772&url_id=9356
+WARN  403  WAF-botblock(maybe-live)  https://go.nordvpn.net/aff_c?offer_id=15&aff_id=153772&url_id=902
+WARN  403  WAF-botblock(maybe-live)  https://go.nordvpn.net/aff_c?offer_id=15&aff_id=153772&url_id=902.
+OK    200  https://m.do.co/c/114182a6fc54
+OK    200  https://novita.ai/?ref=y2m5otq&utm_source=affiliate
+OK    200  https://partnernetwork.ebay.com
