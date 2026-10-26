@@ -338,3 +338,45 @@ test tier1_square_requires_exact_body_length ... ok
 test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.15s
 
      Running tests/tier_inventory.rs (target/debug/deps/tier_inventory-8bcbf4b7ff500db9)
+
+running 2 tests
+test inventory_covers_every_builtin_family_and_tier ... ok
+test promoted_provider_tokens_replace_completely ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-ba7d89301df71044)
+
+running 157 tests
+test lfs_classify::tests::large_database_is_refused_not_enrolled ... ok
+test lfs_classify::tests::large_sensitive_key_is_refused_not_enrolled ... ok
+test lfs_classify::tests::large_sql_migration_stays_source_text ... ok
+test lfs_classify::tests::over_100_mib_approved_asset_is_selected_for_lfs ... ok
+test lfs_classify::tests::per_repo_override_moves_threshold_for_real_file ... ok
+test lfs_classify::tests::sticky_enrollment_survives_shrinkage_on_real_file ... ok
+test lfs_classify::tests::two_hundred_mib_small_image_repo_stays_in_git ... ok
+test lfs_classify::tests::unknown_archive_is_held_not_enrolled ... ok
+test lfs_policy::tests::disabled_optout_and_unapproved_binding_prevent_enrollment ... ok
+test lfs_policy::tests::every_effective_lfs_path_preserves_representation_on_failure ... ok
+test lfs_policy::tests::exclusions_and_conflicting_filters_win ... ok
+test lfs_policy::tests::invalid_thresholds_fail_closed ... ok
+test lfs_policy::tests::overrides_inherit_and_change_each_threshold ... ok
+test lfs_policy::tests::pressure_and_churn_require_minimum_asset_size ... ok
+test lfs_policy::tests::sensitive_database_and_unknown_payloads_are_held ... ok
+test lfs_policy::tests::small_image_repository_stays_git ... ok
+test lfs_policy::tests::source_text_is_not_blanket_excluded ... ok
+test lfs_policy::tests::sticky_paths_never_fall_back_to_raw_git ... ok
+test lfs_policy::tests::unknown_history_does_not_mask_individual_trigger ... ok
+test storage_core::backend::tests::encrypted_payload_round_trip_uses_isolated_keys_and_cold_backend ... ignored, operational prototype: requires age and age-keygen on PATH
+test storage_core::backend::tests::failed_capture_does_not_publish_partial_object ... ok
+test storage_core::backend::tests::immutable_round_trip_deduplicates_and_detects_corruption ... ok
+test storage_core::backend::tests::malicious_object_symlink_cannot_escape_backend ... ok
+test storage_core::backend::tests::streamed_large_payload_has_bounded_read_requests_and_survives_cold_reopen ... ok
+test storage_core::capture::tests::exact_source_selection_is_bounded_and_rewound ... ok
+test storage_core::capture::tests::links_nested_repos_git_internals_and_nonregular_files_are_refused ... ok
+test storage_core::clean::tests::changed_shorter_longer_and_foreign_pointer_inputs_emit_nothing ... ok
+test storage_core::clean::tests::large_source_uses_bounded_read_requests ... ok
+test storage_core::clean::tests::oversized_unknown_stream_stops_at_bounded_recognition_window ... ok
+test storage_core::clean::tests::read_failure_cannot_publish_partial_reference_or_raw_input ... ok
+test storage_core::clean::tests::unchanged_input_and_exact_unhydrated_pointer_are_deterministic ... ok
+test storage_core::hydration::tests::concurrent_edits_creation_and_parent_replacement_preserve_all_operator_bytes ... 
