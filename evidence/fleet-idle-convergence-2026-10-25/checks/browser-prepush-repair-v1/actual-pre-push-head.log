@@ -147,3 +147,6 @@
   ▸ packages/extension-svelte BUILD (548a3a10a563)
   ▸ packages/extension-svelte TEST (548a3a10a563)
   ▸ packages/extension-svelte LINT (548a3a10a563)
+  ▸ packages/new-tab-core TYPECHECK (548a3a10a563)
+  ▸ packages/new-tab-core BUILD (548a3a10a563)
+  ▸ packages/new-tab-core TEST (548a3a10a563)
