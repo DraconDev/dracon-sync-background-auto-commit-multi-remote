@@ -1352,6 +1352,27 @@ async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
         status.contains("two.txt"),
         "content change must remain visible: {status}"
     );
+    // Exercise the nonempty delta too, including mode change, removal, and
+    // a raw newline path. Existing concurrent worktree bytes must survive.
+    let oid = String::from_utf8_lossy(&run(&["rev-parse", "HEAD:three.txt"]).stdout).trim().to_string();
+    let candidate = |args: &[&str]| {
+        let out = std::process::Command::new("git").args(args).current_dir(repo)
+            .env("GIT_INDEX_FILE", &private).env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("GIT_CONFIG_NOSYSTEM", "1").output().unwrap();
+        assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+        out.stdout
+    };
+    candidate(&["update-index", "--add", "--cacheinfo", &format!("100755,{oid},one.txt")]);
+    candidate(&["update-index", "--force-remove", "two.txt"]);
+    candidate(&["update-index", "--add", "--cacheinfo", &format!("100644,{oid},new\nname")]);
+    let expected_tree = candidate(&["write-tree"]);
+    let mut lock = IndexLock::try_acquire_path(index.with_extension("lock")).unwrap();
+    lock.install_index(repo, &private, &index,
+        tokio::time::Instant::now() + std::time::Duration::from_secs(10)).await.unwrap();
+    drop(lock);
+    assert_eq!(run(&["write-tree"]).stdout, expected_tree, "staged intent must match the candidate exactly");
+    assert_eq!(std::fs::read(repo.join("one.txt")).unwrap(), b"NEW.txt\n");
+    assert_eq!(std::fs::read(repo.join("two.txt")).unwrap(), b"changed\n");
 }
 
 #[cfg(test)]
