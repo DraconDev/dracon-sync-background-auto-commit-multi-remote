@@ -1,0 +1,20 @@
+{
+  "scope": "owned disposable processes and files; no production mutations",
+  "tests": [
+    {
+      "delegation": "directory",
+      "operation": "existing-file O_RDWR|O_NONBLOCK",
+      "exit": 0,
+      "stdout": "opened",
+      "stderr": ""
+    },
+    {
+      "delegation": "file",
+      "operation": "existing-file O_RDWR|O_NONBLOCK",
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import os,sys; fd=os.open(sys.argv[1],os.O_RDWR|os.O_NONBLOCK); print(\"opened\");os.close(fd)\n                      ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nBlockingIOError: [Errno 11] Resource temporarily unavailable: '/tmp/dracon-delegation-boundary-be1bqn31/target'"
+    }
+  ],
+  "canonicalUnchanged": true
+}
