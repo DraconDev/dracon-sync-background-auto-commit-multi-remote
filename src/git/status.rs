@@ -140,16 +140,21 @@ impl IndexLock {
             bytes.len() <= 64 * 1024 * 1024,
             "private index grew past budget"
         );
+        let previous_meta = std::fs::metadata(index)?;
+        let previous_mtime = previous_meta.modified()?;
         let previous = std::fs::read(index)?;
         anyhow::ensure!(previous.len() <= 64 * 1024 * 1024, "actual index exceeds budget");
         let merged = tokio::time::timeout_at(
-            deadline, carry_over_stat_data(repo, index, &previous, &bytes),
+            deadline, carry_over_stat_data(repo, index, &previous, &bytes, previous_mtime),
         ).await.context("stat-cache merge deadline expired; actual index preserved")?
             .unwrap_or(bytes);
         anyhow::ensure!(tokio::time::Instant::now() < deadline, "index installation deadline expired");
         anyhow::ensure!(self.is_owned(), "index lock replaced during stat merge");
         anyhow::ensure!(std::fs::read(index)? == previous, "actual index changed during stat merge; preserved");
         self.file.write_all(&merged)?;
+        // Preserve the old racy-clean boundary too. Advancing the index mtime
+        // without Git's racy-entry smudging can hide a same-size concurrent edit.
+        self.file.set_times(std::fs::FileTimes::new().set_modified(previous_mtime))?;
         self.file.sync_all()?;
         anyhow::ensure!(self.is_owned(), "index lock replaced during install");
         std::fs::rename(&self.path, index)?;
@@ -201,7 +206,7 @@ type StageEntry = (Vec<u8>, Vec<u8>, Vec<u8>);
 ///
 /// Returns `None` when the merge cannot be produced or verified, and the caller
 /// then installs the private index byte-for-byte (the previous behaviour).
-async fn carry_over_stat_data(repo: &Path, index: &Path, previous: &[u8], wanted: &[u8]) -> Option<Vec<u8>> {
+async fn carry_over_stat_data(repo: &Path, index: &Path, previous: &[u8], wanted: &[u8], previous_mtime: std::time::SystemTime) -> Option<Vec<u8>> {
     let workspace = tempfile::Builder::new()
         .prefix("dracon-stat-")
         .tempdir_in(index.parent()?)
@@ -214,6 +219,9 @@ async fn carry_over_stat_data(repo: &Path, index: &Path, previous: &[u8], wanted
     let after = stat_index_listing(repo, &private).await?;
     let merged = workspace.path().join("merged.index");
     std::fs::write(&merged, previous).ok()?;
+    std::fs::File::open(&merged).ok()?.set_times(
+        std::fs::FileTimes::new().set_modified(previous_mtime),
+    ).ok()?;
     let delta = stat_index_delta(&before, &after);
     if !delta.is_empty() {
         let mut command = stat_index_command(repo, &merged);
@@ -1242,6 +1250,17 @@ async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
         .unwrap();
     assert!(out.status.success());
     assert_eq!(zeroed(&private), 3, "control: read-tree actually loses stat cache");
+    // A cached stat is not proof of clean content when its mtime meets the
+    // index's racy-clean boundary. Preserve that boundary through the merge.
+    run(&["config", "core.trustctime", "false"]);
+    let tracked_time = std::fs::metadata(repo.join("one.txt")).unwrap().modified().unwrap();
+    std::fs::File::open(&index).unwrap().set_times(
+        std::fs::FileTimes::new().set_modified(tracked_time),
+    ).unwrap();
+    std::fs::write(repo.join("one.txt"), "NEW.txt\n").unwrap(); // same size
+    std::fs::File::open(repo.join("one.txt")).unwrap().set_times(
+        std::fs::FileTimes::new().set_modified(tracked_time),
+    ).unwrap();
     let before_cancel = std::fs::read(&index).unwrap();
     let mut expired = IndexLock::try_acquire_path(index.with_extension("lock")).unwrap();
     assert!(expired.install_index(repo, &private, &index, tokio::time::Instant::now()).await.is_err());
@@ -1255,6 +1274,9 @@ async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
         0,
         "install must preserve stat data for unchanged (mode, oid) entries"
     );
+    let racy_status = run(&["status", "--porcelain=v1"]);
+    assert!(String::from_utf8_lossy(&racy_status.stdout).contains("one.txt"),
+        "same-size racy-clean edit must remain visible after installing cached stats");
     // The installed index must still describe exactly the same tree.
     let staged = String::from_utf8_lossy(&run(&["write-tree"]).stdout)
         .trim()
@@ -1284,7 +1306,7 @@ fn stat_delta_handles_large_inventory_and_sha256_without_rescanning_every_path()
     let start = std::time::Instant::now();
     let delta = stat_index_delta(&before, &after);
     assert!(start.elapsed() < std::time::Duration::from_secs(10), "delta exhausted a staging-scale CPU budget");
-    let changes = parse_stage_entries(&delta.iter().flat_map(|b| [*b]).collect::<Vec<_>>());
+    let changes = parse_stage_entries(&delta);
     // index-info has no stage column: inspect its four NUL-delimited records.
     assert!(changes.is_none());
     let records: Vec<_> = delta.split(|b| *b == 0).filter(|r| !r.is_empty()).collect();
