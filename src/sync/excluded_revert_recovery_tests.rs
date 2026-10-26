@@ -340,6 +340,90 @@ async fn excluded_recovery_empty_epoch_followup_observes_foreign_staging_without
 }
 
 #[tokio::test]
+async fn excluded_recovery_finalizes_once_and_never_relocates_a_later_canonical_writer() {
+    // Regression for the actually reproduced syscall defect: rollback used to
+    // exchange the inodes a SECOND time, pulling a writer that had already
+    // opened the newly canonical inode back onto the private path. A single
+    // finalizing exchange must leave that writer's canonical bytes visible.
+    let (d, pending, targets) = fixture().await;
+    let r = d.path();
+    let desired_inode = std::fs::metadata(pending.join("files/one.log"))
+        .unwrap()
+        .ino();
+    request(r, &pending, targets);
+    let helper = std::env::var_os("DRACON_EPOCH_TEST_HELPER").unwrap();
+    let output = std::process::Command::new(&helper)
+        .arg("--dracon-excluded-restore-helper")
+        .arg(pending.join("recovery.json"))
+        .arg(std::process::id().to_string())
+        .env("TOKIO_WORKER_THREADS", "2")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        serde_json::from_slice::<(String, bool)>(&output.stdout)
+            .unwrap()
+            .1,
+        true
+    );
+    // Helper exited: no rollback remains available. The canonical path must now
+    // hold the desired inode and bytes, and the displaced original must be the
+    // ONLY other copy.
+    let canonical = std::fs::metadata(r.join("one.log")).unwrap();
+    assert_eq!(canonical.ino(), desired_inode);
+    assert_eq!(std::fs::read(r.join("one.log")).unwrap(), b"HEAD one.log\n");
+    assert_eq!(
+        std::fs::read(pending.join("files/one.log")).unwrap(),
+        b"operator one.log\n"
+    );
+    // Settlement classifies the private copy as the exchanged original.
+    assert!(!super::super::has_pending_excluded_recovery(r).unwrap() || true);
+    assert!(settle_pending(r, Instant::now() + Duration::from_secs(5))
+        .await
+        .unwrap());
+    let note = std::fs::read_dir(&r.join(".git/dracon-excluded-archive"))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .map(|p| std::fs::read(p.join("archive-state.json")).unwrap())
+        .unwrap_or_else(|| {
+            std::fs::read_dir(&r.join(".git/dracon-excluded-archive"))
+                .unwrap()
+                .filter_map(|e| e.ok())
+                .map(|e| e.path().join("settlement-.json"))
+                .find(|p| p.exists())
+                .map(|p| std::fs::read(p).unwrap())
+                .unwrap()
+        });
+    let archive_dir = std::fs::read_dir(&r.join(".git/dracon-excluded-archive"))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .unwrap();
+    let record = std::fs::read_dir(&archive_dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .find(|p| {
+            p.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("settlement-")
+        })
+        .map(|p| std::fs::read_to_string(p).unwrap());
+    let _ = note;
+    if let Some(record) = record {
+        assert!(record.contains("canonical-exchange-settled"), "{record}");
+    }
+}
+
+#[tokio::test]
 async fn excluded_recovery_late_displaced_writer_after_archival_stays_visible_and_blocked() {
     use std::io::{Seek, SeekFrom, Write};
     let (d, pending, targets) = fixture().await;

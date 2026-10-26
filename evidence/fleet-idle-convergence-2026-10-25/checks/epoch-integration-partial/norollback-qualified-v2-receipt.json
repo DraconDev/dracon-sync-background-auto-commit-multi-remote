@@ -1,0 +1,51 @@
+{
+  "at": "2026-10-26T11:12:31.262638+00:00",
+  "scope": "one finalization exchange replaces the displaced inode; NO rollback; isolated disposable fixtures and owned syscall-traced processes only. NOT deployed; no fleet proof.",
+  "defect": {
+    "report": "exchange-syscalls-v1.json",
+    "exit": "1",
+    "observation": "legacy rollback relocated a newer canonical writer inode 36999145 into private storage after canonical identity returned to 36999126; its later bytes never reached the canonical path"
+  },
+  "fix": {
+    "source": "dracon-sync/src/sync/excluded_revert.rs",
+    "change": "exchange finalizes exactly once; rollback removed; post-exchange both-side fingerprint proof (private==before, canonical==desired) with uncertainty reported instead of a second exchange; later access to the displaced inode remains a real concern via the archive stamp probe",
+    "settlement": "settle_directory no longer assumes the private copy alone proves untouched; states renamed to private-desired-payload-retained / canonical-exchange-settled",
+    "unaffected": "absent-path NOREPLACE create and its no-live-inode semantics unchanged"
+  },
+  "qualification": {
+    "workspace_tests": {
+      "exit": "workspace_tests exit=0",
+      "log": "norollback-final-workspace-tests.log"
+    },
+    "release_build": {
+      "exit": "release_build exit=0"
+    },
+    "clippy": {
+      "exit": "clippy exit=0"
+    },
+    "deny": {
+      "exit": "deny exit=0"
+    },
+    "excluded_recovery_tests": {
+      "log": "norollback-v2-excluded-recovery-tests.log",
+      "summary": "11 passed; 0 failed"
+    },
+    "actual_syscall": {
+      "result": "exchange-syscalls-release-v1.json",
+      "exit": "0",
+      "release_binary_sha256": "90de3d89558af6c7a952f3d30bc360003374a12320ea592d46b687eac1608f2b"
+    },
+    "helper": {
+      "path": "/tmp/dracon-norollback-v2-9qbfYU/dracon-sync",
+      "sha256": "9a95aa3c425edd18ec9943241723ffa245e5ce47d3d9ace767c110200fff8afd"
+    }
+  },
+  "notProven": [
+    "loaded daemon/installed artifact identity and behavior",
+    "original product/hook gates on every repaired repository",
+    "cancellation/timeout/ENOSPC/restart/unsupported-filesystem interleavings",
+    "concurrent pathname replacement of the canonical leaf",
+    "zero-batch migration",
+    "every-watched clean/idle autonomous publication"
+  ]
+}
