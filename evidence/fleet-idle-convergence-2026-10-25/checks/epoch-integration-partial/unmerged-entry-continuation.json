@@ -1,0 +1,13 @@
+{
+  "phase": "v6 coherent qualification next; not final implementation or deployment",
+  "implementation": "Policy-enabled HEAD-equal unmerged reconciliation is integrated before entry capture; exact original index and independent conflict/changed staging payloads are retained before conditional installation. Unknown content and unsupported flags refuse without allocating retry spools; unchanged HEAD baseline blobs are not duplicated.",
+  "lastCompleteFourGateAssembly": "unmerged-entry-v4-source-before.json / unmerged-entry-v4-source-after.json; all four required gates passed with zero source drift",
+  "v4IsHistorical": true,
+  "changesSinceV4": ["Recovery directory parent fsync before and after actual-index replacement", "Bounded delta-only retention with native blob-size/free-space preflight", "Validate identity/stage/flags before spool creation; preserve repeated unknown refusals without growing spools", "Additional budget, delta-only and repeated-refusal controls"],
+  "lastTargetedAssembly": "v5 helper build, unmerged-entry controls and strict all-target workspace Clippy passed; repeated-refusal assertions changed afterward",
+  "sourceNeedsFreshQualification": true,
+  "deploymentPerformed": false,
+  "liveBatchMigrationApplied": false,
+  "realRepositoryManualCommitOrPushPerformed": false,
+  "remaining": ["Restore normal version/release bump, artifact cleanup and large-untracked hygiene without losing provenance", "Finish queued-open/lease-break/exact-exchange and unsupported-filesystem qualification", "Original product gates and independent final contract rehearsal", "All four gates on final assembly, installed/loaded execution, authorized zero-batch migration", "Actual daemon publication and fresh complete watched-fleet clean-idle observation"]
+}
