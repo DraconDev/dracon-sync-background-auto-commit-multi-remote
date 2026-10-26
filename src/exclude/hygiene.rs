@@ -91,6 +91,13 @@ pub(super) fn literal_directory_pattern(name: &str) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
+    fn native_git(repo: &Path) -> std::process::Command {
+        let mut command=std::process::Command::new("git");
+        for(key,_)in std::env::vars_os(){if key.to_string_lossy().starts_with("GIT_"){command.env_remove(key);}}
+        command.current_dir(repo).env("GIT_CONFIG_GLOBAL","/dev/null").env("GIT_CONFIG_NOSYSTEM","1");
+        command
+    }
 
     #[test]
     fn hygiene_render_preserves_outside_bytes_and_protected_negation_precedence() {
@@ -130,26 +137,37 @@ mod tests {
         }
     }
 
+    #[test]
+    fn hygiene_legacy_wrapper_refuses_invalid_source_bytes_without_overwriting() {
+        let d=tempfile::tempdir().unwrap();let path=d.path().join(".gitignore");
+        for bytes in [b"operator-\xff".to_vec(),format!("{END}\n{BEGIN}\noperator tail").into_bytes()] {
+            std::fs::write(&path,&bytes).unwrap();
+            assert!(super::super::append_to_gitignore(d.path(),&["cache/".into()]).is_err());
+            assert_eq!(std::fs::read(&path).unwrap(),bytes);
+        }
+    }
+
     #[cfg(unix)]
     #[test]
     fn hygiene_native_git_keeps_protection_and_does_not_ignore_glob_siblings() {
         let d=tempfile::tempdir().unwrap(); let repo=d.path();
-        let status=std::process::Command::new("git").args(["init","--template=","-q"]).current_dir(repo)
-            .env("GIT_CONFIG_GLOBAL","/dev/null").env("GIT_CONFIG_NOSYSTEM","1").status().unwrap();
+        let status=native_git(repo).args(["init","--template=","-q"]).status().unwrap();
         assert!(status.success());
         let rule=literal_file_pattern(Path::new("a[1]*?.bin")).unwrap();
         let current=format!("{BEGIN}\n!keep.log\n{END}\n");
-        let rendered=render_positive_additions(&current,&[rule,"*.log".into()]).unwrap().unwrap();
+        let mut rules=vec![rule,"*.log".into()];
+        for name in ["#comment.bin","!literal.bin","a\\b.bin"] { rules.push(literal_file_pattern(Path::new(name)).unwrap()); }
+        let rendered=render_positive_additions(&current,&rules).unwrap().unwrap();
         std::fs::write(repo.join(".gitignore"),rendered).unwrap();
         let ignored=|path:&str| {
             std::fs::write(repo.join(path),b"fixture").unwrap();
-            let output=std::process::Command::new("git").args(["check-ignore","--no-index","--quiet","--",path]).current_dir(repo)
-                .env("GIT_CONFIG_GLOBAL","/dev/null").env("GIT_CONFIG_NOSYSTEM","1").output().unwrap();
+            let output=native_git(repo).args(["check-ignore","--no-index","--quiet","--",path]).output().unwrap();
             assert!(matches!(output.status.code(),Some(0|1)),"{}",String::from_utf8_lossy(&output.stderr));
             output.status.success()
         };
         assert!(ignored("a[1]*?.bin")); assert!(!ignored("a1zz.bin"));
         assert!(ignored("ordinary.log")); assert!(!ignored("keep.log"));
+        for name in ["#comment.bin","!literal.bin","a\\b.bin"] { assert!(ignored(name),"{name}"); }
         std::fs::create_dir(repo.join("nested")).unwrap();
         assert!(!ignored("nested/a[1]*?.bin"));
     }
