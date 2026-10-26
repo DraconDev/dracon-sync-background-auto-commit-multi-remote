@@ -1,1 +1,26 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+error: enclosing `Ok` and `?` operator are unneeded
+   --> dracon-sync/src/sync/excluded_revert.rs:207:5
+    |
+207 | /     Ok(apply_prepared(
+208 | |         repo,
+209 | |         scratch,
+210 | |         vec![Target {
+...   |
+221 | |     .await?)
+    | |____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_question_mark
+    = note: `-D clippy::needless-question-mark` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_question_mark)]`
+help: remove the enclosing `Ok` and `?` operator
+    |
+207 ~     apply_prepared(
+208 |         repo,
+...
+220 |     )
+221 ~     .await
+    |
+
+error: could not compile `dracon-sync` (bin "dracon-sync") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
