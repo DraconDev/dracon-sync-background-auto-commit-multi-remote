@@ -1,0 +1,25 @@
+{
+  "kernel": "7.1.2",
+  "at": 1793040818.5206015,
+  "scope": "owned disposable files only; capability observations, not safety qualification",
+  "statx": {
+    "result": 0,
+    "errno": 0,
+    "returnedMask": 71487,
+    "atomicUnitMin": 0,
+    "atomicUnitMax": 0
+  },
+  "fileDelegation": {
+    "supported": true
+  },
+  "directoryDelegation": {
+    "supported": true
+  },
+  "reflink": {
+    "supported": false,
+    "errno": 95,
+    "error": "Operation not supported"
+  },
+  "targetAfterReflink": "original\n",
+  "inPlaceCrashAtomicPublicationProven": false
+}
