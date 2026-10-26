@@ -1343,6 +1343,8 @@ pub(crate) use config::*;
 mod discovery;
 pub(crate) use discovery::*;
 pub(crate) mod multi_remote;
+mod epoch_spool;
+pub(crate) use epoch_spool::*;
 mod ops;
 pub(crate) use ops::*;
 pub(crate) mod push_resources;

@@ -28,11 +28,12 @@
 //!   untouched spool older than a generous age is definitively
 //!   abandoned, not in flight.
 //! - Spools CURRENTLY REFERENCED by this process are never removed, and
-//!   the live registry is consulted twice per candidate (before the age
-//!   check), so GC cannot race an epoch that is still publishing.
+//!   the live registry is consulted twice per candidate (before and
+//!   after the age check), so GC cannot race an epoch that is still
+//!   publishing.
 //! - Cleanup is best-effort and never fatal: a failure is logged and the
 //!   repo still converges. Unlike `auto_gc_garbage_threshold_bytes`
-//!   (opt-out via 0), a 0 here falls back to the safe default rather
+//!   (opt-out via 0), a 0 age here falls back to the safe default rather
 //!   than silently disabling the only bound on this leak.
 //!
 //! The reaper only ever deletes directories this daemon created
@@ -50,9 +51,8 @@ use std::time::{Duration, Instant};
 pub(crate) const SPOOL_PREFIX: &str = "dracon-staging-";
 
 /// Default age before an unregistered spool is considered abandoned.
-/// Deliberately generous: the oldest observed orphan in the 2026-10-26
-/// incident was ~4h (one overnight run), and a legitimate epoch lifetime
-/// is bounded by the sync deadline (minutes), not hours.
+/// Deliberately generous: a legitimate epoch lifetime is bounded by the
+/// sync deadline (minutes), not hours.
 pub(crate) const DEFAULT_SPOOL_MAX_AGE_SECS: u64 = 3600;
 
 /// At most one reaper pass per repo per hour (same pattern as
@@ -61,9 +61,9 @@ pub(crate) const DEFAULT_SPOOL_MAX_AGE_SECS: u64 = 3600;
 static SPOOL_REAP_ATTEMPTS: OnceLock<Mutex<std::collections::HashMap<PathBuf, Instant>>> =
     OnceLock::new();
 
-/// Spools owned by an epoch that is still alive in this process. Guarded
-/// by the SAME mutex as the cooldown map so registration and reaping can
-/// never interleave on the same candidate.
+/// Spools owned by an epoch that is still alive in this process.
+/// Guarded by one mutex so registration, release and reaping can never
+/// interleave on the same candidate.
 static LIVE_SPOOLS: OnceLock<Mutex<BTreeSet<PathBuf>>> = OnceLock::new();
 
 fn live_spools() -> &'static Mutex<BTreeSet<PathBuf>> {
@@ -74,21 +74,19 @@ fn attempts() -> &'static Mutex<std::collections::HashMap<PathBuf, Instant>> {
     SPOOL_REAP_ATTEMPTS.get_or_init(|| Mutex::new(std::collections::HashMap::new()))
 }
 
-/// RAII marker for a spool that a live epoch may still need.
+/// RAII marker for a spool a live epoch may still need.
 ///
-/// `pub(crate)` because `sync::staged_epoch` holds it for the epoch's
-/// lifetime; dropping it (every early return, refusal, error and success
-/// path) releases the spool to the reaper's discretion. It does NOT
-/// delete anything itself — removal stays in the periodic reaper so the
-/// error paths keep their diagnostic spool for a bounded window, exactly
-/// as documented today.
+/// `sync::staged_epoch` holds this for the epoch's lifetime; dropping it
+/// (every early return, refusal, error and success path) releases the
+/// spool to the reaper's discretion. It does NOT delete anything itself:
+/// removal stays in the periodic reaper so error paths keep their
+/// diagnostic spool for a bounded window, exactly as documented today.
 pub(crate) struct SpoolLease {
     path: Option<PathBuf>,
 }
 
 impl SpoolLease {
-    /// Track `path` as live. Use `.named()` for diagnostics, or discard
-    /// the return value for a path whose owner is already gone.
+    /// Track `path` as live for as long as the returned lease is held.
     pub(crate) fn new(path: Option<PathBuf>) -> Self {
         if let Some(path) = &path {
             let mut live = live_spools().lock().unwrap_or_else(|p| p.into_inner());
@@ -97,9 +95,7 @@ impl SpoolLease {
         Self { path }
     }
 
-    /// The spool path this lease protects, if any. An owned lease stays
-    /// live for as long as it is held, so this is the authoritative
-    /// answer to "may the reaper delete this yet?".
+    /// The spool this lease protects, if any.
     pub(crate) fn named(&self) -> Option<&Path> {
         self.path.as_deref()
     }
@@ -115,10 +111,6 @@ impl Drop for SpoolLease {
 }
 
 /// Whether the reaper may consider `path` abandoned right now.
-///
-/// Checked twice per candidate (before and after the age read) so a
-/// spool leased by a newly created epoch in the same tick is skipped
-/// instead of raced.
 fn is_leased(path: &Path) -> bool {
     live_spools()
         .lock()
@@ -126,7 +118,17 @@ fn is_leased(path: &Path) -> bool {
         .contains(path)
 }
 
-/// A spool found on disk, resolved without following symlinks.
+/// Resolve the effective age floor. `0` is NOT an opt-out: the default
+/// keeps the leak bounded even under a zeroed config.
+fn effective_max_age(policy_secs: u64) -> Duration {
+    Duration::from_secs(if policy_secs == 0 {
+        DEFAULT_SPOOL_MAX_AGE_SECS
+    } else {
+        policy_secs
+    })
+}
+
+/// A spool-like entry found on disk, resolved WITHOUT following symlinks.
 struct Candidate {
     path: PathBuf,
     is_real_directory: bool,
@@ -147,9 +149,8 @@ fn candidates(git_dir: &Path, now: std::time::SystemTime) -> Vec<Candidate> {
             continue;
         }
         // `symlink_metadata` (NOT `metadata`) so a symlinked
-        // `dracon-staging-*` entry is never followed and never treated
-        // as a removable spool: `remove_dir_all` on a symlink target
-        // would delete outside this repository.
+        // `dracon-staging-*` entry is never followed: `remove_dir_all`
+        // through a symlink would delete outside this repository.
         let Ok(meta) = std::fs::symlink_metadata(entry.path()) else {
             continue;
         };
@@ -166,59 +167,71 @@ fn candidates(git_dir: &Path, now: std::time::SystemTime) -> Vec<Candidate> {
     found
 }
 
+/// Resolve the repo's absolute git dir with a finite deadline.
+async fn resolve_git_dir(repo: &Path, op_timeout_secs: u64) -> anyhow::Result<PathBuf> {
+    let mut command = crate::policy::tokio_git_command();
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(key);
+        }
+    }
+    command
+        .args(["--no-optional-locks", "rev-parse", "--absolute-git-dir"])
+        .current_dir(repo)
+        .env("GIT_OPTIONAL_LOCKS", "0");
+    let output = crate::git::run_command_captured_output(
+        command.into_tokio(),
+        op_timeout_secs.max(1),
+        "epoch spool git dir",
+        None,
+    )
+    .await?;
+    anyhow::ensure!(
+        output.status.success(),
+        "cannot resolve git dir: {}",
+        String::from_utf8_lossy(&output.stderr).trim()
+    );
+    let path = PathBuf::from(std::str::from_utf8(&output.stdout)?.trim_end_matches('\n'));
+    anyhow::ensure!(path.is_absolute(), "git dir identity is not absolute");
+    Ok(path)
+}
+
+/// Sum regular-file sizes below `dir` without following symlinks.
+/// Best-effort: unreadable entries contribute 0 (this only feeds a log).
+fn dir_size_bytes(dir: &Path) -> u64 {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return 0;
+    };
+    let mut total = 0u64;
+    for entry in entries.flatten() {
+        let Ok(meta) = std::fs::symlink_metadata(entry.path()) else {
+            continue;
+        };
+        if meta.file_type().is_symlink() {
+            continue;
+        }
+        if meta.is_dir() {
+            total += dir_size_bytes(&entry.path());
+        } else {
+            total += meta.len();
+        }
+    }
+    total
+}
+
 /// Reap abandoned private-epoch spools in `repo`'s git dir.
 ///
-/// Returns the number of spools removed. `max_age_secs` of 0 falls back
-/// to [`DEFAULT_SPOOL_MAX_AGE_SECS`] (see the module note: 0 is not an
-/// opt-out, unlike `auto_gc_garbage_threshold_bytes`). Never fatal.
+/// Returns the number of spools removed. Never fatal: every failure is
+/// logged and the caller's sync proceeds.
 pub(crate) async fn reap_abandoned_spools(
     repo: &Path,
     policy_secs: u64,
     op_timeout_secs: u64,
 ) -> usize {
-    let max_age_secs = if policy_secs == 0 {
-        DEFAULT_SPOOL_MAX_AGE_SECS
-    } else {
-        policy_secs
-    };
-    let max_age = Duration::from_secs(max_age_secs);
+    let max_age = effective_max_age(policy_secs);
 
-    let git_dir = match crate::git::run_git_with_timeout(
-        repo,
-        &["rev-parse", "--absolute-git-dir"],
-        op_timeout_secs.max(1),
-        "epoch spool git dir",
-    )
-    .await
-    {
-        Ok(()) => None,
-        Err(_) => None,
-    };
-    // `run_git_with_timeout` discards stdout, so resolve the git dir with
-    // a bounded captured run instead: a spool scan is cheap and must not
-    // need a second process for the identity.
-    let _ = git_dir;
-    let resolved = match crate::git::capture_git_stdout(
-        repo,
-        &["rev-parse", "--absolute-git-dir"],
-        op_timeout_secs,
-    )
-    .await
-    {
-        Ok(stdout) => stdout,
-        Err(error) => {
-            eprintln!(
-                "⚠️ epoch spool reaper skipped for {}: cannot resolve git dir: {error:#}",
-                repo.display()
-            );
-            return 0;
-        }
-    };
-    let git_dir = PathBuf::from(resolved.trim_end_matches('\n'));
-    if !git_dir.is_absolute() {
-        return 0;
-    }
-
+    // Cooldown FIRST: the steady state must not pay for a scan (or a
+    // `git rev-parse`) on every cycle.
     {
         let attempts = attempts();
         let mut map = attempts.lock().unwrap_or_else(|p| p.into_inner());
@@ -230,16 +243,26 @@ pub(crate) async fn reap_abandoned_spools(
         map.insert(repo.to_path_buf(), Instant::now());
     }
 
-    let now = std::time::SystemTime::now();
+    let git_dir = match resolve_git_dir(repo, op_timeout_secs).await {
+        Ok(dir) => dir,
+        Err(error) => {
+            eprintln!(
+                "⚠️ epoch spool reaper skipped for {}: {error:#}",
+                repo.display()
+            );
+            return 0;
+        }
+    };
+
     let mut removed = 0usize;
     let mut reclaimed = 0u64;
-    for candidate in candidates(&git_dir, now) {
-        if is_leased(&candidate.path) {
+    for candidate in candidates(&git_dir, std::time::SystemTime::now()) {
+        // A symlink (or other non-directory) named like a spool is not
+        // ours to remove; leave it visible for manual inspection.
+        if !candidate.is_real_directory {
             continue;
         }
-        // A symlink (or other non-directory) named like a spool is not ours
-        // to remove; leave it visible for manual inspection.
-        if !candidate.is_real_directory {
+        if is_leased(&candidate.path) {
             continue;
         }
         // An unreadable mtime is not proof of abandonment.
@@ -249,19 +272,19 @@ pub(crate) async fn reap_abandoned_spools(
         if age < max_age {
             continue;
         }
-        // Re-check: an epoch may have leased this spool while we walked.
+        // Re-check: an epoch may have leased this spool during the walk.
         if is_leased(&candidate.path) {
             continue;
         }
-        let bytes = crate::git::dir_size_bytes(&candidate.path);
+        let bytes = dir_size_bytes(&candidate.path);
         match std::fs::remove_dir_all(&candidate.path) {
             Ok(()) => {
                 removed += 1;
                 reclaimed += bytes;
             }
             Err(error) => {
-                // Best-effort: a concurrent removal (another repo handle) or
-                // a permission surprise must not fail the sync.
+                // Best-effort: a concurrent removal or permission surprise
+                // must never fail the sync.
                 eprintln!(
                     "⚠️ cannot reap abandoned epoch spool {}: {error}",
                     candidate.path.display()
@@ -304,10 +327,11 @@ mod tests {
         assert!(status.success(), "git {args:?} failed");
     }
 
-    fn init() -> tempfile::TempDir {
+    fn init_repo() -> (tempfile::TempDir, PathBuf) {
         let root = tempfile::tempdir().unwrap();
         git(root.path(), &["init", "-q", "-b", "main"]);
-        root
+        let git_dir = root.path().join(".git");
+        (root, git_dir)
     }
 
     fn spool(git_dir: &Path, name: &str, age_secs: u64) -> PathBuf {
@@ -315,19 +339,16 @@ mod tests {
         std::fs::create_dir(&path).unwrap();
         std::fs::write(path.join("index"), b"index\n").unwrap();
         std::fs::write(path.join("retained.pack"), vec![0u8; 4096]).unwrap();
-        // Age the directory by backing both its own and its children's mtime.
         let when = std::time::SystemTime::now() - Duration::from_secs(age_secs);
         for entry in [path.clone(), path.join("index"), path.join("retained.pack")] {
-            let f = std::fs::File::options().write(true).open(&entry).unwrap();
-            f.set_modified(when).unwrap();
+            std::fs::File::options()
+                .write(true)
+                .open(&entry)
+                .unwrap()
+                .set_modified(when)
+                .unwrap();
         }
         path
-    }
-
-    fn init_repo() -> (tempfile::TempDir, PathBuf) {
-        let root = init();
-        let git_dir = root.path().join(".git");
-        (root, git_dir)
     }
 
     #[tokio::test]
@@ -335,8 +356,7 @@ mod tests {
         let (root, git_dir) = init_repo();
         let old = spool(&git_dir, "old", 7200);
         let fresh = spool(&git_dir, "fresh", 0);
-        let removed = reap_abandoned_spools(root.path(), 3600, 60).await;
-        assert_eq!(removed, 1, "only the aged spool is removed");
+        assert_eq!(reap_abandoned_spools(root.path(), 3600, 60).await, 1);
         assert!(!old.exists(), "abandoned spool must be gone");
         assert!(fresh.exists(), "a young spool must survive the sweep");
     }
@@ -347,29 +367,27 @@ mod tests {
         let live = spool(&git_dir, "live", 86_400);
         let lease = SpoolLease::new(Some(live.clone()));
         assert_eq!(lease.named(), Some(live.as_path()));
-        let removed = reap_abandoned_spools(root.path(), 60, 60).await;
-        assert_eq!(removed, 0, "a leased spool is not abandoned");
+        assert_eq!(reap_abandoned_spools(root.path(), 60, 60).await, 0);
         assert!(live.exists(), "a leased spool must never be deleted");
         drop(lease);
     }
 
     #[tokio::test]
-    async fn released_spool_becomes_reapable_after_the_lease_drops() {
-        // The regression for the 2026-10-26 leak: a spool stays protected
-        // only while its epoch is alive. Once the epoch is done, the reaper
-        // must actually be able to remove it.
+    async fn released_spool_is_reapable_after_the_lease_drops() {
+        // The regression for the 2026-10-26 leak: a spool is protected only
+        // while its epoch is alive. Once released, an aged spool must go.
         let (root, git_dir) = init_repo();
-        let path = spool(&git_dir, "finished", 7200);
+        let aged = spool(&git_dir, "finished", 7200);
         {
-            let _lease = SpoolLease::new(Some(path.clone()));
+            let _lease = SpoolLease::new(Some(aged.clone()));
             assert_eq!(reap_abandoned_spools(root.path(), 60, 60).await, 0);
-            assert!(path.exists());
+            assert!(aged.exists());
         }
-        // Cooldown is per repo per hour, so use a fresh repo for pass two.
+        // Cooldown is per repo per hour, so prove the release on a fresh repo.
         let (root2, git_dir2) = init_repo();
-        let aged = spool(&git_dir2, "finished", 7200);
+        let aged2 = spool(&git_dir2, "finished", 7200);
         assert_eq!(reap_abandoned_spools(root2.path(), 60, 60).await, 1);
-        assert!(!aged.exists(), "an aged, unleased spool is reclaimed");
+        assert!(!aged2.exists(), "an aged, unleased spool is reclaimed");
     }
 
     #[tokio::test]
@@ -379,19 +397,12 @@ mod tests {
         std::fs::write(outside.path().join("keep"), b"operator data\n").unwrap();
         let link = git_dir.join(format!("{SPOOL_PREFIX}linked"));
         std::os::unix::fs::symlink(outside.path(), &link).unwrap();
-        // An ancient mtime on the link itself must not make it a candidate.
-        let when = std::time::SystemTime::now() - Duration::from_secs(86_400);
-        std::fs::File::options()
-            .write(true)
-            .open(&link)
-            .ok();
-        let removed = reap_abandoned_spools(root.path(), 60, 60).await;
-        assert_eq!(removed, 0, "symlinked entries are never spool candidates");
+        assert_eq!(reap_abandoned_spools(root.path(), 60, 60).await, 0);
         assert!(
             outside.path().join("keep").exists(),
             "a symlink target outside the repo must never be deleted"
         );
-        let _ = when;
+        assert!(link.symlink_metadata().is_ok(), "the link itself stays");
     }
 
     #[tokio::test]
@@ -400,30 +411,35 @@ mod tests {
         let other = git_dir.join("modules");
         std::fs::create_dir(&other).unwrap();
         std::fs::write(other.join("keep"), b"keep\n").unwrap();
-        let dangling = git_dir.join("objects");
-        std::fs::create_dir(&dangling).unwrap();
         let when = std::time::SystemTime::now() - Duration::from_secs(86_400);
+        for dir in [&other, &git_dir.join("objects")] {
+            std::fs::File::options()
+                .write(true)
+                .open(dir)
+                .unwrap()
+                .set_modified(when)
+                .unwrap();
+        }
+        let objects = git_dir.join("objects");
+        std::fs::create_dir(&objects).unwrap();
         std::fs::File::options()
             .write(true)
-            .open(&dangling)
+            .open(&objects)
             .unwrap()
             .set_modified(when)
             .unwrap();
         assert_eq!(reap_abandoned_spools(root.path(), 60, 60).await, 0);
         assert!(other.join("keep").exists(), "non-spool dirs are untouched");
-        assert!(dangling.exists(), "git's own dirs are untouched");
+        assert!(objects.exists(), "git's own dirs are untouched");
     }
 
     #[test]
-    fn policy_zero_falls_back_to_the_safe_default() {
+    fn zero_age_falls_back_to_the_safe_default_not_to_disabled() {
         assert_eq!(
-            if 0 == 0 {
-                DEFAULT_SPOOL_MAX_AGE_SECS
-            } else {
-                0
-            },
-            3600
+            effective_max_age(0),
+            Duration::from_secs(DEFAULT_SPOOL_MAX_AGE_SECS)
         );
+        assert_eq!(effective_max_age(120), Duration::from_secs(120));
         assert_eq!(human_bytes(875 * 1024 * 1024), "875.00 MiB");
     }
 
@@ -431,7 +447,7 @@ mod tests {
     fn spool_prefix_matches_the_staging_builder() {
         // Pins the contract the reaper relies on: if the staging builder
         // renames its prefix without updating this module, the leak returns
-        // silently. Read the source rather than trusting the constant.
+        // silently. Read the real source rather than trusting the constant.
         let source = include_str!("../sync/staged_epoch.rs");
         assert!(
             source.contains(&format!("builder.prefix(\"{SPOOL_PREFIX}\")")),

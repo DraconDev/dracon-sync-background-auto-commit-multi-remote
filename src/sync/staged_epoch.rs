@@ -66,6 +66,14 @@ pub(super) struct Epoch {
     // Keep the independent pack after installation: a later actual-index
     // replacement must not make the proven candidate collectible by prune.
     retained: Option<PathBuf>,
+    // ADDED 2026-10-26: the spool is RETAINED for diagnosis but must not be
+    // retained forever. Holding the lease for the epoch's lifetime makes
+    // the periodic reaper skip this directory while it is in use, and
+    // dropping it on EVERY exit path (early return, refusal, deadline,
+    // success) releases the spool so `git::reap_abandoned_spools` can
+    // reclaim it. Before this, 141 spools x ~875 MiB filled the root
+    // filesystem to 100%.
+    spool_lease: crate::git::SpoolLease,
     // Verified artifact de-index authorization: raw path -> captured HEAD object
     // id. Re-proved against HEAD in the commit transaction; never a general
     // exclusion waiver, and empty for every captured (user) entry epoch.
@@ -146,6 +154,7 @@ impl Epoch {
                 reference,
                 deadline,
                 retained: None,
+                spool_lease: crate::git::SpoolLease::new(None),
                 deletions: std::collections::BTreeMap::new(),
                 ignore_patterns: Vec::new(),
             })
@@ -932,6 +941,7 @@ impl Staging {
                 reference: self.baseline.reference.clone(),
                 deadline,
                 retained: Some(self.directory.clone()),
+                spool_lease: crate::git::SpoolLease::new(Some(self.directory.clone())),
                 deletions: plan
                     .as_ref()
                     .map(|plan| plan.deleted.clone())
