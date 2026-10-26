@@ -333,3 +333,7 @@
    Compiling zbus_macros v5.19.0
    Compiling hyper v1.11.1
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+   Compiling hyper-util v0.1.20
+   Compiling ssh2 v0.9.6
+   Compiling dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+   Compiling zbus v5.19.0
