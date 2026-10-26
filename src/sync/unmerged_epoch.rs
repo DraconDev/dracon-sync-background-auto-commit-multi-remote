@@ -207,6 +207,34 @@ fn slots(raw: &[u8], deadline: Instant) -> Result<Slots> {
     Ok(paths)
 }
 
+/// Recovery is a bounded delta spool, not a duplicate of the whole repository.
+const RETAINED_BYTES_LIMIT: u64 = 512 * 1024 * 1024;
+fn require_free_space(parent: &Path, reserve: u64) -> Result<()> {
+    let path = CString::new(parent.as_os_str().as_bytes())?;
+    let mut space = std::mem::MaybeUninit::<libc::statvfs>::uninit();
+    ensure!(unsafe { libc::statvfs(path.as_ptr(), space.as_mut_ptr()) } == 0,
+        "cannot inspect recovery free space: {}", std::io::Error::last_os_error());
+    let space = unsafe { space.assume_init() };
+    let available = u128::from(space.f_bavail) * u128::from(space.f_frsize);
+    ensure!(available >= u128::from(reserve), "insufficient free space for bounded unmerged recovery; actual index preserved");
+    Ok(())
+}
+async fn retention_input(repo: &Path, objects: &BTreeSet<String>, budget: u64) -> Result<(String, u64)> {
+    let input = objects.iter().map(|oid| format!("{oid}\n")).collect::<String>();
+    ensure!(input.len() <= 16 * 1024 * 1024, "unmerged retention input exceeds budget");
+    let metadata = git(repo, &["cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"], Some(input.as_bytes())).await?;
+    let mut remaining = objects.clone();
+    let mut bytes = 0u64;
+    for line in std::str::from_utf8(&metadata.stdout)?.lines() {
+        let fields: Vec<_> = line.split_ascii_whitespace().collect();
+        ensure!(fields.len() == 3 && fields[1] == "blob" && remaining.remove(fields[0]), "uncertain retained-object metadata");
+        bytes = bytes.checked_add(fields[2].parse::<u64>()?).context("recovery size overflow")?;
+        ensure!(bytes <= budget, "unmerged recovery exceeds retained-payload budget; actual index preserved");
+    }
+    ensure!(remaining.is_empty(), "incomplete retained-object metadata");
+    Ok((input, bytes))
+}
+
 pub(super) async fn reconcile(
     repo: &Path,
     enabled: bool,
@@ -226,6 +254,8 @@ pub(super) async fn reconcile(
         let head=std::str::from_utf8(&head.stdout)?.trim().to_owned();
         ensure!(crate::git::is_valid_object_id(&head),"invalid unmerged parent");
         let (original,original_stamp)=index_bytes(&actual).await?;
+        let index_parent=actual.parent().context("index parent missing")?;
+        require_free_space(index_parent, original.len() as u64 * 3 + 64 * 1024 * 1024)?;
         let directory=tempfile::Builder::new().prefix("dracon-unmerged-recovery-")
             .permissions(std::fs::Permissions::from_mode(0o700)).tempdir_in(actual.parent().context("index parent missing")?)?.keep();
         let candidate=directory.join("index");
@@ -234,15 +264,21 @@ pub(super) async fn reconcile(
         let all=slots(&cached,deadline)?;
         ensure!(all.iter().filter(|(_,entries)|entries.iter().any(|(_,_,stage)|*stage!=0)).map(|(p,e)|(p.clone(),e.iter().filter(|(_,_,stage)|*stage!=0).cloned().collect::<Vec<_>>())).collect::<BTreeMap<_,_>>()==conflicts,
             "conflict slots changed before lock; retained original index");
+        let tree=git(repo,&["ls-tree","-r","-z","--full-tree",&head],None).await?;
+        let base=crate::git::staged_intent::parse_entries(&tree.stdout,false,deadline)?;
         let mut objects=BTreeSet::new();
-        for entries in all.values(){for(mode,oid,_)in entries{if *mode!=0o160000{objects.insert(oid.clone());}}}
-        let input=objects.into_iter().map(|oid|format!("{oid}\n")).collect::<String>();
-        ensure!(input.len()<=16*1024*1024,"unmerged retention input exceeds budget");
+        for(path,entries)in &all{for(mode,oid,stage)in entries{
+            // Always retain conflict payloads, and independent partial staging.
+            // Unchanged stage-0 baseline content remains rooted by captured HEAD.
+            if *mode!=0o160000 && (*stage!=0 || base.get(path).is_none_or(|entry|entry.oid!=*oid)) {
+                objects.insert(oid.clone());
+            }
+        }}
+        let (input,payload_bytes)=retention_input(repo,&objects,RETAINED_BYTES_LIMIT).await?;
+        require_free_space(index_parent,payload_bytes + original.len() as u64 + 64 * 1024 * 1024)?;
         let prefix=directory.join("retained");
         git(repo,&["pack-objects","--revs","--window=0","--depth=0",prefix.to_str().context("unsupported unmerged retention path")?],Some(input.as_bytes())).await?;
         for entry in std::fs::read_dir(&directory)?{let path=entry?.path();if path.extension().is_some_and(|e|e=="pack"||e=="idx"){File::open(path)?.sync_all()?;}}
-        let tree=git(repo,&["ls-tree","-r","-z","--full-tree",&head],None).await?;
-        let base=crate::git::staged_intent::parse_entries(&tree.stdout,false,deadline)?;
         let mut sources=Vec::new();
         for path in conflicts.keys(){
             let Some(entry)=base.get(path) else { continue };
@@ -292,7 +328,6 @@ pub(super) async fn reconcile(
         for(path,source)in &sources{ensure!(source.unchanged(repo,path)?,"unmerged working source changed; original index retained");}
         // Child-directory fsync alone does not persist its name in the Git
         // directory. Make recovery reachable BEFORE replacing the actual index.
-        let index_parent=actual.parent().context("index parent missing")?;
         File::open(index_parent)?.sync_all()?;
         ensure!(Instant::now()<deadline,"unmerged selection deadline expired");
         lock.install_index(&candidate,&actual)?;
