@@ -4,8 +4,8 @@
 //! changes only ever touch the PRIVATE candidate.
 use super::staged_epoch;
 use super::*;
-use anyhow::ensure;
 use crate::git::staged_intent::{CachedIdentity, StagedIntentSnapshot};
+use anyhow::ensure;
 use std::collections::{BTreeMap, BTreeSet};
 use tokio::time::Instant;
 
