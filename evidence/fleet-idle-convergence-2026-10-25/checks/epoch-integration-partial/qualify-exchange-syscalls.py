@@ -186,10 +186,9 @@ def adversarial(helper, parent, expect_final=True):
             assert time.monotonic() < deadline, 'old queued open did not finish after lease release'
             time.sleep(.002)
         observations['oldWriter'] = json.loads(marker.read_text())
-        # A writer whose open predates the exchange resolves to the DISPLACED
-        # inode; it must NOT be pulled onto the canonical path (that is exactly
-        # the rollback defect). Its later bytes land privately and are surfaced
-        # by the archive stamp probe as an unresolved concern.
+        # Observe both writers independently. Retaining bytes privately does
+        # not prove the promised canonical writer continuity; do not invert
+        # this requirement just because the candidate displaces the old writer.
         observations['oldWriterLandedOnCanonical'] = source.stat().st_ino == observations['oldWriter']['inode']
         observations['oldWriterLandedDisplaced'] = desired.stat().st_ino == observations['oldWriter']['inode']
         go.touch()
@@ -221,7 +220,8 @@ def main():
     args = parser.parse_args()
     helper = args.helper.resolve()
     record = {'scope': 'actual isolated helper / owned disposable processes only; no deployment/fleet claim',
-              'helper': str(helper), 'helperSha256': hashlib.sha256(helper.read_bytes()).hexdigest()}
+              'helper': str(helper), 'helperSha256': hashlib.sha256(helper.read_bytes()).hexdigest(),
+              'contract': 'Both accepted writer FDs retain canonical identity; private retention alone is not a pass.'}
     def timeout(_signum, _frame):
         raise TimeoutError('finite owned-helper qualification deadline expired')
     signal.signal(signal.SIGALRM, timeout)
@@ -238,7 +238,7 @@ def main():
             record['pass'] = (a['newerWriterStillCanonical']
                               and a['canonicalContainsNewerWrite']
                               and a['indexPreserved']
-                              and not a['oldWriterLandedOnCanonical'])
+                              and a['oldWriterLandedOnCanonical'])
     except BaseException as exc:
         record['error'] = repr(exc)
         record['pass'] = False

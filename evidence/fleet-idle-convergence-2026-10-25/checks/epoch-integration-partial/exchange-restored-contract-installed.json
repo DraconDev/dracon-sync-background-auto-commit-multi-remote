@@ -1,0 +1,8 @@
+{
+  "scope": "actual isolated helper / owned disposable processes only; no deployment/fleet claim",
+  "helper": "/home/dracon/.local/bin/dracon-sync",
+  "helperSha256": "7176180470e4e81bd4f65fd5fb88a6662fc34af06497b2b3c41a38e2b87040d2",
+  "contract": "Both accepted writer FDs retain canonical identity; private retention alone is not a pass.",
+  "error": "OSError(28, 'No space left on device')",
+  "pass": false
+}
