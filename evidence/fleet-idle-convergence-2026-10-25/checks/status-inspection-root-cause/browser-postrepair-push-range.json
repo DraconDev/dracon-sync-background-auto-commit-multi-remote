@@ -1,0 +1,13 @@
+{
+  "repo": "/home/dracon/Dev/browser-extensions-shared",
+  "recordedAt": 1793042357.895203,
+  "localSha": "29cdcce8b463d070cf3910cd619a0e189196c06e",
+  "remoteSha": "9a83787ea6852ac11fbf58ea7cc71846746c232e",
+  "remoteName": "gitlab",
+  "branch": "main",
+  "rangeCommitCount": 1856,
+  "hookSha256": "317a8ee594a67d31df430c82d9fb23d05eb50a2f83b5ee98caa2428dabdae7c6",
+  "runnerSha256": "012459268fe5c6a93500455e8940bbbabd016587f77f20b06318c17cb7db1cb3",
+  "installedScopeRepairSha256": "317a8ee594a67d31df430c82d9fb23d05eb50a2f83b5ee98caa2428dabdae7c6",
+  "operations": "read-only advertised ref and local objects; no fetch, push or index mutation"
+}
