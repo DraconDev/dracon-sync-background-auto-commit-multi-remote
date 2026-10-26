@@ -1,1 +1,52 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: function `apply_generated` is never used
+   --> dracon-sync/src/sync/excluded_revert.rs:184:21
+    |
+184 | pub(super) async fn apply_generated(
+    |                     ^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `IGNORE` is never used
+  --> dracon-sync/src/sync/hygiene_apply.rs:15:18
+   |
+15 | pub(super) const IGNORE: &str = ".gitignore";
+   |                  ^^^^^^
+
+warning: constant `MAX_IGNORE` is never used
+  --> dracon-sync/src/sync/hygiene_apply.rs:16:7
+   |
+16 | const MAX_IGNORE: u64 = 8 * 1024 * 1024;
+   |       ^^^^^^^^^^
+
+warning: struct `Observed` is never constructed
+  --> dracon-sync/src/sync/hygiene_apply.rs:19:8
+   |
+19 | struct Observed {
+   |        ^^^^^^^^
+
+warning: function `stamp` is never used
+  --> dracon-sync/src/sync/hygiene_apply.rs:23:4
+   |
+23 | fn stamp(meta: &std::fs::Metadata) -> (u64, u64, u64, u32, u32, u32, i64, i64, i64, i64, u64) {
+   |    ^^^^^
+
+warning: associated items `open` and `unchanged` are never used
+  --> dracon-sync/src/sync/hygiene_apply.rs:39:8
+   |
+38 | impl Observed {
+   | ------------- associated items in this implementation
+39 |     fn open(directory: &Path) -> Result<Option<Self>> {
+   |        ^^^^
+...
+80 |     fn unchanged(&self, directory: &Path) -> Result<bool> {
+   |        ^^^^^^^^^
+
+warning: function `apply` is never used
+  --> dracon-sync/src/sync/hygiene_apply.rs:89:21
+   |
+89 | pub(super) async fn apply(
+   |                     ^^^^^
+
+warning: `dracon-sync` (bin "dracon-sync") generated 7 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.91s
