@@ -157,33 +157,49 @@ impl IndexLock {
         };
         let previous = match read_previous() {
             Ok(previous) => Some(previous),
-            Err(error) if error.downcast_ref::<std::io::Error>().is_some_and(|e|
-                e.kind() == std::io::ErrorKind::NotFound) => None,
+            Err(error)
+                if error
+                    .downcast_ref::<std::io::Error>()
+                    .is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound) =>
+            {
+                None
+            }
             Err(error) => return Err(error),
         };
         let (merged, previous_mtime) = if let Some((metadata, previous)) = previous {
             let mtime = metadata.modified()?;
             let merged = tokio::time::timeout_at(
-                deadline, carry_over_stat_data(repo, index, &previous, &bytes, mtime),
-            ).await.context("stat-cache merge deadline expired; actual index preserved")?
-                .unwrap_or(bytes);
-            anyhow::ensure!(read_previous()?.1 == previous,
-                "actual index changed during stat merge; preserved");
+                deadline,
+                carry_over_stat_data(repo, index, &previous, &bytes, mtime),
+            )
+            .await
+            .context("stat-cache merge deadline expired; actual index preserved")?
+            .unwrap_or(bytes);
+            anyhow::ensure!(
+                read_previous()?.1 == previous,
+                "actual index changed during stat merge; preserved"
+            );
             (merged, Some(mtime))
         } else {
             // A clean unborn repository has no actual index yet. There is no
             // cache to transfer; keep the proven candidate byte-for-byte.
-            anyhow::ensure!(!index.try_exists()?, "actual index appeared during installation");
+            anyhow::ensure!(
+                !index.try_exists()?,
+                "actual index appeared during installation"
+            );
             (bytes, None)
         };
-        anyhow::ensure!(tokio::time::Instant::now() < deadline,
-            "index installation deadline expired");
+        anyhow::ensure!(
+            tokio::time::Instant::now() < deadline,
+            "index installation deadline expired"
+        );
         anyhow::ensure!(self.is_owned(), "index lock replaced during stat merge");
         self.file.write_all(&merged)?;
         // Preserve the old racy-clean boundary too. Advancing the index mtime
         // without Git's racy-entry smudging can hide a same-size concurrent edit.
         if let Some(mtime) = previous_mtime {
-            self.file.set_times(std::fs::FileTimes::new().set_modified(mtime))?;
+            self.file
+                .set_times(std::fs::FileTimes::new().set_modified(mtime))?;
         }
         self.file.sync_all()?;
         anyhow::ensure!(self.is_owned(), "index lock replaced during install");
