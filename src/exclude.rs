@@ -1,5 +1,5 @@
 use anyhow::Result;
-mod hygiene;
+pub(crate) mod hygiene;
 use std::collections::BTreeSet;
 use std::path::Path;
 

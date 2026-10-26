@@ -1,0 +1,76 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+error[E0603]: function `render_positive_additions` is private
+   --> dracon-sync/src/sync/hygiene_apply.rs:103:55
+    |
+103 |         let Some(rendered) = crate::exclude::hygiene::render_positive_additions(current, patterns)?
+    |                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^ private function
+    |
+note: the function `render_positive_additions` is defined here
+   --> dracon-sync/src/exclude/hygiene.rs:14:1
+    |
+ 14 | / pub(super) fn render_positive_additions(
+ 15 | |     current: &str,
+ 16 | |     patterns: &[String],
+ 17 | | ) -> Result<Option<String>> {
+...   |
+ 92 | |     Ok(Some(result))
+ 93 | | }
+    | |_^
+
+error[E0107]: enum takes 2 generic arguments but 1 generic argument was supplied
+   --> dracon-sync/src/sync/hygiene_apply.rs:93:6
+    |
+ 93 | ) -> Result<(bool, Option<String>)> {
+    |      ^^^^^^ ---------------------- supplied 1 generic argument
+    |      |
+    |      expected 2 generic arguments
+    |
+note: enum defined here, with 2 generic parameters: `T`, `E`
+   --> /home/dracon/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:557:10
+    |
+557 | pub enum Result<T, E> {
+    |          ^^^^^^ -  -
+help: add missing generic argument
+    |
+ 93 | ) -> Result<(bool, Option<String>), E> {
+    |                                   +++
+
+error[E0107]: enum takes 2 generic arguments but 1 generic argument was supplied
+   --> dracon-sync/src/sync/hygiene_apply.rs:39:34
+    |
+ 39 |     fn open(directory: &Path) -> Result<Option<Self>> {
+    |                                  ^^^^^^ ------------ supplied 1 generic argument
+    |                                  |
+    |                                  expected 2 generic arguments
+    |
+note: enum defined here, with 2 generic parameters: `T`, `E`
+   --> /home/dracon/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:557:10
+    |
+557 | pub enum Result<T, E> {
+    |          ^^^^^^ -  -
+help: add missing generic argument
+    |
+ 39 |     fn open(directory: &Path) -> Result<Option<Self>, E> {
+    |                                                     +++
+
+error[E0107]: enum takes 2 generic arguments but 1 generic argument was supplied
+   --> dracon-sync/src/sync/hygiene_apply.rs:80:46
+    |
+ 80 |     fn unchanged(&self, directory: &Path) -> Result<bool> {
+    |                                              ^^^^^^ ---- supplied 1 generic argument
+    |                                              |
+    |                                              expected 2 generic arguments
+    |
+note: enum defined here, with 2 generic parameters: `T`, `E`
+   --> /home/dracon/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:557:10
+    |
+557 | pub enum Result<T, E> {
+    |          ^^^^^^ -  -
+help: add missing generic argument
+    |
+ 80 |     fn unchanged(&self, directory: &Path) -> Result<bool, E> {
+    |                                                         +++
+
+Some errors have detailed explanations: E0107, E0603.
+For more information about an error, try `rustc --explain E0107`.
+error: could not compile `dracon-sync` (bin "dracon-sync") due to 4 previous errors

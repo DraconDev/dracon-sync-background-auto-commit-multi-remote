@@ -1,12 +1,16 @@
 //! Canonical `.gitignore` reconciliation for hygiene plans. Reuses the proven
 //! lease/exchange helper: no write through a live pathname, no stranded writers.
 use super::excluded_revert;
-use super::*;
+use super::staged_epoch;
+use crate::git::staged_intent::{CapturedHead, StagedIntentSnapshot};
+use anyhow::{ensure, Context};
 use std::ffi::CString;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::os::fd::{AsRawFd, FromRawFd};
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
+use std::path::{Path, PathBuf};
+use tokio::time::Instant;
 
 pub(super) const IGNORE: &str = ".gitignore";
 const MAX_IGNORE: u64 = 8 * 1024 * 1024;

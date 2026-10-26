@@ -11,7 +11,7 @@ const HEADER: &str = "# Large files (auto-added by dracon-sync)";
 /// Generic positive PATTERNS, not filenames. Literal callers must encode names
 /// first. Preserve all existing bytes; add inside a single valid Warden block
 /// before its protected/plaintext negations, never after those security rules.
-pub(super) fn render_positive_additions(
+pub(crate) fn render_positive_additions(
     current: &str,
     patterns: &[String],
 ) -> Result<Option<String>> {
@@ -115,7 +115,7 @@ fn escaped_name(text: &str) -> Result<String> {
 
 /// Exact repository-relative file, anchored so a same-named eligible file in a
 /// different directory cannot be hidden by a large-file exception.
-pub(super) fn literal_file_pattern(path: &Path) -> Result<String> {
+pub(crate) fn literal_file_pattern(path: &Path) -> Result<String> {
     ensure!(
         crate::git::is_safe_git_path(path),
         "unsafe large-file ignore path"
@@ -128,7 +128,7 @@ pub(super) fn literal_file_pattern(path: &Path) -> Result<String> {
 
 /// Intentional any-depth directory-component rule from the existing build
 /// artifact policy; unlike file exceptions, its scope is explicitly a basename.
-pub(super) fn literal_directory_pattern(name: &str) -> Result<String> {
+pub(crate) fn literal_directory_pattern(name: &str) -> Result<String> {
     ensure!(
         crate::git::is_safe_git_path(Path::new(name)) && !name.contains('/'),
         "invalid artifact directory component"
