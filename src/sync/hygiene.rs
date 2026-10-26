@@ -202,3 +202,7 @@ pub(super) async fn verify_deletions(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "hygiene_tests.rs"]
+mod tests;
