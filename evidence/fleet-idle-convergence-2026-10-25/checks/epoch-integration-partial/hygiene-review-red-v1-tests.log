@@ -1,1 +1,29 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 21.09s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 2 tests
+test sync::hygiene::tests::hygiene_retirement_leading_space_is_not_an_effective_artifact_rule ... FAILED
+test sync::hygiene::tests::hygiene_retirement_refuses_committed_symlink_without_touching_target_or_index ... FAILED
+
+failures:
+
+---- sync::hygiene::tests::hygiene_retirement_leading_space_is_not_an_effective_artifact_rule stdout ----
+
+thread 'sync::hygiene::tests::hygiene_retirement_leading_space_is_not_an_effective_artifact_rule' (4077202) panicked at dracon-sync/src/sync/hygiene_tests.rs:190:5:
+uncommitted canonical correction cannot retire intent
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- sync::hygiene::tests::hygiene_retirement_refuses_committed_symlink_without_touching_target_or_index stdout ----
+
+thread 'sync::hygiene::tests::hygiene_retirement_refuses_committed_symlink_without_touching_target_or_index' (4077283) panicked at dracon-sync/src/sync/hygiene_tests.rs:101:5:
+symlink text must not establish committed ignore rules
+
+
+failures:
+    sync::hygiene::tests::hygiene_retirement_leading_space_is_not_an_effective_artifact_rule
+    sync::hygiene::tests::hygiene_retirement_refuses_committed_symlink_without_touching_target_or_index
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 1499 filtered out; finished in 0.35s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
