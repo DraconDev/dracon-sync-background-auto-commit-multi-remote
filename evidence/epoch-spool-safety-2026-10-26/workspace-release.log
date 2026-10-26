@@ -65,3 +65,16 @@
    Compiling intl-memoizer v0.5.3
    Compiling intl_pluralrules v7.0.2
    Compiling fluent-langneg v0.13.1
+   Compiling proc-macro-error-attr v1.0.4
+   Compiling syn v1.0.109
+   Compiling rustc-hash v1.1.0
+   Compiling blocking v1.7.0
+   Compiling async-process v2.5.0
+   Compiling aead v0.5.2
+   Compiling async-executor v1.14.0
+   Compiling proc-macro-error v1.0.4
+   Compiling either v1.18.0
+   Compiling parking_lot v0.12.5
+   Compiling poly1305 v0.8.0
+   Compiling arc-swap v1.9.2
+   Compiling lazy_static v1.5.0
