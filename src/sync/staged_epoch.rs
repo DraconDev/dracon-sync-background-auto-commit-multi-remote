@@ -238,6 +238,11 @@ impl Epoch {
     /// is what tells the reaper this directory is in use; releasing the
     /// lease therefore has to come first.
     pub(super) fn release_spool(&mut self) {
+        // Conflict recovery retains original stages which need not be in the
+        // selected commit. Never discard that evidence on commit success.
+        if self.retained.as_ref().is_some_and(|path| path.join("original-index").exists() || path.join("preserve-rejected").exists()) {
+            return;
+        }
         let directory = self.retained.take();
         // Drop the lease BEFORE removing, so the reaper never sees a live
         // lease on a directory that is already gone.
@@ -1021,6 +1026,9 @@ impl Staging {
             // Only this epoch's own verified artifact de-index survives the
             // exclusion gate; every other excluded path is still refused.
             let rejected = epoch.ineligible_paths(repo, policy, excluded).await?;
+            if !rejected.is_empty() {
+                std::fs::write(self.directory.join("preserve-rejected"), b"unpublished candidate bytes\n")?;
+            }
             for path in rejected {
                 // This view began without staged intent. Restore only our
                 // candidate to its baseline; never reset the actual index or
@@ -1056,7 +1064,8 @@ impl Staging {
                 // repo that keeps producing empty candidates (filter churn,
                 // hygiene re-adds) would otherwise still leak one full-tree
                 // index per cycle.
-                epoch.release_spool();
+                // An empty selected candidate may still have rejected bytes
+                // in its original pack. Preserve that recovery evidence.
                 return Ok(epoch);
             }
             // Persist typed artifact intent before installing an index that a
