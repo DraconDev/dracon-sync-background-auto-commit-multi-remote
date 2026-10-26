@@ -1,6 +1,35 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## No-rollback fix QUALIFIED but NOT deployed; fleet NOT idle
+## Current: preservation qualification FAILED; fleet acceptance remains open
+
+The earlier no-rollback qualification was invalid: its syscall harness had
+changed acceptance from preserving the old writer's canonical inode to accepting
+that writer's displacement into private recovery. That is not equivalent to
+preserving canonical eligible work. The original requirement is restored.
+`checks/epoch-integration-partial/exchange-restored-contract-instrumented.json`
+executes installed artifact `7176180470e4e81bd4f65fd5fb88a6662fc34af06497b2b3c41a38e2b87040d2`
+in disposable repositories and records **pass:false**: old writer canonical=false,
+newer writer canonical=true, index preserved=true. The first restored-contract
+attempt encountered ENOSPC and remains a separate failed receipt; ordinary temp
+storage probes and an instrumented rerun succeeded in reaching the actual failure.
+The retained reviewer could not be resumed (run not found); no approval is inferred.
+No further deployment is justified by the prior qualification claims.
+
+A separate stat-cache repair is now locally tested, not deployed or fully
+qualified. `git/status.rs` no longer uses quadratic inventory comparisons or
+blocking Git children on the async epoch path. It uses path-keyed maps, shared
+owned-child cancellation under the epoch deadline, explicit repository paths
+(including linked Git directories), SHA256-compatible deletion OIDs, and the
+original index mtime so racy same-size edits cannot be hidden by cache transfer.
+Native regression verifies expired-deadline refusal, exact candidate tree/mode/
+add/delete/newline-path installation, unchanged local bytes, and racy-edit visibility;
+the representative 100,000-entry SHA256 delta test passes in 0.31 seconds.
+Strict full-workspace all-target Clippy passes. Raw logs are under
+`checks/status-inspection-root-cause/stat-{linear-large-delta,bounded-full-delta,bounded-clippy}.log`.
+Those targeted checks are not a final assembly, full-matrix, runtime, publication,
+or clean-idle-fleet claim. Task and verification obligations remain open.
+
+## Historical no-rollback claim — INVALIDATED, not current qualification
 
 Operator decision received: KEEP .gitignore publication and existing guarantees;
 no separate metadata scheme. The reproduced rollback defect was therefore fixed
