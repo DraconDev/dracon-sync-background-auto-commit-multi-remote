@@ -133,3 +133,29 @@
     Checking pin-project v1.1.13
     Checking age-core v0.10.0
     Checking aes-gcm v0.10.3
+    Checking x25519-dalek v2.0.1
+    Checking ed25519-dalek v2.2.0
+    Checking thiserror v1.0.69
+   Compiling i18n-config v0.4.8
+   Compiling fluent-syntax v0.11.1
+    Checking native-tls v0.2.18
+    Checking zbus_names v4.3.4
+   Compiling fluent-bundle v0.15.3
+    Checking tokio-native-tls v0.3.1
+    Checking rustls-webpki v0.103.16
+   Compiling fluent v0.16.1
+    Checking dracon-git v94.7.2
+   Compiling i18n-embed-impl v0.8.4
+    Checking hyper v1.11.1
+   Compiling i18n-embed v0.14.1
+   Compiling zbus_macros v5.19.0
+   Compiling i18n-embed-fl v0.7.0
+    Checking hyper-util v0.1.20
+    Checking age v0.10.1
+    Checking hyper-tls v0.6.0
+    Checking dracon-security v0.4.0 (/home/dracon/Dev/dracon-utilities/dracon-warden/src/security)
+    Checking zbus v5.19.0
+    Checking tokio-rustls v0.26.5
+    Checking dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Checking hyper-rustls v0.27.9
+    Checking reqwest v0.12.28
