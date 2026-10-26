@@ -271,7 +271,10 @@ pub(super) async fn apply_ignore(
             scratch,
             vec![Target {
                 path: path.to_path_buf(),
-                displaced: Location::open(&files, path)?.observed().await?.map(|(_, stamp)| stamp),
+                displaced: Location::open(&files, path)?
+                    .observed()
+                    .await?
+                    .map(|(_, stamp)| stamp),
                 source,
                 before,
                 desired_before,
@@ -779,7 +782,17 @@ pub(super) async fn helper(request_path: &Path) -> Result<()> {
         // Canonical and private files share an inode SUFFIX and we keep whole
         // Stamps: capture what the displaced inode actually looked like so the
         // parent can prove it was never reopened after the exchange.
-        targets.push((source, desired, item.before, archive::Stamp::of(&desired.file()?.context("generated ignore target vanished")?.metadata()?)));
+        targets.push((
+            source,
+            desired,
+            item.before,
+            archive::Stamp::of(
+                &desired
+                    .file()?
+                    .context("generated ignore target vanished")?
+                    .metadata()?,
+            ),
+        ));
     }
     let snapshot = StagedIntentSnapshot::capture(&repo, started + lease_budget).await?;
     if snapshot.head != CapturedHead::Commit(request.head) || !snapshot.changed.is_empty() {
