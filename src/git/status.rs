@@ -1345,17 +1345,26 @@ async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
     // reproduces a false-clean result. This changes only a disposable index.
     let bad_cache = repo.join("bad-cache.index");
     std::fs::copy(&index, &bad_cache).unwrap();
-    std::fs::File::open(&bad_cache).unwrap().set_times(
-        std::fs::FileTimes::new().set_modified(tracked_time + std::time::Duration::from_secs(2)),
-    ).unwrap();
+    std::fs::File::open(&bad_cache)
+        .unwrap()
+        .set_times(
+            std::fs::FileTimes::new()
+                .set_modified(tracked_time + std::time::Duration::from_secs(2)),
+        )
+        .unwrap();
     let bad = std::process::Command::new("git")
         .args(["status", "--porcelain=v1", "--untracked-files=no"])
-        .current_dir(repo).env("GIT_INDEX_FILE", &bad_cache)
-        .env("GIT_CONFIG_GLOBAL", "/dev/null").env("GIT_CONFIG_NOSYSTEM", "1")
-        .output().unwrap();
+        .current_dir(repo)
+        .env("GIT_INDEX_FILE", &bad_cache)
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .output()
+        .unwrap();
     assert!(bad.status.success());
-    assert!(!String::from_utf8_lossy(&bad.stdout).contains("one.txt"),
-        "negative control must reproduce the unsafe cache's hidden edit");
+    assert!(
+        !String::from_utf8_lossy(&bad.stdout).contains("one.txt"),
+        "negative control must reproduce the unsafe cache's hidden edit"
+    );
     let before_cancel = std::fs::read(&index).unwrap();
     let mut expired = IndexLock::try_acquire_path(index.with_extension("lock")).unwrap();
     assert!(expired
