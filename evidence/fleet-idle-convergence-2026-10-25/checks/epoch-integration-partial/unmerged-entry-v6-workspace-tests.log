@@ -902,4 +902,6 @@ test git::inspection::tests::rejects_copied_gitdir_alias_but_accepts_symlink_to_
 test git::inspection::tests::shared_budget_accepts_slow_successful_filter ... ok
 test git::janitor_tests::aborts_when_bundle_fails ... ok
 test git::janitor_tests::disabled_is_noop ... ok
-test git::janitor_tests::prunes_daemon_branches_with_bundle_and_remote_delete ... 
+test git::janitor_tests::prunes_daemon_branches_with_bundle_and_remote_delete ... ok
+test git::janitor_tests::prunes_orphaned_tracking_refs ... ok
+test git::janitor_tests::skips_remote_delete_when_tracking_tip_differs ... 
