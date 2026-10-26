@@ -4889,35 +4889,11 @@ static AUTO_GC_ATTEMPTS: std::sync::OnceLock<
     std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, std::time::Instant>>,
 > = std::sync::OnceLock::new();
 
-/// Stale `tmp_pack_*` sweep — ADDED 2026-10-26 (disk-exhaustion incident).
-///
-/// `tmp_pack_*` files are the incomplete packfiles left behind by killed or
-/// failed `git push`/`git repack` runs. They are NOT objects, NOT refs and
-/// NOT reachable from anything, and `git gc` DOES NOT remove recent ones:
-/// verified empirically on a disposable repo — a fresh 1 MB
-/// `objects/pack/tmp_pack_*` survived plain `git gc` and `git gc --quiet`,
-/// and was only collected by `git gc --prune=now`. `git gc` also reports
-/// them as garbage while refusing to delete them, which is why
-/// `count-objects -v` showed 10.71 GiB of `size-garbage` in a repo with only
-/// 3.32 GiB of real pack.
-///
-/// So `maybe_auto_gc` alone can never reclaim this class, and the codebase
-/// deliberately does NOT use `--prune=now` (it removes git's 2-week grace,
-/// which risks the prune race and expires the reflog safety net — see the
-/// SYNC-H3 note above). Removing a `tmp_pack_*` file is strictly safer than
-/// `--prune=now`: a tmp pack holds no committed object that any ref can
-/// reach, because a pack only becomes authoritative when its rename to
-/// `pack-<sha>.pack` completes.
-///
-/// Observed drivers: browser-extensions-shared (23 files / 10.71 GiB) and
-/// dracon-strategy/ai-auto-writer (repeatedly 28-66 GiB), both because the
-/// pushes keeping dying and each attempt leaks a multi-hundred-MB tmp pack.
-///
-/// Guard rails: only regular files matching `tmp_pack_*` inside the real
-/// `objects/pack` dir, only when untouched for `min_age_secs` (so a pack
-/// being written RIGHT NOW is never removed), never a symlink, and the same
-/// per-repo 1h attempt cooldown as `maybe_auto_gc`. Returns
-/// `(files_removed, bytes_freed)`.
+/// Read-only temporary-pack inspection; always returns zero reclaimed files
+/// and bytes. Cleanup is disabled pending producer-owned/cross-process proof.
+/// An old temporary pack can still belong to a stalled live producer. Its
+/// name, mtime, or absence from refs does not authorize unlinking it.
+/// Normal Git maintenance retains its ordinary prune grace.
 pub(crate) async fn sweep_stale_tmp_packs(
     repo: &std::path::Path,
     min_age_secs: u64,
@@ -4978,8 +4954,7 @@ pub(crate) async fn sweep_stale_tmp_packs(
         if !meta.file_type().is_file() {
             continue;
         }
-        // A pack still being WRITTEN must never be removed: only an
-        // untouched file older than the floor is provably abandoned.
+        // Age is an inventory filter, not proof of abandonment.
         let Some(age) = meta.modified().ok().and_then(|m| now.duration_since(m).ok()) else {
             continue;
         };
@@ -5388,7 +5363,7 @@ mod tmp_pack_sweep_tests {
     }
 
     #[tokio::test]
-    async fn aged_tmp_pack_is_reclaimed_and_reported() {
+    async fn aged_tmp_pack_is_preserved_without_producer_ownership_proof() {
         let (root, pack) = init_repo();
         write_aged(&pack, "tmp_pack_OLDAAA", 4096, 7200);
         let (files, freed) = super::sweep_stale_tmp_packs(root.path(), 3600).await;
