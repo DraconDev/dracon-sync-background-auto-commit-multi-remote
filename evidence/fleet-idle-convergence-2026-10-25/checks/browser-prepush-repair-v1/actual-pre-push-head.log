@@ -57,3 +57,6 @@
   ▸ extensions/standalones/auto-form-filler TYPECHECK (548a3a10a563)
   ▸ extensions/standalones/auto-form-filler BUILD (548a3a10a563)
   ▸ extensions/standalones/auto-form-filler TEST (548a3a10a563)
+  ▸ extensions/standalones/auto-form-filler LINT (548a3a10a563)
+  ▸ extensions/standalones/bugkit TYPECHECK (548a3a10a563)
+  ▸ extensions/standalones/bugkit BUILD (548a3a10a563)
