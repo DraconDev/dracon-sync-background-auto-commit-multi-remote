@@ -368,7 +368,7 @@ pub(crate) async fn sweep_epoch_spools(repo: &Path, max_age_secs: u64, apply: bo
     (found, bytes)
 }
 
-fn human_bytes(bytes: u64) -> String {
+pub(crate) fn human_bytes(bytes: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
     let mut value = bytes as f64;
     let mut unit = 0;
