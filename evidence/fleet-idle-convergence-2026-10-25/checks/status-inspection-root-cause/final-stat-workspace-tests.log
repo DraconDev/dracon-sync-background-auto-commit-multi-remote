@@ -2194,3 +2194,5 @@ test sync::tests::test_sync_repo_empty_repo_end_to_end ... ok
 test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) be4ac82] init
 ok
 test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) 24a7e18] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) c8074c3] init
