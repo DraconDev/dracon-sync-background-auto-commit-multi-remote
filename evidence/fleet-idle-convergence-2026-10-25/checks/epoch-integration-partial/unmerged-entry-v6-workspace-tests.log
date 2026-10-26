@@ -2175,3 +2175,11 @@ test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-co
    test@test
    Amend the author identity before pushing (git commit --amend --reset-author).
 error: failed to push some refs to '/tmp/.tmpW77Nam/origin.git'
+ok
+test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (root-commit) 3cf7226] init
+To /tmp/.tmpjlf0U1/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) 1f1a117] init
