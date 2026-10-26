@@ -334,11 +334,20 @@ impl Epoch {
                 // Only the directory exclusion can be waived. Explicit repo
                 // opt-outs and file-pattern exclusions remain binding, including
                 // after hooks. A captured user epoch never has this authority.
-                let cleanup = overrides.build_artifact_cleanup.unwrap_or(policy.build_artifact_cleanup);
-                if !cleanup || !crate::exclude::should_stage_entry_with_blob_size(
-                    repo, &path, size, &BTreeSet::new(), &policy.exclude_file_patterns,
-                    policy.max_stage_file_bytes, &excludes,
-                ) {
+                let cleanup = overrides
+                    .build_artifact_cleanup
+                    .unwrap_or(policy.build_artifact_cleanup);
+                if !cleanup
+                    || !crate::exclude::should_stage_entry_with_blob_size(
+                        repo,
+                        &path,
+                        size,
+                        &BTreeSet::new(),
+                        &policy.exclude_file_patterns,
+                        policy.max_stage_file_bytes,
+                        &excludes,
+                    )
+                {
                     rejected.push(raw.clone());
                 }
                 continue;

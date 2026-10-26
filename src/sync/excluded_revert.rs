@@ -185,7 +185,8 @@ pub(super) async fn apply_ignore(
         const LIMIT: u64 = 8 * 1024 * 1024;
         let canonical = std::fs::canonicalize(repo)?;
         let repo = canonical.as_path();
-        let lock = match crate::git::IndexLock::try_acquire_path(crate::git::index_lock_path(repo)) {
+        let lock = match crate::git::IndexLock::try_acquire_path(crate::git::index_lock_path(repo))
+        {
             Ok(lock) => lock,
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
                 bail!("generated ignore deferred by foreign index lock; canonical bytes preserved")
@@ -193,51 +194,96 @@ pub(super) async fn apply_ignore(
             Err(error) => return Err(error.into()),
         };
         let snapshot = StagedIntentSnapshot::capture(repo, deadline).await?;
-        ensure!(snapshot.changed.is_empty(), "generated ignore preserves foreign staging");
+        ensure!(
+            snapshot.changed.is_empty(),
+            "generated ignore preserves foreign staging"
+        );
         let path = Path::new(".gitignore");
         let source = Location::open(repo, path)?;
         let mut bytes = Vec::new();
         let before = if let Some(file) = source.file()? {
             let meta = file.metadata()?;
-            ensure!(meta.is_file() && meta.nlink() == 1 && meta.uid() == unsafe { libc::geteuid() }
-                && meta.len() <= LIMIT, "ignore source must be owned, regular, single-link and bounded");
+            ensure!(
+                meta.is_file()
+                    && meta.nlink() == 1
+                    && meta.uid() == unsafe { libc::geteuid() }
+                    && meta.len() <= LIMIT,
+                "ignore source must be owned, regular, single-link and bounded"
+            );
             let expected = archive::Stamp::of(&meta);
             let mut file = tokio::fs::File::from_std(file);
             (&mut file).take(LIMIT + 1).read_to_end(&mut bytes).await?;
-            ensure!(bytes.len() as u64 == meta.len()
-                && archive::Stamp::of(&file.metadata().await?) == expected
-                && archive::stamp(&source)? == Some(expected), "ignore source changed during observation");
-            Some(Fingerprint { identity: identity(&meta), sha256: format!("{:x}", Sha256::digest(&bytes)) })
-        } else { None };
-        let current = std::str::from_utf8(&bytes).context("ignore source is not UTF-8; bytes preserved")?;
-        let Some(rendered) = crate::exclude::hygiene::render_positive_additions(current, patterns)? else {
+            ensure!(
+                bytes.len() as u64 == meta.len()
+                    && archive::Stamp::of(&file.metadata().await?) == expected
+                    && archive::stamp(&source)? == Some(expected),
+                "ignore source changed during observation"
+            );
+            Some(Fingerprint {
+                identity: identity(&meta),
+                sha256: format!("{:x}", Sha256::digest(&bytes)),
+            })
+        } else {
+            None
+        };
+        let current =
+            std::str::from_utf8(&bytes).context("ignore source is not UTF-8; bytes preserved")?;
+        let Some(rendered) = crate::exclude::hygiene::render_positive_additions(current, patterns)?
+        else {
             return Ok((false, None));
         };
-        ensure!(rendered.len() as u64 <= LIMIT, "generated ignore exceeds size budget");
-        let CapturedHead::Commit(head) = &snapshot.head else { return Ok((false, Some(rendered))) };
+        ensure!(
+            rendered.len() as u64 <= LIMIT,
+            "generated ignore exceeds size budget"
+        );
+        let CapturedHead::Commit(head) = &snapshot.head else {
+            return Ok((false, Some(rendered)));
+        };
         let gitdir = staged_epoch::git(repo, &["rev-parse", "--absolute-git-dir"], None).await?;
         let gitdir = PathBuf::from(std::str::from_utf8(&gitdir.stdout)?.trim_end_matches('\n'));
         // Same recognized namespace as all other canonical recovery: pending
         // records and late archive writes MUST survive opt-out/restart reports.
-        let scratch = tempfile::Builder::new().prefix("dracon-excluded-recovery-")
-            .permissions(std::fs::Permissions::from_mode(0o700)).tempdir_in(&gitdir)?;
+        let scratch = tempfile::Builder::new()
+            .prefix("dracon-excluded-recovery-")
+            .permissions(std::fs::Permissions::from_mode(0o700))
+            .tempdir_in(&gitdir)?;
         let files = scratch.path().join("files");
         {
             use std::os::unix::fs::DirBuilderExt;
             std::fs::DirBuilder::new().mode(0o700).create(&files)?;
         }
-        let mut file = OpenOptions::new().write(true).create_new(true)
-            .mode(before.as_ref().map_or(0o600, |f| f.identity.3 & 0o777)).open(files.join(path))?;
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(before.as_ref().map_or(0o600, |f| f.identity.3 & 0o777))
+            .open(files.join(path))?;
         file.write_all(rendered.as_bytes())?;
         file.sync_all()?;
-        let desired_before = Location::open(&files, path)?.fingerprint().await?
+        drop(file);
+        let desired_before = Location::open(&files, path)?
+            .fingerprint()
+            .await?
             .context("generated ignore target missing")?;
         let head = head.clone();
-        let applied = apply_prepared(repo, scratch, vec![Target {
-            path: path.to_path_buf(), source, before, desired_before,
-        }], head, deadline, lock, snapshot).await?;
+        let applied = apply_prepared(
+            repo,
+            scratch,
+            vec![Target {
+                path: path.to_path_buf(),
+                source,
+                before,
+                desired_before,
+            }],
+            head,
+            deadline,
+            lock,
+            snapshot,
+        )
+        .await?;
         Ok((applied, Some(rendered)))
-    }).await.context("generated ignore deadline expired; canonical/recovery bytes preserved")?
+    })
+    .await
+    .context("generated ignore deadline expired; canonical/recovery bytes preserved")?
 }
 
 /// false = uncertain ownership/content; callers preserve work and drain backlog.

@@ -93,7 +93,9 @@ pub(super) async fn plan(
     if cleanup {
         let mut components = BTreeSet::new();
         for (raw, entry) in &baseline.entries {
-            if entry.mode == 0o160000 { continue; } // never de-index a checkout
+            if entry.mode == 0o160000 {
+                continue;
+            } // never de-index a checkout
             if let Some(name) =
                 artifact_component(&staged_epoch::path_from_git_bytes(raw)?, excluded)
             {
