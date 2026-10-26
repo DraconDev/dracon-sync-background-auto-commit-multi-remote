@@ -938,7 +938,11 @@ impl Staging {
                 // The no-rewrite parent remains reachable in normal history.
                 // Retain only the candidate's new objects, not another copy of
                 // every unchanged historical asset on every staging pass.
-                pack_input.push_str(&format!("^{parent}\n"));
+                // Positive roots are trees. Excluding only a commit does not
+                // mark its tree closure uninteresting in Git's tree-root walk;
+                // explicitly exclude the parent tree or every unchanged blob
+                // is recopied into every retained pack.
+                pack_input.push_str(&format!("^{parent}^{{tree}}\n"));
             }
             git(
                 repo,
@@ -1360,6 +1364,41 @@ mod tests {
             .is_err());
         assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), bytes);
         assert_eq!(std::fs::read(repo.join("large")).unwrap(), large);
+    }
+
+    #[tokio::test]
+    async fn retention_pack_excludes_unchanged_parent_tree_but_keeps_new_payload() {
+        let (root, policy) = fixture().await;
+        let repo = root.path();
+        let baseline_oid = git(repo, &["rev-parse", "HEAD:file"], None).await.unwrap();
+        let baseline_oid = std::str::from_utf8(&baseline_oid.stdout).unwrap().trim();
+        let staging = Staging::new(repo, Epoch::capture(repo, 60).await.unwrap()).await.unwrap();
+        let retained = staging.directory.clone();
+        let payload = b"new candidate only\n";
+        std::fs::write(repo.join("new-file"), payload).unwrap();
+        run_index_git(repo, &["add", "--", "new-file"], 60, "retention delta", Some(staging.index())).await.unwrap();
+        let epoch = staging.finish(repo, &policy, &BTreeSet::new(), false, false).await.unwrap();
+        let index = std::fs::read_dir(&retained).unwrap().map(|e| e.unwrap().path())
+            .find(|p| p.extension().is_some_and(|ext| ext == "idx")).unwrap();
+        let packed = git(repo, &["verify-pack", "-v", index.to_str().unwrap()], None).await.unwrap();
+        let packed = String::from_utf8(packed.stdout).unwrap();
+        assert!(!packed.lines().any(|line| line.starts_with(baseline_oid)),
+            "unchanged baseline blobs must not be copied on every cycle");
+        let added_oid = &epoch.snapshot.entries.get(b"new-file".as_slice()).unwrap().oid;
+        assert!(packed.lines().any(|line| line.starts_with(added_oid)),
+            "the unpublished candidate must remain independently recoverable");
+        // Disposable negative control: reproduce the former commit-only
+        // exclusion using this fixture's immutable candidate tree.
+        let tree = epoch.snapshot.materialize_tree(repo, epoch.deadline).await.unwrap();
+        let bad_prefix = retained.join("bad-control");
+        git(repo, &["pack-objects", "--revs", "--window=0", "--depth=0", bad_prefix.to_str().unwrap()],
+            Some(format!("{tree}\n^HEAD\n").as_bytes())).await.unwrap();
+        let bad_index = std::fs::read_dir(&retained).unwrap().map(|e| e.unwrap().path())
+            .find(|p| p.file_name().unwrap().to_string_lossy().starts_with("bad-control-")
+                && p.extension().is_some_and(|ext| ext == "idx")).unwrap();
+        let bad = git(repo, &["verify-pack", "-v", bad_index.to_str().unwrap()], None).await.unwrap();
+        assert!(String::from_utf8(bad.stdout).unwrap().lines().any(|line| line.starts_with(baseline_oid)),
+            "the negative control must demonstrate full-tree duplication");
     }
 
     #[tokio::test]
