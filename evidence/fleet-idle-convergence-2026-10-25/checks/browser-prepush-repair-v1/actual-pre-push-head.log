@@ -101,3 +101,6 @@
   ▸ extensions/standalones/SamAI TYPECHECK (548a3a10a563)
   ▸ extensions/standalones/SamAI BUILD (548a3a10a563)
   ▸ extensions/standalones/SamAI TEST (548a3a10a563)
+  ▸ extensions/standalones/SamAI LINT (548a3a10a563)
+  ▸ extensions/standalones/tabmon TYPECHECK (548a3a10a563)
+  ▸ extensions/standalones/tabmon BUILD (548a3a10a563)
