@@ -27,4 +27,6 @@ test report::v011313_tests::classify_excluded_tracked_pattern_is_not_committable
 test report::v011313_tests::classify_submodule_worktree_dirt_excluded_gitlink_drift_committable ... ok
 test report::v011321_tests::rem_cell_active_only_no_excluded ... ok
 test sync::excluded_revert::crash_tests::excluded_recovery_legacy_permission_repair_never_follows_archive_symlinks ... ok
-test sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores ... 
+test sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores ... FAILED
+test sync::excluded_revert::recovery_tests::excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_reseal_changed_records ... ok
+test sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late ... 
