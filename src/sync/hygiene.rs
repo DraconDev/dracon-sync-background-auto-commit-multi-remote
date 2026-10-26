@@ -13,7 +13,7 @@ use tokio::time::Instant;
 use std::os::unix::fs::MetadataExt;
 
 pub(super) fn artifact_component(path: &Path, excluded: &BTreeSet<String>) -> Option<String> {
-    path.components().find_map(|component| {
+    path.parent()?.components().find_map(|component| {
         let name = component.as_os_str().to_str()?;
         (crate::exclude::is_excluded_dir_name(name, excluded)
             || crate::exclude::is_build_output_dir_name(name))
@@ -93,6 +93,7 @@ pub(super) async fn plan(
     if cleanup {
         let mut components = BTreeSet::new();
         for (raw, entry) in &baseline.entries {
+            if entry.mode == 0o160000 { continue; } // never de-index a checkout
             if let Some(name) =
                 artifact_component(&staged_epoch::path_from_git_bytes(raw)?, excluded)
             {
@@ -130,6 +131,7 @@ pub(super) async fn deindex(
             crate::git::is_safe_git_path(&staged_epoch::path_from_git_bytes(raw)?),
             "unsafe artifact path"
         );
+        input.extend_from_slice(b":(literal)");
         input.extend_from_slice(raw);
         input.push(0);
     }

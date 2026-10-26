@@ -331,8 +331,16 @@ impl Epoch {
         for ((raw, entry), path) in self.snapshot.changed.iter().zip(self.entries()?) {
             let size = measured.get(raw).copied().unwrap_or(0);
             if entry.is_none() && self.deletions.contains_key(raw) {
-                // Explicitly authorized de-index of a build-artifact path. The
-                // HEAD identity and component are re-proved at commit time.
+                // Only the directory exclusion can be waived. Explicit repo
+                // opt-outs and file-pattern exclusions remain binding, including
+                // after hooks. A captured user epoch never has this authority.
+                let cleanup = overrides.build_artifact_cleanup.unwrap_or(policy.build_artifact_cleanup);
+                if !cleanup || !crate::exclude::should_stage_entry_with_blob_size(
+                    repo, &path, size, &BTreeSet::new(), &policy.exclude_file_patterns,
+                    policy.max_stage_file_bytes, &excludes,
+                ) {
+                    rejected.push(raw.clone());
+                }
                 continue;
             }
             if !(crate::exclude::should_stage_entry_with_blob_size(
