@@ -249,10 +249,11 @@ pub(super) fn has_pending(repo: &Path) -> Result<bool> {
     #[cfg(not(target_os = "linux"))]
     {
         let gitdir = crate::git::path_gitdir(repo).context("cannot locate hygiene intent Git directory")?;
-        for entry in std::fs::read_dir(gitdir)? {
-            if entry?.file_name().as_encoded_bytes().starts_with(b"dracon-hygiene-intent-") { return Ok(true); }
+        match std::fs::symlink_metadata(gitdir.join("dracon-hygiene-intents")) {
+            Ok(_) => Ok(true), // unsupported registry inspection is never idle proof
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+            Err(error) => Err(error.into()),
         }
-        Ok(false)
     }
 }
 

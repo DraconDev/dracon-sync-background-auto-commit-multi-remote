@@ -109,12 +109,20 @@ pub(in crate::sync) fn persist(repo: &Path, baseline: &StagedIntentSnapshot,
     let bytes=serde_json::to_vec(&intent)?; ensure!(bytes.len() as u64<=LIMIT,"hygiene intent exceeds durable budget");
     let directory=registry(repo,true)?.context("hygiene registry disappeared")?;
     let root=PathBuf::from(format!("/proc/self/fd/{}",directory.as_raw_fd()));
-    let dir=tempfile::Builder::new().prefix(PREFIX).permissions(std::fs::Permissions::from_mode(0o700)).tempdir_in(&root)?;
+    let dir=tempfile::Builder::new().prefix("dracon-hygiene-preparing-").permissions(std::fs::Permissions::from_mode(0o700)).tempdir_in(&root)?;
     let mut file=std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(dir.path().join("intent.json"))?;
     file.write_all(&bytes)?; file.sync_all()?;
     std::fs::File::open(dir.path())?.sync_all()?;
-    // Retain BEFORE installation/publication, including on subsequent fsync failure.
-    let _retained=dir.keep(); directory.sync_all()?;
+    // Publish a complete durable manifest atomically. A killed preparer cannot
+    // leave a half-JSON ACTIVE record or hide an installed index: installation
+    // is still forbidden until this rename and directory fsync have succeeded.
+    let preparing=dir.path().file_name().context("missing prepared intent name")?.as_bytes().to_vec();
+    let active=std::ffi::CString::new(format!("{PREFIX}{}",String::from_utf8_lossy(&preparing)))?;
+    let preparing=std::ffi::CString::new(preparing)?;
+    let _retained=dir.keep();
+    let renamed=unsafe{libc::renameat2(directory.as_raw_fd(),preparing.as_ptr(),directory.as_raw_fd(),active.as_ptr(),libc::RENAME_NOREPLACE)};
+    if renamed!=0 {return Err(std::io::Error::last_os_error().into());}
+    directory.sync_all()?;
     Ok(())
 }
 

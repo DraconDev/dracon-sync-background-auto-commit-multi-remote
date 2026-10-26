@@ -2790,7 +2790,7 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
         return "excluded-file recovery unresolved — inspect Git-directory dracon-excluded-recovery-* records and dracon-excluded-archive/; retain canonical and recovery bytes".to_owned();
     }
     if flags.iter().any(|f| f.starts_with("HYGIENE_")) {
-        return "artifact ignore follow-up pending — inspect Git-directory dracon-hygiene-intent-* records and current cleanup policy; retain records and local bytes".to_owned();
+        return "artifact ignore follow-up pending — inspect Git-directory dracon-hygiene-intents/ records and current cleanup policy; retain records and local bytes".to_owned();
     }
     if flags.iter().any(|f| f == "INTENTIONAL_NO_UPSTREAM") {
         return "intentional legacy isolation, no upstream configured".to_string();
