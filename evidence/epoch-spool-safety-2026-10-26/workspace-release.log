@@ -161,3 +161,6 @@
    Compiling hyper-util v0.1.20
    Compiling dracon-security v0.4.0 (/home/dracon/Dev/dracon-utilities/dracon-warden/src/security)
    Compiling hyper-tls v0.6.0
+   Compiling tokio-rustls v0.26.5
+   Compiling hyper-rustls v0.27.9
+   Compiling reqwest v0.12.28
