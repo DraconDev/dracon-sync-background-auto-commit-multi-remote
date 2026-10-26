@@ -203,3 +203,10 @@
    Compiling displaydoc v0.2.7
    Compiling zerofrom-derive v0.1.8
    Compiling yoke-derive v0.8.4
+   Compiling zerovec-derive v0.11.6
+   Compiling futures-macro v0.3.34
+   Compiling thiserror-impl v1.0.69
+   Compiling rust-embed-impl v8.12.0
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling tokio-macros v2.7.2
+   Compiling pin-project-internal v1.1.13
