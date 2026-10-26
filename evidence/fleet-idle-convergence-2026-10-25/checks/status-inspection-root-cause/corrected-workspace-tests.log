@@ -2223,3 +2223,17 @@ test sync::tests::test_sync_repo_pushes_detached_head_ahead_commit ... [main (ro
 HEAD is now at 6659d79 ahead
 ok
 test sync::tests::test_sync_repo_single_deleted_file_committed ... [master (root-commit) 82b748e] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_dirty ... [master (root-commit) c7ab238] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_not_behind ... [master (root-commit) c7ab238] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_origin ... [master (root-commit) c7ab238] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_upstream ... [master (root-commit) c7ab238] init
+ok
+test sync::tests::test_sync_repo_skips_bisect_in_progress ... [master (root-commit) f0d1a6d] init
+ok
+test sync::tests::test_sync_repo_skips_cherry_pick_in_progress ... [master (root-commit) 778d03b] init
+ok
+test sync::tests::test_sync_repo_skips_merge_in_progress ... [master (root-commit) 75b8dc5] init
