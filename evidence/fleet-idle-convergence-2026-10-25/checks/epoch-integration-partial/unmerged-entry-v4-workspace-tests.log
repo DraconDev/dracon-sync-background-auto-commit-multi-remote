@@ -1263,3 +1263,75 @@ test git::tests::test_rename_master_to_main_renames_and_deletes_remote_master ..
  create mode 100755 bare.git/hooks/pre-push
  create mode 100755 bare.git/hooks/pre-rebase
  create mode 100644 file.txt
+To /tmp/.tmp8f6fey/bare.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+ok
+test git::tests::test_restore_paths_reverts_modified_file ... [master (root-commit) 4c2dfb9] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_run_child_includes_stderr_on_failure ... ok
+test git::tests::test_run_git_with_timeout_env_injects_env_vars ... [master (root-commit) c129973] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_run_git_with_timeout_succeeds ... [master (root-commit) c129973] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_strip_url_credentials_git_url ... ok
+test git::tests::test_strip_url_credentials_https_with_creds ... ok
+test git::tests::test_strip_url_credentials_https_without_creds ... ok
+test git::tests::test_strip_url_credentials_keeps_at_in_path ... ok
+test git::tests::test_strip_url_credentials_no_credentials ... ok
+test git::tests::test_strip_url_credentials_with_at_sign ... ok
+test git::tests::test_top_level_dir_empty ... ok
+test git::tests::test_top_level_dir_path_with_multiple_slashes ... ok
+test git::tests::test_top_level_dir_simple ... ok
+test git::tests::test_top_level_dir_single_component ... ok
+test git::tests::test_transport_fallback_chains_original_ssh_error ... ok
+test git::tests::test_valid_object_id_accepts_sha1_and_sha256_only ... ok
+test git::urls::tests::canonical_repository_url_accepts_any_scp_username ... ok
+test git::urls::tests::canonical_repository_url_keeps_distinct_repositories_distinct ... ok
+test git::urls::tests::canonical_repository_url_normalizes_transport_and_suffix ... ok
+test git::urls::tests::canonical_repository_url_parses_scp_style_ipv6_literal ... ok
+test nix::tests::test_flake_has_hardcoded_version_false ... ok
+test nix::tests::test_flake_has_hardcoded_version_true ... ok
+test nix::tests::test_has_flake_nix_false_for_no_file ... ok
+test nix::tests::test_has_flake_nix_true_for_file ... ok
+test nix::tests::test_update_flake_version_disk_round_trip ... ok
+test nix::tests::test_update_flake_version_no_change_when_already_current ... ok
+test nix::tests::test_update_version_in_flake_nix_basic ... ok
+test nix::tests::test_update_version_in_flake_nix_multiple_packages ... ok
+test nix::tests::test_update_version_in_flake_nix_no_package_section ... ok
+test nix::tests::test_update_version_in_flake_nix_skips_version_in_comment ... ok
+test nix::tests::test_update_version_in_flake_nix_tiles_style ... ok
+test nix::tests::test_update_version_merged_src_closing_detection ... ok
+test nix::tests::test_update_version_merged_src_style ... ok
+test nix::tests::test_update_version_no_extra_newline ... ok
+test nix::tests::test_update_version_preserves_semicolon ... ok
+test ownership::tests::test_classify_f44_asymmetric_trust_flags_unowned ... ok
+test ownership::tests::test_classify_path_owned_false_override_remains_hard_opt_out ... ok
+test ownership::tests::test_classify_path_owned_untrusted_identity_is_warning_only ... ok
+test ownership::tests::test_classify_per_repo_override_owned ... ok
+test ownership::tests::test_classify_per_repo_override_unowned ... ok
+test ownership::tests::test_classify_trusted_email_matches ... ok
+test ownership::tests::test_classify_trusted_origin_only ... ok
+test ownership::tests::test_classify_unknown_no_signals ... ok
+test ownership::tests::test_classify_unowned_head_author ... ok
+test ownership::tests::test_classify_unowned_origin_url ... ok
+test ownership::tests::test_classify_unowned_user_email ... ok
+test ownership::tests::test_is_trusted_origin_empty_hosts ... ok
+test ownership::tests::test_is_trusted_origin_ssh_schemes ... ok
+test ownership::tests::test_is_trusted_origin_substring ... ok
+test ownership::tests::test_is_trusted_origin_unparseable ... ok
+test ownership::tests::test_label_format ... ok
+test ownership::tests::test_parse_origin_direct ... ok
+test ownership::tests::test_redact_origin_credentials ... ok
+test ownership::tests::test_redact_url_credentials_in_text ... ok
+test ownership::tests::test_signal_read_kills_wedged_git_on_timeout ... ok
+test ownership::tests::test_signal_reads_honor_git_bin_override ... ok
+test policy::override_coverage_dump::dump_field_sets ... ok
+test policy::tests::test_apply_deadline_derived_from_pulse_interval ... ok
+test policy::tests::test_auto_harden_with_warden_defaults_true ... 
