@@ -40,14 +40,15 @@ pub(super) struct Evidence {
 }
 
 pub(super) fn classify(row: &RepoReportRow) -> Current {
-    let pending = row.modified + row.staged + row.untracked > 0 || row.ahead > 0 || row.behind > 0;
+    let pending = row.modified + row.staged + row.untracked > 0 || row.ahead > 0 || row.behind > 0
+        || row.state_flags.iter().any(|flag| flag == "HYGIENE_PENDING");
     let blocked = row.pack_too_large
         || row.missing_objects > 0
         || row.push_status == "BROKEN"
         || row
             .state_flags
             .iter()
-            .any(|flag| flag.starts_with("EXCLUDED_RECOVERY"));
+            .any(|flag| flag.starts_with("EXCLUDED_RECOVERY") || flag == "HYGIENE_INSPECT_FAILED");
     // Legacy STUCK_PULL means merely behind-with-upstream, not an actual
     // pull blocker. A current blocker requires affirmative scheduler evidence.
     if blocked {
