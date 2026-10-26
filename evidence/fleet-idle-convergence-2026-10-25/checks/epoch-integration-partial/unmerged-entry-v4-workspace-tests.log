@@ -2139,3 +2139,39 @@ test sync::tests::test_sync_repo_ahead_count_failure_fails_cycle ... ok
 test sync::tests::test_sync_repo_auto_commit_creates_commit ... [master (root-commit) 167a7d7] init
 ok
 test sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo ... [master (root-commit) 4175a4d] init
+ok
+test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) 0b5d09e] init
+ok
+test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) 0b5d09e] init
+ok
+test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) 83ee9f3] init
+ok
+test sync::tests::test_sync_repo_bootstrap_failure_is_error_not_nothing_to_do ... ok
+test sync::tests::test_sync_repo_busy_lease_defers_without_committing ... ok
+test sync::tests::test_sync_repo_clean_repo_returns_false ... [master (root-commit) 83ee9f3] init
+ok
+test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [master (root-commit) ae1a246] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 dirty.txt
+[master db736b4] unpushed
+ 1 file changed, 1 insertion(+)
+ create mode 100644 ahead.txt
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) 6bb8c58] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) 6bb8c58] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) f5e07b0] init
+ok
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... ok
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) c19e050] init
+ok
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) c19e050] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) efef074] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) 9471a74] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmps7UqhX/origin.git'
