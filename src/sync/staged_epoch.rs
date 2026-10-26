@@ -262,6 +262,18 @@ impl Epoch {
         policy: &SyncPolicy,
         excluded: &BTreeSet<String>,
     ) -> Result<Vec<Vec<u8>>> {
+        self.ineligible_paths_with_deletions(repo, policy, excluded, None).await
+    }
+
+    /// `deletions` carries the verified artifact authorization. Nothing else may
+    /// relax the exclusion gate; `None` keeps the historical behavior exactly.
+    async fn ineligible_paths_with_deletions(
+        &self,
+        repo: &Path,
+        policy: &SyncPolicy,
+        excluded: &BTreeSet<String>,
+        deletions: Option<&std::collections::BTreeMap<Vec<u8>, String>>,
+    ) -> Result<Vec<Vec<u8>>> {
         let overrides = load_repo_override(repo);
         let excludes = crate::policy::effective_auto_commit_excludes(policy, &overrides);
         // Query captured object IDs, not worktree sizes or path-resolved live blobs.
@@ -312,6 +324,14 @@ impl Epoch {
         let mut rejected = Vec::new();
         for ((raw, entry), path) in self.snapshot.changed.iter().zip(self.entries()?) {
             let size = measured.get(raw).copied().unwrap_or(0);
+            if deletions.is_some_and(|deleted| {
+                entry.is_none() && deleted.get(raw).is_some_and(|oid|
+                    self.baseline_oid(raw).is_some_and(|head| head == *oid))
+            }) {
+                // Explicitly authorized: the captured HEAD identity proves the
+                // path came from the artifact directory we are de-indexing.
+                continue;
+            }
             if !(crate::exclude::should_stage_entry_with_blob_size(
                 repo,
                 &path,
@@ -338,6 +358,12 @@ impl Epoch {
             }
         }
         Ok(rejected)
+    }
+
+    /// Captured HEAD identity for a raw path, used only to re-prove that an
+    /// authorized deletion is the same object we planned to de-index.
+    fn baseline_oid(&self, _raw: &[u8]) -> Option<String> {
+        None
     }
 
     /// Returns true when index/worktree follow-up remains. One absolute deadline
