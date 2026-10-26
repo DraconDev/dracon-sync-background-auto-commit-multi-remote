@@ -38,3 +38,7 @@
   ▸ extensions/standalones/ai-chat-toolkit TYPECHECK (548a3a10a563)
   ▸ extensions/standalones/ai-chat-toolkit BUILD (548a3a10a563)
   ▸ extensions/standalones/ai-chat-toolkit TEST (548a3a10a563)
+  ▸ extensions/standalones/ai-chat-toolkit LINT (548a3a10a563)
+  ▸ extensions/standalones/ai-search TYPECHECK (548a3a10a563)
+  ▸ extensions/standalones/ai-search BUILD (548a3a10a563)
+  ▸ extensions/standalones/ai-search TEST (548a3a10a563)
