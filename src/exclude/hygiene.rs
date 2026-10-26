@@ -18,7 +18,9 @@ pub(crate) fn render_positive_additions(
     let mut added = Vec::new();
     let mut seen = BTreeSet::new();
     for pattern in patterns {
-        let pattern = pattern.trim();
+        // Leading whitespace is a literal part of Git's pattern, not
+        // formatting. Preserve it in BOTH requested and existing rules.
+        let pattern = pattern.as_str();
         if pattern.is_empty() {
             continue;
         }
@@ -30,7 +32,7 @@ pub(crate) fn render_positive_additions(
             !pattern.starts_with(['!', '#']),
             "hygiene requires a positive rule, not a negation/comment"
         );
-        if seen.insert(pattern.to_owned()) && !current.lines().any(|line| line.trim() == pattern) {
+        if seen.insert(pattern.to_owned()) && !current.lines().any(|line| line == pattern) {
             added.push(pattern);
         }
     }
@@ -104,11 +106,16 @@ fn escaped_name(text: &str) -> Result<String> {
         "filename ends in whitespace unsupported by Warden rule preservation"
     );
     let mut encoded = String::new();
+    let mut leading = true;
     for ch in text.chars() {
-        if matches!(ch, '*' | '?' | '[' | ']' | '\\' | '!' | '#') {
+        // Warden trims its managed positive lines: escaping leading whitespace
+        // keeps the literal name stable across the next hardening pass.
+        if matches!(ch, '*' | '?' | '[' | ']' | '\\' | '!' | '#')
+            || (leading && ch.is_whitespace()) {
             encoded.push('\\');
         }
         encoded.push(ch);
+        leading &= ch.is_whitespace();
     }
     Ok(encoded)
 }

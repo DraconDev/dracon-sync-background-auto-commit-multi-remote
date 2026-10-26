@@ -422,6 +422,16 @@ pub(in crate::sync) async fn retry(
             let committed = if listed.stdout.is_empty() {
                 false
             } else {
+                // Git never follows a symlinked .gitignore. Its link-target
+                // blob is NOT ignore-file content, even when text matches.
+                let entry = listed.stdout.strip_suffix(&[0]).context("unterminated committed ignore entry")?;
+                ensure!(!entry.contains(&0), "multiple committed ignore entries; intent retained");
+                let tab = entry.iter().position(|b| *b == b'\t').context("invalid committed ignore entry")?;
+                let fields: Vec<_> = std::str::from_utf8(&entry[..tab])?.split(' ').collect();
+                ensure!(fields.len() == 3 && matches!(fields[0], "100644" | "100755")
+                    && fields[1] == "blob" && crate::git::is_valid_object_id(fields[2])
+                    && &entry[tab+1..] == b".gitignore",
+                    "committed ignore must be a regular file; artifact intent retained");
                 let body = staged_epoch::git(
                     repo,
                     &["cat-file", "--filters", &format!("{head}:.gitignore")],
