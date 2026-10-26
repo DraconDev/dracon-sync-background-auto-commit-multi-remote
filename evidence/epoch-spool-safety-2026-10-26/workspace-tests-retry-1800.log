@@ -1858,3 +1858,9 @@ test stuck_route::tests::cause_falls_back_to_first_lines ... ok
 test stuck_route::tests::dedups_same_tip_episode ... ok
 test stuck_route::tests::new_tip_is_a_new_episode ... ok
 test stuck_route::tests::rederive_files_despite_misclassified_summary ... warning: You appear to have cloned an empty repository.
+ok
+test stuck_route::tests::routes_hook_refusal_with_guard_json_cause ... ok
+test stuck_route::tests::skips_repo_without_ledger ... ok
+test stuck_route::tests::skips_transient_network ... ok
+test stuck_route::tests::skips_young_stuck ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_concurrent_manifest_preserves_independent_writer ... 
