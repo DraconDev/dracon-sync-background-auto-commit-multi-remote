@@ -970,6 +970,13 @@ impl Staging {
             if !epoch.has_intent() {
                 return Ok(epoch);
             }
+            // Persist typed artifact intent before installing an index that a
+            // commit actor can publish. Later HEAD no longer contains these
+            // paths, so rediscovery is not a durable retry strategy.
+            #[cfg(target_os = "linux")]
+            super::hygiene::persist(repo, &self.baseline.snapshot, &epoch.snapshot, &epoch.deletions)?;
+            #[cfg(not(target_os = "linux"))]
+            ensure!(epoch.deletions.is_empty(), "durable artifact reconciliation unsupported; candidate retained");
             let actual_index = git(
                 repo,
                 &["rev-parse", "--path-format=absolute", "--git-path", "index"],

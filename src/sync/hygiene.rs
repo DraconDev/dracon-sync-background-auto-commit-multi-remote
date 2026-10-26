@@ -237,6 +237,25 @@ pub(super) async fn verify_deletions(
     Ok(())
 }
 
+#[cfg(target_os = "linux")]
+#[path = "hygiene_intent.rs"]
+mod intent;
+#[cfg(target_os = "linux")]
+pub(super) use intent::{persist, retry};
+
+pub(super) fn has_pending(repo: &Path) -> Result<bool> {
+    #[cfg(target_os = "linux")]
+    { intent::has_pending(repo) }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let gitdir = crate::git::path_gitdir(repo).context("cannot locate hygiene intent Git directory")?;
+        for entry in std::fs::read_dir(gitdir)? {
+            if entry?.file_name().as_encoded_bytes().starts_with(b"dracon-hygiene-intent-") { return Ok(true); }
+        }
+        Ok(false)
+    }
+}
+
 #[cfg(test)]
 #[path = "hygiene_tests.rs"]
 mod tests;
