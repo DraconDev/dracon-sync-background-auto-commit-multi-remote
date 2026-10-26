@@ -1892,4 +1892,6 @@ test sync::hygiene::tests::hygiene_durable_uncommitted_candidate_recovers_only_e
 test sync::hygiene::tests::hygiene_generated_ignore_never_adopts_intervening_content_as_old_baseline ... ok
 test sync::hygiene::tests::hygiene_generated_ignore_preserves_existing_writer_and_visible_recovery ... ok
 test sync::hygiene::tests::hygiene_generated_ignore_rejects_symlink_and_hardlink_without_modifying_targets ... ok
-test sync::hygiene::tests::hygiene_large_only_production_cycle_is_admitted_after_clean_warmup ... 
+test sync::hygiene::tests::hygiene_large_only_production_cycle_is_admitted_after_clean_warmup ... ok
+test sync::hygiene::tests::hygiene_large_plan_cannot_expand_beyond_partition_or_override_opt_outs ... ok
+test sync::hygiene::tests::hygiene_never_absorbs_foreign_operator_staging ... 
