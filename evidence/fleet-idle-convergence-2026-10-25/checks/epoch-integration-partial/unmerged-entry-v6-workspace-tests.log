@@ -2135,4 +2135,7 @@ hint: Disable this message with "git config set advice.addEmbeddedRepo false"
 ok
 test sync::tests::test_staged_extra_paths_matching ... ok
 test sync::tests::test_stale_upstream_refresh_cooldown_is_per_repo ... ok
-test sync::tests::test_sync_repo_ahead_count_failure_fails_cycle ... 
+test sync::tests::test_sync_repo_ahead_count_failure_fails_cycle ... ok
+test sync::tests::test_sync_repo_auto_commit_creates_commit ... [master (root-commit) 87e331c] init
+ok
+test sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo ... [master (root-commit) e83dc7a] init
