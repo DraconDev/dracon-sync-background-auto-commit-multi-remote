@@ -5537,6 +5537,7 @@ async fn sync_repo_local_with_ownership(
         }
     }
 
+    let hygiene_followup_pending = hygiene::has_pending(repo).unwrap_or(true);
     if entry_epoch.as_ref().is_some_and(|epoch| epoch.has_intent()) {
         let epoch = entry_epoch.take().context("missing entry epoch")?;
         if !policy.auto_commit || dry_run {
@@ -5732,7 +5733,7 @@ async fn sync_repo_local_with_ownership(
     // gitlinks prevents the early-return so the rest of the apply
     // phase runs and the parent commits the gitlink advance.
     if should_short_circuit_filter_only(filter_only_cleared, stale_gitlink_injected)
-        && !private_followup_pending
+        && !private_followup_pending && !hygiene_followup_pending
     {
         // CHANGED 2026-07-26 (v0.113.1): run the push phase BEFORE
         // returning FilterOnly. Pre-fix, a repo whose only dirty
@@ -5776,7 +5777,7 @@ async fn sync_repo_local_with_ownership(
         return Ok(SyncOutcome::FilterOnly);
     }
 
-    if !status.is_clean && policy.auto_commit {
+    if (!status.is_clean || hygiene_followup_pending) && policy.auto_commit {
         // Auto-commit backstop: when the daemon detects a repo with
         // many unpushed commits and a long-pending push, it stops
         // auto-committing to prevent the moving-target problem (each
@@ -5898,6 +5899,7 @@ async fn sync_repo_local_with_ownership(
             );
         }
         if !to_stage.is_empty()
+            || hygiene_followup_pending
             || to_restore.iter().any(|entry| {
                 crate::exclude::is_large_untracked(entry, repo, policy.max_stage_file_bytes)
             })
