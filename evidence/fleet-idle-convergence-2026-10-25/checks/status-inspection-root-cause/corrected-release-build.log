@@ -155,3 +155,13 @@
    Compiling zerocopy v0.8.57
    Compiling native-tls v0.2.18
    Compiling icu_provider v2.3.1
+   Compiling icu_properties v2.3.0
+   Compiling icu_normalizer v2.3.0
+   Compiling rustc_version v0.4.1
+   Compiling futures-executor v0.3.34
+   Compiling type-map v0.5.1
+   Compiling rust-embed-impl v8.12.0
+   Compiling uuid v1.26.1
+   Compiling zvariant_utils v4.2.0
+   Compiling zcheapstr v1.1.0
+   Compiling enumflags2 v0.7.12
