@@ -134,3 +134,7 @@
   ▸ packages/extension-core TYPECHECK (548a3a10a563)
   ▸ packages/extension-core BUILD (548a3a10a563)
   ▸ packages/extension-core TEST (548a3a10a563)
+  ▸ packages/extension-core LINT (548a3a10a563)
+  ▸ packages/extension-forms TYPECHECK (548a3a10a563)
+  ▸ packages/extension-forms BUILD (548a3a10a563)
+  ▸ packages/extension-forms TEST (548a3a10a563)
