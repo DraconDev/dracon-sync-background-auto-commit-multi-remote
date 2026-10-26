@@ -1058,14 +1058,10 @@ impl Staging {
             // publication behind an unrelated editor/Git index owner. Return
             // only the empty epoch; foreign actual staging remains untouched.
             if !epoch.has_intent() {
-                // ADDED 2026-10-26: an empty candidate commits NOTHING, so
-                // there is no future commit its pack could protect. Release
-                // it here instead of waiting for the age-based reaper; a
-                // repo that keeps producing empty candidates (filter churn,
-                // hygiene re-adds) would otherwise still leak one full-tree
-                // index per cycle.
-                // An empty selected candidate may still have rejected bytes
-                // in its original pack. Preserve that recovery evidence.
+                // Release only a genuinely empty original candidate.
+                // release_spool preserves preserve-rejected candidates, whose
+                // original pack may still contain unpublished bytes.
+                epoch.release_spool();
                 return Ok(epoch);
             }
             // Persist typed artifact intent before installing an index that a
@@ -1273,6 +1269,7 @@ mod tests {
         std::fs::write(repo.join("file"), b"foreign staged bytes\n").unwrap();
         git(repo, &["add", "--", "file"], None).await.unwrap();
         std::fs::write(repo.join("file"), b"foreign unstaged bytes\n").unwrap();
+        let retained = staging.directory.clone();
         let foreign_index = std::fs::read(repo.join(".git/index")).unwrap();
         std::fs::write(repo.join(".git/index.lock"), b"foreign lock owner").unwrap();
         let epoch = staging
@@ -1280,6 +1277,7 @@ mod tests {
             .await
             .unwrap();
         assert!(!epoch.has_intent(), "foreign staging must not be absorbed");
+        assert!(!retained.exists(), "an empty original candidate must not leak a spool");
         assert_eq!(
             std::fs::read(repo.join(".git/index")).unwrap(),
             foreign_index
