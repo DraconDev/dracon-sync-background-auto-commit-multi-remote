@@ -3078,4 +3078,20 @@ test index_batch::tests::index_batch_descendant_has_no_live_process_after_cleanu
 test index_batch::tests::index_batch_descendant_retained_stdout_is_cancelled ... ok
 test index_batch::tests::index_batch_direct_helper_sigkill_cleans_descendants_without_drop ... ok
 test index_batch::tests::index_batch_drop_reaps_direct_child_and_kills_group ... ok
-test index_batch::tests::index_batch_invalid_framing_and_exit_recover ... 
+test index_batch::tests::index_batch_invalid_framing_and_exit_recover ... ok
+test index_batch::tests::index_batch_nonreading_stdin_recovers ... ok
+test index_batch::tests::index_batch_outer_owner_sigkill_cleans_isolated_helper_group ... ok
+test index_batch::tests::index_batch_resolver_deadline_recovers ... ok
+test index_batch::tests::index_batch_reuses_authenticated_staged_ciphertext ... ok
+test index_batch::tests::index_batch_silent_and_partial_response_recover ... ok
+test print::tests::format_bytes_mib ... ok
+test print::tests::format_secs_units ... ok
+test storage::tests::bounded_copy_refuses_oversize_without_whole_file_buffering ... ok
+test tests::binary_carve_out_tests::an_empty_exempt_list_restores_the_hard_failure ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::over_ceiling_reason_points_smudge_at_one_shot_recovery ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_exempt_binary_passes_through_intact ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_passthrough_is_bounded_and_never_truncated ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_protected_binary_still_refused ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_text_still_refused ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::passthrough_ceiling_scales_with_the_configured_limit ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::small_binary_still_takes_the_normal_clean_path ... 
