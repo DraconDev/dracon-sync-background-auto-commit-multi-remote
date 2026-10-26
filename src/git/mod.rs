@@ -4889,6 +4889,115 @@ static AUTO_GC_ATTEMPTS: std::sync::OnceLock<
     std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, std::time::Instant>>,
 > = std::sync::OnceLock::new();
 
+/// Stale `tmp_pack_*` sweep — ADDED 2026-10-26 (disk-exhaustion incident).
+///
+/// `tmp_pack_*` files are the incomplete packfiles left behind by killed or
+/// failed `git push`/`git repack` runs. They are NOT objects, NOT refs and
+/// NOT reachable from anything, and `git gc` DOES NOT remove recent ones:
+/// verified empirically on a disposable repo — a fresh 1 MB
+/// `objects/pack/tmp_pack_*` survived plain `git gc` and `git gc --quiet`,
+/// and was only collected by `git gc --prune=now`. `git gc` also reports
+/// them as garbage while refusing to delete them, which is why
+/// `count-objects -v` showed 10.71 GiB of `size-garbage` in a repo with only
+/// 3.32 GiB of real pack.
+///
+/// So `maybe_auto_gc` alone can never reclaim this class, and the codebase
+/// deliberately does NOT use `--prune=now` (it removes git's 2-week grace,
+/// which risks the prune race and expires the reflog safety net — see the
+/// SYNC-H3 note above). Removing a `tmp_pack_*` file is strictly safer than
+/// `--prune=now`: a tmp pack holds no committed object that any ref can
+/// reach, because a pack only becomes authoritative when its rename to
+/// `pack-<sha>.pack` completes.
+///
+/// Observed drivers: browser-extensions-shared (23 files / 10.71 GiB) and
+/// dracon-strategy/ai-auto-writer (repeatedly 28-66 GiB), both because the
+/// pushes keeping dying and each attempt leaks a multi-hundred-MB tmp pack.
+///
+/// Guard rails: only regular files matching `tmp_pack_*` inside the real
+/// `objects/pack` dir, only when untouched for `min_age_secs` (so a pack
+/// being written RIGHT NOW is never removed), never a symlink, and the same
+/// per-repo 1h attempt cooldown as `maybe_auto_gc`. Returns
+/// `(files_removed, bytes_freed)`.
+pub(crate) async fn sweep_stale_tmp_packs(
+    repo: &std::path::Path,
+    min_age_secs: u64,
+) -> (usize, u64) {
+    let mut command = crate::policy::tokio_git_command();
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(key);
+        }
+    }
+    command
+        .args([
+            "--no-optional-locks",
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-path",
+            "objects/pack",
+        ])
+        .current_dir(repo)
+        .env("GIT_OPTIONAL_LOCKS", "0");
+    let output = match run_command_captured_output(
+        command.into_tokio(),
+        60,
+        "tmp_pack path",
+        None,
+    )
+    .await
+    {
+        Ok(output) if output.status.success() => output,
+        _ => return (0, 0),
+    };
+    let Ok(text) = std::str::from_utf8(&output.stdout) else {
+        return (0, 0);
+    };
+    let pack_dir = std::path::PathBuf::from(text.trim_end_matches('\n'));
+    if !pack_dir.is_absolute() {
+        return (0, 0);
+    }
+    let Ok(entries) = std::fs::read_dir(&pack_dir) else {
+        return (0, 0);
+    };
+    let max_age = std::time::Duration::from_secs(min_age_secs);
+    let now = std::time::SystemTime::now();
+    let mut removed = 0usize;
+    let mut freed = 0u64;
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else {
+            continue;
+        };
+        if !name.starts_with("tmp_pack_") {
+            continue;
+        }
+        // Never follow a symlink out of the object store.
+        let Ok(meta) = std::fs::symlink_metadata(entry.path()) else {
+            continue;
+        };
+        if !meta.file_type().is_file() {
+            continue;
+        }
+        // A pack still being WRITTEN must never be removed: only an
+        // untouched file older than the floor is provably abandoned.
+        let Some(age) = meta.modified().ok().and_then(|m| now.duration_since(m).ok()) else {
+            continue;
+        };
+        if age < max_age {
+            continue;
+        }
+        let size = meta.len();
+        match std::fs::remove_file(entry.path()) {
+            Ok(()) => {
+                removed += 1;
+                freed += size;
+            }
+            Err(_) => {}
+        }
+    }
+    (removed, freed)
+}
+
 pub(crate) async fn maybe_auto_gc(repo: &std::path::Path, threshold_bytes: u64) -> Option<u64> {
     if threshold_bytes == 0 {
         return None;
