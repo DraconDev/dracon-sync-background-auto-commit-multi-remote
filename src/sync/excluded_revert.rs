@@ -761,17 +761,17 @@ pub(super) async fn helper(request_path: &Path) -> Result<()> {
         }
         let desired = Location::open(&tree, &path)?;
         if source.fingerprint().await? != item.before
-            || desired.fingerprint().await? != Some(item.desired)
+            || desired.fingerprint().await? != Some(item.desired.clone())
         {
             return response(false);
         }
-        targets.push((source, desired, item.before));
+        targets.push((source, desired, item.before, item.desired));
     }
     let snapshot = StagedIntentSnapshot::capture(&repo, started + lease_budget).await?;
     if snapshot.head != CapturedHead::Commit(request.head) || !snapshot.changed.is_empty() {
         return response(false);
     }
-    for (source, desired, before) in targets {
+    for (source, desired, before, expected) in targets {
         if started.elapsed() >= lease_budget
             || leases.iter().any(
                 |file| unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETLEASE) } != libc::F_RDLCK,
@@ -811,6 +811,14 @@ pub(super) async fn helper(request_path: &Path) -> Result<()> {
             source.exchange(&desired, libc::RENAME_EXCHANGE)?;
             if let Some(file) = desired.file()? {
                 file.sync_all()?;
+            }
+            // Prove BOTH sides after the exchange. A mismatch means some party
+            // swapped or substituted an inode; report uncertainty and never
+            // attempt a second exchange (that is what relocated live writers).
+            if desired.fingerprint().await? != before
+                || source.fingerprint().await? != Some(expected)
+            {
+                return response(false);
             }
         }
     }
