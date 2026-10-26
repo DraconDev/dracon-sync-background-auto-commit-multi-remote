@@ -8,4 +8,31 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 157 filtered out; fi
      Running unittests src/main.rs (target/debug/deps/dracon_sync-4bdda7ff3bc2c558)
 
 running 1 test
-test sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_commits_only_verified_entry_staging_and_preserves_worktree ... 
+test sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_commits_only_verified_entry_staging_and_preserves_worktree ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1512 filtered out; finished in 1.10s
+
+     Running tests/excluded_recovery_report.rs (target/debug/deps/excluded_recovery_report-9cddcb73585f4d66)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-f64b5c4e438875f1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/report_json_detail.rs (target/debug/deps/report_json_detail-e02524361083ea73)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/storage_clean.rs (target/debug/deps/storage_clean-449ac56b8c6e3877)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+
