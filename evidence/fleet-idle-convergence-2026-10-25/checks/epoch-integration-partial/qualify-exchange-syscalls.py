@@ -141,7 +141,7 @@ def adversarial(helper, parent):
                 entry = ctypes.c_longlong(registers.rax).value == -38
                 if registers.orig_rax == RENAMEAT2 and registers.r8 == 2:
                     observations['exchangeStops'].append({'entry': entry, 'return': ctypes.c_longlong(registers.rax).value})
-                    if entry and exchanged == 0:
+                    if entry and exchanged == 0 and queued is None:
                         marker, go = parent / 'old-open.json', parent / 'old-go'
                         writer = (
                             'import os,sys,json,time;from pathlib import Path;'
