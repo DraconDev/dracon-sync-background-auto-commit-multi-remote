@@ -24,3 +24,4 @@ help: remove the enclosing `Ok` and `?` operator
 
 error: could not compile `dracon-sync` (bin "dracon-sync") due to 1 previous error
 warning: build failed, waiting for other jobs to finish...
+error: could not compile `dracon-sync` (bin "dracon-sync" test) due to 1 previous error
