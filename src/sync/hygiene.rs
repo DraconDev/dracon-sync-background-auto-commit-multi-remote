@@ -9,6 +9,7 @@ use anyhow::ensure;
 use std::collections::{BTreeMap, BTreeSet};
 use tokio::time::Instant;
 
+#[cfg(target_os = "linux")]
 use std::os::unix::fs::MetadataExt;
 
 pub(super) fn artifact_component(path: &Path, excluded: &BTreeSet<String>) -> Option<String> {
@@ -48,7 +49,17 @@ async fn large_untracked(
         let Ok(meta) = std::fs::symlink_metadata(repo.join(&path)) else {
             continue;
         };
-        if meta.is_file() && meta.nlink() == 1 && meta.len() > policy.max_stage_file_bytes {
+        let single_link = {
+            #[cfg(target_os = "linux")]
+            {
+                meta.nlink() == 1
+            }
+            #[cfg(not(target_os = "linux"))]
+            {
+                true
+            }
+        };
+        if meta.is_file() && single_link && meta.len() > policy.max_stage_file_bytes {
             patterns.push(crate::exclude::hygiene::literal_file_pattern(&path)?);
         }
     }
@@ -97,29 +108,6 @@ pub(super) async fn plan(
         return Ok(None);
     }
     Ok(Some(Plan { deleted, patterns }))
-}
-
-/// Persist required ignore rules once. Absent rules defer the whole plan: the
-/// rendered bytes are evidence, not authorization to commit around them.
-pub(super) async fn write_ignore(repo: &Path, plan: &Plan, deadline: Instant) -> Result<()> {
-    if plan.patterns.is_empty() {
-        return Ok(());
-    }
-    #[cfg(target_os = "linux")]
-    {
-        let (applied, rendered) =
-            super::hygiene_apply::apply(repo, &plan.patterns, deadline).await?;
-        ensure!(
-            applied || rendered.is_none(),
-            "generated ignore deferred; operator bytes and staged work preserved"
-        );
-        Ok(())
-    }
-    #[cfg(not(target_os = "linux"))]
-    {
-        let _ = (repo, deadline);
-        anyhow::bail!("generated ignore requires atomic no-replace/exchange support; work retained")
-    }
 }
 
 /// Remove authorized artifact paths from the PRIVATE index only.

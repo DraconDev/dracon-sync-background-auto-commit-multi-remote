@@ -70,6 +70,9 @@ pub(super) struct Epoch {
     // id. Re-proved against HEAD in the commit transaction; never a general
     // exclusion waiver, and empty for every captured (user) entry epoch.
     deletions: std::collections::BTreeMap<Vec<u8>, String>,
+    // Deferred canonical ignore rules for this ordinary cycle. Written only
+    // after a successful publication so staging never sees its own new rules.
+    ignore_patterns: Vec<String>,
 }
 
 pub(super) async fn git(
@@ -144,6 +147,7 @@ impl Epoch {
                 deadline,
                 retained: None,
                 deletions: std::collections::BTreeMap::new(),
+                ignore_patterns: Vec::new(),
             })
         })
         .await
@@ -177,6 +181,13 @@ impl Epoch {
         })
         .await
         .context("entry capture/reconciliation absolute deadline expired")?
+    }
+
+    /// Deferred canonical ignore rules for this ordinary cycle. Read BEFORE
+    /// `commit` consumes the epoch; the caller applies them only after the
+    /// commit landed so the new rules can never block their own staging.
+    pub(super) fn deferred_ignore(&self) -> Option<(Vec<String>, Instant)> {
+        (!self.ignore_patterns.is_empty()).then(|| (self.ignore_patterns.clone(), self.deadline))
     }
 
     pub(super) fn deadline(&self) -> Instant {
@@ -786,7 +797,10 @@ impl Staging {
             )
             .await?;
             if let Some(plan) = &plan {
-                super::hygiene::write_ignore(repo, plan, deadline).await?;
+                // Index-side work happens FIRST: writing ignore rules before
+                // staging would make an ordinary `git add` refuse the very
+                // paths we still need to stage. Canonical ignore bytes are
+                // written by the committed epoch after publication.
                 super::hygiene::deindex(repo, &self.index, plan, deadline).await?;
             }
             let mut command = crate::policy::tokio_git_command();
@@ -886,6 +900,10 @@ impl Staging {
                 deletions: plan
                     .as_ref()
                     .map(|plan| plan.deleted.clone())
+                    .unwrap_or_default(),
+                ignore_patterns: plan
+                    .as_ref()
+                    .map(|plan| plan.patterns.clone())
                     .unwrap_or_default(),
             };
             // Only this epoch's own verified artifact de-index survives the

@@ -22,7 +22,6 @@ mod excluded_revert;
 #[path = "sync/hygiene_apply.rs"]
 mod hygiene_apply;
 
-#[cfg(target_os = "linux")]
 #[path = "sync/hygiene.rs"]
 mod hygiene;
 
@@ -4359,6 +4358,7 @@ async fn stage_commit_and_push(
 
     let version_bumped = false;
     let mut pending_local = false;
+    let mut deferred_ignore: Option<(Vec<String>, tokio::time::Instant)> = None;
 
     if committed_entries.is_empty() {
         if debug_enabled() {
@@ -4416,6 +4416,27 @@ async fn stage_commit_and_push(
             .context("private materialization follow-up deadline expired")??,
             None => false,
         };
+        // Large-file-only cycles legitimately produce no commit. Their ignore
+        // rules still owe a durable write, or the same work repeats forever.
+        if !dry_run {
+            match apply_deferred_ignore(repo, epoch.deferred_ignore()).await {
+                Ok(None) => {}
+                Ok(Some(_)) => {
+                    pending = true;
+                    eprintln!(
+                        "⏳ {} no commit needed, but ignore rules await canonical reconciliation",
+                        repo.display()
+                    );
+                }
+                Err(error) => {
+                    pending = true;
+                    eprintln!(
+                        "⚠️ {} ignore reconciliation failed; rule bytes retained: {error:#}",
+                        repo.display()
+                    );
+                }
+            }
+        }
         return Ok(Some(if pending {
             SyncOutcome::StagedPending
         } else {
@@ -4459,6 +4480,7 @@ async fn stage_commit_and_push(
         }
         println!("  message: {}", msg.lines().next().unwrap_or("(empty)"));
     } else {
+        deferred_ignore = epoch.deferred_ignore();
         pending_local = match epoch
             .commit(repo, &msg, policy, ctx.excluded_dir_names, private_assets)
             .await
@@ -4520,6 +4542,29 @@ async fn stage_commit_and_push(
                 "ok",
                 Some(msg.lines().next().unwrap_or("").to_string()),
             );
+        }
+    }
+
+    // Deferred canonical ignore rules are applied only AFTER the commit landed,
+    // so the rules can never block the staging that produced it. An unapplied
+    // write is retained local follow-up, not a clean/idle repository.
+    if !dry_run {
+        match apply_deferred_ignore(repo, deferred_ignore).await {
+            Ok(None) => {}
+            Ok(Some(_)) => {
+                pending_local = true;
+                eprintln!(
+                    "⏳ {} committed, but ignore rules await canonical reconciliation (operator bytes preserved)",
+                    repo.display()
+                );
+            }
+            Err(error) => {
+                pending_local = true;
+                eprintln!(
+                    "⚠️ {} committed, but ignore reconciliation failed; rule bytes retained: {error:#}",
+                    repo.display()
+                );
+            }
         }
     }
 
@@ -4681,6 +4726,30 @@ async fn stage_commit_and_push(
     run_release_pipeline_if_bumped(repo, policy, version_bumped).await;
 
     Ok(committed_epoch_outcome(push_failed, pending_local))
+}
+
+/// Persist deferred canonical ignore rules after a commit landed. `None` means
+/// no work or fully applied; `Some` retains the unapplied rendered bytes so the
+/// caller reports honest pending follow-up rather than a clean idle repository.
+async fn apply_deferred_ignore(
+    repo: &Path,
+    deferred: Option<(Vec<String>, tokio::time::Instant)>,
+) -> Result<Option<String>> {
+    let Some((patterns, deadline)) = deferred else {
+        return Ok(None);
+    };
+    #[cfg(target_os = "linux")]
+    {
+        let (applied, rendered) = hygiene_apply::apply(repo, &patterns, deadline).await?;
+        Ok(if applied { None } else { rendered })
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (repo, patterns, deadline);
+        anyhow::bail!(
+            "generated ignore requires atomic no-replace/exchange support; rules retained"
+        )
+    }
 }
 
 /// Transport failure takes precedence, but successful publication never means

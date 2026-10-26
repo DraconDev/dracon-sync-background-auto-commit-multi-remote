@@ -1,0 +1,26 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+error[E0382]: borrow of moved value: `epoch`
+    --> dracon-sync/src/sync.rs:4530:15
+     |
+4146 |     let epoch = if captured_at_entry {
+     |         ----- move occurs because `epoch` has type `sync::staged_epoch::Epoch`, which does not implement the `Copy` trait
+...
+4462 |         pending_local = match epoch
+     |                               ----- value moved here
+...
+4530 |         match epoch.apply_hygiene_ignore(repo).await {
+     |               ^^^^^ value borrowed here after move
+     |
+note: if `sync::staged_epoch::Epoch` implemented `Clone`, you could clone the value
+    --> dracon-sync/src/sync/staged_epoch.rs:62:1
+     |
+  62 | pub(super) struct Epoch {
+     | ^^^^^^^^^^^^^^^^^^^^^^^ consider implementing `Clone` for this type
+     |
+    ::: dracon-sync/src/sync.rs:4462:31
+     |
+4462 |         pending_local = match epoch
+     |                               ----- you could clone this value
+
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `dracon-sync` (bin "dracon-sync") due to 1 previous error
