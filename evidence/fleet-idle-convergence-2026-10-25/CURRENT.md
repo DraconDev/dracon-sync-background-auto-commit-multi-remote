@@ -1,6 +1,55 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Hygiene review green v1 — CURRENT fixes; recheck PENDING, NOT deployed
+## Canonical-write preservation P1 — CURRENT reproduced blocker; NOT deployed
+
+Both retirement P1 corrections were independently CLOSED by recheck05c0febe;
+that approval is explicitly limited to those corrections, not canonical-write
+preservation or final acceptance. Current targeted hygiene24 and strict Clippy
+pass; prior full four-gate assembly remains historical after corrections.
+
+The separate queued-open rollback defect is now ACTUALLY REPRODUCED, not merely
+theoretical. Script checks/epoch-integration-partial/qualify-exchange-syscalls.py
+uses ptrace ONLY to pause the owned disposable helper at real renameat2 entry/
+exit; no source/register modifications. Baseline succeeds first. Then a queued
+old-inode open requests a real BREAKING lease after the final check, first
+exchange exposes the desired inode, a newer canonical writable FD completes,
+and rollback relocates that newer FD into private storage. Actual receipt:
+exchange-syscalls-v1.json (exit1, pass:false), helperSHA b7b98b2b7251858261a1e3227e654bda5e1b84b9aeeb25f114453ecb354a0d49.
+NewerFD36999145 vs canonical36999126 after rollback; newer bytes land private,
+not canonical. Index remains unchanged, which does NOT establish preservation.
+Only disposable fixtures/processes were affected; no live deployment or editor/
+producer was stopped. Existing mutation helper must not be deployed as qualified.
+
+Independent design follow-up5c59b1bf confirms this P1 and says BLOCK. Existing-
+inode writes with exclusive lease/fatal SIGIO are only a proposal, not a fix:
+complete original+desired bytes, metadata and provenance must be durable before
+mutation; partial canonical metadata after interruption can expose missing
+security negations. Backup-only preservation does not authorize that visibility
+tradeoff. New versioned recovery/seals and fail-closed diagnosis are mandatory;
+old exchange settlement must not label partial writes untouched/healthy.
+No in-place replacement has been implemented or accepted. Do not simply remove
+rollback or assume blocked opens restart pathname lookup.
+
+A material publication-policy alternative needs operator input before adoption:
+versioned daemon-owned rule metadata plus an owned Git-local application path,
+leaving existing .gitignore bytes/inodes untouched. This must preserve current
+higher-priority user/security rules and define ordinary-clone setup semantics;
+it is NOT permission to hide eligible work, weaken hooks or skip qualification.
+The alternative changes where NEW generated rules are published/applied, rather
+than accepting partial user-visible .gitignore files. Keeping traditional
+.gitignore publication requires a qualified replacement protocol; current
+mutation stays blocked in either case. Goal scope/gates remain unchanged unless
+an operator explicitly confirms an amendment.
+
+Next: resolve the publication-policy design boundary, implement a qualified
+FD-preserving writer/recovery protocol, extend actual syscall controls through
+cancellation/timeout/ENOSPC/restart/unsupported FS, then fresh four gates, original
+product gates, independent full rehearsal, installed/loaded proof, authorized
+zero-batch migration and every-watched clean/idle/autonomous-publication proof.
+No task/goal completion claim. All background review runs have settled and been
+read; no owned wait remains.
+
+## Hygiene review green v1 — HISTORICAL targeted fixes, NOT deployed
 
 Independent reviewer run93b97751 completed with TWO P1 blockers, not approval:
 committed .gitignore symlinks could falsely retire intent, and generic trim()
