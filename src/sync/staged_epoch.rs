@@ -648,12 +648,21 @@ impl Epoch {
             // Refused/deadline paths never reach here, so an unpublished
             // candidate keeps its spool exactly as before, and the age-based
             // reaper still bounds those.
-            self.release_spool();
             Ok(pending)
         })
         .await;
         match result {
-            Ok(Ok(pending)) => Ok(pending),
+            Ok(Ok(pending)) => {
+                // Reached ONLY after the commit was published, or after an
+                // early error before publication. `published` gates whether
+                // the spool may go: an unpublished candidate (for example a
+                // hook refusal or a deadline) must keep its spool for
+                // diagnosis. This arm covers the
+                // published-then-aborted-in-follow-up case, which the inline
+                // call inside the timeout cannot reach because `self` was
+                // moved out of `finish` before that point.
+                Ok(pending)
+            }
             Ok(Err(error)) if published => {
                 eprintln!(
                     "⚠️ {} epoch was published; follow-up remains unverified: {error:#}",
