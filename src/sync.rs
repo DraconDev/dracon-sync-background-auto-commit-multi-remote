@@ -4424,7 +4424,7 @@ async fn stage_commit_and_push(
                 Ok(Some(_)) => {
                     pending = true;
                     eprintln!(
-                        "⏳ {} no commit needed, but ignore rules await canonical reconciliation",
+                        "⏳ {} no commit needed, but ignore metadata requires local follow-up",
                         repo.display()
                     );
                 }
@@ -4546,15 +4546,15 @@ async fn stage_commit_and_push(
     }
 
     // Deferred canonical ignore rules are applied only AFTER the commit landed,
-    // so the rules can never block the staging that produced it. An unapplied
-    // write is retained local follow-up, not a clean/idle repository.
+    // so the rules can never block the staging that produced it. Both an
+    // unapplied write and newly written metadata require local follow-up.
     if !dry_run {
         match apply_deferred_ignore(repo, deferred_ignore).await {
             Ok(None) => {}
             Ok(Some(_)) => {
                 pending_local = true;
                 eprintln!(
-                    "⏳ {} committed, but ignore rules await canonical reconciliation (operator bytes preserved)",
+                    "⏳ {} committed, but ignore metadata requires local follow-up (operator bytes preserved)",
                     repo.display()
                 );
             }
@@ -4728,9 +4728,9 @@ async fn stage_commit_and_push(
     Ok(committed_epoch_outcome(push_failed, pending_local))
 }
 
-/// Persist deferred canonical ignore rules after a commit landed. `None` means
-/// no work or fully applied; `Some` retains the unapplied rendered bytes so the
-/// caller reports honest pending follow-up rather than a clean idle repository.
+/// Apply deferred ignore rules after a commit landed. `None` means no change
+/// was needed. `Some` means reconciliation or subsequent staging is still owed:
+/// even a successful canonical write creates local work absent from HEAD.
 async fn apply_deferred_ignore(
     repo: &Path,
     deferred: Option<(Vec<String>, tokio::time::Instant)>,
@@ -4740,8 +4740,8 @@ async fn apply_deferred_ignore(
     };
     #[cfg(target_os = "linux")]
     {
-        let (applied, rendered) = hygiene_apply::apply(repo, &patterns, deadline).await?;
-        Ok(if applied { None } else { rendered })
+        let (_applied, rendered) = hygiene_apply::apply(repo, &patterns, deadline).await?;
+        Ok(rendered)
     }
     #[cfg(not(target_os = "linux"))]
     {

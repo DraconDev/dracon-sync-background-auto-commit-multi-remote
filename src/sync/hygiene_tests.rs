@@ -78,6 +78,31 @@ fn fixture(artifact: &str) -> tempfile::TempDir {
 }
 
 #[tokio::test]
+async fn hygiene_successful_ignore_write_reports_followup_until_metadata_is_staged() {
+    let d = fixture("dist/extra.bin");
+    let r = d.path();
+    std::fs::write(r.join(".gitignore"), b"# operator-owned original\n").unwrap();
+    native(r, &["add", "--", ".gitignore"], None);
+    native(r, &["commit", "-q", "-m", "tracked ignore baseline"], None);
+    let head = native(r, &["rev-parse", "HEAD"], None);
+    let index = std::fs::read(r.join(".git/index")).unwrap();
+    let result = super::super::apply_deferred_ignore(r, Some((
+        vec!["cache/".into()], Instant::now() + Duration::from_secs(15),
+    ))).await.unwrap();
+    assert!(result.is_some(), "actual canonical write still owes local staging/publication");
+    assert_eq!(native(r, &["diff", "--name-only"], None), b".gitignore\n");
+    assert_eq!(native(r, &["rev-parse", "HEAD"], None), head);
+    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(), index);
+    let bytes = std::fs::read_to_string(r.join(".gitignore")).unwrap();
+    assert!(bytes.contains("# operator-owned original\n"));
+    assert!(bytes.contains("cache/\n"));
+    let no_change = super::super::apply_deferred_ignore(r, Some((
+        vec!["cache/".into()], Instant::now() + Duration::from_secs(15),
+    ))).await.unwrap();
+    assert!(no_change.is_none(), "idempotent rendering must not manufacture more work");
+}
+
+#[tokio::test]
 async fn hygiene_production_sync_untracks_artifacts_ignores_large_and_keeps_bytes() {
     let d = fixture("dist/extra.bin");
     let r = d.path();
