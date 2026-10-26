@@ -1818,4 +1818,9 @@ test standard_files::tests::test_tilde_source_rejected ... ok
 test standard_files::tests::test_warns_when_template_missing ... ok
 test storage::tests::a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit ... ok
 test storage::tests::a_refusing_hook_blocks_a_storage_sealed_commit ... ok
-test storage::tests::a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order ... 
+test storage::tests::a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order ... ok
+test storage::tests::attribute_query_caps_output_and_deadlines_blocked_input ... ok
+test storage::tests::attribute_query_kills_descendants_holding_stdout_after_parent_exit ... ok
+test storage::tests::attribute_response_rejects_duplicates_excess_fields_and_large_values ... ok
+test storage::tests::batched_attribute_inventory_drains_large_pipes_and_keeps_literal_names ... ok
+test storage::tests::cold_clone_and_staged_attribute_removal_cannot_disable_storage_guard ... 
