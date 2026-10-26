@@ -1,0 +1,50 @@
+{
+  "scope": "actual isolated helper / owned disposable processes only; no deployment/fleet claim",
+  "helper": "/home/dracon/Dev/dracon-utilities/target/release/dracon-sync",
+  "helperSha256": "90de3d89558af6c7a952f3d30bc360003374a12320ea592d46b687eac1608f2b",
+  "baseline": {
+    "response": [
+      "116adc4e5ace14a58e1aedcd86f4d205f2a6667d234efb83cfc08e073bca0e41",
+      true
+    ],
+    "canonicalSha256": "bf5bdfc0c458cb1606589bf152214bd4a0f2ea16ee37ac6d7ab98039bd00b9d4",
+    "displacedSha256": "4152ec480ad1a2792ade0de86653b3d0333e20199538d192efee30d317dfea97",
+    "pass": true
+  },
+  "adversarial": {
+    "expectFinalResponse": true,
+    "helperPid": 3165497,
+    "requestOriginalInode": 37233125,
+    "requestDesiredInode": 37233141,
+    "exchangeStops": [
+      {
+        "entry": true,
+        "return": -38
+      },
+      {
+        "entry": false,
+        "return": 0
+      }
+    ],
+    "actualBreakingLeaseRows": [
+      "215: LEASE  BREAKING  UNLCK 3165497 103:02:37233125 0 EOF"
+    ],
+    "newerOpenedInode": 37233141,
+    "canonicalAtNewOpen": 37233141,
+    "helperWaitStatus": 0,
+    "helperStdout": "[\"116adc4e5ace14a58e1aedcd86f4d205f2a6667d234efb83cfc08e073bca0e41\",true]",
+    "helperStderr": "",
+    "oldWriter": {
+      "pid": 3165532,
+      "inode": 37233125
+    },
+    "oldWriterLandedOnCanonical": false,
+    "oldWriterLandedDisplaced": true,
+    "canonicalAfterBothWrites": "4e45572d57524954455261642072657461696e65640a",
+    "privateAfterBothWrites": "4f4c442d575249544552524947494e414c207061796c6f61640a",
+    "indexPreserved": true,
+    "newerWriterStillCanonical": true,
+    "canonicalContainsNewerWrite": true
+  },
+  "pass": true
+}
