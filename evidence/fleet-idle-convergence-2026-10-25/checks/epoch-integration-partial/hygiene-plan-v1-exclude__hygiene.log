@@ -1,1 +1,13 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 40.71s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-668613b28ac26fa9)
+
+running 5 tests
+test exclude::hygiene::tests::hygiene_legacy_wrapper_refuses_invalid_source_bytes_without_overwriting ... ok
+test exclude::hygiene::tests::hygiene_literal_patterns_refuse_unrepresentable_names_not_lossy_wildcards ... ok
+test exclude::hygiene::tests::hygiene_native_git_keeps_protection_and_does_not_ignore_glob_siblings ... ok
+test exclude::hygiene::tests::hygiene_render_preserves_outside_bytes_and_protected_negation_precedence ... ok
+test exclude::hygiene::tests::hygiene_render_rejects_ambiguous_blocks_and_multiline_rules_without_rewriting ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1478 filtered out; finished in 0.02s
+
