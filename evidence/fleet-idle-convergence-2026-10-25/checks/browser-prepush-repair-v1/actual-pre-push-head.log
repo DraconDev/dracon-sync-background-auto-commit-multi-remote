@@ -60,3 +60,6 @@
   ▸ extensions/standalones/auto-form-filler LINT (548a3a10a563)
   ▸ extensions/standalones/bugkit TYPECHECK (548a3a10a563)
   ▸ extensions/standalones/bugkit BUILD (548a3a10a563)
+  ▸ extensions/standalones/bugkit TEST (548a3a10a563)
+  ▸ extensions/standalones/bugkit LINT (548a3a10a563)
+  ▸ extensions/standalones/cinematic-pages-cooler-presentations TYPECHECK (548a3a10a563)
