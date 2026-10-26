@@ -159,7 +159,7 @@ fn identity(m: &std::fs::Metadata) -> (u64, u64, u64, u32, u32, u32, i64, i64) {
         m.mtime_nsec(),
     )
 }
-#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 struct Fingerprint {
     identity: (u64, u64, u64, u32, u32, u32, i64, i64),
     sha256: String,
