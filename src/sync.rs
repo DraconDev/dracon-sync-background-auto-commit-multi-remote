@@ -45,6 +45,8 @@ fn is_canonical_recovery_name(name: &std::ffi::OsStr) -> bool {
 /// policy. Pending records survive restart. Archives are checked by metadata,
 /// not repeatedly hashed: late displaced writes must remain visible concerns.
 /// Inspection errors are not healthy/idle evidence.
+pub(crate) fn hygiene_pending_for_report(repo: &Path) -> Result<bool> { hygiene::has_pending(repo) }
+
 pub(crate) fn has_pending_local_reconciliation(repo: &Path) -> Result<bool> {
     Ok(has_pending_excluded_recovery(repo)? || hygiene::has_pending(repo)?)
 }
