@@ -1,1 +1,8 @@
 $ vitest run --passWithNoTests
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension
+
+11:57:06 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:592:8 Visible, non-interactive element `<label>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+11:57:06 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:592:8 Non-interactive element `<label>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
