@@ -960,4 +960,30 @@ test git::ops::tests::test_git_push_progress_predicate_detects_pack_progress ...
 test git::push::publication_tests::pinned_origin_and_mirror_publish_the_same_commit_after_head_advances ... ok
 test git::push::publication_tests::publication_target_accepts_full_object_ids_but_not_moving_or_unsafe_sources ... ok
 test git::push::publication_tests::rejected_pinned_upload_does_not_pull_merge_or_change_local_edits ... ok
-test git::push::tests::daemon_push_paths_honor_pre_push_hooks ... 
+test git::push::tests::daemon_push_paths_honor_pre_push_hooks ... ok
+test git::push::tests::ref_race_verification_reads_the_actual_remote_and_rejects_unpublished_work ... ok
+test git::push::tests::ref_update_races_require_exact_fresh_convergence_and_never_hide_hook_failures ... ok
+test git::push::tests::test_classify_push_failure_maps_every_mode ... ok
+test git::push::tests::test_github_https_leg_wires_gh_token_via_askpass ... ok
+test git::push::tests::test_is_pack_too_large_case_insensitive ... ok
+test git::push::tests::test_is_pack_too_large_ignores_transient_errors ... ok
+test git::push::tests::test_is_pack_too_large_recognises_github_gh001 ... ok
+test git::push::tests::test_is_pack_too_large_recognises_pack_exceeds ... ok
+test git::push::tests::test_is_permanent_push_rejection_ignores_transient_errors ... ok
+test git::push::tests::test_is_permanent_push_rejection_recognises_github_protected_branch ... ok
+test git::push::tests::test_is_permanent_push_rejection_recognises_gitlab_protected_branch ... ok
+test git::push::tests::test_is_permanent_push_rejection_recognises_repo_gone ... ok
+test git::push::tests::test_is_push_rejected_still_works ... ok
+test git::push::tests::test_local_hook_rejection_does_not_swallow_server_side_policy ... ok
+test git::push::tests::test_local_hook_rejection_fails_fast_in_named_remote ... ok
+test git::push::tests::test_local_hook_rejection_fails_fast_in_origin_retries ... ok
+test git::push::tests::test_local_hook_rejection_is_not_transport_failure ... ok
+test git::push::tests::test_local_hook_rejection_leaves_real_transport_alone ... ok
+test git::push::tests::test_local_hook_resource_failure_does_not_prescribe_policy_weakening ... ok
+test git::push::tests::test_local_op_timeout_does_not_capture_forge_side_timeout ... ok
+test git::push::tests::test_local_op_timeout_is_labelled_not_transport_auth ... ok
+test git::push::tests::test_local_op_timeout_leaves_transport_alone ... ok
+test git::push::tests::test_local_workspace_gate_refusal_is_not_transport_failure ... ok
+test git::push::tests::test_permanent_rejection_bypasses_auto_pull ... ok
+test git::push::tests::test_pull_refspec_for_branch_rejects_unsafe_names ... ok
+test git::push::tests::test_push_with_retries_total_budget_counts_https_chain ... 
