@@ -74,3 +74,8 @@
   ▸ extensions/standalones/cursor-style BUILD (548a3a10a563)
   ▸ extensions/standalones/cursor-style TEST (548a3a10a563)
   ▸ extensions/standalones/cursor-style LINT (548a3a10a563)
+  ▸ extensions/standalones/custom-history TYPECHECK (548a3a10a563)
+  ▸ extensions/standalones/custom-history BUILD (548a3a10a563)
+  ▸ extensions/standalones/custom-history TEST (548a3a10a563)
+  ▸ extensions/standalones/custom-history LINT (548a3a10a563)
+  ▸ extensions/standalones/custom-search TYPECHECK (548a3a10a563)
