@@ -257,8 +257,12 @@ impl Epoch {
             EpochConflict::ReferenceChanged
         );
         if self.snapshot != StagedIntentSnapshot::capture(repo, self.deadline).await? {
+            // Name the retained spool AND hold its lease for the error path:
+            // the reaper must not reclaim a candidate we are still telling
+            // an operator to inspect.
+            let retained = self.spool_lease.named().or(self.retained.as_deref());
             return Err(anyhow::Error::new(EpochConflict::IndexChanged))
-                .with_context(|| format!("candidate backup: {:?}", self.retained));
+                .with_context(|| format!("candidate backup: {retained:?}"));
         }
         Ok(())
     }
