@@ -1,38 +1,6 @@
-   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 27.83s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.24s
      Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-668613b28ac26fa9)
 
 running 11 tests
 test sync::excluded_revert::crash_tests::excluded_recovery_legacy_permission_repair_never_follows_archive_symlinks ... ok
-test sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores ... FAILED
-test sync::excluded_revert::recovery_tests::excluded_recovery_archives_upgrade_legacy_only_when_known_and_never_reseal_changed_records ... ok
-test sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late ... FAILED
-test sync::excluded_revert::recovery_tests::excluded_recovery_empty_epoch_followup_observes_foreign_staging_without_resetting_it ... ok
-test sync::excluded_revert::recovery_tests::excluded_recovery_foreign_lock_prevents_settlement_and_remains_exact ... ok
-test sync::excluded_revert::recovery_tests::excluded_recovery_late_displaced_writer_after_archival_stays_visible_and_blocked ... ok
-test sync::excluded_revert::recovery_tests::excluded_recovery_legacy_ignore_namespace_retains_concerns_and_late_displaced_writes ... ok
-test sync::excluded_revert::recovery_tests::excluded_recovery_partial_transaction_settles_without_replaying_or_resetting_user_work ... ok
-test sync::excluded_revert::recovery_tests::excluded_recovery_preexisting_pending_seal_survives_retry_without_overwrite ... ok
-test sync::excluded_revert::recovery_tests::excluded_recovery_uncertain_displaced_bytes_block_a_raw_clean_repo_even_without_optin ... ok
-
-failures:
-
----- sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores stdout ----
-
-thread 'sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores' (2482374) panicked at dracon-sync/src/sync/excluded_revert_crash_tests.rs:66:9:
-owned helper parent exited before witness
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
----- sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late stdout ----
-
-thread 'sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late' (2493879) panicked at dracon-sync/src/sync/excluded_revert_recovery_tests.rs:276:5:
-the actual helper must hold a kernel lease before the cancellation claim
-
-
-failures:
-    sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores
-    sync::excluded_revert::recovery_tests::excluded_recovery_cancel_while_helper_holds_real_leases_releases_writer_and_never_restores_late
-
-test result: FAILED. 9 passed; 2 failed; 0 ignored; 0 measured; 1491 filtered out; finished in 39.65s
-
-error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
+test sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores ... 
