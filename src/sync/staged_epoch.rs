@@ -761,12 +761,18 @@ impl Staging {
         let deadline = self.baseline.deadline;
         let retained = self.directory.clone();
         tokio::time::timeout_at(deadline, async {
-            // Cleanup routing is deliberately not guessed from filenames here:
-            // its .gitignore/worktree authority must be reconciled separately.
-            if cleanup && self.baseline.snapshot.entries.keys().any(|raw| {
-                path_from_git_bytes(raw).is_ok_and(|path| crate::exclude::is_excluded_change_path(&path, excluded))
-            }) {
-                anyhow::bail!("build-artifact cleanup requires isolated .gitignore reconciliation; private staging retained at {}", self.directory.display());
+            // Hygiene is ordinary-cycle only: a captured entry epoch must never
+            // re-add, delete or widen operator staging.
+            let plan = match super::hygiene::plan(
+                repo, policy, excluded, &self.baseline.snapshot, deadline,
+            ).await? {
+                Some(plan) if plan.deleted.is_empty() && !cleanup => None,
+                Some(plan) => Some(plan),
+                None => None,
+            };
+            if let Some(plan) = &plan {
+                super::hygiene::write_ignore(repo, plan, deadline).await?;
+                super::hygiene::deindex(repo, &self.index, plan, deadline).await?;
             }
             let mut command = crate::policy::tokio_git_command();
             command.args(["write-tree"]).current_dir(repo).env("GIT_INDEX_FILE", &self.index);
@@ -811,7 +817,9 @@ impl Staging {
             }
             let expected = StagedIntentSnapshot { head: self.baseline.snapshot.head.clone(), entries: candidate, changed };
             let mut epoch = Epoch { snapshot: expected, reference: self.baseline.reference.clone(), deadline, retained: Some(self.directory.clone()) };
-            let rejected = epoch.ineligible_paths(repo, policy, excluded).await?;
+            // Only plan-authorized artifact deletions survive the exclusion gate.
+            let deletions = plan.as_ref().map(|plan| &plan.deleted);
+            let rejected = epoch.ineligible_paths_with_deletions(repo, policy, excluded, deletions).await?;
             for path in rejected {
                 // This view began without staged intent. Restore only our
                 // candidate to its baseline; never reset the actual index or

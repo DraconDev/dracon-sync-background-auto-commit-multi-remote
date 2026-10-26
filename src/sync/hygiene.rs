@@ -1,22 +1,14 @@
-//! Hygiene reconciliation for ordinary staging: artifact de-indexing and
-//! large-file ignore rules. Detection is side-effect free; canonical ignore
-//! bytes go through the leased exchange helper, index changes only touch the
-//! PRIVATE candidate, and every authorized deletion is re-verified against HEAD.
-use super::hygiene_apply;
+//! Hygiene reconciliation for ordinary staging: large-file ignore rules and
+//! build-artifact de-indexing. Detection and authorization are side-effect free;
+//! canonical ignore bytes go through the leased exchange helper, and index
+//! changes only ever touch the PRIVATE candidate.
 use super::staged_epoch;
 use super::*;
 use crate::git::staged_intent::{CachedIdentity, StagedIntentSnapshot};
+use std::collections::{BTreeMap, BTreeSet};
 use tokio::time::Instant;
 
-/// Exact, verified work for one ordinary staging cycle.
-pub(super) struct Plan {
-    /// Raw tracked path -> the HEAD object identity that authorizes its removal.
-    pub(super) deleted: std::collections::BTreeMap<Vec<u8>, String>,
-    /// Positive ignore rules to add; empty when only removals are needed.
-    pub(super) patterns: Vec<String>,
-}
-
-fn artifact_component(path: &Path, excluded: &BTreeSet<String>) -> Option<String> {
+pub(super) fn artifact_component(path: &Path, excluded: &BTreeSet<String>) -> Option<String> {
     path.components().find_map(|component| {
         let name = component.as_os_str().to_str()?;
         (crate::exclude::is_excluded_dir_name(name, excluded)
@@ -25,10 +17,38 @@ fn artifact_component(path: &Path, excluded: &BTreeSet<String>) -> Option<String
     })
 }
 
+/// Authorized tracking removals: the path is gone from the candidate, is still
+/// present with an unchanged identity in captured HEAD, and still resolves into
+/// a build-artifact component under the CURRENT policy.
+///
+/// Both the private staging closure and the commit transaction re-run this, so a
+/// later policy change, HEAD advance or re-added payload revokes the exception.
+pub(super) fn authorized(
+    changed: &BTreeMap<Vec<u8>, Option<CachedIdentity>>,
+    head: &BTreeMap<Vec<u8>, CachedIdentity>,
+    excluded: &BTreeSet<String>,
+) -> Result<BTreeSet<Vec<u8>>> {
+    let mut authorized = BTreeSet::new();
+    for (raw, entry) in changed {
+        if entry.is_some() {
+            continue;
+        }
+        let path = staged_epoch::path_from_git_bytes(raw)?;
+        if artifact_component(&path, excluded).is_none() {
+            continue;
+        }
+        if head.get(raw).is_some() {
+            authorized.insert(raw.clone());
+        }
+    }
+    Ok(authorized)
+}
+
 /// Above-threshold untracked regular files: ignored, never committed or deleted.
 async fn large_untracked(
     repo: &Path,
     policy: &SyncPolicy,
+    excluded: &BTreeSet<String>,
     deadline: Instant,
 ) -> Result<Vec<String>> {
     let output = staged_epoch::git(
@@ -49,7 +69,7 @@ async fn large_untracked(
         );
         let path = staged_epoch::path_from_git_bytes(raw)?;
         // A regular single-link file only: directories, symlinks and FIFOs are
-        // never adopted, and an exact UTF-8 rule is required.
+        // never adopted, and the rule must be an exact representable name.
         let Ok(meta) = std::fs::symlink_metadata(repo.join(&path)) else {
             continue;
         };
@@ -60,24 +80,29 @@ async fn large_untracked(
     Ok(patterns)
 }
 
-/// Detect hygiene work for this cycle. Returns `None` when nothing is eligible,
-/// when operator staging exists (never reconciled around unknown intent), or on
-/// an unborn branch (no tracked identities to verify against).
+/// Verified work for one ordinary (no-entry-intent) staging cycle.
+pub(super) struct Plan {
+    /// Raw tracked path -> captured HEAD identity justifying removal.
+    pub(super) deleted: BTreeMap<Vec<u8>, String>,
+    /// Positive ignore rules required for the remaining eligible work.
+    pub(super) patterns: Vec<String>,
+}
+
+/// Detect hygiene work. Returns `None` when nothing is eligible or when operator
+/// staging exists; a foreign staged delta is never reconciled around.
 pub(super) async fn plan(
     repo: &Path,
     policy: &SyncPolicy,
     excluded: &BTreeSet<String>,
+    baseline: &StagedIntentSnapshot,
     deadline: Instant,
 ) -> Result<Option<Plan>> {
-    let mut patterns = large_untracked(repo, policy, deadline).await?;
-    let baseline =
-        tokio::time::timeout_at(deadline, StagedIntentSnapshot::capture(repo, deadline))
-            .await
-            .context("hygiene baseline deadline expired")??;
-    if !baseline.changed.is_empty() {
-        return Ok(None);
-    }
-    let mut deleted = std::collections::BTreeMap::new();
+    let mut patterns = large_untracked(repo, policy, excluded, deadline).await?;
+    ensure!(
+        baseline.changed.is_empty(),
+        "hygiene requires an entry cycle without staged intent"
+    );
+    let mut deleted = BTreeMap::new();
     if policy.build_artifact_cleanup {
         let mut components = BTreeSet::new();
         for (raw, entry) in &baseline.entries {
@@ -97,22 +122,31 @@ pub(super) async fn plan(
     Ok(Some(Plan { deleted, patterns }))
 }
 
-/// Persist the ignore rules once. Cheap no-op when no rule is needed or all are
-/// already present; a deferred/failed canonical write is an error, never idle.
+/// Persist required ignore rules once. Absent rules defer the whole plan: the
+/// rendered bytes are evidence, not authorization to commit around them.
 pub(super) async fn write_ignore(
     repo: &Path,
     plan: &Plan,
     deadline: Instant,
-) -> Result<Option<String>> {
+) -> Result<()> {
     if plan.patterns.is_empty() {
-        return Ok(None);
+        return Ok(());
     }
-    let (applied, rendered) = hygiene_apply::apply(repo, &plan.patterns, deadline).await?;
-    ensure!(
-        applied || rendered.is_none(),
-        "generated ignore deferred; operator bytes and staged work preserved"
-    );
-    Ok(rendered)
+    #[cfg(target_os = "linux")]
+    {
+        let (applied, rendered) =
+            super::hygiene_apply::apply(repo, &plan.patterns, deadline).await?;
+        ensure!(
+            applied || rendered.is_none(),
+            "generated ignore deferred; operator bytes and staged work preserved"
+        );
+        Ok(())
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (repo, deadline);
+        anyhow::bail!("generated ignore requires atomic no-replace/exchange support; work retained")
+    }
 }
 
 /// Remove authorized artifact paths from the PRIVATE index only.
@@ -160,42 +194,5 @@ pub(super) async fn deindex(
         "private artifact de-index refused: {}",
         String::from_utf8_lossy(&output.stderr)
     );
-    Ok(())
-}
-
-/// Independent re-verification of an authorized deletion: HEAD must still carry
-/// exactly the identity recorded by the plan and the path must still be inside a
-/// build-artifact component. Trusts no caller assertion and no later worktree.
-pub(super) async fn verify_deletions(
-    repo: &Path,
-    excluded: &BTreeSet<String>,
-    deleted: &std::collections::BTreeMap<Vec<u8>, String>,
-    deadline: Instant,
-) -> Result<()> {
-    if deleted.is_empty() {
-        return Ok(());
-    }
-    let tree = staged_epoch::git(
-        repo,
-        &["ls-tree", "-r", "-z", "--full-tree", "HEAD"],
-        None,
-    )
-    .await?;
-    let head: std::collections::BTreeMap<Vec<u8>, CachedIdentity> =
-        crate::git::staged_intent::parse_entries(&tree.stdout, false, deadline)?;
-    for (raw, oid) in deleted {
-        ensure!(
-            Instant::now() < deadline,
-            "artifact authorization deadline expired"
-        );
-        ensure!(
-            artifact_component(&staged_epoch::path_from_git_bytes(raw)?, excluded).is_some(),
-            "artifact authorization no longer applies to this path"
-        );
-        ensure!(
-            head.get(raw).is_some_and(|entry| entry.oid == *oid),
-            "artifact path changed in HEAD; deletion not authorized"
-        );
-    }
     Ok(())
 }
