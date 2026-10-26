@@ -182,6 +182,8 @@ def adversarial(helper, parent, cancel_after_exchange=False):
                                 observations['helperWaitStatus'] = killed
                                 break
                         elif exchanged == 2:
+                            # Legacy rollback revision only; the current helper
+                            # finalizes on ONE exchange.
                             observations['canonicalAfterRollback'] = source.stat().st_ino
                             observations['newerFdAfterRollback'] = os.fstat(newer_fd).st_ino
                 ptrace(SYSCALL, pid)
@@ -190,7 +192,7 @@ def adversarial(helper, parent, cancel_after_exchange=False):
                 ptrace(SYSCALL, pid, 0, 0 if stopped == signal.SIGTRAP else stopped)
         observations['helperStdout'] = stdout_path.read_text()
         observations['helperStderr'] = stderr_path.read_text()
-        assert exchanged == (1 if cancel_after_exchange else 2) and newer_fd is not None, ('schedule did not reach selected exchange boundary', observations)
+        assert exchanged == 1 and newer_fd is not None, ('schedule did not reach the single exchange boundary', observations)
         if cancel_after_exchange:
             killed = observations['helperWaitStatus']
             assert os.WIFSIGNALED(killed) and os.WTERMSIG(killed) == signal.SIGKILL

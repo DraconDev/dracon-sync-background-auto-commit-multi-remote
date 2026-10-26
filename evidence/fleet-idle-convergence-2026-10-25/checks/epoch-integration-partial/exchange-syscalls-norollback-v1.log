@@ -1,0 +1,16 @@
+{
+  "scope": "actual isolated helper / owned disposable processes only; no deployment/fleet claim",
+  "helper": "/tmp/dracon-norollback-v1-FZLHgg/dracon-sync",
+  "helperSha256": "7b0152f7a1189ebacb745d93e2cd0e966ae4eff2deccd3deb3338d01b406c7ed",
+  "baseline": {
+    "response": [
+      "0a696513bf4cb012aa97f56cc8c348e7518a25132728691705fc53a74a115162",
+      true
+    ],
+    "canonicalSha256": "bf5bdfc0c458cb1606589bf152214bd4a0f2ea16ee37ac6d7ab98039bd00b9d4",
+    "displacedSha256": "4152ec480ad1a2792ade0de86653b3d0333e20199538d192efee30d317dfea97",
+    "pass": true
+  },
+  "error": "AssertionError()",
+  "pass": false
+}
