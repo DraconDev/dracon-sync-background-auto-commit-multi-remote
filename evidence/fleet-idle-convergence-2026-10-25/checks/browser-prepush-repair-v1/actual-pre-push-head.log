@@ -49,3 +49,7 @@
   ▸ extensions/standalones/amazon-price-watch TYPECHECK (548a3a10a563)
   ▸ extensions/standalones/amazon-price-watch BUILD (548a3a10a563)
   ▸ extensions/standalones/amazon-price-watch TEST (548a3a10a563)
+  ▸ extensions/standalones/amazon-price-watch LINT (548a3a10a563)
+  ▸ extensions/standalones/api-debugger TYPECHECK (548a3a10a563)
+  ▸ extensions/standalones/api-debugger BUILD (548a3a10a563)
+  ▸ extensions/standalones/api-debugger TEST (548a3a10a563)
