@@ -70,3 +70,6 @@ note: the module `hygiene` is defined here
  2 | mod hygiene;
    | ^^^^^^^^^^^^
 
+Some errors have detailed explanations: E0425, E0433, E0603.
+For more information about an error, try `rustc --explain E0425`.
+error: could not compile `dracon-sync` (bin "dracon-sync") due to 8 previous errors
