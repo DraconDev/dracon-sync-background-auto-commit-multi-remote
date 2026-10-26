@@ -1212,10 +1212,11 @@ async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
     run(&["add", "--", "one.txt", "two.txt", "three.txt"]);
     run(&["commit", "-q", "-m", "fixture"]);
     let index = repo.join(".git/index");
-    let zeroed = |_index: &Path| -> usize {
+    let zeroed = |index: &Path| -> usize {
         let out = std::process::Command::new("git")
             .args(["ls-files", "--debug"])
             .current_dir(repo)
+            .env("GIT_INDEX_FILE", index)
             .output()
             .unwrap();
         String::from_utf8_lossy(&out.stdout)
@@ -1240,6 +1241,12 @@ async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
         .output()
         .unwrap();
     assert!(out.status.success());
+    assert_eq!(zeroed(&private), 3, "control: read-tree actually loses stat cache");
+    let before_cancel = std::fs::read(&index).unwrap();
+    let mut expired = IndexLock::try_acquire_path(index.with_extension("lock")).unwrap();
+    assert!(expired.install_index(repo, &private, &index, tokio::time::Instant::now()).await.is_err());
+    assert_eq!(std::fs::read(&index).unwrap(), before_cancel, "expired merge must not install");
+    drop(expired);
     let mut lock = IndexLock::try_acquire_path(index.with_extension("lock")).unwrap();
     lock.install_index(repo, &private, &index, tokio::time::Instant::now() + std::time::Duration::from_secs(10)).await.unwrap();
     drop(lock);
@@ -1260,6 +1267,35 @@ async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
         status.contains("two.txt"),
         "content change must remain visible: {status}"
     );
+}
+
+#[cfg(test)]
+#[test]
+fn stat_delta_handles_large_inventory_and_sha256_without_rescanning_every_path() {
+    // A representative large inventory, not a permanent fleet-count pin.
+    let before: Vec<StageEntry> = (0..100_000).map(|i| (
+        b"100644".to_vec(), vec![b'a'; 64], format!("dir/{i:06}").into_bytes(),
+    )).collect();
+    let mut after = before.clone();
+    after[17].0 = b"100755".to_vec();
+    after[31].1 = vec![b'b'; 64];
+    after.pop();
+    after.push((b"100644".to_vec(), vec![b'c'; 64], b"new\tfile".to_vec()));
+    let start = std::time::Instant::now();
+    let delta = stat_index_delta(&before, &after);
+    assert!(start.elapsed() < std::time::Duration::from_secs(10), "delta exhausted a staging-scale CPU budget");
+    let changes = parse_stage_entries(&delta.iter().flat_map(|b| [*b]).collect::<Vec<_>>());
+    // index-info has no stage column: inspect its four NUL-delimited records.
+    assert!(changes.is_none());
+    let records: Vec<_> = delta.split(|b| *b == 0).filter(|r| !r.is_empty()).collect();
+    assert_eq!(records.len(), 4);
+    assert!(records.iter().any(|r| r.starts_with(b"100755 ") && r.ends_with(b"dir/000017")));
+    assert!(records.iter().any(|r| r.ends_with(b"new\tfile")));
+    let mut deletion = b"0 ".to_vec();
+    deletion.extend_from_slice(&[b'0';64]);
+    deletion.extend_from_slice(b"\tdir/099999");
+    assert!(records.contains(&deletion.as_slice()), "SHA256 deletion must use 64 zeroes");
+    assert_eq!(before[17].0, b"100644", "baseline intent remains immutable");
 }
 
 #[cfg(all(test, not(unix)))]
