@@ -532,4 +532,10 @@ test bucket_runner_bridge::bucket_runner_bridge_tests::disabled_repo_returns_non
 test bucket_runner_bridge::bucket_runner_bridge_tests::materialized_manifest_sources_stay_repo_relative_with_non_dot_asset_root ... ok
 test bucket_runner_bridge::bucket_runner_bridge_tests::missing_profile_is_refused ... ok
 test bucket_runner_bridge::bucket_runner_bridge_tests::mocked_end_to_end_returns_prepared_with_materialized_paths ... ok
-test bucket_runner_bridge::bucket_runner_bridge_tests::non_refused_status_without_commit_eligible_is_refused ... 
+test bucket_runner_bridge::bucket_runner_bridge_tests::non_refused_status_without_commit_eligible_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::oversized_stdin_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::oversized_stdout_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::refused_spawn_is_indexed_and_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::shared_routing_defaults_fail_closed_on_invalid_data ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::shared_routing_defaults_validate_and_preserve_measured_bytes ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::timeout_is_refused ... 
