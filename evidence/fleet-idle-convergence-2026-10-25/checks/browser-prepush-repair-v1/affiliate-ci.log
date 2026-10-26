@@ -1,0 +1,56 @@
+==> [0/4] shell syntax preflight (bash -n)
+==> [1/5] verify-urls.sh self-test (extractor + classifier)
+127.0.0.1 - - [26/Oct/2026 11:52:24] "GET / HTTP/1.1" 200 -
+SELFTEST OK
+==> [2/5] unit tests (bun test — affiliate engine)
+bun test v1.3.3 (274e01c7)
+
+build.test.ts:
+(pass) build deal-dashboard passes validation (or N78 scaffold for price-tracker), blocked at N116 [210.00ms]
+(pass) build price-tracker passes validation (or N78 scaffold for price-tracker), blocked at N78 [111.00ms]
+(pass) N122: direct link with invalid tagField chars is rejected (N130) [115.00ms]
+(pass) N126: direct link with tagField:null + prebuilt url passes validate_config (N130) [328.01ms]
+(pass) N133: config with no links and no trackedRetailers is rejected (pins N78) (N133) [103.00ms]
+(pass) N58: disclosure without a commission statement is rejected (N140) [183.00ms]
+(pass) N103: active link with a placeholder URL is rejected (N140) [117.00ms]
+(pass) N80: direct link missing tagField + url/urlTemplate is rejected (N144) [104.00ms]
+(pass) N98: redirect link to unknown host is rejected (N144) [123.00ms]
+(pass) N85: link with empty program is rejected (N145) [110.00ms]
+(pass) N83: link with empty merchant is rejected (N145) [98.00ms]
+(pass) N27: active link with placeholder tag is rejected (N145) [107.00ms]
+(pass) N59: duplicate link program/merchant is rejected (N146) [122.00ms]
+(pass) N147: valid price-tracker config reaches validation (baseline) [432.01ms]
+(pass) N98-retailer: redirect to unknown host is rejected (N147) [108.00ms]
+(pass) N103-retailer: redirect with real URL but empty tag is rejected (N147) [113.00ms]
+(pass) N69: retailer host not covered by host_permissions is rejected (N147) [110.00ms]
+(pass) N69: unused host_permission is rejected (N147) [123.00ms]
+(pass) N72: link URL not http(s) is rejected (N148) [112.00ms]
+(pass) N72-retailer: retailer URL not http(s) is rejected (N148) [113.00ms]
+(pass) N27-retailer: active retailer with placeholder URL is rejected (N148) [114.00ms]
+(pass) N59-retailer: duplicate trackedRetailers program is rejected (N148) [109.00ms]
+(pass) N121: manifest referencing a 0-byte file is rejected (N151) [182.00ms]
+(pass) N92: empty extension string is rejected (N151) [109.00ms]
+(pass) real configs carry FTC commission disclosure at all places (N154) [1.00ms]
+(pass) both engine configs carry the exact "at no extra cost to you" fragment (N314)
+(pass) both configs carry a non-empty inUISettings disclosure (N317)
+(pass) both configs carry a non-empty storeListing disclosure (N320)
+(pass) both configs carry a non-empty onboarding disclosure (N321)
+(pass) both configs carry a non-empty singlePurposeField (N322)
+(pass) both configs disclose all 4 required places (N324)
+(pass) N155: redirect link missing both url and urlTemplate is rejected [127.00ms]
+(pass) N155: redirect retailer missing both url and urlTemplate is rejected [104.00ms]
+(pass) N157: unknown top-level config key is rejected by schema [177.00ms]
+(pass) N162: unknown price-tracker config key is rejected by schema [182.00ms]
+(pass) N88: tileRatio out of [0,1] is rejected [119.00ms]
+(pass) N169: nonAffiliateTiles item missing name/url is rejected [115.00ms]
+(pass) N26: direct link missing tag is rejected [149.00ms]
+(pass) N171: link with unknown property is rejected by schema [151.00ms]
+(pass) N82: <all_urls> host_permissions is rejected [451.01ms]
+(pass) N65: manifest missing singlePurposeField is rejected [382.01ms]
+(pass) N70: risky permission is rejected [478.01ms]
+(pass) N71: missing icon file is rejected [515.01ms]
+(pass) N89: missing 128 icon size is rejected [560.01ms]
+(pass) N74: invalid version is rejected [608.01ms]
+(pass) N76: over-long name is rejected [666.01ms]
+(pass) N76: name implying Google/Chrome is rejected [644.01ms]
+(pass) N77: non-PNG icon is rejected [707.01ms]
