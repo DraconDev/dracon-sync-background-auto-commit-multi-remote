@@ -628,58 +628,60 @@ impl Epoch {
                 || !after.changed.is_empty()
                 || !status.success()
                 || untracked_pending;
-            // ADDED 2026-10-26: release the retained spool now that the epoch
-            // is PUBLISHED and its follow-up is fully observed.
-            //
-            // This is the deterministic half of the leak fix. The original
-            // rationale ("a later foreign index replacement can remove its
-            // only ordinary index root before this epoch commits") is
-            // satisfied by this point: the commit is already on the ref, so
-            // the candidate is reachable through normal history and the
-            // pack's only remaining purpose was crash diagnosis. Keeping it
-            // until an hourly age floor instead leaked a full-tree index
-            // plus pack per cycle (~875 MiB per cycle on
-            // browser-extensions-shared, 101 GiB in one afternoon).
-            //
-            // `pending` does NOT block this: a follow-up (unstaged edits,
-            // untracked files, a post-commit hook failure) is new work for
-            // the NEXT epoch, which allocates its own fresh spool.
-            //
-            // Refused/deadline paths never reach here, so an unpublished
-            // candidate keeps its spool exactly as before, and the age-based
-            // reaper still bounds those.
             Ok(pending)
         })
         .await;
+        // ADDED 2026-10-26: deterministic release of the retained spool.
+        //
+        // This is the half that actually STOPS the leak. The original
+        // rationale ("a later foreign index replacement can remove its only
+        // ordinary index root before this epoch commits") is satisfied once
+        // the commit published: the candidate is reachable through normal
+        // history and the pack's only remaining purpose was crash diagnosis.
+        // An age-only floor still leaked a full-tree index plus pack per
+        // cycle (~875 MiB on browser-extensions-shared; 9 GiB in 4 minutes
+        // measured after 0.113.96 shipped the age-only sweep).
+        //
+        // ONLY a published commit releases the spool. A refusal, conflict or
+        // deadline leaves it for diagnosis, and `git::epoch_spool`'s aged
+        // reaper still bounds those.
+        //
+        // `pending` deliberately does NOT block the release: an unstaged
+        // edit, untracked file or post-commit hook failure is follow-up work
+        // for the NEXT epoch, which allocates its own fresh spool.
         match result {
             Ok(Ok(pending)) => {
-                // Reached ONLY after the commit was published, or after an
-                // early error before publication. `published` gates whether
-                // the spool may go: an unpublished candidate (for example a
-                // hook refusal or a deadline) must keep its spool for
-                // diagnosis. This arm covers the
-                // published-then-aborted-in-follow-up case, which the inline
-                // call inside the timeout cannot reach because `self` was
-                // moved out of `finish` before that point.
+                if published {
+                    self.release_spool();
+                }
                 Ok(pending)
             }
-            Ok(Err(error)) if published => {
-                eprintln!(
-                    "⚠️ {} epoch was published; follow-up remains unverified: {error:#}",
-                    repo.display()
-                );
-                Ok(true)
+            Ok(Err(error)) => {
+                if published {
+                    // The commit is on the ref; only its follow-up failed.
+                    self.release_spool();
+                    eprintln!(
+                        "\u{26a0}\u{fe0f} {} epoch was published; follow-up remains unverified: {error:#}",
+                        repo.display()
+                    );
+                    Ok(true)
+                } else {
+                    Err(error)
+                }
             }
-            Err(_) if published => {
-                eprintln!(
-                    "⚠️ {} epoch was published; deadline cancelled post-publication follow-up",
-                    repo.display()
-                );
-                Ok(true)
+            Err(error) => {
+                if published {
+                    self.release_spool();
+                    eprintln!(
+                        "\u{26a0}\u{fe0f} {} epoch was published; deadline cancelled post-publication follow-up",
+                        repo.display()
+                    );
+                    Ok(true)
+                } else {
+                    Err(error)
+                        .context("staged epoch deadline expired; ref outcome may require inspection")
+                }
             }
-            Ok(Err(error)) => Err(error),
-            Err(error) => Err(error)
-                .context("staged epoch deadline expired; ref outcome may require inspection"),
         }
     }
 }
