@@ -94,3 +94,7 @@
   ▸ extensions/standalones/full-page-screenshot BUILD (548a3a10a563)
   ▸ extensions/standalones/full-page-screenshot TEST (548a3a10a563)
   ▸ extensions/standalones/full-page-screenshot LINT (548a3a10a563)
+  ▸ extensions/standalones/live-reload-pro TYPECHECK (548a3a10a563)
+  ▸ extensions/standalones/live-reload-pro BUILD (548a3a10a563)
+  ▸ extensions/standalones/live-reload-pro TEST (548a3a10a563)
+  ▸ extensions/standalones/live-reload-pro LINT (548a3a10a563)
