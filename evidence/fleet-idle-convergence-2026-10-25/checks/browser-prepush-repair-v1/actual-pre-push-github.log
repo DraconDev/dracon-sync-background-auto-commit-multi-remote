@@ -35,3 +35,19 @@
   ▸ extensions/collections/toolkit/gemini-toolkit BUILD (31bd83ca328a)
   ▸ extensions/collections/toolkit/gemini-toolkit TEST (31bd83ca328a)
   ▸ extensions/collections/toolkit/gemini-toolkit LINT (31bd83ca328a)
+  ▸ extensions/standalones/ai-chat-toolkit TYPECHECK (31bd83ca328a)
+  - extensions/standalones/ai-chat-toolkit/TYPECHECK exited 2 (see /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.eHcf3w/extensions_standalones_ai-chat-toolkit-TYPECHECK.log)
+
+> ai-chat-toolkit@0.1.0 typecheck
+> tsc --noEmit
+
+tests/icon-geometry.test.ts(30,3): error TS2305: Module '"../src/ui/glyph"' has no exported member 'GLYPH_PLATE_INSET_DOCK'.
+tests/icon-geometry.test.ts(31,3): error TS2305: Module '"../src/ui/glyph"' has no exported member 'GLYPH_PLATE_INSET_ICON'.
+tests/icon-geometry.test.ts(32,3): error TS2305: Module '"../src/ui/glyph"' has no exported member 'GLYPH_PLATE_RADIUS'.
+tests/icon-geometry.test.ts(33,3): error TS2724: '"../src/ui/glyph"' has no exported member named 'GLYPH_TAIL_POINTS'. Did you mean 'GLYPH_BOLT_POINTS'?
+tests/icon-geometry.test.ts(81,42): error TS7031: Binding element 'y' implicitly has an 'any' type.
+
+Gate exited with status 2
+
+  ▸ extensions/standalones/ai-chat-toolkit BUILD (31bd83ca328a)
+  ▸ extensions/standalones/ai-chat-toolkit TEST (31bd83ca328a)
