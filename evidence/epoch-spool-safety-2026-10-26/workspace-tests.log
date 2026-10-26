@@ -2235,3 +2235,19 @@ ok
 test sync::tests::test_sync_repo_skip_pull_when_dirty ... [master (root-commit) a9aefd4] init
 ok
 test sync::tests::test_sync_repo_skip_pull_when_not_behind ... [master (root-commit) a9aefd4] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_origin ... [master (root-commit) 656cf96] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_upstream ... [master (root-commit) 656cf96] init
+ok
+test sync::tests::test_sync_repo_skips_bisect_in_progress ... [master (root-commit) 656cf96] init
+ok
+test sync::tests::test_sync_repo_skips_cherry_pick_in_progress ... [master (root-commit) 8b07ea3] init
+ok
+test sync::tests::test_sync_repo_skips_merge_in_progress ... [master (root-commit) 8b07ea3] init
+ok
+test sync::tests::test_sync_repo_skips_rebase_in_progress ... [master (root-commit) 8b07ea3] init
+ok
+test sync::tests::test_sync_repo_skips_revert_in_progress ... [master (root-commit) 8b07ea3] init
+ok
+test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) 8b07ea3] init
