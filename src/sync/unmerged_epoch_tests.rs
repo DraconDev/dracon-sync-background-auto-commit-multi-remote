@@ -130,6 +130,9 @@ async fn unmerged_entry_resolves_exact_names_and_retains_all_stage_payloads_inde
             &["index-pack", "--stdin"],
             Some(&std::fs::read(pack).unwrap()),
         );
+        let baseline = native(r, &["rev-parse", "HEAD:note.txt"], None);
+        let absent = native(cold.path(), &["cat-file", "--batch-check"], Some(&baseline));
+        assert!(absent.ends_with(b" missing\n"), "unchanged HEAD baseline must not be duplicated into the delta spool");
         for (oid, bytes) in saved {
             assert_eq!(
                 native(cold.path(), &["cat-file", "blob", &oid], None),
@@ -137,6 +140,20 @@ async fn unmerged_entry_resolves_exact_names_and_retains_all_stage_payloads_inde
             );
         }
     }
+}
+
+#[tokio::test]
+async fn unmerged_entry_retention_budget_uses_actual_blob_sizes_and_preserves_index_on_refusal() {
+    let (d,saved)=fixture(Path::new("a.bin"));let r=d.path();
+    let original=std::fs::read(r.join(".git/index")).unwrap();
+    let objects=saved.iter().map(|(oid,_)|oid.clone()).collect::<BTreeSet<_>>();
+    let size=saved.iter().map(|(_,bytes)|bytes.len() as u64).sum::<u64>();
+    assert!(retention_input(r,&objects,size-1).await.is_err());
+    let (input,observed)=retention_input(r,&objects,size).await.unwrap();
+    assert_eq!(observed,size);
+    assert_eq!(input.lines().map(str::to_owned).collect::<BTreeSet<_>>(),objects);
+    assert!(require_free_space(r,u64::MAX).is_err());
+    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(),original);
 }
 
 #[tokio::test]
