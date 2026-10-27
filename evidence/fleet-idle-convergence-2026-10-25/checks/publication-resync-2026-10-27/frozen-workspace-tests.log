@@ -337,3 +337,7 @@
    Compiling hyper-util v0.1.20
    Compiling tokio-rustls v0.26.5
    Compiling dracon-warden v0.113.16 (/tmp/fleet-qualified-workspace-cmgvn6rm/dracon-warden)
+   Compiling hyper-tls v0.6.0
+   Compiling zbus v5.19.0
+   Compiling hyper-rustls v0.27.9
+   Compiling reqwest v0.12.28
