@@ -1032,4 +1032,111 @@ test git::staging::tests::test_unstage_oversized_paths_exempts_gitlinks ... ok
 test git::staging::tests::test_unstage_oversized_paths_measures_staged_blob_not_worktree ... ok
 test git::staging::tests::test_unstage_oversized_paths_quotes_glob_metachars ... ok
 test git::status::installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries ... ok
-test git::status::stat_delta_handles_large_inventory_and_sha256_without_rescanning_every_path ... 
+test git::status::stat_delta_handles_large_inventory_and_sha256_without_rescanning_every_path ... ok
+test git::status::tests::test_any_mirror_tracking_ref_exists_false_for_fresh_clone ... ok
+test git::status::tests::test_any_mirror_tracking_ref_exists_true_with_mirror_ref ... ok
+test git::status::tests::test_conflict_state_detected_through_gitfile ... ok
+test git::status::tests::test_conflict_state_plain_repo_layout ... ok
+test git::status::tests::test_count_all_head_commits_counts_everything ... ok
+test git::status::tests::test_count_pushable_unpushed_mirrors_excludes_divergence ... ok
+test git::status::tests::test_has_origin_remote_falls_back_on_parse_miss ... ok
+test git::status::tests::test_index_lock_path_resolves_linked_worktree_gitdir ... ok
+test git::status::tests::test_index_lock_resolves_real_gitdir_for_submodule ... ok
+test git::status::tests::test_is_stable_empty_repo_detached_head_rejected ... ok
+test git::status::tests::test_is_stable_empty_repo_fresh_init ... ok
+test git::status::tests::test_is_stable_empty_repo_head_lock_blocks ... ok
+test git::status::tests::test_is_stable_empty_repo_index_lock_blocks ... ok
+test git::status::tests::test_is_stable_empty_repo_tmp_pack_blocks ... ok
+test git::status::tests::test_mirror_tracking_helpers_follow_non_main_branch ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_config_without_ref ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_no_config ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_ref_exists ... ok
+test git::sync_lease::tests::child_process_lease_probe ... ok
+test git::sync_lease::tests::lease_excludes_other_processes_and_releases_without_stale_lock_cleanup ... 
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1513 filtered out; finished in 0.00s
+
+
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1513 filtered out; finished in 0.00s
+
+ok
+test git::sync_lease::tests::linked_worktrees_share_ownership_and_symlink_locks_fail_closed ... ok
+test git::sync_lease::tests::publication_excludes_publishers_but_not_local_commits_across_processes ... 
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1513 filtered out; finished in 0.00s
+
+
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1513 filtered out; finished in 0.00s
+
+
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1513 filtered out; finished in 0.00s
+
+
+running 1 test
+test git::sync_lease::tests::child_process_lease_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1513 filtered out; finished in 0.00s
+
+ok
+test git::tests::test_auto_create_all_remotes_codeberg_missing_token ... ok
+test git::tests::test_auto_create_all_remotes_codeberg_override_opt_in ... ok
+test git::tests::test_auto_create_all_remotes_empty_when_no_auto_create ... ok
+test git::tests::test_auto_create_all_remotes_generic_error ... ok
+test git::tests::test_auto_create_all_remotes_github_success ... ok
+test git::tests::test_auto_create_all_remotes_gitlab_success ... ok
+test git::tests::test_codeberg_https_url_already_https ... ok
+test git::tests::test_codeberg_https_url_non_codeberg ... ok
+test git::tests::test_codeberg_https_url_ssh_colon_path ... ok
+test git::tests::test_codeberg_https_url_ssh_protocol ... ok
+test git::tests::test_configure_all_remotes_adds_mirror ... ok
+test git::tests::test_configure_all_remotes_adds_multiple ... ok
+test git::tests::test_configure_all_remotes_idempotent ... ok
+test git::tests::test_consolidate_to_main_deletes_master_and_keeps_main ... [master (root-commit) d004f74] init
+ 6 files changed, 165 insertions(+)
+ create mode 100644 bare.git/HEAD
+ create mode 100644 bare.git/config
+ create mode 100755 bare.git/hooks/pre-commit
+ create mode 100755 bare.git/hooks/pre-push
+ create mode 100755 bare.git/hooks/pre-rebase
+ create mode 100644 file.txt
+To /tmp/.tmpnyp38G/bare.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+Switched to a new branch 'main'
+[main 1623c87] main commit
+To /tmp/.tmpnyp38G/bare.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+Deleted branch master (was d004f74).
+ok
+test git::tests::test_create_repo_on_codeberg_conflict_409 ... ok
+test git::tests::test_create_repo_on_codeberg_success_201 ... ok
+test git::tests::test_create_repo_on_codeberg_unauthorized_401 ... ok
+test git::tests::test_create_repo_on_codeberg_unprocessable_422 ... ok
+test git::tests::test_create_repo_on_github_already_exists_returns_url_without_suffix ... ok
+test git::tests::test_create_repo_on_github_pat_passed_as_env_var ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_create_repo_on_github_public_flag_when_private_false ... ok
+test git::tests::test_create_repo_on_github_success ... ok
+test git::tests::test_create_repo_on_gitlab_already_exists_returns_url_without_suffix ... ok
+test git::tests::test_create_repo_on_gitlab_network_error ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_create_repo_on_gitlab_success ... ok
+test git::tests::test_create_repo_on_gitlab_token_passed_as_env_var ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_detect_orphan_origin_detects_single_digit_suffix ... ok
+test git::tests::test_detect_orphan_origin_ignores_legitimate_numeric_repo_suffix ... ok
+test git::tests::test_detect_orphan_origin_ignores_legitimate_version ... ok
+test git::tests::test_detect_orphan_origin_ignores_multi_digit_suffix ... ok
+test git::tests::test_detect_orphan_origin_no_suffix ... ok
+test git::tests::test_diagnose_divergence_divergent ... 
