@@ -325,3 +325,163 @@
     Checking reqwest v0.12.28
     Checking zbus v5.19.0
     Checking git2 v0.21.0
+    Checking dracon-git v94.7.2
+    Checking notify-rust v4.18.0
+    Checking dracon-system-lib v94.2.7
+    Checking dracon-system v0.112.51 (/tmp/fleet-qualified-workspace-cmgvn6rm/dracon-system)
+error: this function has too many arguments (9/7)
+    --> dracon-system/src/main.rs:7793:1
+     |
+7793 | / async fn clean_tmp_e2e_fast_path_with_proc(
+7794 | |     apply: bool,
+7795 | |     roots: &[String],
+7796 | |     general_cutoff: SystemTime,
+...    |
+7802 | |     live_sockets: &HashSet<PathBuf>,
+7803 | | ) -> Result<(u64, Vec<String>, Vec<String>)> {
+     | |____________________________________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+     = note: `-D clippy::too-many-arguments` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::too_many_arguments)]`
+
+error: this function has too many arguments (9/7)
+    --> dracon-system/src/main.rs:8090:1
+     |
+8090 | / async fn clean_tmp_paths_with_proc(
+8091 | |     apply: bool,
+8092 | |     roots: &[String],
+8093 | |     min_age_hours: u64,
+...    |
+8099 | |     live_sockets: &HashSet<PathBuf>,
+8100 | | ) -> Result<TmpCleanupOutcome> {
+     | |______________________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+error: could not compile `dracon-system` (bin "dracon-system") due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: function `nix_generations_to_delete` is never used
+    --> dracon-system/src/main.rs:5164:15
+     |
+5164 | pub(crate) fn nix_generations_to_delete(generations: &[u32], keep: usize) -> Vec<u32> {
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `-D dead-code` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+error: function `options` is never used
+   --> dracon-system/src/disk.rs:926:8
+    |
+926 |     fn options() -> DiskOptions {
+    |        ^^^^^^^
+
+error: function `audit_rows` is never used
+   --> dracon-system/src/disk_refs.rs:396:15
+    |
+396 | pub(crate) fn audit_rows(capture: &ReferenceCapture) -> BTreeMap<u32, String> {
+    |               ^^^^^^^^^^
+
+error: field assignment outside of initializer for an instance created with Default::default()
+   --> dracon-system/src/disk.rs:954:9
+    |
+954 |         report.empty_classes = TrashClass::ALL.to_vec();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: consider initializing the variable with `disk::DiskReport { empty_classes: TrashClass::ALL.to_vec(), ..Default::default() }` and removing relevant reassignments
+   --> dracon-system/src/disk.rs:953:9
+    |
+953 |         let mut report = DiskReport::default();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#field_reassign_with_default
+    = note: `-D clippy::field-reassign-with-default` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::field_reassign_with_default)]`
+
+error: could not compile `dracon-system` (bin "dracon-system" test) due to 6 previous errors
+error: this function has too many arguments (8/7)
+   --> dracon-sync/src/git/multi_remote.rs:344:1
+    |
+344 | / pub(crate) async fn push_mirror_remotes(
+345 | |     repo: &Path,
+346 | |     remotes: &[RemoteConfig],
+347 | |     timeout_secs: u64,
+...   |
+352 | |     interval_hours: u64,
+353 | | ) -> Vec<(String, Result<()>)> {
+    | |______________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+    = note: `-D clippy::too-many-arguments` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::too_many_arguments)]`
+
+error: this function has too many arguments (9/7)
+   --> dracon-sync/src/release.rs:643:1
+    |
+643 | / pub(crate) async fn run_release_pipeline(
+644 | |     repo: &Path,
+645 | |     _old_version: &str,
+646 | |     new_version: &str,
+...   |
+652 | |     repo_nix_auto_update: bool,
+653 | | ) -> Vec<ReleaseStep> {
+    | |_____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+error: this function has too many arguments (8/7)
+    --> dracon-sync/src/report.rs:1829:5
+     |
+1829 | /     pub(crate) fn new(
+1830 | |         ts_unix: u64,
+1831 | |         scope: impl Into<String>,
+1832 | |         repo: impl Into<String>,
+...    |
+1837 | |         details: Option<String>,
+1838 | |     ) -> Self {
+     | |_____________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+error: this function has too many arguments (8/7)
+    --> dracon-sync/src/report.rs:7541:1
+     |
+7541 | / pub(crate) fn log_incident(
+7542 | |     policy_path: &Path,
+7543 | |     scope: impl Into<String>,
+7544 | |     repo: impl Into<String>,
+...    |
+7549 | |     details: Option<String>,
+7550 | | ) {
+     | |_^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+error: this function has too many arguments (8/7)
+    --> dracon-sync/src/report.rs:8056:1
+     |
+8056 | / async fn handle_no_upstream(
+8057 | |     state: &mut RepairState,
+8058 | |     repo: &Path,
+8059 | |     apply: bool,
+...    |
+8064 | |     policy_path: &Path,
+8065 | | ) -> bool {
+     | |_________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+error: this function has too many arguments (9/7)
+    --> dracon-sync/src/sync.rs:5133:1
+     |
+5133 | / pub(crate) async fn sync_repo_with_ahead_since(
+5134 | |     repo: &Path,
+5135 | |     policy: &SyncPolicy,
+5136 | |     excluded_dir_names: &BTreeSet<String>,
+...    |
+5143 | |     commit_only: bool,
+5144 | | ) -> Result<SyncOutcome> {
+     | |________________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+error: could not compile `dracon-sync` (bin "dracon-sync") due to 6 previous errors
