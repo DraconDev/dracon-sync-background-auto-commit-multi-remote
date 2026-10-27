@@ -1,5 +1,35 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## 2026-10-27 — Pi metadata worker prototype qualified in disposable controls
+
+Implemented `worker.js`, `atomic.js` and ten controls in the existing
+`/home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/` prototype.
+The worker validates the actual inherited locked descriptor against its repo
+before target lookup or SDK mutation-queue registration, then reuses the host's
+complete edit/write transaction. Real fenced SDK controls preserve BOM, CRLF,
+Unicode, diff results and ambiguous-edit refusal. Atomic scratch is private to
+Git's admin directory, bounded by bytes/inodes and never eligible worktree data.
+A pre-publication cancellation preserves original canonical bytes and inode.
+
+A new namespace-substitution regression caught unsafe pathname-based cleanup
+in the first prototype. It initially FAILED by deleting a foreign replacement
+entry. Fixed cleanup/publication anchoring to a held private-directory FD and
+owned temporary identity. All ten controls now pass with zero skips; the failed
+control remains failed in its original raw log. Source hashes before/after the
+passing run match. The Warden used was built into the separate qualification
+target, not installed. Exact native/source identities and raw outcomes:
+`../../docs/design/canonical-writer-fence-2026-10-27/pi-worker-controls-v2.json`.
+
+NOT registered or deployed: no `index.js` yet, no live session picks this up,
+no all-writer guarantee and no full-workspace qualification. Next implement and
+qualify the extension registration while preserving native schemas/path/context
+semantics; close unsupported alias/shell/Git/editor coverage and actual process
+family/I/O-fault gaps before enabling anything. ACL/xattr and directory-durability
+limitations are explicit in the prototype README and updated PLAN. No policy
+hold was removed, no count-cap migration or real-repo manual publication ran.
+The active goal and tasks 2–5 remain unfinished; the security follow-up remains
+queued. This is concrete implementation progress, not clean-idle acceptance.
+
 ## 2026-10-27 15:40 UTC — resumed original goal; daemon fence controls pass
 
 Re-read the active GLLA objective and task list: fleet convergence remains the
