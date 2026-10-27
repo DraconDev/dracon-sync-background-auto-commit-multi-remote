@@ -1,0 +1,42 @@
+{
+  "startedAt": "2026-10-27T14:00:29.748Z",
+  "probeUrl": "https://www.youtube.com/",
+  "loggedIn": true,
+  "extensionId": "cbppaanmjgeanoaelebgmhaoblhmigfd",
+  "method": "the operator's own signed-in Chrome, through the pi-chrome bridge",
+  "phases": [
+    {
+      "name": "control-switches-off",
+      "raw": "YFF live probe"
+    },
+    {
+      "name": "control-feed-off",
+      "raw": "{\"url\":\"https://www.youtube.com/\",\"videoItems\":88,\"lockups\":72,\"feedDisplay\":\"flex\",\"feedVisible\":true,\"shelfHeadings\":[\"Shorts\",\"Explore more topics\"],\"watchTogether\":[],\"surveys\":[],\"visibleWatchTogether\":0,\"visibleSurveys\":0,\"hiddenStampedWatch\":[],\"hiddenStampedSurvey\":[],\"totalSectionMarks\":28,\"settled\":{\"visibleWatchTogether\":0,\"visibleSurveys\":0}}"
+    },
+    {
+      "name": "measured-switches-on",
+      "raw": "YFF live probe"
+    },
+    {
+      "name": "measured-feed-on",
+      "raw": "{\"url\":\"https://www.youtube.com/\",\"videoItems\":82,\"lockups\":71,\"feedDisplay\":\"flex\",\"feedVisible\":true,\"shelfHeadings\":[\"Shorts\",\"Explore more topics\"],\"watchTogether\":[],\"surveys\":[],\"visibleWatchTogether\":0,\"visibleSurveys\":0,\"hiddenStampedWatch\":[],\"hiddenStampedSurvey\":[],\"totalSectionMarks\":20}"
+    },
+    {
+      "name": "settings-restored",
+      "raw": "restore: YFF live probe"
+    },
+    {
+      "name": "settings-backup-forgotten",
+      "raw": "backup-removed"
+    }
+  ],
+  "failures": [
+    "the control pass showed neither target visible across 24 feed loads - the feed did not render them, so this run cannot show the extension removing them"
+  ],
+  "targets": {
+    "watchTogether": "ABSENT from this feed - the control pass did not render it in 24 loads",
+    "feedbackSurvey": "ABSENT from this feed - the control pass did not render it in 24 loads"
+  },
+  "conclusion": "Two passes on the SAME real signed-in feed: the control pass (switches off) shows the targets rendered, the measured pass (switches on) shows them gone with the ordinary video grid intact. A receipt without the control pass could not fail.",
+  "finishedAt": "2026-10-27T14:14:00.140Z"
+}

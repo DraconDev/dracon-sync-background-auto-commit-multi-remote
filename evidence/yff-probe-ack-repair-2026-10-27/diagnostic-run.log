@@ -1,0 +1,4 @@
+[real-feed] receipt written: /home/dracon/Dev/browser-extensions-shared/extensions/standalones/youtube-filter/tests/live/evidence/real-feed-shelves-receipt.json
+[real-feed] targets: undefined
+[real-feed] FAILURES:
+[real-feed]   - the loaded extension (reloaded 2026-10-27T11:51:09.622Z) predates the built one (2026-10-27T14:33:05.625Z) - reload the extension on chrome://extensions and re-run
