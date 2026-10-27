@@ -20,3 +20,18 @@
 ✔ inherited native OFD is reentrant, cross-repo reuse refuses, and duplicate close never unlocks outer owner (1048.121979ms)
 ✔ replaced fence namespace refuses through its held verifier (6.581882ms)
 ✔ namespace replacement does not make cleanup delete a foreign replacement entry (8.988343ms)
+✔ loaded ordinary write settles before abort releases fence (hold 0ms) (1745.574477ms)
+✔ loaded ordinary write settles before abort releases fence (hold 6500ms) (7012.888682ms)
+✔ real Pi loader registers native contracts and executes fenced metadata with dynamic cwd (523.222131ms)
+✔ actual fenced SDK edit preserves BOM, CRLF, Unicode and native diff contract (502.097252ms)
+✔ actual SDK write completes atomically and ambiguous edits preserve prior bytes (888.113399ms)
+✔ killable legacy worker refuses ordinary in-place writes before truncation (412.161991ms)
+✔ worker launched without a held descriptor refuses before target mutation (34.984856ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8808.834785
