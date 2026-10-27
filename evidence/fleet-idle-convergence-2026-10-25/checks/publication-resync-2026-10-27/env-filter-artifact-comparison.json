@@ -1,0 +1,20 @@
+[
+  {
+    "binary": "/home/dracon/.local/bin/dracon-warden",
+    "exitCode": 0,
+    "outputBytes": 3232,
+    "isWholeFileTag": true,
+    "unchangedPlainInput": false,
+    "roundtripExact": false,
+    "stderrBytes": 0
+  },
+  {
+    "binary": "/home/dracon/Dev/dracon-utilities/target/release/dracon-warden",
+    "exitCode": 0,
+    "outputBytes": 3192,
+    "isWholeFileTag": true,
+    "unchangedPlainInput": false,
+    "roundtripExact": false,
+    "stderrBytes": 0
+  }
+]
