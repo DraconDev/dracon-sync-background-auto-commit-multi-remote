@@ -1,0 +1,43 @@
+✔ canonical root lock is eligible without admitting workspace locks or dependencies (32.037366ms)
+✔ managed hygiene refresh cannot silently exclude the canonical lock again (26.828135ms)
+✔ concurrent failures retain separate evidence and the exact gate exit code (604.745769ms)
+✔ successful gates remain required and pass normally (461.712545ms)
+✔ the secret phase rejects both quote styles even with the existing emergency gate flag (189.589059ms)
+✔ secret scan retains aws detector on newly added content (93.572651ms)
+✔ secret scan retains pem detector on newly added content (88.452388ms)
+✔ secret scan retains secret detector on newly added content (92.807275ms)
+✔ secret scan retains api-key detector on newly added content (91.423761ms)
+✔ secret scan retains leading-plus detector on newly added content (87.820233ms)
+✔ secret scan accepts harmless remove of already-published fixture content (493.283331ms)
+✔ secret scan accepts harmless context of already-published fixture content (524.06805ms)
+✔ secret scan accepts harmless rename of already-published fixture content (482.657456ms)
+✔ new credentials introduced then deleted still fail because pushed history contains them (112.205493ms)
+✔ uninspectable remote range fails closed before running product gates (74.915132ms)
+✔ the gate caps the vitest worker fan-out (521.383348ms)
+✔ the worker cap can be overridden (647.021178ms)
+✔ the worker cap can be disabled (489.644074ms)
+✔ uses the pushed source and package scripts, not newer live edits (592.584424ms)
+✔ preparation runs in isolated generated directories and live changes between gates do not leak (927.003512ms)
+✔ pre-script failure cannot be replaced by a successful script body (615.875216ms)
+✔ export attributes cannot omit or rewrite the sources being validated (539.696576ms)
+✔ each distinct pushed revision is validated, not just the current HEAD (745.228635ms)
+✔ source symlinks cannot route gates back into the mutable live checkout (274.811825ms)
+✔ owned group cancellation stops gates and cleans only disposable sources (1065.977697ms)
+✔ owned group cancellation stops provisioning and cleans only disposable sources (1895.586206ms)
+✔ nested Bun scripts use the exact selected pin rather than inherited Bun (5989.212294ms)
+✔ library workspaces are built before a dependent lifecycle script resolves them (5308.749925ms)
+✔ same-repository preparation is exclusive but product gates still overlap (8408.709186ms)
+✔ native pool budgets bound lifecycle, library and gate workers (6471.309284ms)
+✔ native pool budgets preserve stricter caller limits (5904.034205ms)
+✔ pinned Bun workspace lifecycle scripts cannot fan out despite its ignored concurrency flag (6474.117635ms)
+✔ suppresses workspace install fanout, restores exact bytes, runs each phase once serially (700.589101ms)
+✔ preserves failure and original manifests after dependency failure (10.561593ms)
+✔ preserves failure and original manifests after phase failure (6.422213ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 45290.10315

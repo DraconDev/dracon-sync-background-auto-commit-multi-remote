@@ -1,0 +1,58 @@
+   Compiling dracon-system v0.112.51 (/home/dracon/Dev/dracon-utilities/dracon-system)
+warning: function `nix_generations_to_delete` is never used
+    --> dracon-system/src/main.rs:5164:15
+     |
+5164 | pub(crate) fn nix_generations_to_delete(generations: &[u32], keep: usize) -> Vec<u32> {
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `options` is never used
+   --> dracon-system/src/disk.rs:926:8
+    |
+926 |     fn options() -> DiskOptions {
+    |        ^^^^^^^
+
+warning: function `audit_rows` is never used
+   --> dracon-system/src/disk_refs.rs:396:15
+    |
+396 | pub(crate) fn audit_rows(capture: &ReferenceCapture) -> BTreeMap<u32, String> {
+    |               ^^^^^^^^^^
+
+warning: `dracon-system` (bin "dracon-system" test) generated 3 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.00s
+  Executable unittests src/lib.rs (target/debug/deps/dracon_security-89164f2f8fc61180)
+  Executable tests/atomic_write_test.rs (target/debug/deps/atomic_write_test-dd8c7555535a47ff)
+  Executable tests/backup_test.rs (target/debug/deps/backup_test-1c3ba2e6f9a6bf49)
+  Executable tests/common.rs (target/debug/deps/common-337ad24a33652abb)
+  Executable tests/comprehensive_test.rs (target/debug/deps/comprehensive_test-e4ff363aaab18e79)
+  Executable tests/conversation_dump_full_encrypt.rs (target/debug/deps/conversation_dump_full_encrypt-07769a44d7c11d24)
+  Executable tests/creds_json_full_encrypt.rs (target/debug/deps/creds_json_full_encrypt-8bc237ccdcd87c06)
+  Executable tests/github_format_review.rs (target/debug/deps/github_format_review-1b5e476c8a2934f0)
+  Executable tests/index_reuse.rs (target/debug/deps/index_reuse-735efb28c06cd903)
+  Executable tests/keys_json_full_encrypt.rs (target/debug/deps/keys_json_full_encrypt-307851ad30f45a33)
+  Executable tests/leak_prevention_test.rs (target/debug/deps/leak_prevention_test-0aab4a5f0d1183ff)
+  Executable tests/massive_secret_scan.rs (target/debug/deps/massive_secret_scan-eee5e26c6b5f79ce)
+  Executable tests/pattern_integrity.rs (target/debug/deps/pattern_integrity-8d60532305725d35)
+  Executable tests/plaintext_sibling_test.rs (target/debug/deps/plaintext_sibling_test-641eae5c2a85ee83)
+  Executable tests/redos_stress_test.rs (target/debug/deps/redos_stress_test-da1d1779664b1d49)
+  Executable tests/registry_credentials_test.rs (target/debug/deps/registry_credentials_test-6c12fb5bf9bf840f)
+  Executable tests/restore_test.rs (target/debug/deps/restore_test-ec1da6168d22ed90)
+  Executable tests/scanner_edge_cases_test.rs (target/debug/deps/scanner_edge_cases_test-a5f32595b6c32f78)
+  Executable tests/scanner_stress.rs (target/debug/deps/scanner_stress-50bc52a869597c2a)
+  Executable tests/security_critical_test.rs (target/debug/deps/security_critical_test-1c05470f804befc4)
+  Executable tests/team_key_test.rs (target/debug/deps/team_key_test-89871078c743c5bf)
+  Executable tests/tier1_source_encrypt.rs (target/debug/deps/tier1_source_encrypt-2393e334ecabbd35)
+  Executable tests/tier_inventory.rs (target/debug/deps/tier_inventory-8bcbf4b7ff500db9)
+  Executable unittests src/lib.rs (target/debug/deps/dracon_sync-c4ea6bb863ffe38d)
+  Executable unittests src/main.rs (target/debug/deps/dracon_sync-6df10b15ad956f11)
+  Executable tests/excluded_recovery_report.rs (target/debug/deps/excluded_recovery_report-fc7a48339d2bb592)
+  Executable tests/integration_test.rs (target/debug/deps/integration_test-e74793b196d8340c)
+  Executable tests/report_json_detail.rs (target/debug/deps/report_json_detail-9ca32b97ea85c61d)
+  Executable tests/storage_clean.rs (target/debug/deps/storage_clean-dff80d6ccd403a30)
+  Executable unittests src/main.rs (target/debug/deps/dracon_system-3dae012e9af70063)
+  Executable tests/events_cli.rs (target/debug/deps/events_cli-4492fc6413de5332)
+  Executable tests/guard_service.rs (target/debug/deps/guard_service-16e9d18beafbfd4a)
+  Executable unittests src/main.rs (target/debug/deps/dracon_warden-68a24dac5f0fbab2)
+  Executable tests/integration_test.rs (target/debug/deps/integration_test-def75026a6e2f0d8)
+  Executable tests/storage_stream.rs (target/debug/deps/storage_stream-e0875a5ada2169d5)

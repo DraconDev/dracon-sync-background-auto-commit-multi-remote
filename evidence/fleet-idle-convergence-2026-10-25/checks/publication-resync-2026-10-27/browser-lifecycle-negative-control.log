@@ -1,0 +1,52 @@
+✖ pinned Bun workspace lifecycle scripts cannot fan out despite its ignored concurrency flag (12901.647663ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13130.121776
+
+✖ failing tests:
+
+test at ../../../../tmp/lifecycle-negative-control-q1cnlkqm/run-push-gates.test.mjs:337:1
+✖ pinned Bun workspace lifecycle scripts cannot fan out despite its ignored concurrency flag (12901.647663ms)
+  AssertionError [ERR_ASSERTION]: 🧾 Pre-push attempt logs: /tmp/pinned-gate-fixture-lhACso/attempts/dracon-pre-push.rROBO8
+  🔍 Pre-push: 5 affected workspace(s) at bf21594640e95d39f67ff393e9cac7441ea79044 — running 4-gate.
+  ❌ Pre-push: 4-gate FAILED: snapshot dependency installation exited 1; see /tmp/pinned-gate-fixture-lhACso/attempts/dracon-pre-push.rROBO8/bf21594640e9-INSTALL.log
+  node:fs:561
+    return binding.open(
+                   ^
+  
+  Error: EEXIST: file already exists, open '/tmp/pinned-gate-fixture-lhACso/attempts/phase-lock'
+      at openSync (node:fs:561:18)
+      at file:///tmp/pinned-gate-fixture-lhACso/attempts/dracon-pre-push.rROBO8/snapshot-bf21594640e95d39f67ff393e9cac7441ea79044/extensions/standalones/serial-2/prepare.mjs:3:10
+      at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+      at async node:internal/modules/esm/loader:643:26
+      at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+    errno: -17,
+    code: 'EEXIST',
+    syscall: 'open',
+    path: '/tmp/pinned-gate-fixture-lhACso/attempts/phase-lock'
+  }
+  
+  Node.js v24.18.0
+  
+  error: postinstall script from "serial-2" exited with 1
+  
+  
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///tmp/lifecycle-negative-control-q1cnlkqm/run-push-gates.test.mjs:358:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

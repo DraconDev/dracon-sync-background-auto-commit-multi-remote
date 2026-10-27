@@ -1,0 +1,19 @@
+{
+  "repo": "/home/dracon/.dracon",
+  "observedHead": "f7fd0614f7ef3954969db64bdb16e5b6546ad167",
+  "refs": {
+    "origin": {
+      "exitCode": 0,
+      "tip": "9aa57f588774540e369af862966bf422d0cf91f1"
+    },
+    "github": {
+      "exitCode": 128,
+      "tip": null
+    },
+    "gitlab": {
+      "exitCode": 0,
+      "tip": "9aa57f588774540e369af862966bf422d0cf91f1"
+    }
+  },
+  "note": "Advertised refs only, not a clean-idle or all-destinations claim. No push performed."
+}
