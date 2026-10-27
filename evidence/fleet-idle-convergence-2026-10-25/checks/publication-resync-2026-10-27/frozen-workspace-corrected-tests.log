@@ -138,4 +138,63 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 running 5 tests
 test test_auto_key_generation ... ok
 test test_backup_functionality ... ok
-test test_corpus_roundtrip ... 
+test test_corpus_roundtrip ... ok
+test test_dracon_security_singleton_same_instance ... ok
+test test_encrypt_decrypt_multiple_recipients ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.95s
+
+     Running tests/conversation_dump_full_encrypt.rs (target/debug/deps/conversation_dump_full_encrypt-07769a44d7c11d24)
+
+running 9 tests
+test conversation_source_file_is_not_whole_file_encrypted ... ok
+test conversation_txt_gets_whole_file_encryption ... ok
+test conversation_txt_round_trips_through_smudge ... ok
+test dump_predicate_matches_only_dump_extensions ... ok
+test pi_session_html_at_depth_gets_whole_file_encryption ... ok
+test pi_session_systemd_unit_is_not_whole_file_encrypted ... ok
+test rollout_jsonl_gets_whole_file_encryption ... ok
+test rollout_prose_doc_is_not_whole_file_encrypted ... ok
+test trajectory_json_gets_whole_file_encryption ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+     Running tests/creds_json_full_encrypt.rs (target/debug/deps/creds_json_full_encrypt-8bc237ccdcd87c06)
+
+running 3 tests
+test creds_json_at_any_depth_gets_whole_file_encryption ... ok
+test creds_json_gets_whole_file_encryption ... ok
+test creds_json_round_trips_through_smudge ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/github_format_review.rs (target/debug/deps/github_format_review-1b5e476c8a2934f0)
+
+running 2 tests
+test github_invalid_boundaries_and_lengths_do_not_match ... ok
+test github_supported_formats_are_replaced_in_full ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/index_reuse.rs (target/debug/deps/index_reuse-735efb28c06cd903)
+
+running 3 tests
+test newly_detected_secrets_in_index_force_reencryption ... ok
+test policy_upgrade_does_not_reuse_partially_protected_index ... ok
+test unchanged_ciphertext_is_reused_but_edits_and_plaintext_are_not ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+     Running tests/keys_json_full_encrypt.rs (target/debug/deps/keys_json_full_encrypt-307851ad30f45a33)
+
+running 2 tests
+test keys_json_gets_whole_file_encryption ... ok
+test keys_json_round_trips_through_smudge ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/leak_prevention_test.rs (target/debug/deps/leak_prevention_test-0aab4a5f0d1183ff)
+
+running 2 tests
+test prop_test_binary_passthrough_integrity ... ok
+test prop_test_hybrid_security_logic ... 
