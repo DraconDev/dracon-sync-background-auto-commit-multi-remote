@@ -1582,3 +1582,42 @@ staging task2/2.1 is in progress. See confirmed goal for all8gates.
   3 DIRTY, containment `auto_push = false` still in force. Final acceptance needs
   autonomous publication plus an all-clean idle observation, which cannot hold
   while publication is contained and editing continues.
+
+## 2026-10-27 (late) — publication containment LIFTED; 17 repos converged autonomously
+
+`auto_push = false` was the 2026-10-27 security containment with its own written
+release condition ("Restore only after fail-closed publication is qualified").
+That condition was met and verified BEFORE the flip, read-only: all 18 ahead
+repos were `behind = 0` (fast-forwardable, no rewrite needed), zero `.env`/
+`.pem`/`.key` additions and zero provider-shaped secrets in every pending range
+(including browser-extensions-shared's 1535-commit range), no pack above the
+per-forge limit, and the deployed pre-push hook already verified fail-closed
+with `fail_open_reproduced: false`.
+
+    before : ok=16 active=5 warn=15 concern=0 failures=0
+    after  : ok=30 active=5 warn=1  concern=0 failures=0
+
+17 repos drained to ahead=0 through the daemon alone. Destination check via
+read-only `ls-remote` against each repo's ACTUAL remotes: 32 of 33 clean repos
+match on every intended remote; the one mismatch (polis) had both remotes in
+agreement with local simply newer (active editing, not a publication failure).
+
+`browser-extensions-shared` did NOT converge and is not claimed. Its push is not
+wedged or disconnected: it completes the configured pre-push gate (165 tuples)
+in ~78 min inside the scaled 90-min window and then CORRECTLY refuses, because
+`youtube-filter/TEST exited 1` — the extension's committed real-feed receipt
+records a genuine failure and `check-receipt-evidence.mjs` rejects it
+(reproduced: 1 failed | 24 passed). No gate, assertion or receipt was weakened
+or rewritten. GitHub for this repo additionally cannot succeed: pack 3.67 GiB
+vs the 2 GiB limit, which needs asset migration out of history.
+
+Two intermediate conclusions of mine were WRONG and are corrected in
+`checks/publication-restore-2026-10-27/browser-gate-duration.md` + `RESULT.md`:
+(1) an "idle SSH disconnect" — actually my own `timeout` wrapper; the daemon
+supplies its own `ServerAliveInterval=5`, and the `~/.ssh/config` edit was
+reverted byte-for-byte; (2) a "silent revert" of `push_op_timeout_secs` — the
+900 value is the operator's documented later decision, left untouched.
+
+Goal status: task 4.1 complete; task 5 STILL UNMET — one repository is ahead,
+so "every watched repository clean and idle" does not hold, and 5 repos are
+DIRTY from ongoing editing (their push is OK, nothing stranded).
