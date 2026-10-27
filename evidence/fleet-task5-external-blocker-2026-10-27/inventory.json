@@ -1,0 +1,378 @@
+{
+ "capturedAt": "2026-10-27T13:00:00Z",
+ "source": "dracon-sync repos --json",
+ "totals": {
+  "repos": 36,
+  "ok": 31,
+  "active": 4,
+  "warn": 1,
+  "concern": 0,
+  "failures": 0
+ },
+ "daemon": {
+  "health": "healthy",
+  "running": true,
+  "freeze": "off",
+  "policy": "valid",
+  "version": "dracon-sync 0.113.96",
+  "pid": 1583026,
+  "exe": "/home/dracon/.local/bin/dracon-sync"
+ },
+ "rows": [
+  {
+   "repo": "/home/dracon/Dev/dracon-platform",
+   "state_flags": [
+    "DIRTY",
+    "AHEAD:2",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "PENDING",
+   "hint": "run dracon-sync repair concerns --apply (push or rewrite); GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/.dracon",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/db-gateway",
+   "state_flags": [
+    "DIRTY",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/browser-extensions-shared",
+   "state_flags": [
+    "AHEAD:1092",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "PUSH_STUCK",
+   "hint": "\ud83d\uded1 push-stuck (5 failures): git push returned non-zero (remotes: github, gitlab, orig... \u2014 fix the recorded cause first; then dracon-sync repair stuck-unstuck '/home/dracon/Dev/browser-extensions-shared'; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-utilities/dracon-system",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/freeport",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/empire",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-strategy",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/pi-plugins",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-utilities/dracon-warden",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/terhub",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
+   "state_flags": [
+    "DIRTY",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-utilities",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner",
+   "state_flags": [
+    "DIRTY",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/released/one-mil-girls",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/released/come-get-me",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/.dracon/convos",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/football-forever",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-strategy/DraconDev",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/hellhunter",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "\u26a0\ufe0f path-owned identity/origin warning: \u2713 owned (path_owned:untrusted_email); GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/neonbreak",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/space-trucker",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/darklord",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/dracon/bridge-fixture",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "\u26a0\ufe0f path-owned identity/origin warning: \u2713 owned (path_owned:untrusted_origin); GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/mcode-plugins",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/pi-plugins/pi-agnes-tools",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/pi-plugins/pi-use-last-selected-thinking-level",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  },
+  {
+   "repo": "/home/dracon/Dev/pi-plugins/pi-codebuddy-sdk",
+   "state_flags": [
+    "OK",
+    "REPORT_CHECKS_DEFERRED"
+   ],
+   "push_status": "OK",
+   "hint": "healthy; GitHub pack check unknown \u2014 use repos --deep; deep pack/history checks deferred \u2014 use repos --deep"
+  }
+ ],
+ "blocker": {
+  "repo": "/home/dracon/Dev/browser-extensions-shared",
+  "ahead": 1092,
+  "behind": 0,
+  "push": "PUSH_STUCK",
+  "gate": "dracon-pre-push.Qy7Q8T status=failed, single failure extensions_standalones_youtube-filter TEST (check-receipt-evidence, 1 failed/1024)",
+  "evidence": "extensions/standalones/youtube-filter/tests/live/evidence/real-feed-shelves-receipt.json",
+  "quietWindowRun": {
+   "startedAt": "2026-10-27T11:53:57.917Z",
+   "finishedAt": "2026-10-27T12:03:12.791Z",
+   "videoItems": 88,
+   "feedDisplay": "flex",
+   "headings": [
+    "New music videos this week",
+    "Shorts",
+    "Explore more topics"
+   ],
+   "failures": [
+    "the control pass showed neither target visible across 12 feed loads"
+   ]
+  },
+  "history": "14 commits 2026-10-26..27, all with failures; never passed",
+  "kind": "external (YouTube feed rotation); control-pass absence, not product regression"
+ },
+ "repair": {
+  "repo": "/home/dracon/Dev/dracon-platform",
+  "action": "removed stale 0-byte .git/HEAD.lock (created 11:39 UTC)",
+  "verification": "fuser no holder; observed git PIDs dead; lock did not reappear; parent AHEAD:1->0 push OK; polis+freeport CLEAN",
+  "reversible": true
+ }
+}
