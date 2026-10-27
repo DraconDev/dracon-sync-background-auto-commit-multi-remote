@@ -1,0 +1,11 @@
+{
+  "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+  "head": "4610264cc73b5506034bd1e75639b94f186db5a5",
+  "command": "git hook run --ignore-missing pre-commit",
+  "index": "read-only copied input; no actual-index installation or commit",
+  "capturedIndexSha256": "5e9f477d1d6e2d42c9ac4deda33fecac64601b48d008d5f0112dee187931a7de",
+  "canonicalIndexStillSame": true,
+  "exitCode": 1,
+  "elapsedSecs": 6.62,
+  "scope": "original configured pre-commit; not full commit or publication proof"
+}

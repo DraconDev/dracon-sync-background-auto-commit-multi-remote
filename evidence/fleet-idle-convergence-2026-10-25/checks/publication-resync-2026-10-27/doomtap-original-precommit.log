@@ -1,0 +1,165 @@
+{
+  "ref": "refs/heads/main",
+  "refs": [
+    {
+      "name": "refs/heads/main",
+      "ref": "refs/heads/main",
+      "remoteRef": "refs/heads/main",
+      "objectId": "4610264cc73b5506034bd1e75639b94f186db5a5",
+      "remoteTip": null
+    }
+  ],
+  "targetRemote": null,
+  "effectiveLimitBytes": 967835648,
+  "limitingRemote": "github",
+  "limitingProvider": "github",
+  "scenarios": [
+    {
+      "remote": "github",
+      "url": "git@github.com:DraconDev/doomtap.git",
+      "provider": "github",
+      "limitBytes": 967835648,
+      "target": false,
+      "refs": [
+        {
+          "name": "refs/heads/main",
+          "ref": "refs/heads/main",
+          "remoteRef": "refs/heads/main",
+          "objectId": "4610264cc73b5506034bd1e75639b94f186db5a5",
+          "remoteTip": null,
+          "trackingTip": null
+        }
+      ],
+      "measurementBasis": "complete-reachable-stored-pack-plus-repack-reserve",
+      "trackingTips": [
+        null
+      ],
+      "objectCount": 57568,
+      "reachableObjectCount": 57567,
+      "deltaBaseCount": 33545,
+      "uncompressedBytes": 2365334390,
+      "storedBytes": 549541186,
+      "storedPackBytes": 577018246,
+      "storedPackReserveBytes": 27477060,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 577083917,
+      "policyEstimateBytes": 2609367740,
+      "packPolicyEstimateBytes": 2609302069,
+      "packUpperBoundBytes": 2609302069,
+      "prospectiveCommitAllowanceBytes": 65671,
+      "prospectiveCommitMessageBytes": 135,
+      "basisBytes": 577083917
+    },
+    {
+      "remote": "gitlab",
+      "url": "git@gitlab.com:DraconDev/doomtap.git",
+      "provider": "gitlab",
+      "limitBytes": 967835648,
+      "target": false,
+      "refs": [
+        {
+          "name": "refs/heads/main",
+          "ref": "refs/heads/main",
+          "remoteRef": "refs/heads/main",
+          "objectId": "4610264cc73b5506034bd1e75639b94f186db5a5",
+          "remoteTip": null,
+          "trackingTip": "4610264cc73b5506034bd1e75639b94f186db5a5"
+        }
+      ],
+      "measurementBasis": "complete-reachable-stored-pack-plus-repack-reserve",
+      "trackingTips": [
+        "4610264cc73b5506034bd1e75639b94f186db5a5"
+      ],
+      "objectCount": 57568,
+      "reachableObjectCount": 57567,
+      "deltaBaseCount": 33545,
+      "uncompressedBytes": 2365334390,
+      "storedBytes": 549541186,
+      "storedPackBytes": 577018246,
+      "storedPackReserveBytes": 27477060,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 577083917,
+      "policyEstimateBytes": 2609367740,
+      "packPolicyEstimateBytes": 2609302069,
+      "packUpperBoundBytes": 2609302069,
+      "prospectiveCommitAllowanceBytes": 65671,
+      "prospectiveCommitMessageBytes": 135,
+      "basisBytes": 577083917
+    },
+    {
+      "remote": "origin",
+      "url": "git@github.com:DraconDev/doomtap.git",
+      "provider": "github",
+      "limitBytes": 967835648,
+      "target": false,
+      "refs": [
+        {
+          "name": "refs/heads/main",
+          "ref": "refs/heads/main",
+          "remoteRef": "refs/heads/main",
+          "objectId": "4610264cc73b5506034bd1e75639b94f186db5a5",
+          "remoteTip": null,
+          "trackingTip": "4610264cc73b5506034bd1e75639b94f186db5a5"
+        }
+      ],
+      "measurementBasis": "complete-reachable-stored-pack-plus-repack-reserve",
+      "trackingTips": [
+        "4610264cc73b5506034bd1e75639b94f186db5a5"
+      ],
+      "objectCount": 57568,
+      "reachableObjectCount": 57567,
+      "deltaBaseCount": 33545,
+      "uncompressedBytes": 2365334390,
+      "storedBytes": 549541186,
+      "storedPackBytes": 577018246,
+      "storedPackReserveBytes": 27477060,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 577083917,
+      "policyEstimateBytes": 2609367740,
+      "packPolicyEstimateBytes": 2609302069,
+      "packUpperBoundBytes": 2609302069,
+      "prospectiveCommitAllowanceBytes": 65671,
+      "prospectiveCommitMessageBytes": 135,
+      "basisBytes": 577083917
+    }
+  ],
+  "maxBasisBytes": 577083917,
+  "stagedBytes": 1042087,
+  "stagedTree": "6f367d15030858914595d4090ffb4c833ebf7c1e",
+  "projectedBytes": 577083917,
+  "highWaterBytes": 967835648,
+  "atOrAboveLimit": false,
+  "measurable": true,
+  "ok": true,
+  "code": "OK",
+  "limitBytes": 967835648,
+  "remainingBytes": 390751731,
+  "errors": [],
+  "forwardOnly": {
+    "ok": true,
+    "code": "OK",
+    "checked": {
+      "staged": true,
+      "refs": 0
+    },
+    "violations": [],
+    "errors": []
+  }
+}
+machine-local file is staged: docs/screenshots/qa/ascension-after.png
+   Confirm the intended content/ignore policy; preserve local bytes.
+   Source/evidence permission requires scoped root rules; frame caches remain blocked.
+   Index-only removal is not a durable fix for deliberately included content.
+machine-local file is staged: docs/screenshots/qa/ascension-armed.png
+   Confirm the intended content/ignore policy; preserve local bytes.
+   Source/evidence permission requires scoped root rules; frame caches remain blocked.
+   Index-only removal is not a durable fix for deliberately included content.
+machine-local file is staged: docs/screenshots/qa/ascension-before.png
+   Confirm the intended content/ignore policy; preserve local bytes.
+   Source/evidence permission requires scoped root rules; frame caches remain blocked.
+   Index-only removal is not a durable fix for deliberately included content.
+machine-local file is staged: docs/screenshots/qa/ascension-narrow.png
+   Confirm the intended content/ignore policy; preserve local bytes.
+   Source/evidence permission requires scoped root rules; frame caches remain blocked.
+   Index-only removal is not a durable fix for deliberately included content.
+pre-commit: machine-local staging policy blocked this commit.
