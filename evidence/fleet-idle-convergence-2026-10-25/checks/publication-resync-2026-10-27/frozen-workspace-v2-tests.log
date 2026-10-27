@@ -1,1 +1,121 @@
    Compiling dracon-system v0.112.51 (/tmp/fleet-qualified-workspace-cmgvn6rm/dracon-system)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.89s
+     Running unittests src/lib.rs (target/debug/deps/dracon_security-89164f2f8fc61180)
+
+running 83 tests
+test modules::backup::tests::write_backup_retries_when_timestamp_already_exists ... ok
+test modules::crypto::authorization_tests::delegated_dh_cannot_forge_owner_authorization_signature ... ok
+test modules::crypto::authorization_tests::delegated_machine_identity_cannot_authorize_new_recipient ... ok
+test modules::scanner::foreign_marker_does_not_suppress_the_scan ... ok
+test modules::scanner::tests::test_hook_shapes_are_posix_ere ... ok
+test modules::scanner::tests::test_hook_shapes_cover_tier1_names ... ok
+test modules::scanner::tests::test_hook_shapes_detect_their_tokens ... ok
+test modules::scanner::tests::test_openai_hook_boundary_matches_scanner_not_asset_substrings ... ok
+test modules::scanner::tests::test_scanner_custom_patterns_empty ... ok
+test modules::scanner::tests::test_scanner_truncates_utf8_snippet_at_char_boundary ... ok
+test modules::scanner::tests::test_scanner_with_custom_patterns ... ok
+test tests::d3_removed_apis_stay_removed ... ok
+test tests::media_match_passes_the_gate_without_flipping_legacy_posture ... ok
+test tests::media_patterns_whole_file_encrypt_matched_binaries_only ... ok
+test tests::test_clean_encrypts_tag_shaped_plaintext_protected_file ... ok
+test tests::test_decrypt_v2_fails_with_wrong_identity ... ok
+test tests::test_decrypt_v2_requires_master_identity ... ok
+test tests::test_demon_security_once_cell_caching ... ok
+test tests::test_encrypt_v2_binary_data ... ok
+test tests::test_encrypt_v2_decrypt_v2_roundtrip ... ok
+test tests::test_encrypt_v2_empty_data ... ok
+test tests::test_encrypt_v2_for_all_empty_data ... ok
+test tests::test_encrypt_v2_for_all_roundtrip ... ok
+test tests::test_env_reencryption_preserves_body_whitespace ... ok
+test tests::test_env_versioning_increment_flow ... ok
+test tests::test_fresh_env_with_warden_comment_gets_v1_header ... ok
+test tests::test_gather_all_recipients_rejects_symlinked_repo_key_directory ... ok
+test tests::test_gather_all_recipients_rejects_symlinked_repo_recipient_file ... ok
+test tests::test_gather_all_recipients_separates_overlapping_home_repo ... ok
+test tests::test_gather_all_recipients_separates_symlinked_home_repo ... ok
+test tests::test_gather_all_recipients_validates_recipient_files ... ok
+test tests::test_get_env_version_edge_cases ... ok
+test tests::test_get_env_version_extracts_version ... ok
+test tests::test_git_seal_v1_rejects_ascii_prefix_binary_tail ... ok
+test tests::test_git_seal_v1_rejects_short_valid_text_wrong_key ... ok
+test tests::test_github_token_patterns_accept_variable_length ... ok
+test tests::test_hex_secret_quoted_requires_context ... ok
+test tests::test_high_entropy_secret_quoted_requires_context ... ok
+test tests::test_inline_roundtrip_arbitrary_unicode_context ... ok
+test tests::test_inline_tag_still_uses_smart_smudge ... ok
+test tests::test_inside_secret_tag_rejects_foreign_marker ... ok
+test tests::test_is_env_version_managed ... ok
+test tests::test_is_inside_secret_tag_detection ... ok
+test tests::test_mailgun_key_accepts_variable_length ... ok
+test tests::test_make_env_version_header_increments_version ... ok
+test tests::test_malformed_inline_tag_is_left_verbatim_and_reported ... ok
+test tests::test_managed_env_body_version_line_does_not_drive_increment ... ok
+test tests::test_managed_media_patterns_override_roundtrip ... ok
+test tests::test_managed_patterns_override_roundtrip ... ok
+test tests::test_marker_migration_in_place ... ok
+test tests::test_merge_clean_inline_ancestor_stays_inline ... ok
+test tests::test_merge_clean_whole_file_ancestor_stays_encrypted ... ok
+test tests::test_normalize_secret_marker_invalid ... ok
+test tests::test_normalize_secret_marker_valid ... ok
+test tests::test_path_is_protected_directory_prefix ... ok
+test tests::test_path_is_protected_doublestar_components ... ok
+test tests::test_path_is_protected_env_pattern ... ok
+test tests::test_path_is_protected_legacy_empty_passes_everything ... ok
+test tests::test_path_is_protected_path_patterns_are_repository_relative ... ok
+test tests::test_path_is_protected_single_star_matches_one_component ... ok
+test tests::test_path_is_protected_source_code_excluded ... ok
+test tests::test_protection_exemptions ... ok
+test tests::test_slack_bot_token_compact ... ok
+test tests::test_slack_bot_token_compact_has_length_cap ... ok
+test tests::test_smart_clean_skips_unprotected_large_input_when_patterns_set ... ok
+test tests::test_smart_clean_with_path_honors_single_star_attributes ... ok
+test tests::test_smart_clean_with_path_tier1_covers_unprotected_source_code ... ok
+test tests::test_smart_smudge_preserves_tag_with_binary_plaintext ... ok
+test tests::test_smudge_entrypoint_binary_roundtrip_byte_identical ... ok
+test tests::test_smudge_passes_binary_unchanged ... ok
+test tests::test_smudge_passes_through_tag_shaped_plaintext ... ok
+test tests::test_smudge_preserves_invalid_utf8_with_literal_marker ... ok
+test tests::test_smudge_robustness ... ok
+test tests::test_smudge_roundtrips_inline_secret_with_nul ... ok
+test tests::test_strip_env_version_header_only_strips_top_marker ... ok
+test tests::test_strip_env_version_header_passthrough_when_no_header ... ok
+test tests::test_strip_env_version_header_preserves_body_whitespace ... ok
+test tests::test_strip_env_version_header_removes_header ... ok
+test tests::test_tag_shaped_plaintext_is_not_recognized ... ok
+test tests::test_unlock_payload_error_has_no_ciphertext_dump ... ok
+test tests::test_unlock_payload_v2_roundtrip ... ok
+test tests::test_whole_file_tag_binary_roundtrip_byte_identical ... ok
+test tests::test_whole_file_tag_tolerates_crlf_and_multiple_newlines ... ok
+
+test result: ok. 83 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.64s
+
+     Running tests/atomic_write_test.rs (target/debug/deps/atomic_write_test-dd8c7555535a47ff)
+
+running 4 tests
+test test_accept_team_invite_rejects_nonexistent_path ... ok
+test test_backup_file_recursion_guard_rejects_arcane_backups ... ok
+test test_backup_file_recursion_guard_rejects_backups_dir ... ok
+test test_restore_rejects_nonexistent_path ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/backup_test.rs (target/debug/deps/backup_test-1c3ba2e6f9a6bf49)
+
+running 2 tests
+test test_backup_and_restore ... ok
+test test_backup_does_not_overwrite_same_second_backup ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/common.rs (target/debug/deps/common-337ad24a33652abb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/comprehensive_test.rs (target/debug/deps/comprehensive_test-e4ff363aaab18e79)
+
+running 5 tests
+test test_auto_key_generation ... ok
+test test_backup_functionality ... ok
+test test_corpus_roundtrip ... 
