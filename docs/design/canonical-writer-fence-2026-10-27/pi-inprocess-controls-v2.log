@@ -1,0 +1,3 @@
+✔ differently named same-repo metadata alias uses atomic canonical publication and preserves alias (516.210367ms)
+✔ cross-repo metadata alias refuses instead of mutating under the wrong repository fence (29.204256ms)
+✔ loaded in-process metadata transaction preserves BOM, CRLF, Unicode, diff and ambiguous-edit refusal (79.646454ms)
