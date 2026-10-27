@@ -325,3 +325,7 @@
    Compiling hyper-tls v0.6.0
    Compiling dracon-security v0.4.0 (/tmp/fleet-qualified-workspace-cmgvn6rm/dracon-warden/src/security)
    Compiling ssh2 v0.9.6
+   Compiling tokio-rustls v0.26.5
+   Compiling hyper-rustls v0.27.9
+   Compiling reqwest v0.12.28
+   Compiling notify-rust v4.18.0
