@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.41s
+     Running unittests src/main.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/dracon_sync-4bdda7ff3bc2c558)
+
+running 4 tests
+test sync::hygiene::tests::hygiene_generated_ignore_never_adopts_intervening_content_as_old_baseline ... ok
+test sync::hygiene::tests::hygiene_generated_ignore_preserves_existing_writer_and_visible_recovery ... ok
+test sync::hygiene::tests::hygiene_generated_ignore_rejects_symlink_and_hardlink_without_modifying_targets ... ok
+test sync::hygiene::tests::hygiene_generated_ignore_waits_for_writer_fence_before_capture_and_recovers ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1516 filtered out; finished in 4.14s
+

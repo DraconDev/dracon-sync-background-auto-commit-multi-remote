@@ -105,6 +105,48 @@ mod tests {
         assert_ne!(unsafe { libc::fcntl(held.file.as_raw_fd(), libc::F_GETFD) } & libc::FD_CLOEXEC, 0);
     }
     #[tokio::test]
+    async fn cancelled_waiter_does_not_survive_or_later_take_the_fence() {
+        let a = repo();
+        let held = WriteFence::acquire_until(a.path(), Instant::now() + Duration::from_secs(1)).await.unwrap();
+        let inode = held.file.metadata().unwrap().ino();
+        // Outer cancellation, not the acquisition's own much later deadline.
+        assert!(tokio::time::timeout(
+            Duration::from_millis(30),
+            WriteFence::acquire_until(a.path(), Instant::now() + Duration::from_secs(60)),
+        ).await.is_err());
+        drop(held);
+        let recovered = WriteFence::acquire_until(a.path(), Instant::now() + Duration::from_secs(1)).await.unwrap();
+        assert_eq!(recovered.file.metadata().unwrap().ino(), inode);
+        assert!(WriteFence::acquire_until(a.path(), Instant::now() + Duration::from_millis(30)).await.is_err());
+        drop(recovered);
+        // Reacquisition has no stranded waiter/descriptor or lock-file theft.
+        let final_owner = WriteFence::acquire_until(a.path(), Instant::now() + Duration::from_secs(1)).await.unwrap();
+        assert_eq!(final_owner.file.metadata().unwrap().ino(), inode);
+    }
+    #[tokio::test]
+    async fn actual_helper_holds_fence_after_parent_handle_drops_until_final_close() {
+        use std::process::Stdio;
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+        let a = repo();
+        let held = WriteFence::acquire_until(a.path(), Instant::now() + Duration::from_secs(1)).await.unwrap();
+        let inode = held.file.metadata().unwrap().ino();
+        let mut command = tokio::process::Command::new("python3");
+        command.args(["-c", "import os,fcntl,sys; fd=int(os.environ['DRACON_CANONICAL_WRITER_FD_V1']); fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB); print('held',flush=True); sys.stdin.buffer.read(1); os.close(fd)"])
+            .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).kill_on_drop(true);
+        held.inherit_into(&mut command);
+        let mut child = command.spawn().unwrap();
+        let mut reader = BufReader::new(child.stdout.take().unwrap());
+        let mut ready = String::new();
+        tokio::time::timeout(Duration::from_secs(5), reader.read_line(&mut ready)).await.unwrap().unwrap();
+        assert_eq!(ready, "held\n");
+        drop(held);
+        assert!(WriteFence::acquire_until(a.path(), Instant::now() + Duration::from_millis(30)).await.is_err());
+        child.stdin.take().unwrap().write_all(b"x").await.unwrap();
+        assert!(tokio::time::timeout(Duration::from_secs(5), child.wait()).await.unwrap().unwrap().success());
+        let recovered = WriteFence::acquire_until(a.path(), Instant::now() + Duration::from_secs(1)).await.unwrap();
+        assert_eq!(recovered.file.metadata().unwrap().ino(), inode);
+    }
+    #[tokio::test]
     async fn unsafe_or_replaced_namespace_is_refused() {
         let a = repo(); let outside = tempfile::NamedTempFile::new().unwrap();
         let path = a.path().join(".git").join(FILE_NAME);
