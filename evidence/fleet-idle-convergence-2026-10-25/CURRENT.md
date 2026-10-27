@@ -1566,3 +1566,19 @@ metadata and local changed/untracked path lists for all37, base64 for exact path
 bytes; all74metadata queries succeeded. No content, index or policy was changed
 by those raw/no-textconv metadata queries. Baseline capture task1 is complete;
 staging task2/2.1 is in progress. See confirmed goal for all8gates.
+
+## Task-board state after this phase (honest)
+
+- 4.1 **complete**: all four gates pass on one committed assembly (2888 tests, 0
+  failed; release build, strict all-target Clippy, deny all exit 0).
+- 2.1/2.2/2.3 and 3.1 remain open by their own evidence; staged-intent code is
+  integrated and consumed by hygiene/excluded-revert/unmerged-epoch/staged-epoch,
+  but the full behavioral-control set and original-hook revision manifest are not
+  finished, so they are not claimed.
+- 4.2 open: installed-execution receipt for the *daemon* behaviours (staged work
+  preservation, concurrency, bounded cancellation) is separate from the Warden
+  install receipt proven here.
+- Task 5 open and currently unmet: 36 repos, 16 ok / 6 active / 14 warn, 18 AHEAD,
+  3 DIRTY, containment `auto_push = false` still in force. Final acceptance needs
+  autonomous publication plus an all-clean idle observation, which cannot hold
+  while publication is contained and editing continues.
