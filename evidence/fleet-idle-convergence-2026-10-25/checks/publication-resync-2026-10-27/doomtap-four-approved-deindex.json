@@ -1,0 +1,37 @@
+{
+  "authorization": "Operator classified only these four exact paths as caches; preserve both variants",
+  "paths": [
+    {
+      "path": "docs/screenshots/qa/arena-ward.png",
+      "originalIndexEntry": "100644 706157b8960054979dbbfb3051deccc673b8de3e 0\tdocs/screenshots/qa/arena-ward.png",
+      "localSha256": "6142a0a579f252e326370d97e437aa55a8414b6efa1d0b023a26216b4ee22da8",
+      "stagedSha256": "b9904bc190994179416e7e25308648f46a3e75003b98c641afadc0b20af21491",
+      "preservedCopies": "/home/dracon/.local/state/dracon-sync/diagnostics/doomtap-four-approved-1793096844064493748/arena-ward"
+    },
+    {
+      "path": "docs/screenshots/qa/arena-wound.png",
+      "originalIndexEntry": "100644 f088adebcb6345896bdbe20c52e094c9430e47df 0\tdocs/screenshots/qa/arena-wound.png",
+      "localSha256": "6812b19c688676496cf1bb126c40d395176fd98262c55df2c77e5088e9c01fc0",
+      "stagedSha256": "28beb44bac46b4ca397563494ad2b38772d3b148a05573601a4cc223dc420cc6",
+      "preservedCopies": "/home/dracon/.local/state/dracon-sync/diagnostics/doomtap-four-approved-1793096844064493748/arena-wound"
+    },
+    {
+      "path": "docs/screenshots/qa/defeat-after.png",
+      "originalIndexEntry": "100644 a2391ec8739f7954a171d6f45cadc56f6a8e8a26 0\tdocs/screenshots/qa/defeat-after.png",
+      "localSha256": "80647fe22cc628f29316fc1dd58a9392651e018b0dd60847b0a9b8f13ead7603",
+      "stagedSha256": "f7d359f97c9264a2f3d3fd2da2c68725f9f006e048988e97c9fd4ef403f17f7b",
+      "preservedCopies": "/home/dracon/.local/state/dracon-sync/diagnostics/doomtap-four-approved-1793096844064493748/defeat-after"
+    },
+    {
+      "path": "docs/screenshots/qa/defeat-before.png",
+      "originalIndexEntry": "100644 744a61219065ab79aed8dfa57dd11a6a4ff46dee 0\tdocs/screenshots/qa/defeat-before.png",
+      "localSha256": "510f7cb52626ea7de88937e5de82ca3fdd627df38f847b412ff4bb19f365f5d0",
+      "stagedSha256": "b50853e2ae1c02f40f346be3374df2b82e07023566938004e5359ae474f863be",
+      "preservedCopies": "/home/dracon/.local/state/dracon-sync/diagnostics/doomtap-four-approved-1793096844064493748/defeat-before"
+    }
+  ],
+  "localBytesUnchanged": true,
+  "unrelatedIndexEntriesUnchanged": true,
+  "trackedAfter": false,
+  "timestamp": "2026-10-27T10:27:24Z"
+}
