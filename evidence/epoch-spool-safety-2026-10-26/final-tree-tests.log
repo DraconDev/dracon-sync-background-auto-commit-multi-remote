@@ -379,4 +379,24 @@ test storage_core::clean::tests::large_source_uses_bounded_read_requests ... ok
 test storage_core::clean::tests::oversized_unknown_stream_stops_at_bounded_recognition_window ... ok
 test storage_core::clean::tests::read_failure_cannot_publish_partial_reference_or_raw_input ... ok
 test storage_core::clean::tests::unchanged_input_and_exact_unhydrated_pointer_are_deterministic ... ok
-test storage_core::hydration::tests::concurrent_edits_creation_and_parent_replacement_preserve_all_operator_bytes ... 
+test storage_core::hydration::tests::concurrent_edits_creation_and_parent_replacement_preserve_all_operator_bytes ... ok
+test storage_core::hydration::tests::crash_helper ... ignored, subprocess helper invoked by hydration crash recovery
+test storage_core::hydration::tests::crash_recovery_resumes_capture_and_publication_without_original_cache_changes ... ok
+test storage_core::hydration::tests::hydration_preserves_index_backup_and_cache_and_restores_executable_mode ... ok
+test storage_core::hydration::tests::hydration_version_capacity_preserves_prior_backup_and_verified_cache ... ok
+test storage_core::hydration::tests::local_edits_corrupt_cache_wrong_references_and_capacity_never_replace_working_bytes ... ok
+test storage_core::hydration::tests::local_resume_needs_no_original_recovery_cache_and_preserves_edits ... ok
+test storage_core::hydration::tests::local_resume_refuses_corrupt_output_intent_and_missing_preparation ... ok
+test storage_core::hydration::tests::missing_working_file_is_published_without_a_backup_or_index_changes ... ok
+test storage_core::hydration::tests::selected_commit_manifest_repo_and_placement_must_match_before_publication ... ok
+test storage_core::index::tests::approved_metadata_cannot_be_substituted_for_another_manifest ... ok
+test storage_core::index::tests::changed_reference_without_verified_job_and_unknown_prior_metadata_fail_closed ... ok
+test storage_core::index::tests::commit_lock_crash_helper ... ignored, commit-lock subprocess helper invoked by crash recovery test
+test storage_core::index::tests::commit_lock_preserves_foreign_locks_and_releases_only_its_inode ... ok
+test storage_core::index::tests::commit_lock_recovers_owned_git_lock_after_process_death ... ok
+test storage_core::index::tests::index_crash_helper ... ignored, subprocess helper invoked by crash recovery test
+test storage_core::index::tests::lossless_non_utf8_paths_are_staged_as_exact_index_entries ... ok
+test storage_core::index::tests::manual_index_changes_and_foreign_locks_are_preserved ... ok
+test storage_core::index::tests::manual_managed_deletion_is_preserved_but_explicit_tombstone_stages ... ok
+test storage_core::index::tests::matched_index_pair_preserves_unrelated_staging_and_source ... ok
+test storage_core::index::tests::matched_pair_recovers_before_and_after_atomic_publication ... 
