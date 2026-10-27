@@ -1,6 +1,33 @@
 # Active systematic fleet-idle repair — checkpoint
 
-## Latest: workspace lifecycle fanout repaired; actual browser evidence remains red
+## Latest qualification: full workspace gates pass; loaded daemon matches
+
+`checks/publication-resync-2026-10-27/frozen-workspace-v2-gates.json` records
+all four unmodified workspace commands passing on one frozen assembly. The
+snapshot uses its own target directory; live helper artifacts were untouched.
+The first snapshot omitted Git metadata, the existing parent Clippy config and
+parent installer required by integration tests. Those setup failures remain in
+their original logs. The corrected assembly includes all three current crate
+revisions (no sibling substitution). Four Clippy failures in system source were
+repaired without runtime cleanup changes: remove unused duplicate wrapper and
+fixture, initialize a report directly, exercise the audit-row helper in the
+existing open-FD test. No assertions or guards were dropped.
+
+`frozen-workspace-v2-loaded-identity.json` proves the loaded, installed and frozen
+release dracon-sync executables all hash to 4ddef737a3fe0d42bfece133722bf48d36b2fa482c14ce01ffc15fc44fba2f9e.
+This is NOT a pass for the still-failed canonical writer-preservation control.
+Task 4.1 is qualified; task 4.2 and final fleet acceptance remain open.
+
+The `.dracon` advertised origin/GitHub/GitLab tips now all equal
+1c34781526b8e14e90791260b0698bd3ec593ef0, a descendant of the observed daemon
+push snapshot 98918e70; the earlier GitHub ref-query failure was transient and
+remains in its receipt. New edits remain pending. Fresh fleet: 36 watched,
+29 summary-OK, 7 active, 0 warnings/inspection failures; dirty/retrying rows
+remain. Doomtap still stages the new `docs/screenshots/qa/ascension-owned.png`
+(index blob 19017b7f9a7915026426a52d29f8dfb121c072c6). The prior exact-four
+cache approval does not silently cover this new file; no de-index was done.
+
+## Workspace lifecycle fanout repaired; actual browser evidence remains red
 
 Supersedes earlier pending-browser and sibling-compile status below, not their
 historical failed outcomes. Bun 1.3.14 ignores `--concurrent-scripts=1` for
