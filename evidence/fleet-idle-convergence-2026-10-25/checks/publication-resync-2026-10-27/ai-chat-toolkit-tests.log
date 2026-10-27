@@ -1,0 +1,7 @@
+
+> ai-chat-toolkit@0.1.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/ai-chat-toolkit
+
