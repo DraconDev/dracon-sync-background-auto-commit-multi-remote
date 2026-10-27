@@ -1,0 +1,14 @@
+{
+  "scope": "original detector over raw commit blobs; no secret-shaped match values emitted",
+  "commit": "8694647696afed263b121e084e8396e01143721d",
+  "matches": [
+    {
+      "path": "secrets/ssh/micro3.key",
+      "blobSha256": "23af0ac553ddd6b58a5e0f48798c6547fcc2ac2c5d0b50bd9d10c6a10a403986",
+      "matchSha256": "591e1f0fc51e4ac0206ae5c570dbd908ebac41aa1738a01753a38c1eeb85ac10",
+      "matchBytes": 39,
+      "insideCompleteCiphertextTag": true,
+      "detectorFamily": "Google API key shape"
+    }
+  ]
+}
