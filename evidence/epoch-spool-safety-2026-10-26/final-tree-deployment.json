@@ -1,0 +1,14 @@
+{
+  "unit": "dracon-sync-operator.service",
+  "method": "atomic replace + SIGTERM via pidfd; unit Restart=always reloads",
+  "label": "parent-tree-delta-and-safe-spool-release",
+  "started_at": "20261027T001638Z",
+  "old_pid": 3349544,
+  "previous_sha256": "01b2a5bb4c4f9dff7a4dc0a2bd71d4b437eaeb8452a4e3f32e355cbb158497f9",
+  "expected_sha256": "4ddef737a3fe0d42bfece133722bf48d36b2fa482c14ce01ffc15fc44fba2f9e",
+  "backup": "/home/dracon/.local/state/dracon-sync/deployments/20261027T001638Z-parent-tree-delta-and-safe-spool-release",
+  "new_pid": 1583026,
+  "running_sha256": "4ddef737a3fe0d42bfece133722bf48d36b2fa482c14ce01ffc15fc44fba2f9e",
+  "finished_at": "2026-10-27T00:16:51Z",
+  "loaded_revision": "verified from /proc/<new-pid>/exe"
+}
