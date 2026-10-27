@@ -1,0 +1,19 @@
+{
+  "observed_at": "2026-10-27T00:22:11.498696+00:00",
+  "pid": 1583026,
+  "candidate_packs_observed": {
+    "dracon-staging-Yo9IC6": {
+      "retained-8234c1b6e9871583bcca99f262393493eebbb385.pack": 32045
+    }
+  },
+  "browser_journal_lines": [
+    "\u26a0\ufe0f /home/dracon/Dev/browser-extensions-shared epoch was published; deadline cancelled post-publication follow-up",
+    "\ud83d\udcdd committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared",
+    "\ud83d\udea8 ALERT: /home/dracon/Dev/browser-extensions-shared has 2039 unpushed commits (threshold: 50). Something may be wrong with push.",
+    "\u23f8\ufe0f /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)",
+    "\u23f8\ufe0f /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused \u2014 will retry when unpaused; no failure recorded)"
+  ],
+  "remaining_observed_directories": [
+    "dracon-staging-Yo9IC6"
+  ]
+}
