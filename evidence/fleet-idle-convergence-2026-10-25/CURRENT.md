@@ -1,5 +1,38 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## 2026-10-27 — typed worktree alias bypass closed in source controls
+
+Replaced basename-only routing: EVERY typed edit/write in a discovered worktree
+now acquires the shared fence before the worker resolves the target. Existing
+same-repo aliases to metadata use atomic canonical publication while retaining
+the alias. Cross-repo/unowned/shared-hardlink mutations refuse instead of using
+another repository's fence or an ordinary unsafe fallback. Parent/Git-marker
+discovery distinguishes no repository from broken/unreadable Git metadata; the
+latter is always an error. External ordinary files retain native in-place
+behavior with no-follow descriptor/ownership/link checks before truncation.
+
+All eighteen disposable controls pass, zero failures/skips. Added actual-loader
+checks cover same-repo alias write/edit, cross-repo refusal, ordinary inode/mode
+fidelity, external plain files, outside link refusal and corrupt ownership
+metadata. Existing cancellation/ENOSPC controls still pass. The cancellation
+probe now pauses on real scratch readiness, verifies its file FD is closed,
+and no longer depends on a brittle count of discovery subprocesses. Source,
+compiled SDK and native Warden identities agree before/after execution:
+`../../docs/design/canonical-writer-fence-2026-10-27/pi-alias-controls.json`.
+
+IMPORTANT NEXT CONTROL: ordinary (non-metadata) in-place writes now run in the
+owned child too. Qualify a cancellation/forced-kill AFTER truncation/write has
+begun; do not infer preservation from atomic metadata tests or enable this
+integration until any failure is fixed. Settle-before-abort behavior must not
+silently weaken. Remaining shell/user-bash/native Git/editor coverage, other
+kill/timeout/error schedules, metadata fidelity/durability, final whole-workspace
+qualification and actual loaded/live fleet proof still remain. Prototype limits
+and unsupported cases are explicit in README and PLAN.
+
+No live session/settings or binary deployment, publication re-enablement,
+count-cap/index migration, manual recovery commit/push or producer stop occurred.
+The original goal/task acceptance and queued security follow-up are unchanged.
+
 ## 2026-10-27 — real Pi registration and actual cancellation/I/O controls pass
 
 Supersedes the prototype's earlier missing-registration status below.
