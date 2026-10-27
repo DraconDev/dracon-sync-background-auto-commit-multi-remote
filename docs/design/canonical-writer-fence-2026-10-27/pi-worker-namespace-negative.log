@@ -1,0 +1,25 @@
+✖ namespace replacement does not make cleanup delete a foreign replacement entry (9.355814ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 65.239744
+
+✖ failing tests:
+
+test at ../pi-plugins/extensions/pi-canonical-write-fence/test/namespace.test.mjs:7:1
+✖ namespace replacement does not make cleanup delete a foreign replacement entry (9.355814ms)
+  Error: ENOENT: no such file or directory, open '/tmp/canonical-namespace-test-0b5I8m/.git/dracon-canonical-writes-v1/dracon-canonical-write-v1-ef9370e8-eded-4d99-9bdc-5cc3186488f6'
+      at async open (node:internal/fs/promises:640:25)
+      at async Module.readFile (node:internal/fs/promises:1290:14)
+      at async TestContext.<anonymous> (file:///home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/test/namespace.test.mjs:20:16)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/tmp/canonical-namespace-test-0b5I8m/.git/dracon-canonical-writes-v1/dracon-canonical-write-v1-ef9370e8-eded-4d99-9bdc-5cc3186488f6'
+  }
