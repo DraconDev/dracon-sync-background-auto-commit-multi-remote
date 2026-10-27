@@ -1,0 +1,26 @@
+✔ differently named same-repo metadata alias uses atomic canonical publication and preserves alias (3076.631818ms)
+✔ cross-repo metadata alias refuses instead of mutating under the wrong repository fence (637.744152ms)
+✔ ordinary regular worktree writes/edits preserve inode and mode rather than metadata replacement semantics (1326.518003ms)
+✔ unowned plain files stay usable but outside symlink/hardlink aliases cannot bypass metadata fencing (22.756725ms)
+✔ broken Git ownership metadata is an error, never an ordinary unfenced fallback (28.422647ms)
+✔ complete atomic publication preserves original mode and removes private scratch (37.527035ms)
+✔ cancellation after full scratch write does not truncate or replace canonical bytes (10.146366ms)
+✔ stale canonical content is refused, not adopted as the old baseline (9.95865ms)
+✔ symlink and shared-hardlink targets refuse without touching their contents (3.854401ms)
+✔ owned recovery inode budget refuses without deleting recovery or changing target (35.707307ms)
+✔ a substituted scratch namespace refuses without publishing into the worktree (4.811088ms)
+✔ actual cancellation before rename preserves canonical bytes, reaps owned writer and permits independent repo progress (2439.843973ms)
+✔ actual scratch write and fsync ENOSPC refuse without replacing canonical content or leaking scratch/fence (2321.464656ms)
+✔ namespace replacement does not make cleanup delete a foreign replacement entry (21.586595ms)
+✔ real Pi loader registers native contracts and executes fenced metadata with dynamic cwd (3530.846291ms)
+✔ actual fenced SDK edit preserves BOM, CRLF, Unicode and native diff contract (1405.876085ms)
+✔ actual SDK write completes atomically and ambiguous edits preserve prior bytes (1511.294588ms)
+✔ worker launched without a held descriptor refuses before target mutation (118.264789ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5211.085437
