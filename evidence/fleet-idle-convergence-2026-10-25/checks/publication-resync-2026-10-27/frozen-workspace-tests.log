@@ -331,3 +331,9 @@
    Compiling fs2 v0.4.3
    Compiling hostname v0.4.2
    Compiling dracon-sync v0.113.96 (/tmp/fleet-qualified-workspace-cmgvn6rm/dracon-sync)
+   Compiling hyper v1.11.1
+   Compiling zbus_macros v5.19.0
+   Compiling ssh2 v0.9.6
+   Compiling hyper-util v0.1.20
+   Compiling tokio-rustls v0.26.5
+   Compiling dracon-warden v0.113.16 (/tmp/fleet-qualified-workspace-cmgvn6rm/dracon-warden)
