@@ -1,5 +1,62 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## 2026-10-27 — pre-push fail-closed repair was being silently reverted; fixed and deployed
+
+While re-verifying the earlier fail-closed pre-push repair, the LIVE global hook
+was found back in the fail-OPEN state, and it flipped between variants
+(`d122d8c1…` fail-closed ↔ `1eaadcf3…` fail-open). Two writers, both real:
+
+1. The installed `~/.local/bin/dracon-warden` (`39db331b…`, 09:58) predated the
+   fail-closed template, and the daemon calls it on EVERY pass —
+   `sweep_warden_autoharden` runs `dracon-warden once` (`dracon-sync/src/sync.rs:1107`),
+   which reaches `refresh_global_hooks_if_stale()` (`dracon-warden/src/main.rs:2151`).
+   Its own `setup-hooks`/`once` output reproduces `fail_open_reproduced: true`.
+2. The workspace test suite wrote the live hook too: `integration_test` ran
+   `once`/`repair` with the inherited HOME, and a 34-second green run changed the
+   operator's `pre-push`. Raw pre-fix observation retained in
+   `dracon-warden/docs/design/prepush-failclosed-deployment-2026-10-27/test-isolation-negative-control.md`.
+
+Root cause is a missing representation, not a Git or network fault: the hook
+marker was version-less (`-v1`), and refresh compared only "is this ours" +
+"does the text differ", so the OLDER template looked like a legitimate drift
+repair. Both variants are genuinely warden-managed.
+
+Fixed: `WARDEN_HOOK_GENERATION` (2) is stamped into every rendered template via
+`WARDEN_HOOK_MARKER_PREFIX`, and `refresh_warden_hook_if_stale` now REFUSES with
+an error — never silently succeeds — when the hook on disk is newer than the
+running binary, leaving its bytes intact. Generation is parsed by prefix
+regex, so a future warden's hook is still recognized as warden-owned and still
+compared, and a comment merely mentioning the marker is not a marker. The
+in-hook chain check (which skipped running warden-local hooks twice) was
+exact-match v1 and is now `^# dracon-warden-managed-hook-v[0-9]+$`; without that
+change a v2 local hook would have been chained and executed twice per push.
+Test isolation: every hook-refreshing CLI test now runs with a private HOME,
+`test_warden_keygen` no longer mutates process env, and
+`hook_refreshing_commands_never_touch_the_operator_home` asserts the live hook
+is byte-identical across a real `once`+`repair` while proving the refresh landed
+in the fixture HOME (so it cannot pass vacuously).
+
+All four workspace gates pass on one committed assembly: tests 44 suites /
+2888 passed / 0 failed, release build OK, strict all-target Clippy clean, deny
+clean (`dracon-warden/docs/design/prepush-failclosed-deployment-2026-10-27/final-gates.json`
+plus raw logs). Deployed via `dracon-sync maintenance` (never a bare stop);
+installed binary now `b31f59ad…f9124` = the gated release build, previous
+binary/policy/hook backed up under
+`~/.local/state/dracon/rollback-binaries/warden-20261027T200325Z`.
+
+Live verification: global `pre-push` is `cc7caa7b…` (marker v2, all 7
+fail-closed checks). Running the daemon's exact auto-harden path leaves it
+byte-identical, it stayed `cc7caa7b…` across live daemon cycles, and both
+installed and qualified binaries generate that same hook. The discretionary
+control against the LIVE hook refuses the synthetic secret, passes a harmless
+change, refuses the simulated scan failure, `fail_open_reproduced: false`.
+
+This is a security-regression repair, NOT convergence progress. Publication is
+still contained by the intentional `auto_push = false`; task 2 staging /
+inspection work is unfinished; task 5 (autonomous publication + all-clean idle)
+remains unmet. No manual commit/push, producer stop, hook bypass or policy
+weakening was used.
+
 ## 2026-10-27 — actual long-abort defect reproduced and repaired; polling stopped
 
 Repeated fleet-only checkpoints were no progress: publication had deliberately
