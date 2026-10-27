@@ -538,4 +538,70 @@ test bucket_runner_bridge::bucket_runner_bridge_tests::oversized_stdout_is_refus
 test bucket_runner_bridge::bucket_runner_bridge_tests::refused_spawn_is_indexed_and_refused ... ok
 test bucket_runner_bridge::bucket_runner_bridge_tests::shared_routing_defaults_fail_closed_on_invalid_data ... ok
 test bucket_runner_bridge::bucket_runner_bridge_tests::shared_routing_defaults_validate_and_preserve_measured_bytes ... ok
-test bucket_runner_bridge::bucket_runner_bridge_tests::timeout_is_refused ... 
+test bucket_runner_bridge::bucket_runner_bridge_tests::timeout_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::unconfigured_repo_does_not_spawn_bundle ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::unsafe_config_paths_are_refused ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_accepts_literal_colon_paths_without_revision_interpretation ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_actual_git_bytes_drive_inclusive_runner_pressure_boundaries ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_ignores_replacements_for_outgoing_deleted_history ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_keeps_lagging_mirror_objects_and_respects_exclusions ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_missing_tip_and_unreadable_git_object_fail_closed ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_potential_codeberg_destination_cannot_be_omitted_by_quota_guess ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_real_git_deduplicates_history_and_selected_worktree ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_refuses_unsupported_encoding_without_transcoding ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_refuses_zero_ceiling_for_a_filtered_candidate_that_would_be_admitted ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_reserves_enforced_output_ceiling_without_executing_filter ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_reserves_tracked_filter_even_when_raw_status_is_clean ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_snapshot_rejects_real_worktree_index_head_and_tip_changes ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_symlink_sizes_link_text_not_referent ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_untracked_toggle_and_read_limit_are_explicit ... ok
+test bump::tests::test_extract_version_from_cargo_ignorefile ... ok
+test bump::tests::test_extract_version_from_cargo_no_version ... ok
+test bump::tests::test_extract_version_from_cargo_package ... ok
+test bump::tests::test_extract_version_from_cargo_with_inline_comment ... ok
+test bump::tests::test_extract_version_from_cargo_with_trailing_semicolon ... ok
+test bump::tests::test_extract_version_from_cargo_workspace_package ... ok
+test bump::tests::test_extract_version_from_json ... ok
+test bump::tests::test_extract_version_from_json_escaped_quotes ... ok
+test bump::tests::test_extract_version_from_json_multiple_keys ... ok
+test bump::tests::test_extract_version_from_json_not_found ... ok
+test daemon::daemon_tests::test_get_status_after_push ... [main (root-commit) 175b449] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpzDQnEz/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main 323d4ea] second
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To /tmp/.tmpzDQnEz/remote.git
+   175b449..323d4ea  main -> main
+ok
+test daemon::daemon_tests::test_get_status_detects_unpushed_commits ... [main (root-commit) ce80971] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpu1pERr/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main 40642d0] unpushed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ok
+test daemon::daemon_tests::test_get_status_refreshes_index ... [main (root-commit) 65e6af0] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test daemon::daemon_tests::test_is_repo_ready_nonexistent_path ... ok
+test daemon::daemon_tests::test_is_repo_stuck_false ... ok
+test daemon::daemon_tests::test_list_stuck_repos_empty ... ok
+test daemon::daemon_tests::test_load_stuck_push_repos_nonexistent ... ok
+test daemon::daemon_tests::test_no_redispatch_invariant ... ok
+test daemon::daemon_tests::test_policy_clone_at_repo_iteration ... ok
+test daemon::daemon_tests::test_sem_max_concurrent_sync_default_is_four ... ok
+test daemon::daemon_tests::test_skips_nonexistent_repo ... ok
+test daemon::daemon_tests::test_stuck_repos_path_format ... ok
+test daemon::daemon_tests::test_stuck_repos_path_format_full ... ok
+test daemon::daemon_tests::test_stuck_repos_path_home ... ok
+test daemon::daemon_tests::test_sync_concurrency_limit_clamps_zero ... ok
+test daemon::daemon_tests::test_trailing_drain_retains_unfinished_owners ... ok
+test daemon::daemon_tests::test_trailing_drain_seed_excludes_previous_cycle_pending ... ok
+test daemon::daemon_tests::test_unstuck_repo_nonexistent ... ok
+test daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness ... 
