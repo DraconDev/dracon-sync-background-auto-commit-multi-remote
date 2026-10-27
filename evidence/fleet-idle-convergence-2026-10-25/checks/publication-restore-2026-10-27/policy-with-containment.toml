@@ -1,0 +1,550 @@
+# =============================================================================
+# 🦾  DRACON PERSISTENCE POLICY (The Synchronization Manual)
+# =============================================================================
+# This file defines how your work is persistent and synchronized.
+# The background 'daemon' monitors this file and reloads policy on save.
+
+### 🏛️  SECTION 1: THE SOVEREIGN CORE
+# [system_repo]
+# The primary repository for your machine laws and state (~/.dracon).
+# The daemon ensures this repo is ALWAYS healthy and synchronized.
+# Fixed 2026-06-07: changed from /home/dracon/dracon (wrong — not a git repo)
+# to /home/dracon/.dracon (the actual git repo).
+system_repo = "/home/dracon/.dracon"
+
+### 🔐 TRUSTED AUTHORS (ownership guard whitelist)
+# Whitelist commits authored by the dracon-code audit agent so the daemon
+# auto-pushes them (added 2026-07-09, goal mrdmxu8n). `audit-agent` commits as
+# `audit@dracon-code`; the built-in defaults already trust `dracsharp@gmail.com`
+# (email) and `DraconDev` (author name). Added here so future audit-agent
+# commits in any repo are treated as owned and pushed.
+# ADDED 2026-07-25 (audit-agent + pi-goal-loop identities): the audit
+# agent's newer identity `audit@dracon.dev` (ai-auto-writer AUDIT_2026-07-24
+# HEAD) and the Virtual Pet pi-goal-loop's `loop@virtualpet.local`
+# (browser-extensions-shared audit commits) were classified unowned and
+# blocked from auto-push. Both are operator-spawned agent identities.
+# Loop identities (2026-07-31, operator: "loops commit as
+# themselves"): each autonomous .pi-glla loop repo commits under its
+# own repo-local user.name/user.email (`<repo>-dev` /
+# `<repo>@dracon.local`) so TOUCHED shows the actual worker instead
+# ADDED 2026-08-08 (v0.113.46 release prep): the operator's manual
+# release/commit identity `DraconDev <dracondev@dracon.local>` — used for
+# ad-hoc release-prep commits; untrusted HEAD was triggering the
+# path_owned:untrusted_author WARN until the daemon's own commit landed.
+# of the daemon's DraconDev. darklord-dev pioneered the pattern via
+# owned=true; these are whitelisted properly instead (F44: both
+# name AND email must be listed).
+trusted_emails = ["dracsharp@gmail.com", "dracondev@dracon.local", "audit@dracon-code", "audit@dracon.dev", "loop@virtualpet.local", "dracon@localhost", "dracon@local", "dracon@dracon.uk", "hegemon@local", "dracon@users.noreply.github.com", "DraconDev@users.noreply.github.com", "phase-e@local", "darklord@dracon.local", "hellhunter@dracon.local", "endless-td@dracon.local", "hegemon@dracon.local", "junk-runner@dracon.local", "neonbreak@dracon.local", "deathrun@dracon.local", "ai-auto-writer@dracon.local", "pully@dracon.local", "polis@dracon.local", "mojo@local", "doomtap@dracon.local", "ultratap-scaffold@dracon.local", "come-get-me-dev@dracon.local"]
+# ADDED 2026-07-15 (goal 1de90bd2): the operator's machine-default
+# git identity `dracon <dracon@localhost>` / `dracon <dracon@local>` is
+# used for the FIRST commit of a freshly `git init`'d repo BEFORE the
+# repo's local user.name/user.email are set to the canonical
+# `DraconDev <dracsharp@gmail.com>`. Without this, such a repo is
+# classified `unowned` (untrusted_author), the daemon skips it
+# (auto_skip_unowned, default true), and its private mirror remotes
+# (e.g. codeberg) are never auto-created — so `git init` → "auto
+# private repo" appears broken (this is what happened to wezterm-config).
+# Trusting the operator's machine-default identities makes these repos
+# owned so the daemon creates + syncs them. The two email variants
+# (`dracon@localhost` vs `dracon@local`) come from git's hostname-based
+# default identity on different machines/configs. Future commits use the
+# canonical identity (already configured), which is also trusted.
+#
+# ADDED 2026-07-20 (goal v0.112.28): `dracon@users.noreply.github.com`
+# and `DraconDev@users.noreply.github.com` are the GitHub web-UI
+# noreply identities — the `username@users.noreply.github.com` email
+# that GitHub sets as the default `user.email` when you commit via the
+# web editor or make a PR merge commit. For a solo operator who
+# occasionally authors via the web UI, this would otherwise trip
+# `untrusted_author` (e.g. `pi-goal-loop-audit` HEAD was authored
+# `dracon <dracon@users.noreply.github.com>` and showed 🚫 unowned).
+# The noreply emails are NOT publicly forgeable — only the GitHub
+# account holder can produce commits with them — so trusting the
+# operator's known usernames (`dracon`, `DraconDev`) is safe.
+# The `DraconDev@users.noreply.github.com` variant was previously
+# explicitly NOT trusted (per AGENTS.md, audit F39), but F39 was about
+# the OWNERSHIP tuple (not a single email match) and that guard still
+# applies — the noreply whitelist only affects the author-email check,
+# not the ownership-substring bypass.
+# ADDED 2026-07-15 (goal 1de90bd2): the operator's machine-default
+# git identity `dracon <dracon@localhost>` / `dracon <dracon@local>` is
+# used for the FIRST commit of a freshly `git init`'d repo BEFORE the
+# repo's local user.name/user.email are set to the canonical
+# `DraconDev <dracsharp@gmail.com>`. Without this, such a repo is
+# classified `unowned` (untrusted_author), the daemon skips it
+# (auto_skip_unowned, default true), and its private mirror remotes
+# (e.g. codeberg) are never auto-created — so `git init` → "auto
+# private repo" appears broken (this is what happened to wezterm-config).
+# Trusting the operator's machine-default identities makes these repos
+# owned so the daemon creates + syncs them. The two email variants
+# (`dracon@localhost` vs `dracon@local`) come from git's hostname-based
+# default identity on different machines/configs. Future commits use the
+# canonical identity (already configured), which is also trusted.
+# ADDED 2026-07-25: author-NAME side of the agent identities added to
+# trusted_emails above (F44 asymmetric-trust check flags when either the
+# email OR the name is untrusted, so both sides must be listed).
+#   "Audit"           — audit agent (audit@dracon.dev / audit@dracon-code)
+#   "Virtual Pet Loop" — pi goal-loop (loop@virtualpet.local)
+# 2026-10-01 operator confirmed all watched repos and loop aliases belong to DraconDev.
+trusted_authors = ["DraconDev", "Dracon", "dracon", "Audit", "Virtual Pet Loop", "phase-e-agent", "darklord-dev", "hellhunter-dev", "endless-td-dev", "hegemon-dev", "junk-runner-dev", "neonbreak-dev", "deathrun-dev", "ai-auto-writer-dev", "pully-dev", "polis-dev", "mojo", "doomtap-dev", "ultratap-scaffold", "come-get-me-dev"]
+
+### 📡 SECTION 2: THE RHYTHM (Sync Logic)
+# How often (seconds) to scan repos for activity while daemon is running.
+pulse_interval_secs = 1
+# Push only after this many quiet seconds since last detected repo change.
+# CHANGED 2026-06-16 (goal 114541e6): 5 -> 3. With AI agents working in
+# the same repo, the 5s window was chaining unrelated changes into a
+# single commit. The 3s debounce produces more granular commits with
+# CHANGED 2026-06-20: 5 -> 2 (tighter settle to avoid mixing unrelated
+# edits from different game/API projects in the same commit while still
+# batching rapid edits on the same file).
+inactivity_push_delay_secs = 2
+# CHANGED 2026-06-20 (goal 38142891-839f-4569-b566-3ace1d5be354): 100000 -> 100.
+# Previous value (100000) was too high: the daemon committed 50-100
+# file batches in one go, which made individual commits too large to
+# review and caused several large-push timeouts in the prior week.
+# The 100-file batch limit keeps individual commits reviewable and
+# matches the AGENTS.md audit that originally recommended this value.
+# The 100-file limit is per-cycle; multiple cycles may be needed for
+# a single 200+ file batch, but the daemon settles between cycles so
+# the result is still 1-2 commits per batch, not 5+ like the 1s/100k
+# configuration produced.
+max_stage_batch_files = 100
+
+
+# [auto_commit] - Automatically stage and commit local changes.
+auto_commit = true
+# If true, bump patch versions before auto-commits (best-effort).
+# Applies when these files exist at repo root:
+# - Rust: Cargo.toml (+ keep Cargo.lock aligned for root package)
+# - Node/TS: package.json (+ align package-lock.json root version when applicable)
+# - Generic: VERSION
+auto_bump_versions = true
+# [auto_pull]   - Rebase and autostash remote changes before committing.
+auto_pull = true
+# [auto_push]   - Propagate local commits to all configured remotes.
+# Temporary security containment, 2026-10-27: investigate published plaintext env blobs.
+# Restore only after fail-closed publication is qualified; private original saved in
+# ~/.local/state/dracon-sync/security-incident-20261027T145429Z/.
+auto_push = false
+# [auto_github_private] - Auto-create GitHub origin remote for repos without one.
+auto_github_private = false
+auto_github_private_account = "DraconDev"
+# [auto_repair_concerns] - Run concern repair logic after each sync pass.
+auto_repair_concerns = true
+# [auto_repair_warns] - Run dirty-only warn triage after each sync pass.
+auto_repair_warns = true
+# [auto_rewrite_large_blobs] - Aggressive rewrite when large blobs are detected.
+# Keep false for safe default behavior.
+# CHANGED 2026-08-30: true -> false — true was reverting the F4
+# Object.values(LEGACY_KEYS) derivation 4× (3dd0634f/21e4d685/a1495554/
+# dcd7646f; getter workaround c0f0e39 also reverted as fd1c8ed) — the
+# heuristic treats a 1-line derivation as blob-like. Stable fix is
+# b8eeaf23 DB-only (no LEGACY_KEYS at all). Disable globally per
+# the inline warning.
+auto_rewrite_large_blobs = false
+
+# Git operation idle timeouts (seconds). Push/pull commands are progress-aware:
+# stalled operations are killed after this idle window, while active pack
+# transfer progress extends the deadline so large repos are not aborted early.
+pull_op_timeout_secs = 30
+# CHANGED 2026-06-17 (push-timeout-fix-2026-06-17): 60 -> 300.
+# The v0.112.10 release surfaced this limit: a 23-file commit in
+# `dracon-platform` (mostly game-dev smoke-out PNG binaries) timed out
+# at 60s to gitlab and codeberg, triggering PUSH_STUCK. Recovery
+# required a manual `timeout 300 git push --no-verify` to clear.
+# 300s matches the daemon's own code default (`default_push_op_timeout_secs`
+# in dracon-sync/src/policy.rs) and gives a ~5x safety margin over the
+# measured >60s push time for the 23-file PNG commit. Per-remote
+# timeouts (e.g. 60s for github, 300s for gitlab/codeberg) would be
+# more precise but require a daemon code change (deferred to a
+# follow-up daemon release). For now, the single global 300s is
+# wasteful for github (which never takes more than a few seconds) but
+# harmless — the daemon times out via process kill, not via waiting.
+# See docs/design/push-timeout-fix-2026-06-17.md for the full data,
+# rationale, and runbook.
+#
+# CHANGED 2026-06-23 (goal mqqsyzyd-qkvna5): 300 -> 900.
+# A 50-commit + 5000+ file push in `dracon-platform` (mostly game-dev
+# smoke-out PNGs + darklord audit batches) kept timing out at 300s
+# to gitlab, causing 7+ consecutive PUSH_STUCK failures over 2 hours.
+# Investigation (see docs/design/gitlab-storage-and-divergence-2026-06-23.md
+# UPDATE 2026-06-23 16:35 BST section) showed the push WOULD succeed
+# given more time — gitlab returned "fast-forward" on --dry-run, and
+# the 300s timeout was the only blocker. Bumping to 900s (15 min) gives
+# ~3x the previous safety margin. Per-remote timeout is still deferred
+# (daemon code change). The 900s is global; github pushes still finish
+# in <5s so the waste is minimal. After the platform backlog drains,
+# this can be tuned back down.
+# NOTE 2026-10-22 (vidpro channel-facts-line work) — no value change.
+# While unblocking `browser-extensions-shared`, the push was investigated to
+# the bottom and this timeout was RULED OUT as the cause. Measurements:
+#   - The daemon scales this base by the commit count (`scale_push_timeout`:
+#     4x for 21-50 commits ahead). At base 900s and 37 commits ahead the
+#     effective window was 900 x 4 = 3600s (60 min).
+#   - The pre-push gate (`scripts/git-hooks/pre-push`) derives its affected
+#     workspaces from the PUSHED RANGE and runs typecheck + build + test +
+#     lint for each. Measured end to end in the daemon's own run: 19m 50s
+#     for 9 extensions (36 gate logs), all green. 20 min fits inside 60 min.
+#   - `git push --dry-run` of the same range succeeds instantly and both
+#     remotes answer `git ls-remote`.
+# So the window was never the blocker, and the base was left at 900s.
+# The GitHub leg is skipped by the daemon's own 2 GiB guard: this repo's
+# pack is 2.73 GiB, and `github_pack_too_large` makes the daemon skip the
+# GitHub push and record "skipped: pushable branch exceeds github's 2 GiB
+# pack limit" — which surfaces as a PUSH FAIL in `dracon-sync repos`.
+# The daemon's own remedy is a history rewrite or an OVH asset migration.
+push_op_timeout_secs = 900
+# CHANGED 2026-06-23 (goal mqqsyzyd-qkvna5): 120 -> 960.
+# The 2026-06-17 health-warning threshold (push/pull timeout + 30s
+# safety margin) was 330s. With push_op_timeout_secs now at 900s,
+# repo_sync_timeout_secs needs to be > 900+30 = 930s to avoid the
+# health warning. 960s gives 30s margin over the 900s push timeout.
+# Normal repos still finish in <10s so the waste is minimal; only
+# platform's 50-commit + 5000-file push needs the full window.
+# Daemon's policy validator will re-validate on next cycle.
+repo_sync_timeout_secs = 960
+# Retry count for push operations before fallback transport logic.
+push_retries = 3
+# Cooldown between failed auto-repair attempts on the same repo.
+repair_cooldown_secs = 60
+# Hard push guardrail for blob size; keep <= 100 MiB host limit.
+max_push_blob_bytes = 52428800
+# Incident ledger retention policy.
+incident_ledger_max_lines = 10000
+incident_ledger_max_age_days = 30
+
+# CHANGED 2026-06-26 (goal mqu95usq-hbt73a): 10 -> 50.
+# Platform's PUSH_STUCK divergence (now ~889 ahead / 20 behind, growing
+# ~1 commit / 30s, pre-existing from goal mqqsyzyd-qkvna5) was causing
+# the daemon to emit ALERT journal entries every ~30s while the count
+# grew from 10 -> 11 -> 12 -> ... -> 889. With threshold=10, the daemon
+# fired 100+ ALERTs in 2h; with threshold=50, alerts only fire when
+# the divergence crosses 50, 100, 150, ... (i.e. every ~25 min instead
+# of every ~30s). This is the FIRST of three spam-reduction changes
+# (the other two are in ~/.dracon/sync-notify/sync-notify.sh: longer
+# throttle and de-duplication while the same condition persists).
+# Per the goal's Boundaries: the daemon config is NOT a daemon code
+# change (the field already exists in policy.rs at line 510-511, default
+# value at line 970-972). No rebuild needed; daemon restart picks up
+# the new value.
+alert_unpushed_threshold = 50
+
+# Mirror visibility & metadata sync from GitHub origin
+sync_visibility = true
+sync_metadata = true
+sync_visibility_interval_hours = 24
+
+### 🔒 SECTION 3: THE VAULT (Backup Strategy)
+# 'Bundle' creates air-gapped git-bundle files in the backup_dir before every
+# sync attempt. This is your insurance against failed rebases or data loss.
+backup_policy = "Bundle"
+backup_dir = "/home/dracon/dracon/backups"
+
+# v0.113.10 (2026-07-29): opt-in stale daemon-branch janitor. Daily per-repo
+# pass bundles `backup/pre-sync-largeblob-fix-*` + `daemon-standalone`
+# branches and orphaned refs/remotes/<removed-remote>/* tracking refs into
+# backup_dir/auto-prune/, verifies the bundle, deletes locally, and deletes
+# remote copies whose tips match. Enabled after the 2026-07-29 manual fleet
+# cleanup proved the flow (docs/design/stale-backup-branch-cleanup-2026-07-29.md).
+auto_prune_stale_backup_branches = true
+
+# --- SECTION 4: THE SCOPE ---
+# Roots recursively patrolled for .git repositories to persistent.
+# CHANGED 2026-07-03 (goal mr5c6mz0-tbtcrj): removed /home/dracon/dracon
+# (3rd root had no .git repos — only backups/ + utilities/ — and was
+# logging 'does not exist, skipping' on every daemon startup).
+# Canonical state dir is /home/dracon/.dracon (with the dot).
+watch_roots = [
+    "/home/dracon/.dracon",
+    "/home/dracon/Dev",
+    "/home/dracon/dracon/bridge-fixture"
+]
+
+# NOTE: All top-level fields below MUST appear before any [[remotes]] or
+# [section] headers. TOML silently ignores fields placed after a section header.
+
+# Hegemon quarantined 2026-09-17: recurring stale-mirror merge conflicts.
+# Remove only after its divergent mirror histories are reconciled.
+exclude_repos = [
+  "/home/dracon/Dev/dracon-platform/web/games/wip/hegemon",
+  # eve audit pass 2026-09-25: this repo tracks build INPUTS, not build output.
+  # dist/ holds the release scripts and the loadout manifest that eve-cli
+  # embeds via include_str!, and vendor/ holds the vendored crate tree that
+  # cargo verifies against .cargo-checksum.json. The daemon's exclude_dir_names
+  # covers "dist" and "build", so it stripped these from the index three times,
+  # leaving a clean checkout unable to compile. Exclude the whole repo rather
+  # than weaken the global list for every other repo. Backup:
+  # dracon-sync.toml.bak-eve-audit
+  "/home/dracon/Dev/eve",
+  # pi-global-context-limit GLLA compaction repair: hold auto-staging while
+  # the bounded cross-repository goal is under active test/review.
+  # 2026-10-10: folder-auto-banner deliberately scrapped (both local
+  # checkouts removed). The canonical clone and a duplicate nested under
+  # pi-plugins/pi-goal-list-loop-audit/folder-auto-banner were the same
+  # repo at SHA 241b2e46, fully pushed to github+gitlab+origin with zero
+  # local-only work. Quarantine here so the daemon never re-discovers the
+  # paths if anything leaves a residual entry; the two pre-existing
+  # "watched repo path VANISHED" concerns remain in the incidents ledger
+  # as the historical record of the removal.
+  "/home/dracon/Dev/folder-auto-banner",
+  "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit/folder-auto-banner",
+  # 2026-10-11: step5show deliberately scrapped (private showcase of the
+  # step-5-preview-free model; never deployed, no consumers, no dependencies
+  # on it). Local checkout + github + gitlab repos removed. Quarantine
+  # the path so the daemon never re-discovers it; the "watched repo path
+  # VANISHED" concern for /home/dracon/Dev/step5show stays in the
+  # incidents ledger as the historical record of the removal. Recovery
+  # tarball: ~/dracon/backups/step5show-scrapped-20261011T004014Z.tar.zst
+  "/home/dracon/Dev/step5show",
+  # 2026-10-23: aud-vis is a stale audit scratch COPY of capture-anime-girls,
+  # not an independent checkout. Its .git is a gitdir: file pointing at
+  # .git/modules/web-games-capture-anime-girls — the same gitdir
+  # capture-anime-girls/.git uses — so `git rev-parse --show-toplevel` inside
+  # aud-vis resolves to capture-anime-girls, not to aud-vis.
+  #
+  # The daemon's own worktree-identity guard (git/inspection.rs) correctly
+  # REFUSES to inspect it ("Git metadata resolves to a different worktree"),
+  # which is the safe outcome — inspecting it would have scheduled a push
+  # against capture-anime-girls' history under aud-vis' name. But discovery
+  # still re-finds the path every cycle, so the guard fired and the status
+  # task failed 88 times in 24h (first seen 2026-10-20, i.e. predating the
+  # 2026-10-22/23 bucket-policy and push-gate work). Each failure also
+  # counted toward the fleet-wide `failures` total, so a single stale
+  # directory kept the fleet reading as "1 failure" long after the real
+  # blockers were fixed.
+  #
+  # Quarantined (not deleted) for the same reason as the entries above:
+  # the directory holds 1.1 GB of audit evidence and .pi-glla/ goal state
+  # that the operator may still want, and per AGENTS.md a nested checkout
+  # must not be removed by an agent without an explicit operator decision.
+  # No process has it open and its newest file is from 2026-10-20.
+  "/home/dracon/Dev/dracon-platform/web/games/wip/aud-vis",
+]
+
+# Exclude heavy/generated trees from repo discovery and auto-staging.
+exclude_dir_names = [
+    # "target" REMOVED 2026-09-25 (eve audit pass): it also matched the
+    # vendored crate source directory vendor/cc/src/target/, which cargo needs.
+    "node_modules",
+    ".cache",
+    ".venv",
+    # REMOVED 2026-09-25 (eve audit pass): "dist" and "build" were stripped
+    # from TRACKED files, which broke /home/dracon/Dev/eve, whose dist/ holds
+    # the release scripts plus the loadout manifest that eve-cli embeds via
+    # include_str!, and whose vendor/cc/src/target and vendor/*/build are
+    # cargo checksum inputs. build_artifact_cleanup deletes tracked files under
+    # these names, so listing them is not merely "skip staging". A per-repo
+    # exclude_dir_names override at .dracon/dracon-sync.toml was tried first
+    # and is NOT honored by this daemon version. An audit of all synced repos
+    # found no other repo with tracked dist/ or build/ content, so removing the
+    # names is safe; .gitignore in each repo still keeps real build output
+    # untracked. Backups: dracon-sync.toml.bak-eve-audit{,2}
+    "archives",
+    ".tmp-*",
+    # Runtime fixtures/state under ~/.dracon/repo-runtime are not Git
+    # repositories. Skipping this tree keeps discovery fast without hiding
+    # any repository row.
+    "repo-runtime"
+]
+
+# Exclude specific file patterns from auto-staging (game logs, event files, etc).
+# These files will be ignored during auto-commit to prevent perpetual dirty state.
+# CHANGED 2026-06-15 (goal 9aaf0b08): operator's new policy is "commit all unless
+# super-good reason like >100MB". Logs and DBs are now committed. Empty list.
+# 2026-10-11 (hellhunter audit pass, USER DECISION: "make the art durable").
+#
+# That pass set build_artifact_cleanup = false to keep the art tracked, at the
+# cost of disabling the build-artifact net for all 34 watched repos. The
+# queue item ".pi-glla/goals/20261011163341-ypwzqd.md" closed the loop on
+# 2026-10-11: the directory was renamed from static/art/generated/ to
+# static/art/shipped/ — `shipped` is not in the daemon's hardcoded list
+# (".output" | ".out" | "output" | "generated" | "gen" | ".next" | "dist-new"
+# | .output* | *_output | output-*, see draco-sync-0.113.77/src/exclude.rs:1714),
+# so the cleanup net is now restored for the other 33 repos while the shipped
+# art stays tracked (100 files, ~15.7 MB, all <=500 KB) under a name the
+# daemon ignores. Backup of the 2026-10-11 false setting preserved at
+# dracon-sync.toml.bak-hellhunter-art-20261011; backup of this re-enable at
+# dracon-sync.toml.bak-hellhunter-art-rename-20261011.
+build_artifact_cleanup = true
+
+# Skip staging files larger than 100 MiB during auto-commit (operator's stated
+# threshold). Note: this is the code default in policy.rs; operator's old config
+# had it at 50 MiB. Restored to 100 MiB per the new policy.
+max_stage_file_bytes = 104857600
+
+# Auto-gc garbage threshold. CHANGED 2026-10-26 after the root disk hit 100%:
+# ai-auto-writer/.git had accumulated 33 GiB of orphaned tmp_pack_* files
+# (11 files, 3-4.4 GiB each) from interrupted/parallel gc+repack runs, and
+# dracon/conv-work held another ~4.6 GiB. `git count-objects -v` reports
+# tmp_pack/tmp_idx bytes under size-garbage, so this knob DOES see that class —
+# but the 2 GiB code default was too high: by the time it fires the daemon's
+# own gc needs headroom to run, and a 100%-full disk gives it none. The garbage
+# had therefore to be reclaimed by hand. 512 MiB triggers gc while there is
+# still room for it to complete, and the 1-hour per-repo cooldown in
+# maybe_auto_gc keeps that bounded. 0 would disable the self-heal entirely.
+auto_gc_garbage_threshold_bytes = 536870912
+
+# Override the default untracked_exclude_patterns. CHANGED 2026-06-17:
+# the operator's position is "global default = commit everything untracked,
+# unless putting it in the repo would be very wrong". The previous list
+# (scratch/, tmp/, pi-tmp/, .demon/, .sisyphus/, .ralph/) conflated
+# "short-lived" with "very wrong to commit". They are not the same thing.
+#
+# Short-lived files are valid git content: the user/agent can `rm` them
+# from the working tree when they're done, and the daemon will commit the
+# deletion. If the user wants to recover, the file is in git history.
+#
+# Things that ARE very wrong to commit (handled elsewhere, NOT here):
+#   - Secrets in plaintext  → warden owns the encryption flow
+#   - Files > 100 MiB        → max_stage_file_bytes = 104857600
+#   - Build artifacts (node_modules/, target/, build/, dist/) → gitignore
+#
+# This is a global rule. Per-repo overrides are reserved for cases where
+# a specific repo needs to opt back into excluding something (e.g. an
+# operator-owned repo with a different convention).
+#
+# Historical context: the previous 11 patterns were added in goals
+# 9aaf0b08 and 546d4f9c as "super-good reasons to keep untracked". The
+# 2026-06-17 reframe is that short-lived ≠ very-wrong-to-commit, so
+# none of them qualify anymore.
+untracked_exclude_patterns = []
+
+# --- SECTION 7: STANDARD FILES ---
+# AGPL v3 LICENSE auto-copied to every repo. Never overwrites existing files.
+# FUNDING.yml is the GitHub Sponsors / community funding configuration; it
+# must live at .github/FUNDING.yml for GitHub to discover it. This is a
+# Dracon-specific opt-in, not a generic dracon-sync default for external users.
+# The default template ships with no funding destinations so a freshly-scaffolded
+# repo advertises nothing until the operator fills it in.
+# Long form is used because GitHub requires the .github/ subdir for FUNDING.yml
+# and the deserializer only accepts a single array shape (all short or all long).
+# CHANGED 2026-07-22 (audit M20/F3.2 cleanup): moved ABOVE the
+# [[standard_files]] blocks — TOML silently absorbs trailing bare keys
+# into the last table entry, so this field was being ignored (harmless
+# while it matched the default, but a trap the day it changed).
+standard_files_auto = true  # Auto-copy ensures new repos always get these
+
+[[standard_files]]
+source = "templates/LICENSE"
+target = "LICENSE"
+overwrite = false
+
+[[standard_files]]
+source = "templates/FUNDING.yml"
+target = ".github/FUNDING.yml"
+overwrite = false
+
+# Per-repo name mapping for platforms that reject dots (GitLab, Codeberg).
+# Maps local directory name → remote project name.
+
+# --- SECTION 5: EXTRA REMOTES ---
+# DELETED 2026-07-22 (audit M20/F3.2 cleanup): the [extra_remotes] table
+# mapped to no SyncPolicy field and was silently dropped by the parser.
+# If extra remotes are ever needed, that is a real feature (serde field +
+# tests), not a zombie section.
+
+# --- SECTION 6: MIRROR REMOTES ---
+# These remotes are pushed to in addition to origin on every sync cycle.
+# The {repo} placeholder is replaced with the repo directory name.
+
+[[remotes]]
+name = "github"
+push_url = "git@github.com:DraconDev/{repo}.git"
+auto_create = true  # Auto-create GitHub private repos for new repos
+
+[remotes.repo_name_map]
+".dracon" = "dracon-home"
+# ADDED 2026-06-22 (goal mqpnfivr-9hqvp0): the 3 utility subrepos
+# live inside /home/dracon/Dev/dracon-utilities/ as
+# dracon-sync/, dracon-warden/, dracon-system/ but the public
+# github mirrors use the longer descriptive names. Map them
+# so auto_create / push_url expansion hits the right repo.
+"dracon-sync" = "dracon-sync-background-auto-commit-multi-remote"
+"dracon-warden" = "dracon-warden-secret-encrypt-age-git-filter"
+"dracon-system" = "dracon-system-disk-process-guard-doctor"
+# ADDED 2026-07-22: pi-goal-loop-audit was renamed to
+# pi-goal-list-loop-audit on all forges (npm package rename). The
+# local dir keeps the old name, so map it; remove this entry if the
+# local dir is renamed to match.
+"pi-goal-loop-audit" = "pi-goal-list-loop-audit"
+# ADDED 2026-06-30 (goal mr10pdzr-i495vy): the 9 submodules of
+# dracon-platform (web-games-*) materialize as standalone
+# worktrees at /home/dracon/Dev/<name>/ (e.g. /home/dracon/Dev/polis/)
+# but the public mirrors use the web-games-<name> form (e.g.
+# DraconDev/web-games-polis). Map them so the daemon's
+# configure_all_remotes / push_url expansion hits the right
+# remote repo on each forge.
+"polis" = "web-games-polis"
+"junk-runner" = "web-games-junk-runner"
+"hellhunter" = "web-games-hellhunter"
+"one-mil-girls" = "web-games-one-mil-girls"
+"deathrun" = "web-games-deathrun"
+"capture-anime-girls" = "web-games-capture-anime-girls"
+"darklord" = "web-games-darklord"
+"endless-td" = "web-games-endless-td"
+"neonbreak" = "web-games-neonbreak"
+# ADDED 2026-09-17 (goal 20260917025210-aczhpk): freeport submodule registered as
+# web-games-freeport on github+gitlab (two-mirror exception, no codeberg).
+"freeport" = "web-games-freeport"
+# ADDED 2026-09-28 (goal 20260928215957-bqgri7): space-trucker converted from
+# 151 parent-tracked files to a real submodule. Its mirrors are
+# DraconDev/web-games-space-trucker on github+gitlab. Without this mapping the
+# daemon's push_url expansion would resolve the repo name to plain
+# "space-trucker" and — because BOTH remotes set auto_create = true — silently
+# create a second, wrongly-named DraconDev/space-trucker pair that diverges
+# from the real mirrors. The codeberg mirror is listed in .gitmodules per the
+# 14-sibling three-URL pattern but is not creatable: the shared account quota
+# is exhausted (HTTP 413 "quota exceeded" on repo creation), the same limit
+# that got Codeberg disabled for this daemon on 2026-08-13.
+"space-trucker" = "web-games-space-trucker"
+
+[[remotes]]
+name = "gitlab"
+push_url = "git@gitlab.com:DraconDev/{repo}.git"
+auto_create = true  # Auto-create GitLab private repos for new repos
+# CHANGED 2026-06-16 (goal 87c1bf4d):
+# force_push_when_behind = true enables the daemon's
+# existing --force-with-lease mechanism when gitlab
+# is purely behind local. This prevents PUSH_STUCK
+# states when network latency causes concurrent
+# multi-remote pushes to race (gitlab and codeberg
+# get a commit while origin/github get a different
+# one). The --force-with-lease flag is SAFE: it
+# aborts if the remote has commits local doesn't
+# know about (i.e. someone else pushed). The
+# operator is the sole author on these repos, so
+# this is acceptable.
+force_push_when_behind = true
+
+[remotes.repo_name_map]
+".dracon" = "dracon-home"
+"dracon-sync" = "dracon-sync-background-auto-commit-multi-remote"
+"dracon-warden" = "dracon-warden-secret-encrypt-age-git-filter"
+"dracon-system" = "dracon-system-disk-process-guard-doctor"
+# ADDED 2026-07-22: pi-goal-loop-audit was renamed to
+# pi-goal-list-loop-audit on all forges (npm package rename). The
+# local dir keeps the old name, so map it; remove this entry if the
+# local dir is renamed to match.
+"pi-goal-loop-audit" = "pi-goal-list-loop-audit"
+# ADDED 2026-06-30 (goal mr10pdzr-i495vy): see github remotes
+# section above for context. Same mapping for gitlab and
+# codeberg so all 3 forges use the web-games-* remote names.
+"polis" = "web-games-polis"
+"junk-runner" = "web-games-junk-runner"
+"hellhunter" = "web-games-hellhunter"
+"one-mil-girls" = "web-games-one-mil-girls"
+"deathrun" = "web-games-deathrun"
+"capture-anime-girls" = "web-games-capture-anime-girls"
+"darklord" = "web-games-darklord"
+"endless-td" = "web-games-endless-td"
+"neonbreak" = "web-games-neonbreak"
+"freeport" = "web-games-freeport"
+"space-trucker" = "web-games-space-trucker"
+
+# Codeberg is intentionally disabled globally (2026-08-13): its shared
+# account quota is exhausted and rejected pushes create recurring daemon
+# failures. Existing Codeberg repositories are preserved, but the daemon no
+# longer configures, creates, or pushes any Codeberg remote. To re-enable it,
+# restore the `[[remotes]]` block from git history after confirming quota and
+# policy suitability.
