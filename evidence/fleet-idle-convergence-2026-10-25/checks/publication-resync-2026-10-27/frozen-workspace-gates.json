@@ -1,0 +1,14 @@
+{
+  "assembly": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/publication-resync-2026-10-27/frozen-workspace-assembly.json",
+  "rows": [
+    {
+      "gate": "tests",
+      "command": "cargo test --workspace --locked",
+      "exitCode": 101,
+      "elapsedSecs": 346.07,
+      "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/publication-resync-2026-10-27/frozen-workspace-tests.log",
+      "sha256": "b3f9a8eba3a26b93bc1d9af137849da647a0ed9d150e7dc493d6f34ada52043a"
+    }
+  ],
+  "allPassed": false
+}
