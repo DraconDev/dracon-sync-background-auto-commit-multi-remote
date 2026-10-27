@@ -3258,4 +3258,17 @@ test tests::tests::pre_push_hook_openai_boundary_preserves_real_text_and_binary_
 test tests::tests::pre_push_hook_passes_on_clean_binary ... ok
 test tests::tests::pre_push_hook_passes_on_clean_commit ... ok
 test tests::tests::pre_push_hook_passes_trusted_author ... ok
-test tests::tests::pre_push_hook_preserves_explicit_plaintext_sibling_exception ... 
+test tests::tests::pre_push_hook_preserves_explicit_plaintext_sibling_exception ... ok
+test tests::tests::pre_push_hook_rejects_test_identity_author ... ok
+test tests::tests::pre_push_hook_scan_survives_local_hook_stdin_consumption ... ok
+test tests::tests::pre_push_hook_secret_re_matches_token_shape_source ... ok
+test tests::tests::pre_push_hook_skips_legacy_warden_local_hook ... ok
+test tests::tests::pre_push_hook_still_blocks_secrets_around_tags ... ok
+test tests::tests::pre_push_hook_tag_does_not_rescan_published_history ... ok
+test tests::tests::pre_push_hook_test_identity_on_non_first_parent_merge_passes ... ok
+test tests::tests::pre_push_modified_binary_still_blocks_new_pem_material ... ok
+test tests::tests::pre_push_review_receipt_binds_blob_and_individual_match ... ok
+test tests::tests::pre_rebase_hook_allows_unpublished_commits ... ok
+test tests::tests::pre_rebase_hook_blocks_published_boundary_commit ... ok
+test tests::tests::pre_rebase_hook_blocks_published_commit_deeper_than_100 ... ok
+test tests::tests::pre_rebase_hook_chains_and_propagates_local_hook_failure ... 
