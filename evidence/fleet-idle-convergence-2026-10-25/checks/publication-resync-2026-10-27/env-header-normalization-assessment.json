@@ -1,0 +1,29 @@
+[
+  {
+    "path": "apis/services/auth-api/.env.dev",
+    "newWholeFileTag": true,
+    "existingHeader": true,
+    "unchangedBodySuffix": false,
+    "addedPrefixBytes": -1,
+    "headerMarkerAdded": true,
+    "newHeaderIsCommentsOnly": false
+  },
+  {
+    "path": "apis/services/billing-api/.env.dev",
+    "newWholeFileTag": true,
+    "existingHeader": true,
+    "unchangedBodySuffix": false,
+    "addedPrefixBytes": 0,
+    "headerMarkerAdded": true,
+    "newHeaderIsCommentsOnly": false
+  },
+  {
+    "path": "apis/services/email-api/.env.dev",
+    "newWholeFileTag": true,
+    "existingHeader": true,
+    "unchangedBodySuffix": false,
+    "addedPrefixBytes": 0,
+    "headerMarkerAdded": true,
+    "newHeaderIsCommentsOnly": false
+  }
+]

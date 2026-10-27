@@ -1,0 +1,35 @@
+[
+  {
+    "path": "apis/services/auth-api/.env.dev",
+    "wholeFileTag": true,
+    "entireBodyExact": true,
+    "oldHeaderVersion": [
+      1
+    ],
+    "newHeaderVersion": [
+      2
+    ]
+  },
+  {
+    "path": "apis/services/billing-api/.env.dev",
+    "wholeFileTag": true,
+    "entireBodyExact": true,
+    "oldHeaderVersion": [
+      8
+    ],
+    "newHeaderVersion": [
+      9
+    ]
+  },
+  {
+    "path": "apis/services/email-api/.env.dev",
+    "wholeFileTag": true,
+    "entireBodyExact": true,
+    "oldHeaderVersion": [
+      2
+    ],
+    "newHeaderVersion": [
+      3
+    ]
+  }
+]
