@@ -1,0 +1,18 @@
+[
+  {
+    "gate": "tests",
+    "command": "cargo test --workspace --locked",
+    "exitCode": 101,
+    "elapsedSecs": 306.34,
+    "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/publication-resync-2026-10-27/frozen-workspace-corrected-tests.log",
+    "sha256": "d903b88d55d9e9b85ee93d7c1e1b4c0a13ad7401df8b52c39457738508ecff4c"
+  },
+  {
+    "gate": "clippy",
+    "command": "cargo clippy --workspace --locked --all-targets -- -D warnings",
+    "exitCode": 101,
+    "elapsedSecs": 14.07,
+    "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/publication-resync-2026-10-27/frozen-workspace-corrected-clippy.log",
+    "sha256": "0ec5f70a5cb443de60ad24d5a7c213d8e0892f3dc7694f5113276abc048d1e3c"
+  }
+]

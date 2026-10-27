@@ -1,0 +1,40 @@
+    Checking dracon-system v0.112.51 (/tmp/fleet-qualified-workspace-cmgvn6rm/dracon-system)
+    Checking dracon-sync v0.113.96 (/tmp/fleet-qualified-workspace-cmgvn6rm/dracon-sync)
+error: function `nix_generations_to_delete` is never used
+    --> dracon-system/src/main.rs:5164:15
+     |
+5164 | pub(crate) fn nix_generations_to_delete(generations: &[u32], keep: usize) -> Vec<u32> {
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `-D dead-code` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+error: function `options` is never used
+   --> dracon-system/src/disk.rs:926:8
+    |
+926 |     fn options() -> DiskOptions {
+    |        ^^^^^^^
+
+error: function `audit_rows` is never used
+   --> dracon-system/src/disk_refs.rs:396:15
+    |
+396 | pub(crate) fn audit_rows(capture: &ReferenceCapture) -> BTreeMap<u32, String> {
+    |               ^^^^^^^^^^
+
+error: field assignment outside of initializer for an instance created with Default::default()
+   --> dracon-system/src/disk.rs:954:9
+    |
+954 |         report.empty_classes = TrashClass::ALL.to_vec();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: consider initializing the variable with `disk::DiskReport { empty_classes: TrashClass::ALL.to_vec(), ..Default::default() }` and removing relevant reassignments
+   --> dracon-system/src/disk.rs:953:9
+    |
+953 |         let mut report = DiskReport::default();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#field_reassign_with_default
+    = note: `-D clippy::field-reassign-with-default` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::field_reassign_with_default)]`
+
+error: could not compile `dracon-system` (bin "dracon-system" test) due to 4 previous errors
+warning: build failed, waiting for other jobs to finish...
