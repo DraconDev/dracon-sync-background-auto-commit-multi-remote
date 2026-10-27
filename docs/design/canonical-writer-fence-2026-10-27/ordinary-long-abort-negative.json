@@ -1,0 +1,13 @@
+{
+  "exitCode": 1,
+  "elapsedSeconds": 7.491345850750804,
+  "inputs": {
+    "/home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/client.js": "3dd47b5e8e3220ca40a61299e2d0b1fc1a5b1711f370cd9118d10e2f4d2dff9b",
+    "/home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/worker.js": "a013ce6d70221e17c799dda465648cbf27e312a9c371903b2735f9a613cd46a8",
+    "/home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/test/fixtures/gate-ordinary-write.c": "d31311e6ae4968fb66b68b8ef41e8cc9568e3938248fb4281e73cc253fd611ea",
+    "/home/dracon/Dev/dracon-utilities/dracon-sync/docs/design/canonical-writer-fence-2026-10-27/ordinary-long-abort-negative.mjs": "41793d258af8f86276e52cc709eb6ade5652012bc3aebdf71869b859265e34dd",
+    "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/dracon-warden": "daaf13ed9095b9750e04dc7f7b9dade38fc72204620e55d0d227263ead023c40"
+  },
+  "unchanged": true,
+  "meaning": "Original full-content assertion retained; gate release delayed beyond kill grace; failure is not a passing qualification"
+}
