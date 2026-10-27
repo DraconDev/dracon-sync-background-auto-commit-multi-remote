@@ -39,6 +39,7 @@ fd = os.open(lock, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
 owned = os.fstat(fd)
 try:
     head = git(['rev-parse', 'HEAD'])
+    assert index.stat().st_size <= 64 * 1024 * 1024
     raw = index.read_bytes()
     state = Path.home() / '.local/state/dracon-sync/diagnostics'
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -55,7 +56,14 @@ try:
         metadata, _ = entry.split(b'\t', 1)
         mode, oid, stage = metadata.split()
         assert mode in (b'100644', b'100755') and stage == b'0'
+        assert int(git(['cat-file', '-s', oid.decode()])) <= 104857600
         durable(backup / f'original-staged-blob-{i}', git(['cat-file', 'blob', oid.decode()]))
+    for directory in (backup, state):
+        directory_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
     before = {p: local_hash(p) for p in PATHS}
     git(['update-index', '--force-remove', '--', *PATHS], env)
     remaining = git(['ls-files', '--stage', '-z'], env).split(b'\0')

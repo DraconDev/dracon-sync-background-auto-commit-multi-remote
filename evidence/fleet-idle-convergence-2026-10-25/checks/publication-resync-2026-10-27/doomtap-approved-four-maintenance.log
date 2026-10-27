@@ -1,0 +1,35 @@
+⏸️  Sync paused for maintenance (freeze marker: /home/dracon/.dracon/dracon-sync.freeze)
+{
+  "scope": "user-approved exact-four QA cache de-index; no commit or push",
+  "paths": [
+    "docs/screenshots/qa/ascension-after.png",
+    "docs/screenshots/qa/ascension-armed.png",
+    "docs/screenshots/qa/ascension-before.png",
+    "docs/screenshots/qa/ascension-narrow.png"
+  ],
+  "headUnchanged": true,
+  "beforeSha256": {
+    "docs/screenshots/qa/ascension-after.png": "d8e85c91b798291e0345e7676b8424a7377cd7088716854d7dc2dac38e7ddd2b",
+    "docs/screenshots/qa/ascension-armed.png": "3ddb733606c3cf71a4a7315a99996c3da9447a3f289cb39dacf9040e191bef82",
+    "docs/screenshots/qa/ascension-before.png": "a5a064a1cb57e037779e5497476ac3856ee79bdca94ce72e538cdbf4dbba7419",
+    "docs/screenshots/qa/ascension-narrow.png": "b271c5a7f2d518ed9613af5ff479ee3c1c42cae409d2fe68197e4adac252552e"
+  },
+  "afterSha256": {
+    "docs/screenshots/qa/ascension-after.png": "d8e85c91b798291e0345e7676b8424a7377cd7088716854d7dc2dac38e7ddd2b",
+    "docs/screenshots/qa/ascension-armed.png": "3ddb733606c3cf71a4a7315a99996c3da9447a3f289cb39dacf9040e191bef82",
+    "docs/screenshots/qa/ascension-before.png": "a5a064a1cb57e037779e5497476ac3856ee79bdca94ce72e538cdbf4dbba7419",
+    "docs/screenshots/qa/ascension-narrow.png": "b271c5a7f2d518ed9613af5ff479ee3c1c42cae409d2fe68197e4adac252552e"
+  },
+  "localBytesPreserved": true,
+  "originalIndexSha256": "ad311c0563bcdc49a1764b3a0be253d7257e5b0f3f2e3d2ec3e3b88675cbc156",
+  "recoveryDirectory": "/home/dracon/.local/state/dracon-sync/diagnostics/doomtap-approved-four-c7u0tu65",
+  "originalStagedEntriesRetained": [
+    "100644 19f1479b8c1a5dd0f023f2acd13ab454f055b8cc 0\tdocs/screenshots/qa/ascension-after.png",
+    "100644 629846d32f91ffea953f8c06c507cb8acda6b176 0\tdocs/screenshots/qa/ascension-armed.png",
+    "100644 4e5ea36dc729d7daf64b534745812399e8546f36 0\tdocs/screenshots/qa/ascension-before.png",
+    "100644 29c4269edb78fa0bf1e30f1d9555718621880c99 0\tdocs/screenshots/qa/ascension-narrow.png"
+  ],
+  "unrelatedStagedEntriesPreserved": true,
+  "publicationObserved": false
+}
+▶️  Sync resumed (freeze marker removed)

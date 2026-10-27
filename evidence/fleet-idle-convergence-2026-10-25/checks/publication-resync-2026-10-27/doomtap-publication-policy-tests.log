@@ -1,0 +1,11 @@
+✔ publication names match the original visual comparison contract exactly (21.610905ms)
+✔ approved ascension QA caches are ignored by exact rules, outside the unchanged source contract (7.091233ms)
+✔ harmless comments pass; omissions, broad exemptions and unknown frames fail (0.495324ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 227.011648
