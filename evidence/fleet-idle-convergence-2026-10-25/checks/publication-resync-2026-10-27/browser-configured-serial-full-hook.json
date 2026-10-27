@@ -4,6 +4,9 @@
   "hook": "/home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/pre-push",
   "hookSha256": "317a8ee594a67d31df430c82d9fb23d05eb50a2f83b5ee98caa2428dabdae7c6",
   "rawLog": "/home/dracon/.local/state/dracon-sync/diagnostics/browser-configured-serial-1793075612169509667.log",
-  "status": "running",
-  "diagnosticOnly": true
+  "status": "failed",
+  "diagnosticOnly": true,
+  "exitCode": 1,
+  "elapsedSecs": 65.981,
+  "logSha256": "36763915fb567d9fef74285e2b8397fcd5d7241ecf3ebe6a498d0058bfa05449"
 }
