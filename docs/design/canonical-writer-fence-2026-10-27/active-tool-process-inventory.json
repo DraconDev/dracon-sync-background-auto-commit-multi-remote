@@ -1,0 +1,226 @@
+[
+  {
+    "pid": 153294,
+    "ppid": 153264,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-utilities/dracon-system"
+  },
+  {
+    "pid": 250296,
+    "ppid": 1224,
+    "comm": "codex",
+    "exe": "/home/dracon/.codex/packages/app-server-daemon/releases/0.164.0-x86_64-unknown-linux-musl/bin/codex",
+    "cwd": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit"
+  },
+  {
+    "pid": 603735,
+    "ppid": 603601,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-strategy/ai-auto-video"
+  },
+  {
+    "pid": 843577,
+    "ppid": 843482,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/ai-tts-pro"
+  },
+  {
+    "pid": 855241,
+    "ppid": 855196,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner"
+  },
+  {
+    "pid": 1278964,
+    "ppid": 1278871,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/empire"
+  },
+  {
+    "pid": 1295802,
+    "ppid": 1224,
+    "comm": "auth-api",
+    "exe": "/home/dracon/Dev/dracon-platform/target/dev-stack/bin/auth-api (deleted)",
+    "cwd": "/home/dracon/Dev/dracon-platform"
+  },
+  {
+    "pid": 1327781,
+    "ppid": 1224,
+    "comm": "billing-api",
+    "exe": "/home/dracon/Dev/dracon-platform/target/dev-stack/bin/billing-api (deleted)",
+    "cwd": "/home/dracon/Dev/dracon-platform"
+  },
+  {
+    "pid": 1329376,
+    "ppid": 1224,
+    "comm": "email-api",
+    "exe": "/home/dracon/Dev/dracon-platform/target/dev-stack/bin/email-api (deleted)",
+    "cwd": "/home/dracon/Dev/dracon-platform"
+  },
+  {
+    "pid": 1344306,
+    "ppid": 1224,
+    "comm": "music-api",
+    "exe": "/home/dracon/Dev/dracon-platform/target/dev-stack/bin/music-api (deleted)",
+    "cwd": "/home/dracon/Dev/dracon-platform"
+  },
+  {
+    "pid": 1375570,
+    "ppid": 1547592,
+    "comm": "empire",
+    "exe": "/nix/store/lkpi33m4ay8vrpzbh6gv9szn2a20fbbq-empire-0.1.0/bin/empire",
+    "cwd": "/home/dracon/Dev/empire"
+  },
+  {
+    "pid": 1552641,
+    "ppid": 1552619,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-strategy/ai-auto-writer"
+  },
+  {
+    "pid": 1552723,
+    "ppid": 1552700,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-platform"
+  },
+  {
+    "pid": 1552818,
+    "ppid": 1552795,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/eve"
+  },
+  {
+    "pid": 1553490,
+    "ppid": 1553428,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/youtube-filter"
+  },
+  {
+    "pid": 1554007,
+    "ppid": 1553983,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web"
+  },
+  {
+    "pid": 1554127,
+    "ppid": 1554098,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/tabmon"
+  },
+  {
+    "pid": 1554229,
+    "ppid": 1554196,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls"
+  },
+  {
+    "pid": 1555357,
+    "ppid": 1555310,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/db-gateway"
+  },
+  {
+    "pid": 1556577,
+    "ppid": 1556532,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter"
+  },
+  {
+    "pid": 1557131,
+    "ppid": 1557063,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-platform/web/games/wip/freeport"
+  },
+  {
+    "pid": 1557304,
+    "ppid": 1557232,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/ai-chat-toolkit"
+  },
+  {
+    "pid": 1663554,
+    "ppid": 1224,
+    "comm": "studio-api",
+    "exe": "/home/dracon/Dev/dracon-platform/target/dev-stack/bin/studio-api (deleted)",
+    "cwd": "/home/dracon/Dev/dracon-platform"
+  },
+  {
+    "pid": 2626037,
+    "ppid": 2625960,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td"
+  },
+  {
+    "pid": 2662734,
+    "ppid": 2662655,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-platform/web/games/wip/outpost-eden"
+  },
+  {
+    "pid": 2738482,
+    "ppid": 2738354,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun"
+  },
+  {
+    "pid": 2805957,
+    "ppid": 2805872,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap"
+  },
+  {
+    "pid": 2836241,
+    "ppid": 2836060,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-strategy/marketing"
+  },
+  {
+    "pid": 2846975,
+    "ppid": 250296,
+    "comm": "codex",
+    "exe": "/home/dracon/.codex/packages/app-server-daemon/releases/0.164.0-x86_64-unknown-linux-musl/bin/codex",
+    "cwd": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit"
+  },
+  {
+    "pid": 2878199,
+    "ppid": 2878124,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-platform/web/games/wip/polis"
+  },
+  {
+    "pid": 2963855,
+    "ppid": 2963783,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/terhub"
+  },
+  {
+    "pid": 3770265,
+    "ppid": 3770241,
+    "comm": "pi",
+    "exe": "/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node",
+    "cwd": "/home/dracon/Dev/dracon-utilities"
+  }
+]
