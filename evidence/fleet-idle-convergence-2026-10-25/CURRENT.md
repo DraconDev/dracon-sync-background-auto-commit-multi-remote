@@ -1,5 +1,23 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## 2026-10-27 16:52 UTC — fresh fleet snapshot: not idle by design, gates deferred on load
+
+Read-only `repos --json` saved to `checks/20261027-fleet-snapshot/repos.json`:
+36 repos, 17 ok / 6 active / 13 warn / 0 concern / 0 inspection failures at
+capture; recount minutes earlier showed 18/7/11 and 17/8/11 — fleet is actively
+committing, not idle. 17 repos AHEAD with push PENDING (e.g. freeport 28,
+.dracon 100, dracon-sync 23, pi-plugins 42, deathrun 50, doomtap 17) plus
+browser-extensions-shared 1314→3031 unpushed in commit-only mode. Cause is the
+intentional persistent containment `auto_push=false` in the global policy, not
+a new push regression; daemon journal shows continuous `sync_commit` plus
+`push paused (commit-only mode)` and trailing-drain deferrals. One
+`junk-runner: staged intent exceeds strict batch limit` and one empty
+classification on a dirty worktree were observed; both are diagnostic signals,
+not cleared state. Full `cargo test --workspace --locked` was attempted and
+timed out at 180s under load 66.75 / mem 27GB+21GB swap; no gate outcome is
+claimed. Task 5 remains unfinished: no autonomous publication proof and no
+all-clean idle observation while the hold is active and editing continues.
+
 ## 2026-10-27 — ordinary in-place abort parity qualified in disposable controls
 
 A gated ordinary write (paused after open/truncate, before content bytes) plus
