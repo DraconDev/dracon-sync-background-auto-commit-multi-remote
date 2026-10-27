@@ -1,5 +1,39 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## Latest: four newly approved caches repaired; current loaded writer control fails
+
+User approved only arena-ward.png, arena-wound.png, defeat-after.png and
+defeat-before.png under Doomtap docs/screenshots/qa/. Added exact ignore rules
+and expanded the original publication-policy test without changing its curated
+source contract. All three tests pass. Index-only removal ran under the
+sanctioned maintenance wrapper: all four staged variants differed from local
+bytes, BOTH variants were preserved privately, local bytes were unchanged and
+every unrelated index entry matched exactly. The daemon automatically resumed.
+Doomtap's unchanged original pre-commit then passes on an otherwise unmodified
+copied index in 3.73s. No manual commit/push or broader exclusion was applied.
+Receipts: checks/publication-resync-2026-10-27/doomtap-four-approved-{deindex,original-precommit}.json.
+
+Re-ran the ORIGINAL restored canonical-writer syscall control against the actual
+installed daemon (4ddef737a3fe0d42bfece133722bf48d36b2fa482c14ce01ffc15fc44fba2f9e).
+Baseline succeeds; the adversarial schedule reaches the actual exchange without
+errors and FAILS preservation: old writer canonical=false, newer writer
+canonical=true, index preserved=true. See current-loaded-canonical-writer-control.json.
+This is a current-artifact failure, not an inference from older releases. No
+acceptance condition was inverted. Producer coordination remains an external
+permission prerequisite documented in canonical-publication-boundary-2026-10-26.md.
+
+Bounded remaining-work assessment: the configured count cap is still 100;
+junk-runner has 127 staged paths and ai-auto-writer has 205. Their index bytes
+were not changed. The previously approved zero-count migration is NOT applied
+because its preservation prerequisites are unmet. Browser's current real-feed
+gate still fails with one recorded failure: the control feed never displayed
+the targets. No gate/receipt/assertion was changed to make it pass.
+
+Latest recorded complete inventory: 36 watched, 29 summary-OK, 5 active, 2 warned,
+zero inspection failures. This is not clean-idle acceptance or all-remote proof.
+All static workspace gates remain qualified; canonical-writer/runtime and
+whole-fleet acceptance remain unfinished.
+
 ## Latest: platform encryption blocker repaired without changing inclusion
 
 The current original-hook reassessment found three non-whole-file-encrypted

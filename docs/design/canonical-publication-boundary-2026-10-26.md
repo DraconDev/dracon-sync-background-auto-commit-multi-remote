@@ -4,7 +4,15 @@
 
 The current existing-file exchange protocol does **not** satisfy canonical writer preservation. No further deployment is justified by its earlier qualification. The goal remains unfinished; retaining bytes privately is not equivalent to keeping eligible writes on their canonical path.
 
-The restored disposable syscall control fails against both:
+The unchanged restored disposable syscall control was also re-run on the current
+loaded/installed daemon `4ddef737a3fe0d42bfece133722bf48d36b2fa482c14ce01ffc15fc44fba2f9e`
+on 2026-10-27. Baseline passes; the actual exchange schedule finishes without
+harness errors, with old writer canonical=false, newer writer canonical=true,
+and index preserved=true. Overall preservation FAILS. Receipt:
+`evidence/fleet-idle-convergence-2026-10-25/checks/publication-resync-2026-10-27/current-loaded-canonical-writer-control.json`.
+Static workspace gates pass independently; they do not override this result.
+
+Earlier, the restored disposable syscall control failed against both:
 
 - Installed executable `7176180470e4e81bd4f65fd5fb88a6662fc34af06497b2b3c41a38e2b87040d2`.
 - Newly built release `7c39f954754338aa7728cf888aac237b27ea07bdd24c8e9f01afa49d0ee3e223`.
