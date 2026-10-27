@@ -1,0 +1,11 @@
+{
+  "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+  "hook": "/home/dracon/Dev/dracon-platform/web/scripts/git-hooks/bucket-hooks/pre-commit",
+  "hookSha256": "ad963d1775ddaba212dd50ed789ac6f3e1470579760373128b661a9bbd5716c7",
+  "exitCode": 0,
+  "elapsedSecs": 3.73,
+  "copiedIndexOnly": true,
+  "rawPrivateLog": "/home/dracon/.local/state/dracon-sync/diagnostics/doomtap-four-after-hook-1793096860993503388/hook.log",
+  "logSha256": "535188147a37d7860e674f4c3f9297ee19f525027a616ebe4c131e558abf69cc",
+  "errors": []
+}
