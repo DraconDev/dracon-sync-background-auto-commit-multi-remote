@@ -1,5 +1,37 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## 2026-10-27 15:40 UTC — resumed original goal; daemon fence controls pass
+
+Re-read the active GLLA objective and task list: fleet convergence remains the
+objective, not the stale bucket handoff. Task 5 cannot yet be accepted; tasks
+2–4 still have explicitly unfinished work. The separately requested plaintext
+publication repair remains queued; it has not replaced or narrowed this goal.
+
+Persistent containment `auto_push=false` is still configured and the latest
+health observation reports the running daemon frozen. Do not restore publication
+for a fleet proof before the publication safeguards are qualified. This is not
+an external permission blocker or a reason to label the fleet converged.
+
+The daemon generated-ignore/excluded-restore source already contains the shared
+pre-open fence integration. Added two regressions proving outer cancellation
+leaves no stranded waiter and an actual inherited-descriptor child retains the
+fence after its parent's handle drops, until final close. All five daemon fence
+controls and all four generated-ignore controls pass, including recovery after
+an accepted writer finishes, original active-writer refusal, linked-target
+refusal and stale-render refusal. Strict daemon package/all-target Clippy passes.
+Source hashes before/after agree. The dedicated qualification target did NOT
+overwrite the live `target/debug/dracon-sync` helper. Raw receipts and updated
+inventory: `../../docs/design/canonical-writer-fence-2026-10-27/` relative to
+this checkpoint's directory.
+
+No deployment, count-cap migration, index reconciliation, manual commit/push or
+producer stop occurred. Pi tool workers/registration, shell/native-Git/editor
+writer coverage, adversarial all-writer controls, whole-workspace final assembly,
+loaded-runtime and full-fleet publication/clean-idle acceptance remain open.
+The old background dependency's `/tmp/.../05c0febe-e572-42bd-90f8-3a8934349efa`
+artifact is missing; its completion notice is not accepted as fresh proof and
+was not blindly relaunched. Current controls have independent durable receipts.
+
 ## Active: operator-authorized cooperative writer integration (not deployed)
 
 User authorized external .gitignore-writer integrations with a bounded pre-open

@@ -41,12 +41,17 @@ Task 4.1 is reopened for the changed source assembly.
 1. Warden harden_repo: source integrated. Only production overwrite calls for
    .gitignore/.gitattributes are in that fenced render/write region. Test-only
    helpers and disposable fixture writers are not live producer integrations.
-2. dracon-sync generated-ignore/excluded-restore publisher: NOT integrated.
-   Source in sync/excluded_revert.rs opens target files before lease/exchange;
-   it must obtain/validate the same pre-open fence, not merely lock after render.
-   Capture/render/compare and helper parent/cancellation identity must remain
-   coherent. Its private entry point currently validates immediate parent PID;
-   wrapping it must not disable that lifecycle guard. Old recovery is not replayed.
+2. dracon-sync generated-ignore/excluded-restore publisher: source integrated,
+   NOT deployed. Both entry points acquire before canonical target lookup and
+   capture; the existing owned helper inherits the held OFD directly, preserving
+   its immediate-parent/death binding. Verification occurs before helper launch,
+   exchange and settlement. Old recovery is not replayed. Fresh controls pass:
+   five fence tests (including outer cancellation and actual child-held FD after
+   the parent handle drops) and four generated-ignore controls (pre-open wait,
+   completed writer preservation/recovery, active-writer refusal, link safety
+   and stale-render refusal). Strict package/all-target Clippy passes. Receipts:
+   daemon-fence-controls.json and daemon-integration-controls.json. These are
+   bounded component controls, NOT all-writer or final runtime qualification.
 3. Pi built-in edit/write: NOT integrated. Read current complete Pi extension/SDK
    docs and checked ssh.ts replacement example. Prefer wrapping the complete
    original tool operation in an owned fenced writer worker, preserving original
