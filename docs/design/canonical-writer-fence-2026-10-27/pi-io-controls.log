@@ -1,0 +1,6 @@
+✔ complete atomic publication preserves original mode and removes private scratch (90.498248ms)
+✔ cancellation after full scratch write does not truncate or replace canonical bytes (53.38027ms)
+✔ stale canonical content is refused, not adopted as the old baseline (24.477253ms)
+✔ symlink and shared-hardlink targets refuse without touching their contents (13.816364ms)
+✔ owned recovery inode budget refuses without deleting recovery or changing target (44.42356ms)
+✔ a substituted scratch namespace refuses without publishing into the worktree (23.977329ms)
