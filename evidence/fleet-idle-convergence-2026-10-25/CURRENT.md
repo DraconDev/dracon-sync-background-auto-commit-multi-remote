@@ -1,5 +1,20 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## 2026-10-27 — ordinary in-place abort parity qualified in disposable controls
+
+A gated ordinary write (paused after open/truncate, before content bytes) plus
+client abort now settles exactly like the native SDK: the held write finishes
+inside the TERM->KILL grace, the call reports cancelled/aborted, the file holds
+the FULL new bytes with the same inode/mode (not truncated partial, not silent
+original), and the per-worktree fence is immediately reacquirable. No metadata
+scratch is used. All nineteen controls pass; source/SDK/Warden identities agree
+before/after: `../../docs/design/canonical-writer-fence-2026-10-27/pi-ordinary-cancel-controls.json`.
+This closes the explicit ordinary-cancel deployment prerequisite for cooperative
+aborts. SIGKILL mid-write, timeout kills, parent-death, large inputs, remaining
+producer coverage, ACL/xattr, full assembly and live loaded proof remain open
+blockers. No live session/settings/binary deployment, publication re-enablement
+or manual recovery occurred.
+
 ## 2026-10-27 — typed worktree alias bypass closed in source controls
 
 Replaced basename-only routing: EVERY typed edit/write in a discovered worktree

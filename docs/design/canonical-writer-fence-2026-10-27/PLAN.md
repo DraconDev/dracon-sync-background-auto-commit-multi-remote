@@ -58,7 +58,7 @@ Task 4.1 is reopened for the changed source assembly.
    documentation and checked ssh.ts and SDK loader examples. Prototype reuses
    the host's complete tool operation and queue AFTER validating the actual
    inherited locked OFD and its repository. Atomic writes use private, byte/inode
-   bounded scratch and an open directory anchor for publication/cleanup. Eighteen
+   bounded scratch and an open directory anchor for publication/cleanup. Nineteen
    controls pass, including native schema/legacy preparation/dynamic-cwd loader
    contracts and actual fenced SDK BOM/CRLF/Unicode/diff semantics,
    ambiguous-edit preservation, refusal without a held fence, pre-publication
@@ -84,10 +84,12 @@ Task 4.1 is reopened for the changed source assembly.
    descriptor checks before truncation. Broken Git metadata never falls back.
    The cancellation control now synchronizes on actual scratch readiness and
    verifies the writer has closed its temporary FD, not a discovery-call ordinal.
-   Remaining: ordinary in-place-write cancellation/forced-kill parity is an
-   explicit deployment prerequisite (metadata atomic controls do NOT prove it),
-   large-input compatibility, other producer coverage, parent-death/timeout/
-   error schedules, ACL/xattr fidelity, full assembly and live loaded proof.
+   Latest ordinary-cancel receipt proves abort after open/truncate settles to
+   full new bytes with the same inode/mode, reports cancelled, releases the
+   fence and leaves no scratch. Aborted ordinary writes intentionally leave the
+   completed new content like the native SDK; they do NOT restore the original.
+   Remaining blockers: SIGKILL mid-write, timeout kills, parent-death, large
+   inputs, other producers, ACL/xattr, full assembly and live loaded proof.
    Existing sessions do not magically load source. See README limitations.
 4. Agent bash/user-bash, native Git worktree mutators (checkout/merge/restore,
    etc.), scripts and other editors: coverage NOT established. Do not claim an
