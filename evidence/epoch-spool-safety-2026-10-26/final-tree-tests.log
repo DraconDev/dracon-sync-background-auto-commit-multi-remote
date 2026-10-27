@@ -604,4 +604,22 @@ test daemon::daemon_tests::test_sync_concurrency_limit_clamps_zero ... ok
 test daemon::daemon_tests::test_trailing_drain_retains_unfinished_owners ... ok
 test daemon::daemon_tests::test_trailing_drain_seed_excludes_previous_cycle_pending ... ok
 test daemon::daemon_tests::test_unstuck_repo_nonexistent ... ok
-test daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness ... 
+test daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness ... ok
+test daemon::discovery_scheduler::tests::blocked_refresh_keeps_snapshot_without_blocking_or_duplicate_walks ... ok
+test daemon::discovery_scheduler::tests::changed_configuration_never_uses_old_snapshot ... ok
+test daemon::probe_race_tests::recovery_completed_status_racing_cancellation_retains_original_age ... ok
+test daemon::push_history::tests::observed_push_history_survives_new_edits_and_rejects_invalid_records ... ok
+test daemon::recovery::tests::execution_budget_respects_scaled_multi_remote_commands_and_still_expires ... ok
+test daemon::recovery::tests::fair_admission_serves_every_repo_despite_repeated_early_failures ... ok
+test daemon::recovery::tests::queued_workers_keep_fifo_and_execution_retries_are_bounded ... ok
+test daemon::recovery_tests::recovery_abandoned_reservations_release_without_touching_live_owners ... ok
+test daemon::recovery_tests::recovery_classification_panic_and_cancellation_release_known_owners ... ok
+test daemon::recovery_tests::recovery_fifo_healthy_syncs_run_after_hung_holder_joins ... ok
+test daemon::recovery_tests::recovery_status_waits_for_teardown_and_healthy_peer_progresses ... ok
+test daemon::recovery_tests::recovery_tagged_sync_join_releases_all_bookkeeping_on_panic_in_quiet_cycle ... ok
+test daemon::scheduler_evidence::tests::phase_stamps_report_real_execution_and_expire_when_abandoned ... ok
+test daemon::scheduler_evidence::tests::scheduler_evidence_builder_keeps_confidence_and_gate_precedence ... ok
+test daemon::scheduler_evidence::tests::scheduler_evidence_distinguishes_admission_execution_cancel_and_retry ... ok
+test daemon::scheduler_evidence::tests::scheduler_evidence_freshness_and_roundtrip_are_fail_closed ... ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_does_not_create_standalone_worktrees ... ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_leaves_existing_dirs_untouched ... 
