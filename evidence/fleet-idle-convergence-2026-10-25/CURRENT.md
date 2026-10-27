@@ -1,5 +1,38 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## 2026-10-27 disk-exhaustion priority update — NOT fleet acceptance
+
+The operator prioritized Git staging disk growth. Candidate packing now excludes
+`^{parent}^{tree}` rather than only `^{parent}`: a positive tree-root traversal
+was copying unchanged baseline blobs into every recovery pack. A disposable
+negative control reproduces the old behavior. A loaded daemon observation now
+captures a 32,045-byte browser candidate pack (previously roughly 875 MiB per
+cycle), alongside autonomous local commit activity. Successful ordinary and
+truly empty original candidates release their owned directories; rejected
+original bytes and conflict-index recovery remain preserved.
+
+Age-only cleanup was initially executed and deployed in this session, then
+found unsafe and disabled. Earlier deleted recovery content has not been
+retrospectively verified; do NOT claim no loss. Automatic spool cleanup is now
+a no-op, explicit age-only apply refuses deletion, and tmp_pack inspection does
+not unlink files. Failed recovery retention remains unbounded pending a safe
+content/ownership-qualified policy. Do not restore the earlier age-only sweeps.
+
+All four workspace gates pass on the final tree-delta source. Raw logs,
+qualified deployment receipt, reviewer notes and bounded runtime observations:
+`../epoch-spool-safety-2026-10-26/` (sibling evidence directory). The earlier
+1200-second workspace timeout remains recorded; the unchanged bounded
+1800-second retry passed. The corrected release is now loaded, superseding
+historical statements below that no new binary was installed. This narrow disk
+repair does NOT establish canonical-writer preservation or full runtime
+qualification. Those previous failed controls remain failures.
+
+Latest full-fleet inventory in that sibling folder: 36 repositories, 29 ok,
+4 active, 3 warned, zero inspection failures. This is NOT clean-idle acceptance.
+Browser still has hook-related push-stuck state; no retry ledger was cleared or
+hook bypassed by this repair. Continue publication and preservation work under
+the original goal, not a completion claim for the disk symptom alone.
+
 ## Current: preservation qualification FAILED; fleet acceptance remains open
 
 The earlier no-rollback qualification was invalid: its syscall harness had

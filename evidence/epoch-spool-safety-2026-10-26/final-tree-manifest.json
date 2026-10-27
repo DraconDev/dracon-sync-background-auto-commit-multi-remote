@@ -29,7 +29,7 @@
     "Earlier age-only deletions cannot be retrospectively proven lossless",
     "Full fleet clean-idle acceptance not observed",
     "Canonical writer-preservation qualification remains failed/open",
-    "Live browser staging runtime not observed in bounded final-tree observation"
+    "First runtime window observed no candidate; second window observed a 32,045-byte pack and autonomous local commit, without remote publication"
   ],
   "source_hashes": {
     "dracon-sync/src/bucket_runner_bridge_tests.rs": "9ea7bbf06af2a326693273fe19e9bf884032cbab9dbda73c5ffddda005f9e07f",
