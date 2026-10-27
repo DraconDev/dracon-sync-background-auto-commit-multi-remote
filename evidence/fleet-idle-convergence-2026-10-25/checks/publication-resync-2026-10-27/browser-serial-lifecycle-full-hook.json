@@ -1,0 +1,10 @@
+{
+  "repo": "/home/dracon/Dev/browser-extensions-shared",
+  "head": "279adae796d2f036497b52bd6be73a6cd052a5ae",
+  "remoteTip": "45c330977f6a9bd014c6c510c2e2e5649b8db698",
+  "diagnosticOnly": true,
+  "hookSha256": "1eaadcf344d11a194abf25ff8a368caf36df8d8779a33a0b9a5dd7eca47594ff",
+  "rawLog": "/home/dracon/.local/state/dracon-sync/diagnostics/browser-serial-lifecycle-1793075205583225795.log",
+  "status": "running",
+  "deadlineSecs": 2400
+}
