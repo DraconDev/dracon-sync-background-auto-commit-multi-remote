@@ -2245,3 +2245,48 @@ test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-
 ok
 test sync::tests::test_sync_repo_not_git_repo_returns_false ... ok
 test sync::tests::test_sync_repo_partial_deletion_allowed ... [master (root-commit) cef2c37] init
+ok
+test sync::tests::test_sync_repo_pull_skip_when_no_origin ... [master (root-commit) cef2c37] init
+ok
+test sync::tests::test_sync_repo_pushes_detached_head_ahead_commit ... [main (root-commit) cef2c37] init
+[main 64309ed] ahead
+HEAD is now at 64309ed ahead
+ok
+test sync::tests::test_sync_repo_single_deleted_file_committed ... [master (root-commit) cef2c37] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_dirty ... [master (root-commit) cef2c37] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_not_behind ... [master (root-commit) cef2c37] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_origin ... [master (root-commit) aefb465] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_upstream ... [master (root-commit) aefb465] init
+ok
+test sync::tests::test_sync_repo_skips_bisect_in_progress ... [master (root-commit) aefb465] init
+ok
+test sync::tests::test_sync_repo_skips_cherry_pick_in_progress ... [master (root-commit) aefb465] init
+ok
+test sync::tests::test_sync_repo_skips_merge_in_progress ... [master (root-commit) aefb465] init
+ok
+test sync::tests::test_sync_repo_skips_rebase_in_progress ... [master (root-commit) aefb465] init
+ok
+test sync::tests::test_sync_repo_skips_revert_in_progress ... [master (root-commit) aefb465] init
+ok
+test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) aefb465] init
+ok
+test sync::tests::test_sync_repo_unstages_excluded_dir_paths ... [master (root-commit) f237e5f] init
+ok
+test sync::tests::test_sync_repo_unstages_oversized_file ... [master (root-commit) f237e5f] init
+ok
+test sync::tests::test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked ... [master (root-commit) f237e5f] init
+ok
+test sync::tests::test_sync_repo_with_duplicate_subjects_succeeds ... [master (root-commit) f237e5f] init
+ok
+test sync::tests::test_truncate_task_at_sentence_boundary ... ok
+test sync::tests::test_truncate_task_hard_cutoff ... ok
+test sync::tests::test_truncate_task_multibyte_utf8 ... ok
+test sync::tests::test_truncate_task_short ... ok
+test sync::tests::test_warden_auto_harden_disabled_never_forks ... ok
+test sync::tests::test_warden_auto_harden_hardens_once ... ok
+test sync::tests::test_warden_auto_harden_skips_dry_run ... ok
+test sync::tests::unlimited_batch_bootstraps_all_related_unborn_files ... 
