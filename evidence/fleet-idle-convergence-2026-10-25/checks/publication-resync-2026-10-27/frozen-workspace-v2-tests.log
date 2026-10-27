@@ -1007,4 +1007,6 @@ test git::staged_intent::tests::index_lock_contention_and_replaced_inode_cleanup
 test git::staged_intent::tests::materialized_empty_root_and_invalid_input_refusals ... ok
 test git::staged_intent::tests::materialized_tree_is_captured_not_live_and_preserves_repository ... ok
 test git::staged_intent::tests::materialized_tree_output_requires_exact_count_width_and_oid ... ok
-test git::staged_intent::tests::observation_deadline_and_caller_drop_terminate_actual_git_pid ... 
+test git::staged_intent::tests::observation_deadline_and_caller_drop_terminate_actual_git_pid ... ok
+test git::staged_intent::tests::partial_staged_reverted_worktree_deletion_modes_gitlink_and_byte_paths ... ok
+test git::staged_intent::tests::shared_git_runner_deadline_and_drop_terminate_owned_descendant ... 
