@@ -2211,3 +2211,8 @@ test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-co
    test@test
    Amend the author identity before pushing (git commit --amend --reset-author).
 error: failed to push some refs to '/tmp/.tmpD2HP0c/origin.git'
+ok
+test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (root-commit) 8ed6184] init
+To /tmp/.tmp3fiNE8/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
