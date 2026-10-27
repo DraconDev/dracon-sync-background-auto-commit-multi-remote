@@ -58,7 +58,7 @@ Task 4.1 is reopened for the changed source assembly.
    documentation and checked ssh.ts and SDK loader examples. Prototype reuses
    the host's complete tool operation and queue AFTER validating the actual
    inherited locked OFD and its repository. Atomic writes use private, byte/inode
-   bounded scratch and an open directory anchor for publication/cleanup. Thirteen
+   bounded scratch and an open directory anchor for publication/cleanup. Eighteen
    controls pass, including native schema/legacy preparation/dynamic-cwd loader
    contracts and actual fenced SDK BOM/CRLF/Unicode/diff semantics,
    ambiguous-edit preservation, refusal without a held fence, pre-publication
@@ -76,10 +76,19 @@ Task 4.1 is reopened for the changed source assembly.
    hashes the prototype, C interposer, Warden and compiled host SDK before/after.
    Earlier receipts remain pi-cancellation-controls.json,
    pi-registration-controls.json and pi-worker-namespace-negative.log.
-   This is direct regular named metadata scope ONLY. Alias and other producer
-   coverage, remaining kill/parent-death/timeout/error stages, ACL/xattr fidelity,
-   full assembly and live loaded proof remain open. Existing sessions
-   do not magically load source files. See the prototype's README limitations.
+   Latest receipt pi-alias-controls.json extends the typed boundary to EVERY
+   discovered-worktree edit/write before target lookup. Existing same-repo
+   metadata aliases use atomic canonical publication, preserving the alias;
+   cross-repo/unowned/shared-hardlink mutations refuse. Normal regular files
+   retain inode/mode/in-place semantics; external ordinary files use no-follow
+   descriptor checks before truncation. Broken Git metadata never falls back.
+   The cancellation control now synchronizes on actual scratch readiness and
+   verifies the writer has closed its temporary FD, not a discovery-call ordinal.
+   Remaining: ordinary in-place-write cancellation/forced-kill parity is an
+   explicit deployment prerequisite (metadata atomic controls do NOT prove it),
+   large-input compatibility, other producer coverage, parent-death/timeout/
+   error schedules, ACL/xattr fidelity, full assembly and live loaded proof.
+   Existing sessions do not magically load source. See README limitations.
 4. Agent bash/user-bash, native Git worktree mutators (checkout/merge/restore,
    etc.), scripts and other editors: coverage NOT established. Do not claim an
    extension wrapping edit/write also covers arbitrary shell commands or hidden
