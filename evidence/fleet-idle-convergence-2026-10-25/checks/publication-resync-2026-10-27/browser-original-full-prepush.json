@@ -1,0 +1,12 @@
+{
+  "repo": "/home/dracon/Dev/browser-extensions-shared",
+  "head": "735065c566407cb022305219aaa2f83ccc3c5c91",
+  "advertisedRemoteTip": "45c330977f6a9bd014c6c510c2e2e5649b8db698",
+  "remote": "github",
+  "command": "scripts/git-hooks/pre-push github <configured-url>, exact push tuple on stdin; diagnostic only, no push",
+  "hookSha256": "317a8ee594a67d31df430c82d9fb23d05eb50a2f83b5ee98caa2428dabdae7c6",
+  "runnerSha256": "012459268fe5c6a93500455e8940bbbabd016587f77f20b06318c17cb7db1cb3",
+  "rawLog": "/home/dracon/.local/state/dracon-sync/diagnostics/browser-full-prepush-1793061548724174692.log",
+  "timeoutSecs": 3600,
+  "status": "running"
+}
