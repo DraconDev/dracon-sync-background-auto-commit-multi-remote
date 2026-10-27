@@ -2547,3 +2547,44 @@ ok
 test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) 2198b4c] init
 ok
 test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) 2198b4c] init
+ok
+test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) 602f0b8] init
+ok
+test sync::tests::test_sync_repo_bootstrap_failure_is_error_not_nothing_to_do ... ok
+test sync::tests::test_sync_repo_busy_lease_defers_without_committing ... ok
+test sync::tests::test_sync_repo_clean_repo_returns_false ... [master (root-commit) 602f0b8] init
+ok
+test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [master (root-commit) 3b315f0] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 dirty.txt
+[master a0ae647] unpushed
+ 1 file changed, 1 insertion(+)
+ create mode 100644 ahead.txt
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) 602f0b8] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) 602f0b8] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) 602f0b8] init
+ok
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... ok
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) b2bcc9c] init
+ok
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) b2bcc9c] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) b2bcc9c] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) d0b9717] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpvVyTPS/origin.git'
+ok
+test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (root-commit) f718b2b] init
+To /tmp/.tmpDzxCQH/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) a49c7c8] init
