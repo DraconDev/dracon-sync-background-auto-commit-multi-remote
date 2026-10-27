@@ -1,0 +1,23 @@
+[
+  {
+    "artifact": "cli-controls.log",
+    "sha256": "b7fe5b8a8a456e4f03b238961e61ecc5743a7f97741e90262cb867487184ca77"
+  },
+  {
+    "artifact": "primitive-controls.log",
+    "sha256": "5d939af3e404cef85260dbac586cac49ff55a979bc9af9a36c6daaba97f829b2"
+  },
+  {
+    "artifact": "warden-clippy.log",
+    "sha256": "898f6ca25b174eb7350153a7483440c4cc81900dec73e041a21056970d1967d3"
+  },
+  {
+    "artifact": "warden-suite.log",
+    "sha256": "7f092cca95b9d41c3fad55315d92a39064fe0e7e3eb5c2b2a616ce0b469933d2"
+  },
+  {
+    "wardenRevision": "81427016554e0e25d88539b648b0ca0035b69c02",
+    "deployment": "none in this phase",
+    "coverage": "Warden only; daemon and editor/agent integration remains open"
+  }
+]

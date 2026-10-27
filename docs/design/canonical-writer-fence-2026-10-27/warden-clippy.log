@@ -1,0 +1,4 @@
+    Checking dracon-security v0.4.0 (/home/dracon/Dev/dracon-utilities/dracon-warden/src/security)
+    Checking tempfile v3.27.0
+    Checking dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.90s

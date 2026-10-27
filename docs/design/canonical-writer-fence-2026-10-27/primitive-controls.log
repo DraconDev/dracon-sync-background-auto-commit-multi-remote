@@ -1,0 +1,31 @@
+   Compiling dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.19s
+     Running unittests src/main.rs (target/debug/deps/dracon_warden-295213678567516a)
+
+running 5 tests
+test write_fence::tests::git_pointer_and_symlink_alias_resolve_the_same_fence ... ok
+test write_fence::tests::replaced_namespace_and_expired_deadline_refuse ... ok
+test write_fence::tests::same_repository_wait_is_bounded_and_drop_recovers_without_unlink ... ok
+test write_fence::tests::unrelated_repositories_do_not_share_a_fence ... ok
+test write_fence::tests::unsafe_lock_files_are_not_followed_truncated_or_stolen ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 237 filtered out; finished in 1.12s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-34eeeadf02ad987b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.00s
+
+     Running tests/storage_stream.rs (target/debug/deps/storage_stream-6ac07088f027f01a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/write_fence.rs (target/debug/deps/write_fence-29af5c389f418a02)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+

@@ -1,0 +1,12 @@
+   Compiling dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.41s
+     Running tests/write_fence.rs (target/debug/deps/write_fence-29af5c389f418a02)
+
+running 4 tests
+test cli_fences_same_repo_but_not_unrelated_repo_and_releases_on_close ... ok
+test inherited_fence_is_reentrant_and_wrong_repository_is_refused ... ok
+test killing_wrapper_does_not_release_fence_before_actual_writer_closes ... ok
+test operation_deadline_cleans_owned_family_and_does_not_steal_next_lock ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.35s
+
