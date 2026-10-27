@@ -4,3 +4,18 @@
 ✔ symlink and shared-hardlink targets refuse without touching their contents (13.816364ms)
 ✔ owned recovery inode budget refuses without deleting recovery or changing target (44.42356ms)
 ✔ a substituted scratch namespace refuses without publishing into the worktree (23.977329ms)
+✔ actual cancellation before rename preserves canonical bytes, reaps owned writer and permits independent repo progress (3796.559945ms)
+✔ actual scratch write and fsync ENOSPC refuse without replacing canonical content or leaking scratch/fence (3612.91099ms)
+✔ namespace replacement does not make cleanup delete a foreign replacement entry (35.911801ms)
+✔ real Pi loader registers native contracts and executes fenced metadata with dynamic cwd (4423.289566ms)
+✔ actual fenced SDK edit preserves BOM, CRLF, Unicode and native diff contract (2078.122157ms)
+✔ actual SDK write completes atomically and ambiguous edits preserve prior bytes (2333.823923ms)
+✔ worker launched without a held descriptor refuses before target mutation (97.203317ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4653.930248
