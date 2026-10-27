@@ -52,21 +52,29 @@ Task 4.1 is reopened for the changed source assembly.
    and stale-render refusal). Strict package/all-target Clippy passes. Receipts:
    daemon-fence-controls.json and daemon-integration-controls.json. These are
    bounded component controls, NOT all-writer or final runtime qualification.
-3. Pi built-in edit/write: worker prototype implemented, NOT registered or
-   deployed. Re-read current complete extension/SDK/package/configuration/TUI
+3. Pi built-in edit/write: worker and registration implemented and exercised
+   through the actual Pi loader in disposable fixtures; NOT deployed to live
+   sessions by this work. Re-read current complete extension/SDK/package/configuration/TUI
    documentation and checked ssh.ts and SDK loader examples. Prototype reuses
    the host's complete tool operation and queue AFTER validating the actual
    inherited locked OFD and its repository. Atomic writes use private, byte/inode
-   bounded scratch and an open directory anchor for publication/cleanup. Ten
-   controls pass, including actual fenced SDK BOM/CRLF/Unicode/diff semantics,
+   bounded scratch and an open directory anchor for publication/cleanup. Twelve
+   controls pass, including native schema/legacy preparation/dynamic-cwd loader
+   contracts and actual fenced SDK BOM/CRLF/Unicode/diff semantics,
    ambiguous-edit preservation, refusal without a held fence, pre-publication
    cancellation, stale render, link safety and scratch namespace substitution.
    The namespace regression initially FAILED (foreign cleanup entry deleted),
    then passed after directory-FD anchoring; its failure remains in the log.
-   Receipts: pi-worker-controls-v2.json and pi-worker-namespace-negative.log.
-   This is direct regular named metadata scope ONLY. Registration, alias and
-   other producer coverage, actual kill/cancel-family/I/O schedules, ACL/xattr
-   fidelity, full assembly and live loaded proof remain open. Existing sessions
+   An actual family-cancellation schedule pauses after private scratch fsync
+   before rename. An independent repo publishes while the first fence is held;
+   cancellation preserves its original canonical inode/bytes, clears scratch,
+   exits the blocked child and allows native reacquisition. This is NOT proof
+   for detached descendants or parent-only SIGKILL schedules.
+   Receipts: pi-cancellation-controls.json, pi-registration-controls.json and
+   pi-worker-namespace-negative.log. This is direct regular named metadata
+   scope ONLY. Alias and other producer coverage, remaining kill/parent-death/
+   timeout/I/O schedules, ACL/xattr fidelity, full assembly and live loaded
+   proof remain open. Existing sessions
    do not magically load source files. See the prototype's README limitations.
 4. Agent bash/user-bash, native Git worktree mutators (checkout/merge/restore,
    etc.), scripts and other editors: coverage NOT established. Do not claim an
