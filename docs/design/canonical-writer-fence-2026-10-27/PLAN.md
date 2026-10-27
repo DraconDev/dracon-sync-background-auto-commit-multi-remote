@@ -52,14 +52,16 @@ Task 4.1 is reopened for the changed source assembly.
    and stale-render refusal). Strict package/all-target Clippy passes. Receipts:
    daemon-fence-controls.json and daemon-integration-controls.json. These are
    bounded component controls, NOT all-writer or final runtime qualification.
-3. Pi built-in edit/write: worker and registration implemented and exercised
-   through the actual Pi loader in disposable fixtures; NOT deployed to live
-   sessions by this work. Re-read current complete extension/SDK/package/configuration/TUI
-   documentation and checked ssh.ts and SDK loader examples. Prototype reuses
-   the host's complete tool operation and queue AFTER validating the actual
-   inherited locked OFD and its repository. Atomic writes use private, byte/inode
-   bounded scratch and an open directory anchor for publication/cleanup. Nineteen
-   controls pass, including native schema/legacy preparation/dynamic-cwd loader
+3. Pi built-in edit/write: current registration runs the COMPLETE native SDK
+   transaction IN PROCESS with a v1 flock held through final I/O settlement.
+   The Linux N-API bridge exposes only nonblocking flock and CLOEXEC duplication;
+   JS validates ownership/mode/link count/namespace and bounds acquisition waits.
+   No per-operation ordinary writer helper is spawned or force-killed on abort.
+   Source and actual-loader fixture integration only, NOT operator deployment.
+   Earlier complete extension/SDK/package/configuration/TUI documentation and
+   loader examples informed the existing native schemas and queue integration.
+   Atomic metadata keeps bounded private scratch and directory-FD anchoring.
+   Current controls pass, including native schema/legacy preparation/dynamic-cwd loader
    contracts and actual fenced SDK BOM/CRLF/Unicode/diff semantics,
    ambiguous-edit preservation, refusal without a held fence, pre-publication
    cancellation, stale render, link safety and scratch namespace substitution.
@@ -72,11 +74,11 @@ Task 4.1 is reopened for the changed source assembly.
    for detached descendants or parent-only SIGKILL schedules.
    Native write/writev and fsync ENOSPC fault controls also pass: each refuses,
    preserves the canonical inode/content, clears owned scratch and permits
-   native reacquisition. No host disk was filled. Current receipt pi-io-controls.json
+   native reacquisition. No host disk was filled. Earlier receipt pi-io-controls.json
    hashes the prototype, C interposer, Warden and compiled host SDK before/after.
    Earlier receipts remain pi-cancellation-controls.json,
    pi-registration-controls.json and pi-worker-namespace-negative.log.
-   Latest receipt pi-alias-controls.json extends the typed boundary to EVERY
+   Earlier receipt pi-alias-controls.json extended the typed boundary to EVERY
    discovered-worktree edit/write before target lookup. Existing same-repo
    metadata aliases use atomic canonical publication, preserving the alias;
    cross-repo/unowned/shared-hardlink mutations refuse. Normal regular files
@@ -84,13 +86,28 @@ Task 4.1 is reopened for the changed source assembly.
    descriptor checks before truncation. Broken Git metadata never falls back.
    The cancellation control now synchronizes on actual scratch readiness and
    verifies the writer has closed its temporary FD, not a discovery-call ordinal.
-   Latest ordinary-cancel receipt proves abort after open/truncate settles to
-   full new bytes with the same inode/mode, reports cancelled, releases the
-   fence and leaves no scratch. Aborted ordinary writes intentionally leave the
-   completed new content like the native SDK; they do NOT restore the original.
-   Remaining blockers: SIGKILL mid-write, timeout kills, parent-death, large
-   inputs, other producers, ACL/xattr, full assembly and live loaded proof.
-   Existing sessions do not magically load source. See README limitations.
+   CORRECTION: the old ordinary-cancel control released the blocked write
+   immediately, before the five-second escalation. Holding it 6.5 seconds
+   reproduced an EMPTY file with the original full-content assertion unchanged:
+   ordinary-long-abort-negative.log/json (retained as FAILED).
+   Fixed the lifetime boundary in lease.js/operations.js and registration: actual
+   SDK I/O settles in its own process before either queue or fence releases.
+   Short AND long aborts now preserve full new content, inode and mode; another
+   repo publishes in the SAME Pi process during the pending write. Legacy worker
+   ordinary writes now refuse before truncation. No detached future I/O is used.
+   Native peer/reentrant OFD/foreign-root refusal, bounded waits, zero waiter-FD
+   leakage, namespace and readonly access controls pass. A cold-umask regression
+   also FAILED (0644 instead of native 0600), then passed after respecting umask;
+   pi-umask-negative.log retains the failure. Discovery/external refusals count
+   truthfully; cancellation can leave completed native content, not unchanged data.
+   Current receipt pi-inprocess-controls-v3.json records 29 passes, zero failures
+   or skips, unchanged source/SDK/Node/binding/header/native-peer inputs. Native
+   build receipt: pi-inprocess-build.log. Binding is qualification-only, not
+   installed. Ordinary in-process input is not helper-JSON capped; metadata's
+   byte bound remains. Remaining: parent/forced-death and other I/O/deadline
+   schedules (kernel I/O that never returns is NOT bounded by this proof),
+   large inputs, other producers, ACL/xattr/durability, linked worktrees/devices,
+   full assembly and live loaded proof. See README; no scope or gate is waived.
 4. Agent bash/user-bash, native Git worktree mutators (checkout/merge/restore,
    etc.), scripts and other editors: coverage NOT established. Do not claim an
    extension wrapping edit/write also covers arbitrary shell commands or hidden
