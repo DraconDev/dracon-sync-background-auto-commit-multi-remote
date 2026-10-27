@@ -1,0 +1,19 @@
+{
+  "rows": [
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner",
+      "exitCode": 0,
+      "stagedPathCount": 127,
+      "indexNotModified": true
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
+      "exitCode": 0,
+      "stagedPathCount": 205,
+      "indexNotModified": true
+    }
+  ],
+  "configuredMaxStageBatchFiles": 100,
+  "migrationNotApplied": true,
+  "prerequisite": "pending-batch-policy-migration.json requires qualified preservation/security/guard cohorts; original canonical-writer control remains failed/open"
+}
