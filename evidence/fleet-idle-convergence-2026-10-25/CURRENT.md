@@ -1,5 +1,40 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## Latest: platform encryption blocker repaired without changing inclusion
+
+The current original-hook reassessment found three non-whole-file-encrypted
+platform `.env.dev` staged blobs, despite filter=dracon. DECIDE 4 had removed
+credential patterns from protected_patterns to stop ignore negations; the filter
+then silently lost its encryption scope despite retained manual attributes.
+Warden now supports `encryption_only_patterns`: identical encryption treatment,
+NO ignore negations, empty default, explicit plaintext-conflict validation and
+consistent size/repair gates. Only the exact auth-api/billing-api/email-api
+`.env.dev` paths are opted in. No .gitignore/.gitattributes or plaintext-hatch
+change was made. Managed .env header normalization also now reuses authenticated
+ciphertext without hiding body/whitespace edits.
+
+All four FULL workspace gates pass on unchanged source inventories after this
+repair (`dracon-warden/docs/design/encryption-only-scope-2026-10-27/v2-workspace-gates.json`,
+relative to the utilities parent). Qualified Warden 39db331b735b4c71a25e27e2d7c90cf171301406c3b1ca786f5ea207f0fed370
+is installed with retained binary/policy backups. The daemon independently
+re-staged all three paths as whole-file tags. The unchanged original pre-commit
+now passes on an otherwise unaltered copied index in 7.8s. Staged environment
+bodies are verified preserved; only the existing Warden version header changes.
+No secret values were output, no manual staging/commit/push, no hook bypass.
+Platform is publishing (three ahead in the last report), not proven converged.
+
+Doomtap's previously approved fifth cache is removed from the index with local
+and original staged variants preserved. Its current original hook instead names
+four NEW staged frames: arena-ward.png, arena-wound.png, defeat-after.png and
+defeat-before.png under docs/screenshots/qa/. They have NOT been ignored or
+removed: previous exact-file approvals do not classify them.
+
+Fresh recorded fleet: 36 watched, 29 summary-OK, 6 active, 1 warn, zero inspection
+failures. Browser's real-feed evidence gate remains failed; strict-count-cap
+migration is still pending its preservation preconditions; canonical writer
+preservation and clean-idle acceptance remain open. Task 4.1 requalified with the
+new full-workspace gates; no completion or all-destinations claim.
+
 ## Latest: key-ciphertext churn repaired; fifth exact Doomtap cache approved
 
 User redirect reported nonstop GitGuardian incidents for dracon-home. Sampled
