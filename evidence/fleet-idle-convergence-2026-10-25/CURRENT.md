@@ -1,5 +1,44 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## Latest: key-ciphertext churn repaired; fifth exact Doomtap cache approved
+
+User redirect reported nonstop GitGuardian incidents for dracon-home. Sampled
+alert commits 7d7abf15 and 55f21121 change the same 16 SSH keys; private in-memory
+checks show valid age envelopes and identical decrypted contents in every path.
+The reuse comparator discarded an inline encrypted PEM's exterior newline when
+it mistook the representation for a whole-file tag, then generated fresh random
+ciphertext on each sync pass. Warden now authenticates the old payload, requires
+matching exterior bytes, and permits exact inline-text reconstruction. Real key
+edits, whitespace edits, plaintext input and whole-file policy upgrades still
+refuse stale reuse. The synthetic negative control reproduced the churn before
+the fix. No security/notification rule was disabled or incident dismissed.
+
+All four FULL workspace gates pass on unchanged before/after source inventories
+with a separate persistent target directory. The qualified Warden release was
+atomically installed (bcb1987811d5e930faeb60f3b95a13940a470dd5918ef7293110b3a9c797e2bb).
+Four observations across 105 seconds show no key diffs and no key-changing
+commits while unrelated work continues. Later fleet status reports `.dracon`
+converged/OK. Historical published ciphertext and alert-email backlogs remain;
+this does not classify every historical incident as harmless. Evidence and
+all raw gates: `../../../dracon-warden/docs/design/ssh-key-ciphertext-churn-2026-10-27/`
+(from this document's directory, use the repository sibling `dracon-warden/`).
+The earlier /tmp frozen build directory disappeared before this repair; no
+qualification was inferred from that missing artifact.
+
+User separately approved `docs/screenshots/qa/ascension-owned.png` as a cache.
+Added only its exact ignore rule, expanded the existing policy regression, and
+removed only that index entry inside `dracon-sync maintenance`. Its staged and
+worktree bytes differed: BOTH variants were preserved privately, local bytes
+remain unchanged, and every other index entry was verified unchanged. All three
+visual-publication tests pass with the original source/comparison contract
+intact. Receipt: `checks/publication-resync-2026-10-27/doomtap-owned-approved-deindex.json`.
+No manual commit or push; daemon resumed automatically. Doomtap remains retrying
+in the fresh observation, so cache repair is not publication proof.
+
+Fresh fleet: 36 watched, 30 summary-OK, 5 active, 1 warn, zero inspection failures.
+Canonical-writer preservation, browser real-feed evidence, remaining autonomous
+publication and entirely clean/idle acceptance remain open. Original goal active.
+
 ## Latest qualification: full workspace gates pass; loaded daemon matches
 
 `checks/publication-resync-2026-10-27/frozen-workspace-v2-gates.json` records
