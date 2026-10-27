@@ -1,5 +1,28 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## Active: operator-authorized cooperative writer integration (not deployed)
+
+User authorized external .gitignore-writer integrations with a bounded pre-open
+fence held through final close, retaining all existing guarantees. The previous
+permission blocker is cleared; implementation is active, not deferred.
+
+Warden source now owns a versioned per-worktree flock protocol and a write-fence
+CLI; native harden_repo holds it around the entire metadata read/render/write,
+including once/repair. Five primitive and four real CLI controls pass, as do the
+full Warden suite and strict package/all-target Clippy. FD-lifetime control proves
+killing only the wrapper does not prematurely unlock a still-live writer. This
+is NOT full crash-family supervision or all-writer coverage.
+
+Nothing in this phase is deployed. Daemon helper integration, Pi edit/write
+integration, shell/Git/editor coverage, coherent whole-workspace qualification
+and loaded execution remain unfinished. Task 4.1 is reopened for the new source.
+The old raw-writer control remains failed; no displaced-writer condition was
+accepted, no count-cap migration applied, no producer stopped. Exact design,
+coverage gaps, source inventory and raw tests:
+`dracon-sync/docs/design/canonical-writer-fence-2026-10-27/PLAN.md` (utilities parent).
+Continue that implementation rather than returning to the already-answered
+permission question or treating the primitive as a complete protocol.
+
 ## Latest: four newly approved caches repaired; current loaded writer control fails
 
 User approved only arena-ward.png, arena-wound.png, defeat-after.png and
