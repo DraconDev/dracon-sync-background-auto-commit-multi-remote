@@ -8,5 +8,12 @@
   "runnerSha256": "012459268fe5c6a93500455e8940bbbabd016587f77f20b06318c17cb7db1cb3",
   "rawLog": "/home/dracon/.local/state/dracon-sync/diagnostics/browser-full-prepush-1793061548724174692.log",
   "timeoutSecs": 3600,
-  "status": "running"
+  "status": "cancelled",
+  "terminalManifest": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.lwsNM1/manifest.json",
+  "terminalManifestSha256": "b4d121748464d63b3f472ac8f7e8732294f72c5f30c7c59cda82c058d75f91d5",
+  "finished": "2026-10-27T01:39:08.789Z",
+  "exitCode": null,
+  "exitCodeNote": "The initiating tool was interrupted; no terminal process exit was observed. The actual runner records cancellation and its owner process no longer exists.",
+  "passedGates": 94,
+  "failedGates": 2
 }
