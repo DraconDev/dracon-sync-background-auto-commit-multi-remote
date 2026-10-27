@@ -1,0 +1,28 @@
+✖ cold metadata creation honors native restrictive umask rather than widening permissions (737.295943ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 800.040023
+
+✖ failing tests:
+
+test at ../pi-plugins/extensions/pi-canonical-write-fence/test/alias.test.mjs:82:1
+✖ cold metadata creation honors native restrictive umask rather than widening permissions (737.295943ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  420 !== 384
+  
+      at TestContext.<anonymous> (file:///home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/test/alias.test.mjs:91:14)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 420,
+    expected: 384,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
