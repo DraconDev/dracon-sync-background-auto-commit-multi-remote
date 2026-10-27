@@ -2015,3 +2015,5 @@ ok
 test sync::tests::test_degraded_success_reports_paused_not_synced ... [master (root-commit) 4f521fe] init
 To /tmp/.tmp0phZa2/mirror.git
  * [new branch]      master -> master
+ok
+test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) 225f3bd] init
