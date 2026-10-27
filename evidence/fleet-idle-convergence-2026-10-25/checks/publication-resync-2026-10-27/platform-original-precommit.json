@@ -1,0 +1,13 @@
+{
+  "repo": "/home/dracon/Dev/dracon-platform",
+  "head": "2ef371a866595d0f19809fc5932ed523eedf7293",
+  "command": "git hook run --ignore-missing pre-commit",
+  "index": "copied input only; no actual-index installation or commit",
+  "capturedIndexSha256": "c7e0d8ca90e646c6fe58faf5393dd5a3b6a11bdeed55d7af04b5c4ff7233f8bf",
+  "canonicalIndexStillSame": true,
+  "exitCode": 1,
+  "elapsedSecs": 0.351,
+  "rawLog": "/home/dracon/.local/state/dracon-sync/diagnostics/platform-precommit-1793060941443305703.log",
+  "rawLogSha256": "ccc7126da3e07947e61f84208448b6668a4c997aa8e4d8fc6b5d1c124d49ae6b",
+  "scope": "original configured pre-commit; not full commit or publication proof"
+}
