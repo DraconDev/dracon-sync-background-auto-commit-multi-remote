@@ -8,7 +8,31 @@
       "elapsedSecs": 403.83,
       "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/publication-resync-2026-10-27/frozen-workspace-v2-tests.log",
       "sha256": "258b8c5219cfc1a2e7233abe3d0f4697886b0b7ce79f537924d2ffe9e36a0963"
+    },
+    {
+      "gate": "release",
+      "command": "cargo build --release --locked",
+      "exitCode": 0,
+      "elapsedSecs": 34.36,
+      "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/publication-resync-2026-10-27/frozen-workspace-v2-release.log",
+      "sha256": "198514c23b37a4a1dd49947353d90aaa44a6adc3a31a170c9e47bfd99b777b12"
+    },
+    {
+      "gate": "clippy",
+      "command": "cargo clippy --workspace --locked --all-targets -- -D warnings",
+      "exitCode": 0,
+      "elapsedSecs": 7.17,
+      "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/publication-resync-2026-10-27/frozen-workspace-v2-clippy.log",
+      "sha256": "8f0cccb1e998a4974fb2d0979f0ec8ddbd8d9a7d8c4688d1d7e25255f01ac605"
+    },
+    {
+      "gate": "deny",
+      "command": "cargo deny check",
+      "exitCode": 0,
+      "elapsedSecs": 0.66,
+      "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/publication-resync-2026-10-27/frozen-workspace-v2-deny.log",
+      "sha256": "f1a0fca39d4280363937aabd77783990ea6480bd9ca257816de3b68fc8efa845"
     }
   ],
-  "allPassed": false
+  "allPassed": true
 }
