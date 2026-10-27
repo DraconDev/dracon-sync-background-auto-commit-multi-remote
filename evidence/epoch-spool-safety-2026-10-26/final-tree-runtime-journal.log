@@ -1,0 +1,48 @@
+🔄 dracon-sync daemon started
+📋 startup: 5 repo(s) in the stuck-push ledger: filter-only-push-ahead (1 failures), .dracon (6 failures), filter-only-push-ahead (1 failures), browser-extensions-shared (5 failures), filter-only-push-ahead (1 failures)
+🧹 startup: running cleanup...
+🧹 startup: pruned 3 stale stuck repos
+🧹 startup: pruned 24 stale visibility cache entries
+🔄 trailing-drain: 3 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+🗑️ /home/dracon/Dev/dracon-strategy/ai-auto-writer has 7.68 GiB dangling garbage (> threshold 0.50 GiB) — running git gc
+⚠️ warden auto-harden failed for /home/dracon/Dev/dracon-utilities/dracon-sync (staging proceeds unhardened): ⚠️ global hook refresh failed: failed to create temporary hook in /home/dracon/.config/git/hooks
+📝 committed 19 file(s) in /home/dracon/.dracon
+🚨 ALERT: /home/dracon/.dracon has 645 unpushed commits (threshold: 50). Something may be wrong with push.
+⏸️ /home/dracon/.dracon committed; push paused (commit-only mode)
+📝 committed 2 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+⏸️ /home/dracon/.dracon committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform elapsed_ms=7399 outcome=success
+classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner elapsed_ms=11843 outcome=success
+🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner: captured staged intent exceeds strict batch limit
+🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+🗑️ /home/dracon/Dev/browser-extensions-shared has 4.80 GiB dangling garbage (> threshold 0.50 GiB) — running git gc
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+⚠️ warden auto-harden failed for /home/dracon/.dracon (staging proceeds unhardened): ⚠️ global hook refresh failed: failed to create temporary hook in /home/dracon/.config/git/hooks
+⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: refused epoch message retained at /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-4PaHLT
+⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform: refused epoch message retained at /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-hpKNSn
+📝 committed 18 file(s) in /home/dracon/.dracon
+🚨 ALERT: /home/dracon/.dracon has 646 unpushed commits (threshold: 50). Something may be wrong with push.
+⏸️ /home/dracon/.dracon committed; push paused (commit-only mode)
+⏸️ /home/dracon/.dracon committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner elapsed_ms=13828 outcome=success
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner: captured staged intent exceeds strict batch limit
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform elapsed_ms=8349 outcome=success
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+📝 committed 17 file(s) in /home/dracon/.dracon
+🚨 ALERT: /home/dracon/.dracon has 647 unpushed commits (threshold: 50). Something may be wrong with push.
+⏸️ /home/dracon/.dracon committed; push paused (commit-only mode)
+⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: refused epoch message retained at /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-XLtbpK
+⏸️ /home/dracon/.dracon committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner elapsed_ms=17092 outcome=success
+classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform/web/games/wip/doomtap elapsed_ms=8766 outcome=success
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: refused epoch message retained at /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-dnsTkH
+⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner: captured staged intent exceeds strict batch limit
+⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform: refused epoch message retained at /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-HUU9LF
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
