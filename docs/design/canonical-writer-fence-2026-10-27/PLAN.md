@@ -58,7 +58,7 @@ Task 4.1 is reopened for the changed source assembly.
    documentation and checked ssh.ts and SDK loader examples. Prototype reuses
    the host's complete tool operation and queue AFTER validating the actual
    inherited locked OFD and its repository. Atomic writes use private, byte/inode
-   bounded scratch and an open directory anchor for publication/cleanup. Twelve
+   bounded scratch and an open directory anchor for publication/cleanup. Thirteen
    controls pass, including native schema/legacy preparation/dynamic-cwd loader
    contracts and actual fenced SDK BOM/CRLF/Unicode/diff semantics,
    ambiguous-edit preservation, refusal without a held fence, pre-publication
@@ -70,11 +70,15 @@ Task 4.1 is reopened for the changed source assembly.
    cancellation preserves its original canonical inode/bytes, clears scratch,
    exits the blocked child and allows native reacquisition. This is NOT proof
    for detached descendants or parent-only SIGKILL schedules.
-   Receipts: pi-cancellation-controls.json, pi-registration-controls.json and
-   pi-worker-namespace-negative.log. This is direct regular named metadata
-   scope ONLY. Alias and other producer coverage, remaining kill/parent-death/
-   timeout/I/O schedules, ACL/xattr fidelity, full assembly and live loaded
-   proof remain open. Existing sessions
+   Native write/writev and fsync ENOSPC fault controls also pass: each refuses,
+   preserves the canonical inode/content, clears owned scratch and permits
+   native reacquisition. No host disk was filled. Current receipt pi-io-controls.json
+   hashes the prototype, C interposer, Warden and compiled host SDK before/after.
+   Earlier receipts remain pi-cancellation-controls.json,
+   pi-registration-controls.json and pi-worker-namespace-negative.log.
+   This is direct regular named metadata scope ONLY. Alias and other producer
+   coverage, remaining kill/parent-death/timeout/error stages, ACL/xattr fidelity,
+   full assembly and live loaded proof remain open. Existing sessions
    do not magically load source files. See the prototype's README limitations.
 4. Agent bash/user-bash, native Git worktree mutators (checkout/merge/restore,
    etc.), scripts and other editors: coverage NOT established. Do not claim an
