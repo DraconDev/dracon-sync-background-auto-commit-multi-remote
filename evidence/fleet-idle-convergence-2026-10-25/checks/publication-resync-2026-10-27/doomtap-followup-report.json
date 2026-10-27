@@ -1,0 +1,88 @@
+{
+  "policy": "/home/dracon/.dracon/utilities/sync/dracon-sync.toml",
+  "filter": "all",
+  "repos": 1,
+  "ok": 0,
+  "active": 1,
+  "warn": 0,
+  "concern": 0,
+  "failures": 0,
+  "rows": [
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 18,
+      "staged": 48,
+      "untracked": 5,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "4610264cc73b5506034bd1e75639b94f186db5a5",
+      "last_author": "DraconDev",
+      "last_when": "15 hours ago",
+      "last_msg": "8 file(s) in assets,docs [assets/assets.lock.json, SPEC.md, docs/screenshots/.capture-manifest.json] DELTA:+12/-12 | EXT:json,md BIN:5",
+      "last_unix": 1793013532,
+      "commits_1h": 0,
+      "commits_6h": 0,
+      "commits_24h": 3,
+      "last_push": "15 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 3827486720,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": true,
+      "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack check unknown — use repos --deep; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "committing",
+      "state_cause_label": "committing",
+      "daemon_last_action_unix": 0,
+      "daemon_last_action": "",
+      "daemon_last_result": "",
+      "daemon_last_action_when": "none",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "retrying",
+        "scheduler": {
+          "phase": "retrying",
+          "execution_secs": null,
+          "retry_secs": 64,
+          "dirty_secs": 8357,
+          "eligible": false,
+          "admitted_secs": 242,
+          "publication_phase": null,
+          "publication_secs": null
+        },
+        "observed_at": 1793068580,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+          "attempted_at": 1793013560,
+          "succeeded": true
+        }
+      }
+    }
+  ]
+}
