@@ -1,0 +1,15 @@
+{
+  "snapshot": "/tmp/fleet-qualified-workspace-cmgvn6rm",
+  "revisions": {
+    ".": "26f7e331e1223dcfd0b670b5f1a3045aaade39f6",
+    "dracon-sync": "125af9f1c7b57c78f8f204af46a5a6b119a54cc5",
+    "dracon-system": "b2afdc2615f8a6bc01233d54aa53aa4be4db0e02",
+    "dracon-warden": "7339d9356491b3e4be9104f22716374e6e8c78b1"
+  },
+  "cargoTargetDir": "/tmp/fleet-qualified-workspace-cmgvn6rm/target",
+  "scope": "all current committed workspace crates, no sibling substitutions; separate target directory",
+  "gitignoredAssetsCopied": [
+    "dracon-sync/scripts/bucket-runner/node_modules"
+  ],
+  "status": "prepared"
+}
