@@ -185,6 +185,7 @@ pub(super) async fn apply_ignore(
         const LIMIT: u64 = 8 * 1024 * 1024;
         let canonical = std::fs::canonicalize(repo)?;
         let repo = canonical.as_path();
+        let writer_fence = crate::git::write_fence::WriteFence::acquire_until(repo, deadline).await?;
         let lock = match crate::git::IndexLock::try_acquire_path(crate::git::index_lock_path(repo))
         {
             Ok(lock) => lock,
@@ -278,6 +279,7 @@ pub(super) async fn apply_ignore(
             deadline,
             lock,
             snapshot,
+            &writer_fence,
         )
         .await?;
         Ok((applied, Some(rendered)))
@@ -305,6 +307,7 @@ async fn restore_inner(
 ) -> Result<bool> {
     let canonical_repo = std::fs::canonicalize(repo)?;
     let repo = canonical_repo.as_path();
+    let writer_fence = crate::git::write_fence::WriteFence::acquire_until(repo, deadline).await?;
     let lock = match crate::git::IndexLock::try_acquire_path(crate::git::index_lock_path(repo)) {
         Ok(lock) => lock,
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => return Ok(false),
@@ -411,6 +414,7 @@ async fn restore_inner(
         deadline,
         lock,
         snapshot,
+        &writer_fence,
     )
     .await
 }
@@ -426,7 +430,9 @@ async fn apply_prepared(
     deadline: Instant,
     lock: crate::git::IndexLock,
     snapshot: StagedIntentSnapshot,
+    writer_fence: &crate::git::write_fence::WriteFence,
 ) -> Result<bool> {
+    writer_fence.verify()?;
     if !lock.is_owned() || snapshot != StagedIntentSnapshot::capture(repo, deadline).await? {
         return Ok(false);
     }
@@ -485,6 +491,7 @@ async fn apply_prepared(
             command.env_remove(key);
         }
     }
+    writer_fence.inherit_into(&mut command);
     let output =
         crate::git::run_command_captured_output(command, 3600, "excluded restore helper", None)
             .await?;
@@ -502,6 +509,7 @@ async fn apply_prepared(
         response.0 == env!("DRACON_EPOCH_SOURCE_ID"),
         "excluded helper source identity mismatch"
     );
+    writer_fence.verify()?;
     // A completed/deferred helper is NOT sufficient proof of recovery. Inspect
     // retained bytes while this parent still owns the actual index lock.
     if !settle_directory(repo, &retained, deadline).await? {
@@ -722,6 +730,12 @@ pub(super) async fn helper(request_path: &Path) -> Result<()> {
         "excluded helper source identity mismatch"
     );
     let repo = PathBuf::from(std::ffi::OsString::from_vec(request.repo.clone()));
+    // The parent passes the same held OFD; direct helper callers acquire before
+    // any canonical path lookup. Keep the actual helper PID and existing parent
+    // death/cancellation binding unchanged (no intermediary writer process).
+    let writer_fence = crate::git::write_fence::WriteFence::acquire_until(
+        &repo, Instant::now() + Duration::from_secs(30),
+    ).await?;
     let tree = request_path
         .parent()
         .context("recovery root missing")?
@@ -790,6 +804,7 @@ pub(super) async fn helper(request_path: &Path) -> Result<()> {
         {
             return response(false);
         }
+        writer_fence.verify()?;
         if before.is_none() {
             match desired.exchange(&source, libc::RENAME_NOREPLACE) {
                 Ok(()) => {}

@@ -1,5 +1,6 @@
 use crate::log_warn;
 pub(crate) mod sync_lease;
+pub(crate) mod write_fence;
 #[cfg(test)]
 use crate::policy::{AuthType, RemoteConfig};
 #[cfg(test)]
