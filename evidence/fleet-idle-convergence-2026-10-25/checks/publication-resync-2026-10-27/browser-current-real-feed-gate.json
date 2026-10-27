@@ -1,0 +1,8 @@
+{
+  "head": "223a41ff4687d72d017e1a5032a61e84f252bc59",
+  "exitCode": 1,
+  "privateRawLog": "/home/dracon/.local/state/dracon-sync/diagnostics/youtube-filter-evidence-recheck-1793096925173926483.log",
+  "logSha256": "066914b64580f4df3bf695fb78c716f53f3faceba8608d9858e9a1d33f6fe175",
+  "realFeedFailureCount": 1,
+  "stillReportsAbsentControlTargets": true
+}
