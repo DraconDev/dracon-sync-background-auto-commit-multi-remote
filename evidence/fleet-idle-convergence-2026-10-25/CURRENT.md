@@ -24,8 +24,11 @@ that failure stays failed even though a bounded unchanged native isolation
 passed in3.067s. Assess terminal receipt/manifest, not the interruption or stale
 running marker, before further action. No retry ledger has been cleared.
 
-Canonical-writer preservation remains failed/open. No further executable,
-global policy or zero-batch migration was applied during this reassessment.
+Canonical-writer preservation remains failed/open. No global policy or zero-batch migration was applied during this reassessment.
+
+## 2026-10-27 hook repair deployed; autonomous `.dracon` push in flight
+
+The `.dracon` publication wedge was a Warden pre-push false positive: a Google-key-shaped base64 run inside the age envelope of `secrets/ssh/micro3.key` was extracted before ciphertext context was considered. `mask_warden_tags` now masks valid complete tags before extraction in all three scans. Warden (235+18+2) and sync (1511) tests, strict Clippy and deny pass; full-workspace tests stay broken on unrelated in-flight `dracon-system` errors. Release warden `9b632d46` installed, global hooks regenerated. The exact refusing commit passes in 0.57s. `.dracon` was unstuck and its daemon push is running (timeout scaled to 5400s). Doomtap published (ahead 0). Browser stays PUSH_STUCK on genuine gate failures; new `ascension-owned.png` stays blocked pending operator decision. Full evidence: `checks/publication-resync-2026-10-27/ASSESSMENT.md`. No acceptance claimed.
 
 ## 2026-10-27 disk-exhaustion priority update — NOT fleet acceptance
 
