@@ -1,0 +1,311 @@
+{
+  "scope": "read-only object classification; no private-key bytes emitted",
+  "commit": "8694647696afed263b121e084e8396e01143721d",
+  "rows": [
+    {
+      "path": "data/keys/micro2_fleet_key",
+      "parent": {
+        "exists": true,
+        "sha256": "0e8a590941ae495e3d28846039ebcfc3287dc9cb094d0a0554e13c657c1ea2a6",
+        "bytes": 1101,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "d6896b5f5c854b5b2e8d0973feb4a3195f03dac2ebe9cc0333461af2119353e7",
+        "bytes": 989,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "data/keys/micro2_git_key",
+      "parent": {
+        "exists": true,
+        "sha256": "89ffb08a50f7aae14973bae649953c33ce5e095e053e4b745eb2e2c3f88091ef",
+        "bytes": 1105,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "adee2a85a2a2e5eb51e181119e1be10fc4ed405a780023efc9f3850f769e418b",
+        "bytes": 1085,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "data/keys/micro2_libs_key",
+      "parent": {
+        "exists": true,
+        "sha256": "8446580fb379123a42b68868b8e87c8f2c1eecfee62a41f2ea2756f0569bab65",
+        "bytes": 1017,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "5feee7c20a57d23e0b91d1403df7dc21840d4dc6b5373bb6fd28ba4bf5593c84",
+        "bytes": 1165,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/codeberg_dracon_sync",
+      "parent": {
+        "exists": true,
+        "sha256": "35f56bc2e61f3fa41b1a66092e0349dfd543e6bf6bf00990d4ffa980749f5dce",
+        "bytes": 1129,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "1d85a4fcf12c41e2324885bd9deded8d4254cad83cb11211b0b3b352fbcb2100",
+        "bytes": 1005,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/id_ed25519",
+      "parent": {
+        "exists": true,
+        "sha256": "0fe5e1f9ce03f09a0e59b5d32a23accd23fcd613155d6894b76d3eab715d093b",
+        "bytes": 1041,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "e40c53620f84424abc1c1afdb223179fb7e11c0646dfebd8fc98002245152d37",
+        "bytes": 1017,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/legacy_archive/admin.key",
+      "parent": {
+        "exists": true,
+        "sha256": "889140a4ab67a3572fab07ad743c855832b0441be5f0fd673c92ff74f13a1b67",
+        "bytes": 5105,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "5b24f693caac9760aba8c138c7b75cb2edf512719d88b83259729fc2727cd41b",
+        "bytes": 5081,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/legacy_archive/arcane_director",
+      "parent": {
+        "exists": true,
+        "sha256": "13f0303ecddfc7f6a5b75fae5d831cdfff50f1843216780adbbcb38419602f0c",
+        "bytes": 1117,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "908fec78ec62fffcd2903eebc380fdc07e81b4bfaa445844e132866626e4d296",
+        "bytes": 1165,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/legacy_archive/main1.key",
+      "parent": {
+        "exists": true,
+        "sha256": "29df69148d4fcf81fd943fd49bac5df07e05cd9c97bea6b42ed637e01bdb6dd2",
+        "bytes": 2749,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "ed9e9c27a0f4088ded60886d402f61c0bee7b1d118d7ad99292ba13a61e9385c",
+        "bytes": 2789,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/legacy_archive/main1.key.bak",
+      "parent": {
+        "exists": true,
+        "sha256": "b391c91b5b5591d35c6f88ff221d4b4040142d08a47a1328811a7cc3df6709be",
+        "bytes": 2701,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "f02ad59648088c6e01646d099d05bd84d19d32145307cef3fc07db859b66fe32",
+        "bytes": 2777,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/legacy_archive/micro1.key",
+      "parent": {
+        "exists": true,
+        "sha256": "119c50be1c7a318a22b01536c6ce33efa37653806a314e1e4683f48b0af0fdda",
+        "bytes": 2841,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "5f2d662a6a291e0f44db6de390c4f79007132cab866a068530a28420f74eed27",
+        "bytes": 2753,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/legacy_archive/ssh-key-2026-01-03 (5).key",
+      "parent": {
+        "exists": true,
+        "sha256": "cc4bebc2711bd708a79160810063f39bf7c2cdd6dded098abf5549f055cc1369",
+        "bytes": 2793,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "c231876e259ea0d0f4a31a88af227f6b40518ae941d8f0256e078941c228632c",
+        "bytes": 2801,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/main1.key",
+      "parent": {
+        "exists": true,
+        "sha256": "84227770fd6bc8a27f7427386f67c97796e2d2ade6e6a952582eb9ca8f37e44b",
+        "bytes": 1105,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "405cc58d9a2d51ce1decd72d6da759cbb28b47c1e975797e00b1070d84d36b3d",
+        "bytes": 1081,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/micro1.key",
+      "parent": {
+        "exists": true,
+        "sha256": "b8a7a51caf94bc832b540b08da5353e717a4ef2af2d1240f89886784080a5e66",
+        "bytes": 1077,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "9dfb6438ac3a1c15d019e54f2be37d8a2af338179fd3e0fed882722456624fe2",
+        "bytes": 1029,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/micro2.key",
+      "parent": {
+        "exists": true,
+        "sha256": "ac1fae3f8862ec40a619890437e8ced18168272bb02acc5963b761651e6fa0e6",
+        "bytes": 1061,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "47c0d845ccf3a54bebfe74d5c0bfb1d5a1b2afce9069291a3ced3407a69bb3ad",
+        "bytes": 1009,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/micro3.key",
+      "parent": {
+        "exists": true,
+        "sha256": "29c92b93be1481f2b51f4e19109bf73947d3ac8fcb1a088b745686bad191d399",
+        "bytes": 1101,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "23af0ac553ddd6b58a5e0f48798c6547fcc2ac2c5d0b50bd9d10c6a10a403986",
+        "bytes": 985,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    },
+    {
+      "path": "secrets/ssh/micro3_v2_key",
+      "parent": {
+        "exists": true,
+        "sha256": "7c08251c90a23f37a4c2f6bf7fba4dadab7b22a19e6ad7b11a377ed253be9372",
+        "bytes": 1081,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      },
+      "commit": {
+        "exists": true,
+        "sha256": "865970a274cd19e05c953efe2af6445d5439f16e32015ea13e4f6cd4a46045f9",
+        "bytes": 1013,
+        "classification": "warden-whole-file-tag",
+        "privateKeyArmorPresent": false,
+        "base64MaterialAfterArmor": false
+      }
+    }
+  ],
+  "commitTime": "2026-10-26T21:19:05Z"
+}
