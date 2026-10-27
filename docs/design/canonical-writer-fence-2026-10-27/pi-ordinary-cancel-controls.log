@@ -1,0 +1,27 @@
+✔ differently named same-repo metadata alias uses atomic canonical publication and preserves alias (4279.732195ms)
+✔ cross-repo metadata alias refuses instead of mutating under the wrong repository fence (985.923395ms)
+✔ ordinary regular worktree writes/edits preserve inode and mode rather than metadata replacement semantics (2110.399739ms)
+✔ unowned plain files stay usable but outside symlink/hardlink aliases cannot bypass metadata fencing (29.147481ms)
+✔ broken Git ownership metadata is an error, never an ordinary unfenced fallback (33.457699ms)
+✔ complete atomic publication preserves original mode and removes private scratch (68.568681ms)
+✔ cancellation after full scratch write does not truncate or replace canonical bytes (20.552844ms)
+✔ stale canonical content is refused, not adopted as the old baseline (54.714929ms)
+✔ symlink and shared-hardlink targets refuse without touching their contents (11.031661ms)
+✔ owned recovery inode budget refuses without deleting recovery or changing target (40.084332ms)
+✔ a substituted scratch namespace refuses without publishing into the worktree (4.780774ms)
+✔ actual cancellation before rename preserves canonical bytes, reaps owned writer and permits independent repo progress (3339.01716ms)
+✔ actual scratch write and fsync ENOSPC refuse without replacing canonical content or leaking scratch/fence (3127.255886ms)
+✔ namespace replacement does not make cleanup delete a foreign replacement entry (27.406847ms)
+✔ ordinary in-place write abort settles to full content without truncation and releases fence (1844.714144ms)
+✔ real Pi loader registers native contracts and executes fenced metadata with dynamic cwd (4992.152763ms)
+✔ actual fenced SDK edit preserves BOM, CRLF, Unicode and native diff contract (1373.401245ms)
+✔ actual SDK write completes atomically and ambiguous edits preserve prior bytes (2880.770064ms)
+✔ worker launched without a held descriptor refuses before target mutation (116.72729ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7595.999603
