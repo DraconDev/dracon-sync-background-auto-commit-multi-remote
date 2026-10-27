@@ -1318,4 +1318,14 @@ test git::ops::tests::captured_pipe_future_does_not_embed_its_io_buffer ... ok
 test git::ops::tests::child_exit_wakes_runner_without_poll_interval ... ok
 test git::ops::tests::failed_hook_stdout_is_bounded_drained_and_retained ... ok
 test git::ops::tests::owned_workflow_capture_drives_input_and_both_outputs_together ... ok
-test git::ops::tests::owned_workflow_deadline_and_cancellation_kill_only_the_owned_family ... 
+test git::ops::tests::owned_workflow_deadline_and_cancellation_kill_only_the_owned_family ... ok
+test git::ops::tests::progress_timeout_has_a_bounded_hard_ceiling ... ok
+test git::ops::tests::test_askpass_drop_logs_unlink_failure ... ok
+test git::ops::tests::test_f48_tightened_progress_predicate ... ok
+test git::ops::tests::test_git_askpass_script_atomic_0o700_create_and_cleanup ... ok
+test git::ops::tests::test_git_askpass_script_creates_distinct_paths_without_remove ... ok
+test git::ops::tests::test_git_askpass_script_rejects_single_quote ... ok
+test git::ops::tests::test_git_push_progress_predicate_detects_pack_progress ... ok
+test git::push::publication_tests::pinned_origin_and_mirror_publish_the_same_commit_after_head_advances ... ok
+test git::push::publication_tests::publication_target_accepts_full_object_ids_but_not_moving_or_unsafe_sources ... ok
+test git::push::publication_tests::rejected_pinned_upload_does_not_pull_merge_or_change_local_edits ... 
