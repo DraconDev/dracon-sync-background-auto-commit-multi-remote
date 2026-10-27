@@ -2112,4 +2112,102 @@ test sync::tests::test_scale_push_timeout_never_truncates_live_base ... ok
 test sync::tests::test_scale_push_timeout_small_push_uses_base ... ok
 test sync::tests::test_scale_push_timeout_tiers_live_at_default_base ... ok
 test sync::tests::test_scale_push_timeout_zero_base_stays_zero ... ok
-test sync::tests::test_scope_fallback_spanning_crates_backcompat ... 
+test sync::tests::test_scope_fallback_spanning_crates_backcompat ... ok
+test sync::tests::test_scope_root_files_backcompat ... ok
+test sync::tests::test_scope_shared_subtree_keeps_bracket ... ok
+test sync::tests::test_scope_single_file_full_path_drops_bracket ... ok
+test sync::tests::test_stage_existing_files_empty_after_filter_returns_ok ... ok
+test sync::tests::test_stage_existing_files_expands_directory_with_files ... [main (root-commit) c3c0465] init
+[main f3ab98d] add tracked
+ 1 file changed, 1 insertion(+)
+ create mode 100644 tracked.txt
+ok
+test sync::tests::test_stage_existing_files_filtered_skips_excluded_pattern_nested ... ok
+test sync::tests::test_stage_existing_files_filtered_skips_oversized_nested ... ok
+test sync::tests::test_stage_existing_files_recurses_deeply ... [main (root-commit) c3c0465] init
+ok
+test sync::tests::test_stage_existing_files_recurses_into_pi_dir ... ok
+test sync::tests::test_stage_existing_files_skips_directory_entries ... [main (root-commit) c3c0465] init
+ok
+test sync::tests::test_stage_existing_files_skips_nested_git_repo ... [main (root-commit) c3c0465] init
+ok
+test sync::tests::test_stage_existing_files_skips_node_modules_and_dotdirs ... [main (root-commit) c3c0465] init
+ok
+test sync::tests::test_stage_existing_files_skips_symlink_descendants ... ok
+test sync::tests::test_stage_existing_files_skips_vanished_files ... [main (root-commit) c3c0465] init
+ok
+test sync::tests::test_stage_gitlink_updates_dry_run_does_not_modify_index ... warning: adding embedded git repository: sibling
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sibling
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sibling
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_stage_gitlink_updates_no_op_for_empty_input ... ok
+test sync::tests::test_stage_gitlink_updates_propagates_sibling_subrepo_pointer ... warning: adding embedded git repository: sibling
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sibling
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sibling
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_staged_extra_paths_matching ... ok
+test sync::tests::test_stale_upstream_refresh_cooldown_is_per_repo ... ok
+test sync::tests::test_sync_repo_ahead_count_failure_fails_cycle ... ok
+test sync::tests::test_sync_repo_auto_commit_creates_commit ... [master (root-commit) 07e951e] init
+ok
+test sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo ... [master (root-commit) 07e951e] init
+ok
+test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) 63579e3] init
+ok
+test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) 63579e3] init
+ok
+test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) a7563aa] init
+ok
+test sync::tests::test_sync_repo_bootstrap_failure_is_error_not_nothing_to_do ... ok
+test sync::tests::test_sync_repo_busy_lease_defers_without_committing ... ok
+test sync::tests::test_sync_repo_clean_repo_returns_false ... [master (root-commit) a7563aa] init
+ok
+test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [master (root-commit) ea5af5b] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 dirty.txt
+[master c6a8ad4] unpushed
+ 1 file changed, 1 insertion(+)
+ create mode 100644 ahead.txt
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) f007aae] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) ef78f4e] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) ef78f4e] init
+ok
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... ok
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) 93b99dc] init
+ok
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) 93b99dc] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) 2c98e8f] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) 1f15190] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpD2HP0c/origin.git'
