@@ -831,4 +831,79 @@ test storage_core::s3::credentials::tests::explicit_private_credentials_load_wit
 test storage_core::s3::credentials::tests::git_tracked_or_unignored_credentials_refuse_without_mutation ... ok
 test storage_core::s3::credentials::tests::malformed_unknown_and_expired_records_redact_contents ... ok
 test storage_core::s3::credentials::tests::unsafe_permissions_links_and_oversized_records_refuse ... ok
-test storage_core::s3::http::tests::actual_http_corruption_and_provider_errors_produce_no_receipt_or_secret ... 
+test storage_core::s3::http::tests::actual_http_corruption_and_provider_errors_produce_no_receipt_or_secret ... ok
+test storage_core::s3::http::tests::actual_http_creation_and_existing_object_require_signed_readback ... ok
+test storage_core::s3::http::tests::aws_published_get_and_put_signatures_match ... ok
+test storage_core::s3::http::tests::capability_probe_checks_competing_creates_and_preserved_conflicting_bytes ... ok
+test storage_core::s3::http::tests::capability_probe_refuses_double_create_success_and_false_refusal ... ok
+test storage_core::s3::http::tests::capability_probe_refuses_overwrite_and_corrupt_or_partial_readback ... ok
+test storage_core::s3::http::tests::conditional_header_and_session_token_are_bound_to_signature ... ok
+test storage_core::s3::http::tests::endpoints_credentials_and_namespace_fail_closed_without_echoing_input ... ok
+test storage_core::s3::http::tests::missing_and_wrong_length_objects_fail_before_publication ... ok
+test storage_core::s3::http::tests::redirects_are_not_followed_and_partial_or_encoded_bodies_are_rejected ... ok
+test storage_core::s3::http::tests::session_credentials_are_sent_signed_and_expiration_is_checked_per_request ... ok
+test storage_core::s3::http::tests::verified_write_scope_expiration_refuses_before_provider_contact ... ok
+test storage_core::s3::http::tests::whole_response_deadline_cannot_be_extended_by_trickled_bytes ... ok
+test storage_core::s3::tests::bounded_capture_refuses_before_remote_write_and_retrieval_bounds_body ... ok
+test storage_core::s3::tests::create_and_existing_both_require_complete_readback ... ok
+test storage_core::s3::tests::existing_corrupt_object_is_never_overwritten_or_accepted ... ok
+test storage_core::s3::tests::failed_readback_and_write_conflicts_cannot_issue_receipts ... ok
+test storage_core::s3::tests::interrupted_provider_body_and_destination_errors_fail_verification ... ok
+test storage_core::s3::tests::interrupted_source_cannot_contact_provider ... ok
+test storage_core::s3::tests::streaming_payload_above_git_limit_uses_bounded_reads ... ok
+test storage_core::security::tests::approval_and_publication_survive_process_death_without_reencrypting ... ok
+test storage_core::security::tests::bad_recovery_representation_records_failure_on_the_latest_revision ... ok
+test storage_core::security::tests::completed_unapproved_output_after_crash_is_not_adopted ... ok
+test storage_core::security::tests::deadline_kills_child_and_retry_respects_backoff ... ok
+test storage_core::security::tests::failed_exit_and_plaintext_stdout_cannot_approve_a_payload ... ok
+test storage_core::security::tests::foreign_repo_binding_cannot_encrypt_or_adopt_a_prepared_job ... ok
+test storage_core::security::tests::oversized_stdout_and_unapproved_orphan_do_not_escape_capacity ... ok
+test storage_core::security::tests::real_warden_large_payload_copies_and_cold_restore_use_fixture_keys ... ignored, operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary
+test storage_core::security::tests::security_crash_child ... ignored, subprocess helper, invoked by security crash recovery test
+test storage_core::security::tests::success_publishes_once_and_restart_does_not_spawn_again ... ok
+test storage_core::transfer::tests::apparent_upload_success_without_readback_is_not_a_receipt ... ok
+test storage_core::transfer::tests::changed_snapshot_cannot_reach_s3_transport ... ok
+test storage_core::transfer::tests::changed_snapshot_is_rejected_before_immutable_backend_publication ... ok
+test storage_core::transfer::tests::foreign_or_unapproved_security_bindings_refuse_before_backend_io ... ok
+test storage_core::transfer::tests::incomplete_consumption_cannot_produce_a_copy_receipt ... ok
+test storage_core::transfer::tests::missing_bindings_and_capacity_failure_cannot_mark_ready ... ok
+test storage_core::transfer::tests::required_copies_use_retained_bytes_and_restart_rechecks_corruption ... ok
+test storage_core::transfer::tests::selected_input_requires_exact_eof_even_for_empty_payloads ... ok
+test storage_core::transfer::tests::transient_readback_failure_retains_exact_payload_and_obeys_backoff ... ok
+test storage_core::worker::tests::captured_version_is_prepared_copied_and_retry_keeps_identity ... ok
+test storage_core::worker::tests::encrypted_preparation_copies_only_approved_representation ... ok
+test storage_core::worker::tests::missing_warden_and_forbidden_class_do_not_prepare_or_upload ... ok
+
+test result: ok. 144 passed; 0 failed; 13 ignored; 0 measured; 0 filtered out; finished in 26.20s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-6df10b15ad956f11)
+
+running 1514 tests
+test bucket_assets::tests::daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure ... ok
+test bucket_assets::tests::followup_accounts_for_exact_verified_bytes_without_hiding_foreign_work ... ok
+test bucket_assets::tests::malicious_paths_and_ineligible_manifests_are_refused ... ok
+test bucket_assets::tests::post_upload_capture_tampering_is_refused ... ok
+test bucket_assets::tests::staged_accounting_ceiling_measures_clean_output_not_plaintext ... ok
+test bucket_assets::tests::staged_reference_drift_and_raw_materialization_are_refused ... ok
+test bucket_assets::tests::unconfigured_and_disabled_repos_do_not_invoke_upload ... ok
+test bucket_guard::tests::guard_garbage_output_fails_closed ... ok
+test bucket_guard::tests::guard_ok_passes ... ok
+test bucket_guard::tests::guard_violation_blocks_with_paths ... ok
+test bucket_guard::tests::missing_env_override_fails_closed ... ok
+test bucket_guard::tests::no_guard_script_skips_check ... ok
+test bucket_guard::tests::push_range_none_without_upstream ... ok
+test bucket_guard::tests::push_range_reports_live_violations ... warning: You appear to have cloned an empty repository.
+ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::accounting_failure_never_spawns_publisher_or_writes_manifest ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::candidate_discovery_includes_new_files_with_operator_gates_and_repo_relative_roots ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::disabled_repo_returns_none ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::materialized_manifest_sources_stay_repo_relative_with_non_dot_asset_root ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::missing_profile_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::mocked_end_to_end_returns_prepared_with_materialized_paths ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::non_refused_status_without_commit_eligible_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::oversized_stdin_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::oversized_stdout_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::refused_spawn_is_indexed_and_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::shared_routing_defaults_fail_closed_on_invalid_data ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::shared_routing_defaults_validate_and_preserve_measured_bytes ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::timeout_is_refused ... 
