@@ -334,3 +334,4 @@
    Compiling dracon-system v0.112.51 (/tmp/fleet-qualified-workspace-cmgvn6rm/dracon-system)
    Compiling git2 v0.21.0
    Compiling dracon-git v94.7.2
+    Finished `release` profile [optimized] target(s) in 1m 49s
