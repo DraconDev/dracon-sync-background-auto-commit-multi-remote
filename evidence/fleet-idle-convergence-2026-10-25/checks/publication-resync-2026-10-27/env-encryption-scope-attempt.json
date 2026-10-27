@@ -1,0 +1,23 @@
+{
+  "status": "failed",
+  "failedAssertion": "candidate policy did not produce required whole-file tag with exact roundtrip",
+  "canonicalPolicyChanged": false,
+  "canonicalIndexChangedByDiagnostic": false,
+  "plaintextSiblingObservations": [
+    {
+      "path": "apis/services/auth-api/.env.dev",
+      "plaintextSiblingExists": false,
+      "siblingIsSymlink": false
+    },
+    {
+      "path": "apis/services/billing-api/.env.dev",
+      "plaintextSiblingExists": false,
+      "siblingIsSymlink": false
+    },
+    {
+      "path": "apis/services/email-api/.env.dev",
+      "plaintextSiblingExists": false,
+      "siblingIsSymlink": false
+    }
+  ]
+}
