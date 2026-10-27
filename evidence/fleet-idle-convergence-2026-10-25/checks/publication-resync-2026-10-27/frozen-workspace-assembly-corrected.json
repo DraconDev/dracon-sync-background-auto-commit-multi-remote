@@ -1,0 +1,29 @@
+{
+  "snapshot": "/tmp/fleet-qualified-workspace-cmgvn6rm",
+  "revisions": {
+    ".": "26f7e331e1223dcfd0b670b5f1a3045aaade39f6",
+    "dracon-sync": "125af9f1c7b57c78f8f204af46a5a6b119a54cc5",
+    "dracon-system": "b2afdc2615f8a6bc01233d54aa53aa4be4db0e02",
+    "dracon-warden": "7339d9356491b3e4be9104f22716374e6e8c78b1"
+  },
+  "cargoTargetDir": "/tmp/fleet-qualified-workspace-cmgvn6rm/target",
+  "scope": "all current committed workspace crates, no sibling substitutions; separate target directory",
+  "gitignoredAssetsCopied": [
+    "dracon-sync/scripts/bucket-runner/node_modules"
+  ],
+  "status": "prepared",
+  "environmentCorrections": [
+    {
+      "path": "clippy.toml",
+      "sha256": "0dee39870463d371ed0d7bb6090680b5fccfff0ba39c11321da6fc2703b8e9e2",
+      "source": "existing canonical workspace config (untracked at parent)"
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "sha256": "7271c211635386654befb235ed54aef12efe46376c4fe41c497c8d23bc1572ec",
+      "source": "existing canonical workspace config (untracked at parent)"
+    }
+  ],
+  "gitMetadata": "shared bare object/ref copies with core.worktree bound to scratch and HEAD frozen; necessary for tests intentionally exercising own repository",
+  "priorAttempt": "archive-only tests failed two own-checkout size controls; missing pre-existing clippy config caused argument lint differences. Prior raw failures preserved."
+}
