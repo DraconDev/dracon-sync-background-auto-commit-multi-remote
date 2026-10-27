@@ -1885,4 +1885,9 @@ test stuck_route::tests::skips_transient_network ... ok
 test stuck_route::tests::skips_young_stuck ... ok
 test sync::bucket_qualification_tests::bucket_qualification_daemon_concurrent_manifest_preserves_independent_writer ... ok
 test sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore ... ok
-test sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery ... 
+test sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery ... ok
+test sync::bucket_qualification_tests::bucket_qualification_later_materialized_bytes_never_become_false_no_work ... ok
+test sync::diff_tests::test_fallback_entries_recalculate_staged_files ... ok
+test sync::diff_tests::test_retain_existing_stage_paths_drops_vanished ... ok
+test sync::excluded_revert::crash_tests::excluded_recovery_legacy_permission_repair_never_follows_archive_symlinks ... ok
+test sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores ... 
