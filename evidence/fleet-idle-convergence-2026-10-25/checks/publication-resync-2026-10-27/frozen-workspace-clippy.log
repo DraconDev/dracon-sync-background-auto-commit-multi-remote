@@ -318,3 +318,10 @@
     Checking hyper v1.11.1
    Compiling zbus_macros v5.19.0
     Checking tokio-rustls v0.26.5
+    Checking dracon-warden v0.113.16 (/tmp/fleet-qualified-workspace-cmgvn6rm/dracon-warden)
+    Checking hyper-util v0.1.20
+    Checking hyper-tls v0.6.0
+    Checking hyper-rustls v0.27.9
+    Checking reqwest v0.12.28
+    Checking zbus v5.19.0
+    Checking git2 v0.21.0
