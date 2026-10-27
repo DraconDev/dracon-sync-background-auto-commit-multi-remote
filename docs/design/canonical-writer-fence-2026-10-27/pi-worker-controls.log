@@ -5,3 +5,13 @@
 ✔ owned recovery inode budget refuses without deleting recovery or changing target (16.065882ms)
 ✔ a substituted scratch namespace refuses without publishing into the worktree (2.640078ms)
 ✔ actual fenced SDK edit preserves BOM, CRLF, Unicode and native diff contract (954.856184ms)
+✔ actual SDK write completes atomically and ambiguous edits preserve prior bytes (1147.185505ms)
+✔ worker launched without a held descriptor refuses before target mutation (63.970063ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2241.555252
