@@ -52,13 +52,22 @@ Task 4.1 is reopened for the changed source assembly.
    and stale-render refusal). Strict package/all-target Clippy passes. Receipts:
    daemon-fence-controls.json and daemon-integration-controls.json. These are
    bounded component controls, NOT all-writer or final runtime qualification.
-3. Pi built-in edit/write: NOT integrated. Read current complete Pi extension/SDK
-   docs and checked ssh.ts replacement example. Prefer wrapping the complete
-   original tool operation in an owned fenced writer worker, preserving original
-   tool behavior, file-mutation queuing and abort semantics. A tool_call/result
-   lease alone is insufficient if an async write outlives cancellation. Atomic
-   replacement within the cooperative boundary must not leave torn canonical
-   content on cancellation. Existing sessions do not magically load new extensions.
+3. Pi built-in edit/write: worker prototype implemented, NOT registered or
+   deployed. Re-read current complete extension/SDK/package/configuration/TUI
+   documentation and checked ssh.ts and SDK loader examples. Prototype reuses
+   the host's complete tool operation and queue AFTER validating the actual
+   inherited locked OFD and its repository. Atomic writes use private, byte/inode
+   bounded scratch and an open directory anchor for publication/cleanup. Ten
+   controls pass, including actual fenced SDK BOM/CRLF/Unicode/diff semantics,
+   ambiguous-edit preservation, refusal without a held fence, pre-publication
+   cancellation, stale render, link safety and scratch namespace substitution.
+   The namespace regression initially FAILED (foreign cleanup entry deleted),
+   then passed after directory-FD anchoring; its failure remains in the log.
+   Receipts: pi-worker-controls-v2.json and pi-worker-namespace-negative.log.
+   This is direct regular named metadata scope ONLY. Registration, alias and
+   other producer coverage, actual kill/cancel-family/I/O schedules, ACL/xattr
+   fidelity, full assembly and live loaded proof remain open. Existing sessions
+   do not magically load source files. See the prototype's README limitations.
 4. Agent bash/user-bash, native Git worktree mutators (checkout/merge/restore,
    etc.), scripts and other editors: coverage NOT established. Do not claim an
    extension wrapping edit/write also covers arbitrary shell commands or hidden
