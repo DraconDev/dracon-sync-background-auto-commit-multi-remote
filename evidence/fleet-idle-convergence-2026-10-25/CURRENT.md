@@ -1,5 +1,32 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## 2026-10-27 publication reassessment — no acceptance claim
+
+Read `checks/publication-resync-2026-10-27/ASSESSMENT.md` for current evidence.
+The active objective is fleet convergence; the bucket handoff remains stale.
+Fresh inventory has all 36 watched repos, 30 summary-ok, four active, two warned,
+zero inspection failures; it is not clean-idle acceptance. Original copied-index
+commit hooks reproduce four NEW Doomtap ascension QA-frame hygiene refusals and
+three platform `.env.dev` whole-file encryption refusals without index changes.
+The new QA paths need a source/cache decision; prior exact-nine approval does
+not authorize silently removing them. Credential-scope/header probes stayed
+private: no live Warden policy, canonical metadata or staging was modified.
+
+Browser acceptance-driver lint/typecheck suppression is corrected, and its
+original workspace lint/typecheck/tests/build plus actual Bun driver/probe
+compilation pass. The daemon committed this edit. An original full pre-push
+check of frozen revision735065c5 is still executing after its Bash tool was
+interrupted: observe the EXISTING runner2070402 and its real manifest
+`~/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.lwsNM1/manifest.json`.
+Do NOT start another copy. The owned original invocation has a3600-second bound.
+Its earlier affiliate self-test exceeded the unchanged5-second test deadline;
+that failure stays failed even though a bounded unchanged native isolation
+passed in3.067s. Assess terminal receipt/manifest, not the interruption or stale
+running marker, before further action. No retry ledger has been cleared.
+
+Canonical-writer preservation remains failed/open. No further executable,
+global policy or zero-batch migration was applied during this reassessment.
+
 ## 2026-10-27 disk-exhaustion priority update — NOT fleet acceptance
 
 The operator prioritized Git staging disk growth. Candidate packing now excludes
