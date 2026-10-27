@@ -1004,4 +1004,32 @@ test git::push_resources::tests::local_refresh_is_bounded_and_leaves_publication
 test git::push_resources::tests::push_commands_overlap_and_cancellation_drops_only_owned_work ... ok
 test git::push_resources::tests::push_phase_restores_local_capacity_on_error_and_nested_mirror_work ... ok
 test git::staged_intent::tests::index_lock_contention_and_replaced_inode_cleanup ... ok
-test git::staged_intent::tests::materialized_empty_root_and_invalid_input_refusals ... 
+test git::staged_intent::tests::materialized_empty_root_and_invalid_input_refusals ... ok
+test git::staged_intent::tests::materialized_tree_is_captured_not_live_and_preserves_repository ... ok
+test git::staged_intent::tests::materialized_tree_output_requires_exact_count_width_and_oid ... ok
+test git::staged_intent::tests::observation_deadline_and_caller_drop_terminate_actual_git_pid ... ok
+test git::staged_intent::tests::partial_staged_reverted_worktree_deletion_modes_gitlink_and_byte_paths ... ok
+test git::staged_intent::tests::shared_git_runner_deadline_and_drop_terminate_owned_descendant ... ok
+test git::staged_intent::tests::unborn_rename_and_sha256 ... ok
+test git::staged_intent::tests::unmerged_and_intent_to_add_refuse_without_index_changes ... ok
+test git::staged_intent::tests::unsupported_flags_sparse_and_split_index_refuse ... ok
+test git::staging::detect_large_blobs_ahead_regression::reports_a_blob_committed_ahead_of_upstream ... ok
+test git::staging::detect_large_blobs_ahead_regression::rev_list_failure_propagates_instead_of_empty ... ok
+test git::staging::tests::large_blob_record_preserves_spaces_in_path ... ok
+test git::staging::tests::test_build_filter_branch_args_escapes_single_quotes ... ok
+test git::staging::tests::test_build_filter_branch_args_shape ... ok
+test git::staging::tests::test_f31_noop_rewrite_deletes_backup_branch ... Parsed 1 commitsHEAD is now at ad6f1a5 init
+
+New history written in 0.04 seconds...
+Completely finished after 0.06 seconds.
+ok
+test git::staging::tests::test_real_rewrite_returns_outcome_with_bundle_and_lease ... Parsed 1 commitsHEAD is now at 5f46420 c1
+
+New history written in 0.03 seconds...
+Completely finished after 0.05 seconds.
+ok
+test git::staging::tests::test_unstage_oversized_paths_exempts_gitlinks ... ok
+test git::staging::tests::test_unstage_oversized_paths_measures_staged_blob_not_worktree ... ok
+test git::staging::tests::test_unstage_oversized_paths_quotes_glob_metachars ... ok
+test git::status::installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries ... ok
+test git::status::stat_delta_handles_large_inventory_and_sha256_without_rescanning_every_path ... 
