@@ -250,4 +250,14 @@ test test_scanner_detects_private_key_formats_by_specific_name ... ok
 test test_scanner_detects_stripe_key ... ok
 test test_scanner_detects_unquoted_padded_generic_secret ... ok
 test test_scanner_detects_unquoted_padded_password ... ok
-test test_scanner_handles_clean_text ... 
+test test_scanner_handles_clean_text ... ok
+test test_scanner_handles_empty_input ... ok
+test test_scanner_handles_unicode_content ... ok
+test test_scanner_ignores_too_short_unquoted_password ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.52s
+
+     Running tests/scanner_stress.rs (target/debug/deps/scanner_stress-50bc52a869597c2a)
+
+running 1 test
+test test_scanner_stress_1000 ... 
