@@ -1,5 +1,52 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## 2026-10-27 — actual long-abort defect reproduced and repaired; polling stopped
+
+Repeated fleet-only checkpoints were no progress: publication had deliberately
+been held pending safeguards, and original tasks 2–4 were still unfinished.
+Returned to those repairs rather than treating task 5 as a wait for idle.
+
+CORRECTION to the earlier ordinary-abort paragraph below: that control released
+I/O immediately, before escalation. The SAME full-content assertion with the
+write held 6.5 seconds after abort FAILED with an EMPTY file. Exact old inputs
+and retained failure: `../../docs/design/canonical-writer-fence-2026-10-27/ordinary-long-abort-negative.json`
+and `.log`. The earlier short-abort success is historical, not complete safety.
+
+Repaired lifetime, not grace duration: Pi registration now runs the entire host
+SDK transaction IN PROCESS with the v1 flock held until pending I/O settles.
+A small Linux N-API bridge provides nonblocking flock/CLOEXEC duplicate; owned
+namespace/mode/link checks and abortable absolute acquisition deadline are in
+JS. Ordinary writes are no longer in a force-killed child. Legacy bounded
+worker now REFUSES ordinary mutation before truncation; metadata still uses
+private atomic publication with directory-FD cleanup anchoring. No detached
+future writer is introduced. Queue and fence release only after SDK settlement.
+
+Actual-loader controls exercise short and >5-second abort, retaining the
+original full-content/inode/mode assertions. Actual Warden stays excluded while
+I/O is pending; another repo publishes in the SAME Pi process before that write
+is released. Native peer/OFD reentrancy/cross-root refusal, bounded waits and
+zero waiter-FD leakage, unsafe/replaced namespaces, native schemas/path/edit
+compatibility, BOM/CRLF/Unicode/diff and ambiguous refusal all pass. Readonly
+access cannot be bypassed by atomic rename. Cold umask comparison also first
+FAILED (0644 vs native 0600), then passed after honoring native umask; its failed
+log remains. Discovery/external-guard errors now increment refusal counters,
+which explicitly do not imply unchanged content after ordinary cancellation.
+
+29 controls pass with zero failures/skips on unchanged source/SDK/Node/binding/
+header/native-peer inputs: `../../docs/design/canonical-writer-fence-2026-10-27/pi-inprocess-controls-v3.json`.
+Native build log: `pi-inprocess-build.log` in that design directory. Binding was
+built only in the qualification target. No live-session settings, installed
+Warden/daemon binaries, publication policy or count-cap/index migration changed
+by this phase; no manual commit/push or producer stop.
+
+Remaining work is NOT waived: shell/user-bash/native-Git/editor interfaces,
+parent/process-death and other I/O/deadline schedules, metadata ACL/xattr and
+directory durability, linked-worktree/device and large-input qualification,
+full coherent workspace/product gates, then actual installed/loaded runtime
+and autonomous publication/full-fleet idle proof. Acquisition waits are bounded;
+this does NOT claim a hard bound for kernel I/O that never returns. See current
+prototype README and PLAN. Continue those prerequisites, not fleet-only polling.
+
 ## 2026-10-27 16:52 UTC — fresh fleet snapshot: not idle by design, gates deferred on load
 
 Read-only `repos --json` saved to `checks/20261027-fleet-snapshot/repos.json`:
