@@ -1,0 +1,28 @@
+{
+  "scope": "instrumented private hook copy; adds identity-only failure diagnostics, not a qualification or policy change",
+  "originalReceipt": "dracon-original-prepush.json",
+  "exitCode": 1,
+  "diagnostics": [
+    "DIAGNOSTIC modified-line refusal commit=8694647696afed263b121e084e8396e01143721d",
+    "DIAGNOSTIC match-stream-sha256=591e1f0fc51e4ac0206ae5c570dbd908ebac41aa1738a01753a38c1eeb85ac10  -"
+  ],
+  "commit": "8694647696afed263b121e084e8396e01143721d",
+  "changedPaths": [
+    "data/keys/micro2_fleet_key",
+    "data/keys/micro2_git_key",
+    "data/keys/micro2_libs_key",
+    "secrets/ssh/codeberg_dracon_sync",
+    "secrets/ssh/id_ed25519",
+    "secrets/ssh/legacy_archive/admin.key",
+    "secrets/ssh/legacy_archive/arcane_director",
+    "secrets/ssh/legacy_archive/main1.key",
+    "secrets/ssh/legacy_archive/main1.key.bak",
+    "secrets/ssh/legacy_archive/micro1.key",
+    "secrets/ssh/legacy_archive/ssh-key-2026-01-03 (5).key",
+    "secrets/ssh/main1.key",
+    "secrets/ssh/micro1.key",
+    "secrets/ssh/micro2.key",
+    "secrets/ssh/micro3.key",
+    "secrets/ssh/micro3_v2_key"
+  ]
+}
