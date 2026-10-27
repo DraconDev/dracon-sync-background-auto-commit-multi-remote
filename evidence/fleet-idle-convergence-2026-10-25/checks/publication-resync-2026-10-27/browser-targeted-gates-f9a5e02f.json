@@ -1,0 +1,15 @@
+{
+  "scope": "targeted re-run of the two previously-failing browser gates on current HEAD; diagnostic only, no push, no weakening",
+  "head": "92349e3a898dfb557282608445cecf30611b8a12",
+  "advertisedOriginTip": "45c330977f6a9bd014c6c510c2e2e5649b8db698",
+  "tabmon": {
+    "command": "vitest run tests/user-flows.test.ts in extensions/standalones/tabmon",
+    "result": "44 passed, 0 failed"
+  },
+  "affiliate": {
+    "command": "bash affiliate/ci.sh with real push tuple on stdin (affected-only narrowing engaged)",
+    "result": "CI OK: tests + required builds green (deal-dashboard/price-tracker correctly skipped as untouched)"
+  },
+  "note": "An earlier direct ci.sh run without stdin used fail-closed build-everything mode and RED-by-design deal-dashboard failure; that is NOT the hook verdict and is superseded by this stdin-fed run.",
+  "at": "2026-10-27T03:59:11Z"
+}
