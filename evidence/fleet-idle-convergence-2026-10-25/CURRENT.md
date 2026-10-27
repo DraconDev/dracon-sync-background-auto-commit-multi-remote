@@ -1,5 +1,43 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## Latest: workspace lifecycle fanout repaired; actual browser evidence remains red
+
+Supersedes earlier pending-browser and sibling-compile status below, not their
+historical failed outcomes. Bun 1.3.14 ignores `--concurrent-scripts=1` for
+workspace lifecycle jobs: a four-workspace native probe overlaps all four.
+The service hit its 512-task limit; failed-attempt WXT children accounted for
+hundreds of tasks. They later exited; no cleanup signal was sent.
+
+Browser helper now no-ops workspace lifecycle bodies only during Bun's trusted
+dependency script pass, restores exact manifest bytes and executes all original
+workspace phase bodies serially. Phase keys remain present because deleting
+prepare changes Bun file/workspace resolution and fails the frozen lock guard.
+The failed deletion-based attempt is retained. All 35 hook tests pass; the
+real pinned-Bun overlap regression fails the previous runner with EEXIST.
+The canonical lock was refreshed for two stale workspace versions, preserving
+every previous dependency resolution/integrity tuple and guarding against
+concurrent manifest/lock edits. No frozen guard was removed.
+
+Correct configured original hook (`scripts/git-hooks/pre-push`) on 85fde1cfd9a3
+completed installation and 155 product gates in 1003s: 154 passed, 1 failed.
+The remaining YouTube Filter evidence test truthfully refuses its committed
+control run because neither survey nor Watch-together target appeared across
+12 real feed loads. Its own goal is paused on that external feed condition.
+No assertion/evidence was changed, and browser retry was not cleared again.
+An earlier explicitly invoked global wrapper chained the legacy local hook;
+that failed diagnostic is NOT the configured-hook verdict.
+
+Fresh inventory: 36 watched repos, 29 summary-OK, 6 active, 1 warn, zero
+inspection failures; still NOT clean/idle acceptance. `.dracon` advertised origin
+and GitLab refs advanced to 9aa57f58, but current HEAD is newer and the GitHub
+advertisement failed: no all-destinations success claim. Workspace `cargo test
+--workspace --locked --no-run` now compiles; this is not a full test-suite pass.
+Canonical writer preservation qualification and all remaining contract gates
+remain open. Detailed immutable outcomes and raw logs are under
+`checks/publication-resync-2026-10-27/` (browser-serial-configured-original-manifest.json,
+browser-configured-serial-corrected-full-hook.json, browser-lifecycle-hook-tests.log,
+browser-lifecycle-negative-control.log, fleet-after-serial-hook.json).
+
 ## 2026-10-27 publication reassessment — no acceptance claim
 
 Read `checks/publication-resync-2026-10-27/ASSESSMENT.md` for current evidence.
