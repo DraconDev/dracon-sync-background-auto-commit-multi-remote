@@ -341,3 +341,29 @@
    Compiling zbus v5.19.0
    Compiling hyper-rustls v0.27.9
    Compiling reqwest v0.12.28
+   Compiling notify-rust v4.18.0
+   Compiling dracon-system-lib v94.2.7
+   Compiling dracon-system v0.112.51 (/tmp/fleet-qualified-workspace-cmgvn6rm/dracon-system)
+   Compiling git2 v0.21.0
+   Compiling dracon-git v94.7.2
+warning: function `nix_generations_to_delete` is never used
+    --> dracon-system/src/main.rs:5164:15
+     |
+5164 | pub(crate) fn nix_generations_to_delete(generations: &[u32], keep: usize) -> Vec<u32> {
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `options` is never used
+   --> dracon-system/src/disk.rs:926:8
+    |
+926 |     fn options() -> DiskOptions {
+    |        ^^^^^^^
+
+warning: function `audit_rows` is never used
+   --> dracon-system/src/disk_refs.rs:396:15
+    |
+396 | pub(crate) fn audit_rows(capture: &ReferenceCapture) -> BTreeMap<u32, String> {
+    |               ^^^^^^^^^^
+
+warning: `dracon-system` (bin "dracon-system" test) generated 3 warnings
