@@ -667,6 +667,38 @@ async fn hygiene_preserves_active_writer_and_untracked_large_bytes() {
 }
 
 #[tokio::test]
+async fn hygiene_generated_ignore_waits_for_writer_fence_before_capture_and_recovers() {
+    use std::io::Write;
+    let d = fixture("dist/extra.bin");
+    let r = d.path();
+    let path = r.join(".gitignore");
+    std::fs::write(&path, b"# original\n").unwrap();
+    let held = crate::git::write_fence::WriteFence::acquire_until(
+        r, Instant::now() + Duration::from_secs(1),
+    ).await.unwrap();
+    let mut writer = std::fs::OpenOptions::new().append(true).open(&path).unwrap();
+    let index = std::fs::read(r.join(".git/index")).unwrap();
+    let blocked = super::super::hygiene_apply::apply(
+        r, &["cache/".into()], Instant::now() + Duration::from_millis(30),
+    ).await;
+    assert!(blocked.is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), b"# original\n");
+    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(), index);
+    writer.write_all(b"# writer finished\n").unwrap();
+    writer.sync_all().unwrap();
+    drop(writer);
+    drop(held);
+    let result = super::super::hygiene_apply::apply(
+        r, &["cache/".into()], Instant::now() + Duration::from_secs(15),
+    ).await.unwrap();
+    assert!(result.0, "publication must recover after the accepted writer closes");
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains("# writer finished\n"), "capture must include the completed writer's bytes");
+    assert!(text.contains("cache/"));
+    assert_eq!(std::fs::read(r.join(".git/index")).unwrap(), index);
+}
+
+#[tokio::test]
 async fn hygiene_generated_ignore_preserves_existing_writer_and_visible_recovery() {
     use std::io::Write;
     let d = fixture("dist/extra.bin");
