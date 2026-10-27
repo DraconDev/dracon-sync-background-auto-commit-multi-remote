@@ -1,0 +1,19 @@
+✔ complete atomic publication preserves original mode and removes private scratch (9.12056ms)
+✔ cancellation after full scratch write does not truncate or replace canonical bytes (3.579452ms)
+✔ stale canonical content is refused, not adopted as the old baseline (3.348275ms)
+✔ symlink and shared-hardlink targets refuse without touching their contents (1.928884ms)
+✔ owned recovery inode budget refuses without deleting recovery or changing target (12.595074ms)
+✔ a substituted scratch namespace refuses without publishing into the worktree (2.767348ms)
+✔ namespace replacement does not make cleanup delete a foreign replacement entry (12.586237ms)
+✔ real Pi loader registers native contracts and executes fenced metadata with dynamic cwd (1750.505191ms)
+✔ actual fenced SDK edit preserves BOM, CRLF, Unicode and native diff contract (647.886034ms)
+✔ actual SDK write completes atomically and ambiguous edits preserve prior bytes (972.31778ms)
+✔ worker launched without a held descriptor refuses before target mutation (47.863691ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1825.156649

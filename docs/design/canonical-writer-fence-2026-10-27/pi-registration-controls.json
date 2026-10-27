@@ -1,0 +1,19 @@
+{
+  "command": "node --test test/atomic.test.mjs test/namespace.test.mjs test/registration.test.mjs test/worker.test.mjs",
+  "exitCode": 0,
+  "elapsedSecs": 1.87,
+  "sourceInputs": {
+    "/home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/atomic.js": "62b98350b310b0008a32752c48e0a8c2ff5b1ca4cc8c04ed1479966dfb0e028a",
+    "/home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/client.js": "a6caac40e10d160be94dc725f423b514737c7eb7eb7238e7fd3c0cd536bb336b",
+    "/home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/index.js": "15d5653a3a6391bb96ef4f2f5aad1e3dddc102f26968e2c6430ddc6582721daf",
+    "/home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/worker.js": "b1f85af19d9e740c7e39d76ee5042a5db3bd7997e9e82487a15f8358223e2646",
+    "/home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/test/atomic.test.mjs": "f02b94eef219a76fe68d3ea2f73b8b2f5bd078a3633448912575b6fcb2933b90",
+    "/home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/test/namespace.test.mjs": "1e9a28c3e541576cf87fc4285e2c6791fb22ac7a6a02b1d7ab311aefd8f8721c",
+    "/home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/test/registration.test.mjs": "b459b59d20530a126513f2cd6d37dd202aff2f5a9a92daa88bd9446cc6553849",
+    "/home/dracon/Dev/pi-plugins/extensions/pi-canonical-write-fence/test/worker.test.mjs": "6b50f713b6d41fbd89dbdd3156624982a1f19d01b5c7db62eb6c3127f50e163e"
+  },
+  "sourceInputsUnchanged": true,
+  "wardenSha256": "daaf13ed9095b9750e04dc7f7b9dade38fc72204620e55d0d227263ead023c40",
+  "sdk": "/home/dracon/.npm-global/lib/node_modules/@earendil-works/pi-coding-agent/dist/index.js",
+  "liveSessionsChanged": false
+}
