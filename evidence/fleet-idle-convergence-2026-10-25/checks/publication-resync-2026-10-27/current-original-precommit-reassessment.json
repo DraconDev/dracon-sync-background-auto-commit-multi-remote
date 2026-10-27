@@ -1,0 +1,29 @@
+[
+  {
+    "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+    "hook": "/home/dracon/Dev/dracon-platform/web/scripts/git-hooks/bucket-hooks/pre-commit",
+    "hookSha256": "ad963d1775ddaba212dd50ed789ac6f3e1470579760373128b661a9bbd5716c7",
+    "exitCode": 1,
+    "errors": [
+      "pre-commit: machine-local staging policy blocked this commit."
+    ],
+    "privateRawLog": "/home/dracon/.local/state/dracon-sync/diagnostics/doomtap-current-hook-1793093437253448449/hook.log",
+    "copiedIndexOnly": true,
+    "liveIndexUnchangedDuringDiagnostic": true
+  },
+  {
+    "repo": "/home/dracon/Dev/dracon-platform",
+    "hook": "/home/dracon/Dev/dracon-platform/.githooks/pre-commit",
+    "hookSha256": "218f1c4511822a4d3bcce012fd9e55dbfa085399d4d4e759e87a8792823c8749",
+    "exitCode": 1,
+    "errors": [
+      "::error file=apis/services/auth-api/.env.dev::.env file is not warden-encrypted \u2014 refusing commit.",
+      "::error file=apis/services/billing-api/.env.dev::.env file is not warden-encrypted \u2014 refusing commit.",
+      "::error file=apis/services/email-api/.env.dev::.env file is not warden-encrypted \u2014 refusing commit.",
+      "pre-commit: 3 unencrypted .env file(s) blocked."
+    ],
+    "privateRawLog": "/home/dracon/.local/state/dracon-sync/diagnostics/platform-current-hook-1793093442882816186/hook.log",
+    "copiedIndexOnly": true,
+    "liveIndexUnchangedDuringDiagnostic": true
+  }
+]
