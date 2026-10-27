@@ -1864,4 +1864,5 @@ test stuck_route::tests::skips_repo_without_ledger ... ok
 test stuck_route::tests::skips_transient_network ... ok
 test stuck_route::tests::skips_young_stuck ... ok
 test sync::bucket_qualification_tests::bucket_qualification_daemon_concurrent_manifest_preserves_independent_writer ... ok
-test sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore ... 
+test sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery ... 
