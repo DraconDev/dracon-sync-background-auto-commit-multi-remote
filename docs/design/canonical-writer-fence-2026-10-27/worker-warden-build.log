@@ -127,3 +127,17 @@
    Compiling clap_derive v4.6.7
    Compiling rayon v1.12.0
    Compiling uuid v1.26.1
+   Compiling ed25519-dalek v2.2.0
+   Compiling crossterm v0.29.0
+   Compiling tokio-macros v2.7.2
+   Compiling bech32 v0.11.1
+   Compiling comfy-table v7.2.2
+   Compiling tokio v1.53.3
+   Compiling dracon-security v0.4.0 (/home/dracon/Dev/dracon-utilities/dracon-warden/src/security)
+   Compiling chrono v0.4.45
+   Compiling tempfile v3.27.0
+   Compiling clap v4.6.7
+   Compiling toml v0.8.23
+   Compiling hostname v0.4.2
+   Compiling dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 18.15s
