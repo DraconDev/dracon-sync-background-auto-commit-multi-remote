@@ -5,3 +5,9 @@
 
  RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/ai-chat-toolkit
 
+
+ Test Files  17 passed (17)
+      Tests  190 passed (190)
+   Start at  00:37:42
+   Duration  25.69s (transform 1.69s, setup 582ms, import 2.26s, tests 29.51s, environment 12.53s)
+

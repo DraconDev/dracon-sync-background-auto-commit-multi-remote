@@ -1,0 +1,24 @@
+
+> ai-chat-toolkit@0.1.0 build
+> wxt build
+
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G✔ Built extension in 1.394 s
+  ├─ .output/chrome-mv3/manifest.json                1.11 kB 
+  ├─ .output/chrome-mv3/options.html                 1.31 kB 
+  ├─ .output/chrome-mv3/background.js                888 B   
+  ├─ .output/chrome-mv3/chunks/options-Dryp5AbF.js   23.89 kB
+  ├─ .output/chrome-mv3/content-scripts/content.js   37.61 kB
+  ├─ .output/chrome-mv3/assets/options-DxmMBbcn.css  5.51 kB 
+  ├─ .output/chrome-mv3/_locales/en/messages.json    250 B   
+  ├─ .output/chrome-mv3/icon/128.png                 4.94 kB 
+  ├─ .output/chrome-mv3/icon/16.png                  697 B   
+  ├─ .output/chrome-mv3/icon/32.png                  1.43 kB 
+  ├─ .output/chrome-mv3/icon/48.png                  2.12 kB 
+  ├─ .output/chrome-mv3/icon/512.png                 15.62 kB
+  └─ .output/chrome-mv3/icon/96.png                  3.79 kB 
+Σ Total size: 99.17 kB                             
+✔ Finished in 2.076 s
