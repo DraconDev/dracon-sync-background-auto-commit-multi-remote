@@ -1,0 +1,10 @@
+{
+  "pid": 1583026,
+  "sha256": {
+    "loaded": "4ddef737a3fe0d42bfece133722bf48d36b2fa482c14ce01ffc15fc44fba2f9e",
+    "installed": "4ddef737a3fe0d42bfece133722bf48d36b2fa482c14ce01ffc15fc44fba2f9e",
+    "qualified": "4ddef737a3fe0d42bfece133722bf48d36b2fa482c14ce01ffc15fc44fba2f9e"
+  },
+  "limits": "Identity match is not successful writer-preservation qualification.",
+  "allMatch": true
+}
