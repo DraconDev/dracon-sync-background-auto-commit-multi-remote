@@ -1,0 +1,10 @@
+{
+  "scope": "fixed configured pre-push over the exact previously-refusing commit only; diagnostic, no push",
+  "commit": "8694647696afed263b121e084e8396e01143721d",
+  "parent": "its first parent (single-commit range)",
+  "exitCode": 0,
+  "elapsedSecs": 0.57,
+  "rawLog": "/home/dracon/.local/state/dracon-sync/diagnostics/dracon-single-commit-1793072536849088218.log",
+  "logEmpty": true,
+  "conclusion": "previously-refusing commit now passes the secret scan; the false positive is repaired"
+}
