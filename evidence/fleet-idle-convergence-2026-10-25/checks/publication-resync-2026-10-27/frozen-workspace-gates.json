@@ -16,6 +16,22 @@
       "elapsedSecs": 109.39,
       "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/publication-resync-2026-10-27/frozen-workspace-release.log",
       "sha256": "f910f6f653ed5063cad49595f923687fc504de7caa7e9dd3622176e340d8ee63"
+    },
+    {
+      "gate": "clippy",
+      "command": "cargo clippy --workspace --locked --all-targets -- -D warnings",
+      "exitCode": 101,
+      "elapsedSecs": 30.04,
+      "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/publication-resync-2026-10-27/frozen-workspace-clippy.log",
+      "sha256": "d9600d25aadf5e890f1228aca525ccf208b01acc38acbec8e5ea0203fc3e0fce"
+    },
+    {
+      "gate": "deny",
+      "command": "cargo deny check",
+      "exitCode": 0,
+      "elapsedSecs": 0.65,
+      "log": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/publication-resync-2026-10-27/frozen-workspace-deny.log",
+      "sha256": "f1a0fca39d4280363937aabd77783990ea6480bd9ca257816de3b68fc8efa845"
     }
   ],
   "allPassed": false

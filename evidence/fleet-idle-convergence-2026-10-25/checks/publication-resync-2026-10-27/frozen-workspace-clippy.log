@@ -485,3 +485,4 @@ error: this function has too many arguments (9/7)
      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
 
 error: could not compile `dracon-sync` (bin "dracon-sync") due to 6 previous errors
+error: could not compile `dracon-sync` (bin "dracon-sync" test) due to 6 previous errors
