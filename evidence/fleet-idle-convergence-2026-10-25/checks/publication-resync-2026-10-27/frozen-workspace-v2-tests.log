@@ -3304,4 +3304,102 @@ test tests::tests::pre_push_hook_bare_repo_unmarked_passes ... ok
 test tests::tests::pre_push_hook_blocks_added_secret ... ok
 test tests::tests::pre_push_hook_blocks_begin_private_key_branch ... ok
 test tests::tests::pre_push_hook_blocks_github_token_shape ... ok
-test tests::tests::pre_push_hook_blocks_gitlab_token_shape ... 
+test tests::tests::pre_push_hook_blocks_gitlab_token_shape ... ok
+test tests::tests::pre_push_hook_blocks_password_secret_api_key_double_quoted_branches ... ok
+test tests::tests::pre_push_hook_blocks_secret_in_added_binary ... ok
+test tests::tests::pre_push_hook_blocks_secret_in_space_filename ... ok
+test tests::tests::pre_push_hook_blocks_secret_introduced_by_merge_resolution ... ok
+test tests::tests::pre_push_hook_blocks_secret_removed_or_reverted_before_tip ... rm 'new-asset'
+rm 'new-asset'
+ok
+test tests::tests::pre_push_hook_blocks_single_quoted_secret_warden_m2_idiom ... ok
+test tests::tests::pre_push_hook_blocks_stripe_live_key_shape ... ok
+test tests::tests::pre_push_hook_blocks_unquoted_padded_password ... ok
+test tests::tests::pre_push_hook_chains_and_propagates_local_hook_failure ... ok
+test tests::tests::pre_push_hook_chains_to_repo_local_hook ... ok
+test tests::tests::pre_push_hook_checks_all_refs_before_chaining_and_replays_input ... ok
+test tests::tests::pre_push_hook_ciphertext_context_keeps_exposed_and_malformed_shapes_blocked ... ok
+test tests::tests::pre_push_hook_distinguishes_interpolated_placeholder_from_literal ... ok
+test tests::tests::pre_push_hook_enumerates_remote_objects_once_per_push ... ok
+test tests::tests::pre_push_hook_hatch_found_from_subdir_cwd ... ok
+test tests::tests::pre_push_hook_ignores_unpaired_assignment_quote ... ok
+test tests::tests::pre_push_hook_ignores_warden_ciphertext_assignment ... ok
+test tests::tests::pre_push_hook_masks_ciphertext_context_before_provider_extraction ... ok
+test tests::tests::pre_push_hook_openai_boundary_canonicalizes_inherited_binary_matches ... ok
+test tests::tests::pre_push_hook_openai_boundary_ignores_asset_names_not_credentials ... ok
+test tests::tests::pre_push_hook_openai_boundary_preserves_real_text_and_binary_detection ... ok
+test tests::tests::pre_push_hook_passes_on_clean_binary ... ok
+test tests::tests::pre_push_hook_passes_on_clean_commit ... ok
+test tests::tests::pre_push_hook_passes_trusted_author ... ok
+test tests::tests::pre_push_hook_preserves_explicit_plaintext_sibling_exception ... ok
+test tests::tests::pre_push_hook_rejects_test_identity_author ... ok
+test tests::tests::pre_push_hook_scan_survives_local_hook_stdin_consumption ... ok
+test tests::tests::pre_push_hook_secret_re_matches_token_shape_source ... ok
+test tests::tests::pre_push_hook_skips_legacy_warden_local_hook ... ok
+test tests::tests::pre_push_hook_still_blocks_secrets_around_tags ... ok
+test tests::tests::pre_push_hook_tag_does_not_rescan_published_history ... ok
+test tests::tests::pre_push_hook_test_identity_on_non_first_parent_merge_passes ... ok
+test tests::tests::pre_push_modified_binary_still_blocks_new_pem_material ... ok
+test tests::tests::pre_push_review_receipt_binds_blob_and_individual_match ... ok
+test tests::tests::pre_rebase_hook_allows_unpublished_commits ... ok
+test tests::tests::pre_rebase_hook_blocks_published_boundary_commit ... ok
+test tests::tests::pre_rebase_hook_blocks_published_commit_deeper_than_100 ... ok
+test tests::tests::pre_rebase_hook_chains_and_propagates_local_hook_failure ... ok
+test tests::tests::pre_rebase_hook_chains_to_repo_local_hook ... ok
+test tests::tests::pre_rebase_hook_stays_silent_after_fresh_fetch ... ok
+test tests::tests::pre_rebase_hook_stays_silent_without_remote ... ok
+test tests::tests::pre_rebase_hook_two_arg_form_checks_branch_tip ... ok
+test tests::tests::pre_rebase_hook_warns_on_stale_refs_without_blocking ... ok
+test tests::tests::publish_repo_pubkey_no_churn_different_valid_key ... ok
+test tests::tests::publish_repo_pubkey_rejects_non_owner_or_secret_key_material ... ok
+test tests::tests::publish_repo_pubkey_rejects_symlink_target_without_modifying_external ... ok
+test tests::tests::publish_repo_pubkey_rejects_symlinked_target_directory ... ok
+test tests::tests::publish_repo_pubkey_writes_and_is_idempotent ... ok
+test tests::tests::refresh_warden_hook_if_stale_matrix ... ok
+test tests::tests::repeated_local_hook_install_keeps_collision_suffixed_foreign_hook ... ok
+test tests::tests::repeated_replace_block_scenarios_are_stable ... ok
+test tests::tests::replace_managed_block_appends_when_missing ... ok
+test tests::tests::replace_managed_block_empty_current_string ... ok
+test tests::tests::replace_managed_block_multiple_blocks_replaces_all ... ok
+test tests::tests::replace_managed_block_preserves_leading_whitespace ... ok
+test tests::tests::replace_managed_block_preserves_tail_after_malformed_marker ... ok
+test tests::tests::replace_managed_block_replaces_existing_and_keeps_tail ... ok
+test tests::tests::resmudge_rejects_tracked_symlink_without_modifying_target ... ok
+test tests::tests::resolve_policy_path_local_falls_back_to_default_locations ... ok
+test tests::tests::resolve_policy_path_local_finds_temp_config ... ok
+test tests::tests::run_keygen_generates_keypair_successfully ... ok
+test tests::tests::run_keygen_refuses_to_overwrite_existing_pubkey ... ok
+test tests::tests::run_keygen_refuses_to_overwrite_existing_secret_key ... ok
+test tests::tests::run_keygen_refuses_when_dedicated_master_private_exists ... ok
+test tests::tests::run_keygen_refuses_when_dedicated_master_pub_exists ... ok
+test tests::tests::salvage_invalid_json_handles_nested_markers ... ok
+test tests::tests::salvage_invalid_json_marker_at_end_of_string ... ok
+test tests::tests::salvage_invalid_json_markers_multiple_in_sequence ... ok
+test tests::tests::salvage_invalid_json_no_marker_returns_none ... ok
+test tests::tests::salvage_invalid_json_preserves_unicode_before_marker ... ok
+test tests::tests::salvage_invalid_json_replaces_marker_tokens_and_parses ... ok
+test tests::tests::setup_hooks_local_resolves_linked_gitdir_and_chains_common_hook ... ok
+test tests::tests::setup_hooks_local_resolves_submodule_gitdir_and_preserves_hooks ... ok
+test tests::tests::setup_hooks_local_sets_core_hooks_path ... ok
+test tests::tests::smart_clean_with_path_hatch_resolves_against_files_repo_not_cwd ... ok
+test tests::tests::storage_pre_commit_quotes_pinned_executable_chains_and_propagates_failure ... ok
+test tests::tests::storage_pre_commit_requires_valid_explicit_guard_binding ... ok
+test tests::tests::test_deprecation_warning_for_watch_roots ... ok
+test tests::tests::test_no_deprecation_when_only_repo_roots_set ... ok
+test tests::tests::test_repo_roots_takes_precedence ... ok
+test tests::tests::warden_cli_runtime_has_a_bounded_async_worker_pool ... ok
+test tests::tests::warden_policy_allow_v1_fallback_wires_the_gate ... ok
+test tests::tests::warden_policy_validate_accepts_allowlisted_plaintext ... ok
+test tests::tests::warden_policy_validate_accepts_valid_policy ... ok
+test tests::tests::warden_policy_validate_rejects_non_allowlisted_plaintext ... ok
+test tests::tests::warden_policy_validate_rejects_overlapping_patterns ... ok
+test tests::tests::warden_policy_validate_rejects_secretish_plaintext ... ok
+test tests::tests::wire_managed_patterns_from_policy_loads_protected_patterns ... ok
+test tests::tests::zeroize_file_best_effort_wipes_full_length ... ok
+
+test result: ok. 235 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 21.08s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-def75026a6e2f0d8)
+
+running 18 tests
+test test_filter_process_live_git_diff_and_add ... 
