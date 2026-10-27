@@ -1,5 +1,40 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## 2026-10-27 — real Pi registration and actual cancellation/I/O controls pass
+
+Supersedes the prototype's earlier missing-registration status below.
+`pi-canonical-write-fence/index.js` now registers the native edit/write definitions,
+retains schemas and legacy edit preparation, uses the caller's dynamic cwd and
+normalizes paths with the actual host resolver. Non-metadata tool behavior stays
+native; direct named metadata runs the complete transaction in the fenced worker.
+Its status command explicitly reports that shell/aliases/editors are NOT covered.
+The actual Pi resource loader loaded and executed this registration only in a
+disposable fixture. No live settings/session was changed or claimed loaded.
+
+All thirteen controls pass with zero skipped/failed. An actual family schedule
+pauses after scratch write/fsync/close but before canonical rename: a second repo
+publishes while the first lock is held; cancellation preserves the first file's
+inode/content, clears scratch, exits the blocked child and allows a fresh native
+participant to reacquire. A scoped native interposer returns ENOSPC on actual
+private scratch write/writev and fsync calls. Both failure stages refuse, preserve
+canonical bytes/inode, clear owned scratch and release the fence. Host disk was
+not filled; this does NOT establish the cause of the historical plaintext leak.
+
+The fresh receipt hashes prototype JS/tests, the C interposer, the exact Warden
+binary and compiled host SDK before/after; all remain unchanged during the run:
+`../../docs/design/canonical-writer-fence-2026-10-27/pi-io-controls.json`.
+Earlier failures and component receipts remain retained. No binaries were
+installed, no count cap/index migration or real-repository manual publication
+ran, and no publication hold was removed.
+
+Remaining implementation still includes alias and bash/user-bash/native Git/
+external editor coverage, other parent-death/kill/timeout/error schedules,
+metadata fidelity/durability, final whole-workspace assembly and actual loaded
+operator-session/runtime proof. Do NOT enable source integration or attempt
+fleet acceptance merely because these scoped fixture controls pass. Current
+scope/limitations are in the prototype README and updated PLAN; original task
+acceptance and the queued security item are unchanged.
+
 ## 2026-10-27 — Pi metadata worker prototype qualified in disposable controls
 
 Implemented `worker.js`, `atomic.js` and ten controls in the existing
