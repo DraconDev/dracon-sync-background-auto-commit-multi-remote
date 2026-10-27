@@ -9,5 +9,6 @@
   "deadlineSecs": 2400,
   "exitCode": 1,
   "elapsedSecs": 378.154,
-  "logSha256": "06ba43db30156b3a418297600e94e3cbd127692401d305bff388faf1324be724"
+  "logSha256": "06ba43db30156b3a418297600e94e3cbd127692401d305bff388faf1324be724",
+  "scopeCorrection": "This diagnostic invoked the global hook explicitly, NOT this repository configured core.hooksPath (scripts/git-hooks). Global wrapper chained legacy .git/hooks/pre-push and its affiliate CI failed without forwarded stdin. This is not a verdict on the configured snapshot runner or lifecycle repair. Earlier configured-hook wording is withdrawn."
 }

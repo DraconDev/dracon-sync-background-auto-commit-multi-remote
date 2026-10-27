@@ -1,0 +1,9 @@
+{
+  "head": "8b37676975aace2ea15dec5b6a3bc85015b8a8a5",
+  "remoteTip": "45c330977f6a9bd014c6c510c2e2e5649b8db698",
+  "hook": "/home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/pre-push",
+  "hookSha256": "317a8ee594a67d31df430c82d9fb23d05eb50a2f83b5ee98caa2428dabdae7c6",
+  "rawLog": "/home/dracon/.local/state/dracon-sync/diagnostics/browser-configured-serial-1793075612169509667.log",
+  "status": "running",
+  "diagnosticOnly": true
+}
