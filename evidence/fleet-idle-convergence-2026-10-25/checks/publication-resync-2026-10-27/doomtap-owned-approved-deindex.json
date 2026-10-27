@@ -1,0 +1,12 @@
+{
+  "path": "docs/screenshots/qa/ascension-owned.png",
+  "authorization": "User explicitly approved this exact file as QA cache, preserve bytes and ignore/de-index",
+  "localSha256": "007dd900f5cf706808f5fdbb42cfd4ef429ce5984805287395e23dfc46e94167",
+  "stagedSha256": "c2e6a127d8dbc69459176fc59ec73c3ff707480af5eb448f6742683c3d735ba7",
+  "originalIndexEntry": "100644 19017b7f9a7915026426a52d29f8dfb121c072c6 0\tdocs/screenshots/qa/ascension-owned.png",
+  "preservedPrivateCopies": "/home/dracon/.local/state/dracon-sync/diagnostics/doomtap-owned-approved-2026-10-27",
+  "localBytesUnchanged": true,
+  "unrelatedIndexEntriesUnchanged": true,
+  "trackedAfter": false,
+  "timestamp": "2026-10-27T09:27:27Z"
+}
