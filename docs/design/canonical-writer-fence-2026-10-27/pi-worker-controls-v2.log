@@ -1,0 +1,18 @@
+✔ complete atomic publication preserves original mode and removes private scratch (9.999278ms)
+✔ cancellation after full scratch write does not truncate or replace canonical bytes (4.63155ms)
+✔ stale canonical content is refused, not adopted as the old baseline (3.484913ms)
+✔ symlink and shared-hardlink targets refuse without touching their contents (1.398592ms)
+✔ owned recovery inode budget refuses without deleting recovery or changing target (10.462995ms)
+✔ a substituted scratch namespace refuses without publishing into the worktree (5.001167ms)
+✔ namespace replacement does not make cleanup delete a foreign replacement entry (12.019905ms)
+✔ actual fenced SDK edit preserves BOM, CRLF, Unicode and native diff contract (863.080723ms)
+✔ actual SDK write completes atomically and ambiguous edits preserve prior bytes (1011.78373ms)
+✔ worker launched without a held descriptor refuses before target mutation (47.85572ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1980.013178
