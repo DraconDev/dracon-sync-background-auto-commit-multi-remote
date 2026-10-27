@@ -1,0 +1,13 @@
+{
+  "repo": "/home/dracon/.dracon",
+  "head": "8c9982364f89d2846dedc8707940c15bb3d191b9",
+  "advertisedRemoteTip": "28018913f39c377d5b520d79f75968afccce8bc5",
+  "remote": "gitlab",
+  "hookSha256": "1014e80c4ce78d197329897bd575188fd32908cef46627ec94871e5125129345",
+  "command": "original configured pre-push, exact GitLab tuple on stdin, diagnostic only; no push",
+  "exitCode": 1,
+  "elapsedSecs": 0.441,
+  "rawLog": "/home/dracon/.local/state/dracon-sync/diagnostics/dracon-original-prepush-1793068625860127132.log",
+  "rawLogSha256": "f199acc2753504a73435fab09a47faab4a3224164b1d4f74b6a1731c8026950c",
+  "publicationObserved": false
+}
