@@ -2409,4 +2409,8 @@ test cold_clone_imports_only_committed_manifest_without_original_cache ... ok
 test cold_clone_restores_exact_asset_from_signed_https_s3 ... ignored, operational HTTPS fixture: requires openssl and python3
 test enrolled_capture_update_keeps_recorded_contract_and_refuses_pointers ... ok
 test guard_binding_requires_verified_index_and_honors_manual_alternate_index ... ok
-test hydrate_checked_out_version_uses_required_clean_and_preserves_edits ... 
+test hydrate_checked_out_version_uses_required_clean_and_preserves_edits ... ok
+test index_guard_uses_staged_attributes_and_refuses_unenrolled_driver_paths ... ok
+test index_validation_catches_raw_and_missing_references_without_running_clean ... ok
+test missing_metadata_and_alternate_index_cannot_stage_an_unrestorable_pointer ... ok
+test one_repository_driver_selects_multiple_paths_and_exact_historical_versions ... 
