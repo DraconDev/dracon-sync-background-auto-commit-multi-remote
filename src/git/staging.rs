@@ -853,7 +853,12 @@ pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
     ];
     args.extend(literal.iter().cloned());
     let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
-    if super::run_git_with_timeout(repo, &args_ref, 30, "restore")
+    let fence = super::write_fence::WriteFence::acquire_until(
+        repo,
+        tokio::time::Instant::now() + std::time::Duration::from_secs(30),
+    )
+    .await?;
+    if super::run_git_with_timeout_fenced(repo, &args_ref, 30, "restore", &fence)
         .await
         .is_ok()
     {
@@ -866,7 +871,7 @@ pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
     reset.push("--".to_string());
     reset.extend(literal.iter().cloned());
     let reset_ref: Vec<&str> = reset.iter().map(|s| s.as_str()).collect();
-    if let Err(e) = super::run_git_with_timeout(repo, &reset_ref, 30, "reset").await {
+    if let Err(e) = super::run_git_with_timeout_fenced(repo, &reset_ref, 30, "reset", &fence).await {
         eprintln!("⚠️ git reset fallback failed for {}: {}", repo.display(), e);
         return Err(anyhow::anyhow!(
             "restore failed: git restore failed and reset fallback also failed: {}",
@@ -875,7 +880,15 @@ pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
     }
     for path in &literal {
         let checkout_args = ["checkout", "--", path.as_str()];
-        if let Err(e) = super::run_git_with_timeout(repo, &checkout_args, 30, "checkout").await {
+        if let Err(e) = super::run_git_with_timeout_fenced(
+            repo,
+            &checkout_args,
+            30,
+            "checkout",
+            &fence,
+        )
+        .await
+        {
             eprintln!(
                 "⚠️ git checkout failed for {} in {}: {}",
                 path,
