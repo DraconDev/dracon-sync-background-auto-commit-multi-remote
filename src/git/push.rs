@@ -1867,6 +1867,53 @@ mod tests {
         assert!(classify_push_failure("Connection timed out").contains("transport/auth"));
     }
 
+    /// ADDED 2026-10-28 (browser-extensions-shared GitLab wedge).
+    ///
+    /// A PASSING workspace gate must never be read as a local refusal. The
+    /// daemon appends captured hook STDOUT to the error, and this repo's gate
+    /// prints its banner on success too, so the substring arms matched a
+    /// successful gate. The real failure was GitLab closing the SSH session at
+    /// its 600s cap while the ~12-minute gate still ran inside that session.
+    ///
+    /// Misclassification was not cosmetic: it armed the fail-fast arms, so the
+    /// daemon never tried the HTTPS transport and never retried on a fresh
+    /// connection — the mirror sat 111+ commits ahead.
+    #[test]
+    fn test_passing_gate_banner_is_not_a_local_hook_refusal() {
+        // Verbatim shape from the live failure: success verdict + transport
+        // closure in the SAME error text.
+        let passed_then_dropped = "git push-to-gitlab failed in /home/dracon/Dev/browser-extensions-shared with status signal: 13 (SIGPIPE): Connection to gitlab.com closed by remote host.\n<hook/stdout diagnostics>\n\u{1f9fe} Pre-push attempt logs: /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.pYDVVD\n\u{1f50d} Pre-push: 3 affected workspace(s) at 6e810574d51c4c319096c6e47619cd02ec5f9027 \u{2014} running 4-gate.\n\u{2705} Pre-push: 4-gate passed for all affected workspaces.";
+        assert!(
+            !is_local_hook_rejection(passed_then_dropped),
+            "a passing gate must not be classified as a local hook refusal"
+        );
+        let class = classify_push_failure(passed_then_dropped);
+        assert!(
+            !class.contains("local pre-push hook"),
+            "a passing gate must not report as a local hook failure: {}",
+            class
+        );
+
+        // The identical message WITHOUT the pass verdict is still a refusal:
+        // a gate that cannot report a verdict must not be retried blindly.
+        let banner_only =
+            "Pre-push: 3 affected workspace(s) \u{2014} running 4-gate (typecheck, build, test, lint).";
+        assert!(is_local_hook_rejection(banner_only));
+
+        // Real refusals must keep winning even beside transport noise.
+        let failed = "Pre-push: 4-gate FAILED for:\n  - extensions/standalones/x/TEST\nerror: failed to push some refs to 'gitlab.com:DraconDev/x.git'";
+        assert!(is_local_hook_rejection(failed));
+        assert!(classify_push_failure(failed).contains("local pre-push hook"));
+
+        // A server-side refusal coexisting with a pass banner stays
+        // server-side policy, not a local refusal.
+        let passed_then_rejected = format!(
+            "{}\n! [remote rejected] main -> main (pre-receive hook declined)",
+            passed_then_dropped
+        );
+        assert!(classify_push_failure(&passed_then_rejected).contains("server-side policy"));
+    }
+
     #[test]
     fn test_local_op_timeout_is_labelled_not_transport_auth() {
         // ADDED 2026-10-22 (dracon-strategy 19h wedge): the daemon's own
