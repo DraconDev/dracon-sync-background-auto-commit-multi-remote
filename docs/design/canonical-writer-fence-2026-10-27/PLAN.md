@@ -38,9 +38,17 @@ Task 4.1 is reopened for the changed source assembly.
 
 ## Integration inventory / remaining implementation
 
-1. Warden harden_repo: source integrated. Only production overwrite calls for
-   .gitignore/.gitattributes are in that fenced render/write region. Test-only
-   helpers and disposable fixture writers are not live producer integrations.
+1. Warden harden_repo and repair writers: source integrated, NOT deployed.
+   harden_repo uses the shared fence for managed .gitignore/.gitattributes
+   writes; resmudge_repo now acquires it before inspecting/applying tracked
+   canonical metadata. Generic library restore_file/migrate_markers_in_path
+   reject direct canonical metadata targets. Their shared file writer, plus
+   write_tracked_repair_file used by scrub/backfill/resmudge, opens without
+   truncation and refuses symlink/hardlink aliases before mutation. The bounded
+   two-package suite passes (477 passed, 6 ignored), and strict package/all-
+   target Clippy passes on the current Warden source. These are source/package
+   controls, not a loaded-runtime or concurrent resmudge --apply qualification;
+   test-only helpers and fixture writers are not live producer integrations.
 2. dracon-sync generated-ignore/excluded-restore publisher: source integrated,
    NOT deployed. Both entry points acquire before canonical target lookup and
    capture; the existing owned helper inherits the held OFD directly, preserving
@@ -50,8 +58,14 @@ Task 4.1 is reopened for the changed source assembly.
    the parent handle drops) and four generated-ignore controls (pre-open wait,
    completed writer preservation/recovery, active-writer refusal, link safety
    and stale-render refusal). Strict package/all-target Clippy passes. Receipts:
-   daemon-fence-controls.json and daemon-integration-controls.json. These are
-   bounded component controls, NOT all-writer or final runtime qualification.
+   daemon-fence-controls.json and daemon-integration-controls.json. The actual
+   helper syscall positive receipt `daemon-cooperative-syscall-positive-2026-10-28.json`
+   shows a Warden writer waiting at the helper-held fence, then opening and
+   writing the canonical inode while the independent already-open canonical FD
+   remains attached. The raw uncooperative opener control still demonstrates a
+   displaced write and is intentionally a negative control, not a safety pass.
+   These are bounded component controls, NOT all-writer or final runtime
+   qualification.
 3. Pi built-in edit/write: current registration runs the COMPLETE native SDK
    transaction IN PROCESS with a v1 flock held through final I/O settlement.
    The Linux N-API bridge exposes only nonblocking flock and CLOEXEC duplication;
@@ -142,8 +156,14 @@ Task 4.1 is reopened for the changed source assembly.
 
 ## Required next qualification
 
+- Exercise Warden `resmudge --apply` against a disposable encrypted tracked
+  `.gitignore`/`.gitattributes`, including lock wait, cancellation and final-close
+  behavior; current Warden tests cover the bounded fence helper and no-follow
+  repair primitives but not this end-to-end write schedule.
 - Concurrent cooperative old/new writer schedules around actual publication;
-  prove accepted canonical writes are neither displaced nor overwritten.
+  the current syscall positive covers one Warden participant waiting behind the
+  helper. Expand it to the other supported writers and preserve the existing
+  raw-uncooperative negative control.
 - Uncooperative/unknown writers remain refusal/unsupported evidence, never a pass.
 - Parent death, timeout, cancellation, ENOSPC, symlink/namespace replacement,
   linked-worktree and independent-repository concurrency controls.
