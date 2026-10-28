@@ -44,25 +44,8 @@ async fn delete_remote_branch(repo: &Path, remote: &str, branch: &str) -> Result
 
 /// Get the current branch name from HEAD ref or git CLI.
 pub(crate) fn current_branch(repo: &Path) -> Option<String> {
-    // CHANGED 2026-07-02 (goal `354fe3cb`):
-    // Worktree-style checkouts have `.git` as a FILE pointing at
-    // `<shared_gitdir>/worktrees/<X>`, so the HEAD ref lives at
-    // `<shared_gitdir>/worktrees/<X>/HEAD`, not at `<repo>/.git/HEAD`.
-    // The previous implementation only checked `<repo>/.git/HEAD`,
-    // which doesn't exist for worktree-style checkouts. That caused
-    // the function to fall through to `git rev-parse --abbrev-ref
-    // HEAD`, which returns the literal string "HEAD" for detached
-    // worktrees (instead of the expected `None`).
-    //
-    // Resolve the real gitdir first, then read its HEAD file.
-    let head_path = resolve_head_path(repo);
-    if let Some(head_path) = head_path {
-        if let Ok(content) = std::fs::read_to_string(&head_path) {
-            let trimmed = content.trim();
-            if let Some(ref_name) = trimmed.strip_prefix("ref: refs/heads/") {
-                return Some(ref_name.to_string());
-            }
-        }
+    if let Some(branch) = current_branch_from_head(repo) {
+        return Some(branch);
     }
     crate::policy::std_git_command()
         .args(["rev-parse", "--abbrev-ref", "HEAD"])
@@ -79,6 +62,18 @@ pub(crate) fn current_branch(repo: &Path) -> Option<String> {
             }
         })
         .filter(|s| !s.is_empty() && s != "HEAD")
+}
+
+/// Read the attached branch directly from the worktree's HEAD file. Unlike
+/// `current_branch`, this never falls back to a synchronous Git subprocess and
+/// is safe to use while an async write-fenced operation is holding the lease.
+pub(crate) fn current_branch_from_head(repo: &Path) -> Option<String> {
+    let head_path = resolve_head_path(repo)?;
+    let content = std::fs::read_to_string(head_path).ok()?;
+    content
+        .trim()
+        .strip_prefix("ref: refs/heads/")
+        .map(str::to_owned)
 }
 
 /// Resolve the path to the HEAD file for a repo. Handles both
@@ -192,7 +187,7 @@ pub(crate) async fn consolidate_to_main(repo: &Path) -> Result<()> {
         Instant::now() + Duration::from_secs(30),
     )
     .await?;
-    let branch = current_branch(repo).unwrap_or_else(|| "main".to_string());
+    let branch = current_branch_from_head(repo).unwrap_or_else(|| "main".to_string());
     if branch != "main" {
         // CHANGED 2026-07-21 (v0.112.33, audit M13/F2.4): require
         // exit 0 — the previous `.status()?` ignored a non-zero exit

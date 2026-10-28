@@ -313,7 +313,7 @@ async fn pull_merge_origin_inner(
         "refusing pull/merge in {}: a merge was already in progress",
         repo.display()
     );
-    let pull_refspec = pull_refspec_for_branch(super::current_branch(repo), repo)?;
+    let pull_refspec = pull_refspec_for_branch(super::current_branch_from_head(repo), repo)?;
     eprintln!(
         "🔄 {} pulling origin {} in {}",
         op_label,
@@ -1292,6 +1292,22 @@ mod tests {
         assert_eq!(
             std::fs::read_to_string(repo.join(".gitignore")).unwrap(),
             "cooperative writer bytes\n"
+        );
+    }
+
+    #[tokio::test]
+    async fn fenced_pull_refuses_and_preserves_a_preexisting_merge() {
+        let repo = crate::test_helpers::create_test_repo();
+        let merge_head = repo.join(".git").join("MERGE_HEAD");
+        std::fs::write(&merge_head, "operator-owned merge state\n").unwrap();
+        let error = pull_merge_origin(&repo, 1, "test-preexisting-merge")
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("merge was already in progress"));
+        assert_eq!(
+            std::fs::read_to_string(&merge_head).unwrap(),
+            "operator-owned merge state\n",
+            "the fenced pull must not abort an operator-owned merge"
         );
     }
 
