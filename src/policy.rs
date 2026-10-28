@@ -1308,7 +1308,7 @@ fn default_max_stage_batch_files() -> usize {
     0
 }
 
-fn default_max_captured_staged_files() -> usize {
+pub(crate) fn default_max_captured_staged_files() -> usize {
     // Bounds only one tree materialization of already-staged intent; never a
     // review-size policy. See `max_captured_staged_files`.
     10_000
