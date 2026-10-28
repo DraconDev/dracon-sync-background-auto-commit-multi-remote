@@ -3,16 +3,27 @@
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
 The original goal remains active and incomplete. Warden's cooperative canonical-
-metadata source controls now include a bounded `resmudge --apply` fence-wait
-regression; the Warden/security package suite reports 480 passed, 6 ignored,
-strict package/all-target Clippy passes, and `cargo deny check` is clean. One
-intentional two-thread probe failed in a test that mutates process-global PATH;
-`.cargo/config.toml` requires serial Rust tests, and the standalone plus complete
-serial runs passed. Full-workspace gates, deployment and loaded-runtime proof
-remain outstanding; see
+metadata controls now include a bounded `resmudge --apply` fence-wait regression
+and an end-to-end encrypted tracked-`.gitignore` apply/cancellation control. Five
+sequential targeted runs passed on dracon-warden `88d218482eeb`; the Warden/
+security package suite reports 481 passed, 0 failed, 6 ignored, strict
+package/all-target Clippy passes, and `cargo deny check` is clean. The first
+fixture attempt did not match a scanner rule and is retained with its corrected
+passing results. One earlier intentional two-thread probe failed in a test that
+mutates process-global PATH; `.cargo/config.toml` requires serial Rust tests,
+and the standalone plus complete serial runs passed. Full-workspace gates,
+deployment and loaded-runtime proof remain outstanding; see
 `../../docs/design/canonical-writer-fence-2026-10-27/PLAN.md` and
 `../../docs/design/canonical-writer-fence-2026-10-27/warden-writer-controls-2026-10-28.json`
 for scope and raw outcomes.
+
+The temporary directory for a settled hygiene-review run was absent, but its
+saved reviewer report was recovered and preserved under
+`checks/final-assembly-2026-10-28/`. The review's second-exchange concern was
+about an earlier source revision: current excluded-recovery code performs one
+finalizing exchange and does not roll it back. A follow-up records the source
+comparison and the remaining limit—no exact simultaneous queued old/new open
+schedule has been qualified.
 
 The operator's junk-runner tracking-policy choice was executed; do not treat the
 old pending-decision and pre-decision idle snapshot below as current. Their
