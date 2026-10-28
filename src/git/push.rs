@@ -1,6 +1,6 @@
 //! Push operations — HTTPS fallback, transport fallbacks, retry logic.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::path::Path;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -263,6 +263,110 @@ pub(crate) fn pull_refspec_for_branch(
         )),
         None => Ok("HEAD".to_string()),
     }
+}
+
+fn merge_in_progress(repo: &Path) -> Result<bool> {
+    let gitdir = super::path_gitdir(repo)
+        .context("cannot resolve Git directory while fencing pull/merge")?;
+    match std::fs::symlink_metadata(gitdir.join("MERGE_HEAD")) {
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error).context("inspect merge state while fencing pull/merge"),
+    }
+}
+
+/// Pull the current origin branch under the cooperative worktree fence.
+/// Branch discovery, merge-state checks, Git's checkout, and any conflict
+/// cleanup all happen while the same inherited fence remains held.
+pub(crate) async fn pull_merge_origin(
+    repo: &Path,
+    timeout_secs: u64,
+    op_label: &str,
+) -> Result<()> {
+    pull_merge_origin_inner(repo, timeout_secs, op_label, false).await
+}
+
+/// Same fenced pull for the push-recovery path, preserving its progress-aware
+/// idle timeout while still bounding the Git process family.
+pub(crate) async fn pull_merge_origin_progress(
+    repo: &Path,
+    timeout_secs: u64,
+    op_label: &str,
+) -> Result<()> {
+    pull_merge_origin_inner(repo, timeout_secs, op_label, true).await
+}
+
+async fn pull_merge_origin_inner(
+    repo: &Path,
+    timeout_secs: u64,
+    op_label: &str,
+    progress_aware: bool,
+) -> Result<()> {
+    let wait_secs = timeout_secs.clamp(1, 30);
+    let fence = super::write_fence::WriteFence::acquire_until(
+        repo,
+        tokio::time::Instant::now() + Duration::from_secs(wait_secs),
+    )
+    .await?;
+    anyhow::ensure!(
+        !merge_in_progress(repo)?,
+        "refusing pull/merge in {}: a merge was already in progress",
+        repo.display()
+    );
+    let pull_refspec = pull_refspec_for_branch(super::current_branch(repo), repo)?;
+    eprintln!("🔄 {} pulling origin {} in {}", op_label, pull_refspec, repo.display());
+    let ssh_hardening = super::git_ssh_hardening();
+    let env = [
+        ("GIT_SSH_COMMAND", ssh_hardening.as_str()),
+        ("GIT_TERMINAL_PROMPT", "0"),
+    ];
+    let pull_args = ["pull", "--no-rebase", "--no-edit", "origin", &pull_refspec];
+    let pull_result = if progress_aware {
+        super::run_git_with_timeout_env_progress_fenced(
+            repo,
+            &pull_args,
+            timeout_secs,
+            op_label,
+            &env,
+            &fence,
+        )
+        .await
+    } else {
+        super::run_git_with_timeout_env_fenced(
+            repo,
+            &pull_args,
+            timeout_secs,
+            op_label,
+            &env,
+            &fence,
+        )
+        .await
+    };
+    if let Err(pull_error) = pull_result {
+        // Abort only a merge created by this fenced pull. A pre-existing
+        // operator merge is refused above and is never cleaned up here.
+        if merge_in_progress(repo)? {
+            if let Err(abort_error) = super::run_git_with_timeout_fenced(
+                repo,
+                &["merge", "--abort"],
+                15,
+                "auto-pull-abort",
+                &fence,
+            )
+            .await
+            {
+                return Err(pull_error.context(format!(
+                    "pull/merge abort also failed: {abort_error:#}"
+                )));
+            }
+        }
+        return Err(pull_error);
+    }
+    Ok(())
+}
+
+pub(crate) fn is_merge_conflict_error(error: &anyhow::Error) -> bool {
+    error.to_string().to_ascii_lowercase().contains("conflict")
 }
 
 fn eligible_ref_race(error: &str) -> bool {
