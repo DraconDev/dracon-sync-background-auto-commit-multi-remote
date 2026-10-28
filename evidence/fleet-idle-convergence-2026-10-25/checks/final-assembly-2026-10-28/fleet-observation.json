@@ -1,0 +1,31 @@
+{
+  "observedAt": "2026-10-28T04:47:56.111493+00:00",
+  "counts": {
+    "ok": 35,
+    "active": 1,
+    "warn": 0,
+    "concern": 0,
+    "failures": 0,
+    "repos": 36
+  },
+  "ahead": [],
+  "pending": [],
+  "notOk": [
+    {
+      "repo": "/home/dracon/Dev/dracon-platform",
+      "flags": [
+        "DIRTY"
+      ],
+      "cause": "idle",
+      "push": "OK"
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner",
+      "flags": [
+        "DIRTY"
+      ],
+      "cause": "committing",
+      "push": "OK"
+    }
+  ]
+}
