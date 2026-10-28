@@ -695,35 +695,29 @@ async fn auto_pull_merge(
                 repo.display()
             );
         } else {
-            match tokio::time::timeout(
-                Duration::from_secs(policy.pull_op_timeout_secs),
-                svc.pull_merge(),
+            match crate::git::pull_merge_origin(
+                repo,
+                policy.pull_op_timeout_secs,
+                "auto-pull-merge",
             )
             .await
             {
-                Ok(Ok(())) => {}
-                Ok(Err(dracon_git::error::GitError::MergeConflict)) => {
+                Ok(()) => {}
+                Err(error) if crate::git::is_merge_conflict_error(&error) => {
                     eprintln!(
-                        "⚠️ pull/merge conflict in {} (manual intervention required)",
-                        repo.display()
+                        "⚠️ pull/merge conflict in {} (manual intervention required): {}",
+                        repo.display(),
+                        error
                     );
-                    return Err(anyhow::anyhow!("pull/merge conflict"));
+                    return Err(anyhow::anyhow!("pull/merge conflict: {}", error));
                 }
-                Ok(Err(e)) => {
+                Err(error) => {
                     eprintln!(
                         "⚠️ pull/merge failed for {}: {} - aborting sync pass",
                         repo.display(),
-                        e
+                        error
                     );
-                    return Err(anyhow::anyhow!("pull/merge failed: {}", e));
-                }
-                Err(_) => {
-                    eprintln!(
-                        "⚠️ pull/merge timeout for {} after {}s - aborting sync pass",
-                        repo.display(),
-                        policy.pull_op_timeout_secs
-                    );
-                    return Err(anyhow::anyhow!("pull/merge timeout"));
+                    return Err(anyhow::anyhow!("pull/merge failed: {}", error));
                 }
             }
         }
@@ -1993,33 +1987,28 @@ async fn post_commit_pull(svc: &GitService, repo: &Path, policy: &SyncPolicy) {
             repo.display(),
             post_commit_status.behind
         );
-        match tokio::time::timeout(
-            Duration::from_secs(policy.pull_op_timeout_secs),
-            svc.pull_merge(),
+        match crate::git::pull_merge_origin(
+            repo,
+            policy.pull_op_timeout_secs,
+            "post-commit-auto-pull",
         )
         .await
         {
-            Ok(Ok(())) => {
+            Ok(()) => {
                 eprintln!("✅ post-commit pull succeeded for {}", repo.display());
             }
-            Ok(Err(dracon_git::error::GitError::MergeConflict)) => {
+            Err(error) if crate::git::is_merge_conflict_error(&error) => {
                 eprintln!(
-                    "⚠️ post-commit pull conflict in {} (manual intervention required)",
-                    repo.display()
+                    "⚠️ post-commit pull conflict in {} (manual intervention required): {}",
+                    repo.display(),
+                    error
                 );
             }
-            Ok(Err(e)) => {
+            Err(error) => {
                 eprintln!(
                     "⚠️ post-commit pull failed for {}: {} - will still attempt push",
                     repo.display(),
-                    e
-                );
-            }
-            Err(_) => {
-                eprintln!(
-                    "⚠️ post-commit pull timeout for {} after {}s - will still attempt push",
-                    repo.display(),
-                    policy.pull_op_timeout_secs
+                    error
                 );
             }
         }
