@@ -1,8 +1,8 @@
 //! Git process operations — spawn, timeout, kill, and capture output.
 
+use super::write_fence::WriteFence;
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
-use super::write_fence::WriteFence;
 use std::time::{Duration, Instant};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command as TokioCommand;

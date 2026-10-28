@@ -314,7 +314,12 @@ async fn pull_merge_origin_inner(
         repo.display()
     );
     let pull_refspec = pull_refspec_for_branch(super::current_branch(repo), repo)?;
-    eprintln!("🔄 {} pulling origin {} in {}", op_label, pull_refspec, repo.display());
+    eprintln!(
+        "🔄 {} pulling origin {} in {}",
+        op_label,
+        pull_refspec,
+        repo.display()
+    );
     let ssh_hardening = super::git_ssh_hardening();
     let env = [
         ("GIT_SSH_COMMAND", ssh_hardening.as_str()),
@@ -355,9 +360,9 @@ async fn pull_merge_origin_inner(
             )
             .await
             {
-                return Err(pull_error.context(format!(
-                    "pull/merge abort also failed: {abort_error:#}"
-                )));
+                return Err(
+                    pull_error.context(format!("pull/merge abort also failed: {abort_error:#}"))
+                );
             }
         }
         return Err(pull_error);
@@ -1151,15 +1156,26 @@ mod tests {
         std::fs::create_dir(&quiet_hooks).unwrap();
         std::fs::create_dir(&active_hooks).unwrap();
         std::fs::create_dir(&repo).unwrap();
-        git_ok(temp.path(), &["init", "--quiet", "--bare", bare.to_str().unwrap()]);
         git_ok(
             temp.path(),
-            &["init", "--quiet", "--initial-branch=main", repo.to_str().unwrap()],
+            &["init", "--quiet", "--bare", bare.to_str().unwrap()],
+        );
+        git_ok(
+            temp.path(),
+            &[
+                "init",
+                "--quiet",
+                "--initial-branch=main",
+                repo.to_str().unwrap(),
+            ],
         );
         for worktree in [&repo] {
             git_ok(worktree, &["config", "user.name", "Fence Test"]);
             git_ok(worktree, &["config", "user.email", "fence@example.invalid"]);
-            git_ok(worktree, &["config", "core.hooksPath", quiet_hooks.to_str().unwrap()]);
+            git_ok(
+                worktree,
+                &["config", "core.hooksPath", quiet_hooks.to_str().unwrap()],
+            );
         }
         std::fs::write(
             repo.join(".gitignore"),
@@ -1169,7 +1185,10 @@ mod tests {
         git_ok(&repo, &["add", ".gitignore"]);
         git_ok(&repo, &["commit", "--no-verify", "--quiet", "-m", "base"]);
         git_ok(&repo, &["remote", "add", "origin", bare.to_str().unwrap()]);
-        git_ok(&repo, &["push", "--quiet", "--set-upstream", "origin", "main"]);
+        git_ok(
+            &repo,
+            &["push", "--quiet", "--set-upstream", "origin", "main"],
+        );
         git_ok(
             temp.path(),
             &[
@@ -1211,7 +1230,10 @@ mod tests {
         )
         .unwrap();
         git_ok(&repo, &["add", ".gitignore"]);
-        git_ok(&repo, &["commit", "--no-verify", "--quiet", "-m", "local-only"]);
+        git_ok(
+            &repo,
+            &["commit", "--no-verify", "--quiet", "-m", "local-only"],
+        );
 
         let entered = temp.path().join("post-merge-entered");
         let release = temp.path().join("post-merge-release");
@@ -1227,12 +1249,16 @@ mod tests {
         )
         .unwrap();
         std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o700)).unwrap();
-        git_ok(&repo, &["config", "core.hooksPath", active_hooks.to_str().unwrap()]);
+        git_ok(
+            &repo,
+            &["config", "core.hooksPath", active_hooks.to_str().unwrap()],
+        );
 
         let task_repo = repo.clone();
-        let pull = tokio::spawn(async move {
-            pull_merge_origin(&task_repo, 20, "test-fenced-pull").await
-        });
+        let pull =
+            tokio::spawn(
+                async move { pull_merge_origin(&task_repo, 20, "test-fenced-pull").await },
+            );
         tokio::time::timeout(Duration::from_secs(5), async {
             while !entered.exists() {
                 tokio::time::sleep(Duration::from_millis(10)).await;
@@ -1242,12 +1268,15 @@ mod tests {
         .expect("native git must reach the post-merge hook");
         let merged = std::fs::read_to_string(repo.join(".gitignore")).unwrap();
         assert!(merged.contains("TWO-LOCAL") && merged.contains("EIGHT-REMOTE"));
-        assert!(WriteFence::acquire_until(
-            &repo,
-            tokio::time::Instant::now() + Duration::from_millis(60)
-        )
-        .await
-        .is_err(), "another canonical writer must not enter before Git's final hook closes");
+        assert!(
+            WriteFence::acquire_until(
+                &repo,
+                tokio::time::Instant::now() + Duration::from_millis(60)
+            )
+            .await
+            .is_err(),
+            "another canonical writer must not enter before Git's final hook closes"
+        );
         std::fs::write(&release, b"continue\n").unwrap();
         tokio::time::timeout(Duration::from_secs(5), pull)
             .await
@@ -1255,12 +1284,10 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let _writer = WriteFence::acquire_until(
-            &repo,
-            tokio::time::Instant::now() + Duration::from_secs(1),
-        )
-        .await
-        .unwrap();
+        let _writer =
+            WriteFence::acquire_until(&repo, tokio::time::Instant::now() + Duration::from_secs(1))
+                .await
+                .unwrap();
         std::fs::write(repo.join(".gitignore"), "cooperative writer bytes\n").unwrap();
         assert_eq!(
             std::fs::read_to_string(repo.join(".gitignore")).unwrap(),

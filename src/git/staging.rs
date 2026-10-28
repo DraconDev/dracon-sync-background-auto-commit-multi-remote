@@ -871,7 +871,8 @@ pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
     reset.push("--".to_string());
     reset.extend(literal.iter().cloned());
     let reset_ref: Vec<&str> = reset.iter().map(|s| s.as_str()).collect();
-    if let Err(e) = super::run_git_with_timeout_fenced(repo, &reset_ref, 30, "reset", &fence).await {
+    if let Err(e) = super::run_git_with_timeout_fenced(repo, &reset_ref, 30, "reset", &fence).await
+    {
         eprintln!("⚠️ git reset fallback failed for {}: {}", repo.display(), e);
         return Err(anyhow::anyhow!(
             "restore failed: git restore failed and reset fallback also failed: {}",
@@ -880,14 +881,8 @@ pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
     }
     for path in &literal {
         let checkout_args = ["checkout", "--", path.as_str()];
-        if let Err(e) = super::run_git_with_timeout_fenced(
-            repo,
-            &checkout_args,
-            30,
-            "checkout",
-            &fence,
-        )
-        .await
+        if let Err(e) =
+            super::run_git_with_timeout_fenced(repo, &checkout_args, 30, "checkout", &fence).await
         {
             eprintln!(
                 "⚠️ git checkout failed for {} in {}: {}",

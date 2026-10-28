@@ -242,13 +242,8 @@ pub(crate) async fn run_git_for_nix_pr(
     .await;
 
     // Always restore the previous branch even on push failure
-    let _ = crate::git::run_worktree_git_fenced(
-        repo,
-        &["checkout", "-"],
-        30,
-        "nix-pr-return",
-    )
-    .await;
+    let _ =
+        crate::git::run_worktree_git_fenced(repo, &["checkout", "-"], 30, "nix-pr-return").await;
 
     push_result
 }

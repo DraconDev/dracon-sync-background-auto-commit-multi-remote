@@ -487,8 +487,7 @@ mod tests {
 
         let task_repo = repo.clone();
         let checkout = tokio::spawn(async move {
-            run_worktree_git_fenced(&task_repo, &["checkout", "other"], 10, "test-checkout")
-                .await
+            run_worktree_git_fenced(&task_repo, &["checkout", "other"], 10, "test-checkout").await
         });
         tokio::time::timeout(Duration::from_secs(5), async {
             while !entered.exists() {
@@ -497,13 +496,16 @@ mod tests {
         })
         .await
         .expect("checkout must reach its post-checkout hook");
-        assert_eq!(std::fs::read_to_string(repo.join(".gitignore")).unwrap(), "other branch\n");
-        assert!(WriteFence::acquire_until(
-            &repo,
-            Instant::now() + Duration::from_millis(60)
-        )
-        .await
-        .is_err(), "cooperating metadata writer must remain excluded through Git's child hook");
+        assert_eq!(
+            std::fs::read_to_string(repo.join(".gitignore")).unwrap(),
+            "other branch\n"
+        );
+        assert!(
+            WriteFence::acquire_until(&repo, Instant::now() + Duration::from_millis(60))
+                .await
+                .is_err(),
+            "cooperating metadata writer must remain excluded through Git's child hook"
+        );
         std::fs::write(&release, b"continue\n").unwrap();
         tokio::time::timeout(Duration::from_secs(5), checkout)
             .await
