@@ -2,6 +2,7 @@
 
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
+use super::write_fence::WriteFence;
 use std::time::{Duration, Instant};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command as TokioCommand;
@@ -363,6 +364,25 @@ where
 }
 
 fn spawn_git_command(repo: &Path, args: &[&str], op_label: &str) -> Result<tokio::process::Child> {
+    spawn_git_command_inner(repo, args, op_label, &[], None)
+}
+
+fn spawn_git_command_fenced(
+    repo: &Path,
+    args: &[&str],
+    op_label: &str,
+    fence: &WriteFence,
+) -> Result<tokio::process::Child> {
+    spawn_git_command_inner(repo, args, op_label, &[], Some(fence))
+}
+
+fn spawn_git_command_inner(
+    repo: &Path,
+    args: &[&str],
+    op_label: &str,
+    env: &[(&str, &str)],
+    fence: Option<&WriteFence>,
+) -> Result<tokio::process::Child> {
     let label = format!("git {}", op_label);
     let mut cmd = crate::policy::tokio_git_command();
     cmd.args(args)
@@ -374,6 +394,13 @@ fn spawn_git_command(repo: &Path, args: &[&str], op_label: &str) -> Result<tokio
             std::process::Stdio::null()
         })
         .stderr(std::process::Stdio::piped());
+    for (key, value) in env {
+        cmd.env(key, value);
+    }
+    if let Some(fence) = fence {
+        fence.verify()?;
+        fence.inherit_into(&mut cmd);
+    }
     configure_git_process_group(&mut cmd);
     super::push_resources::configure_child(&mut cmd, args);
     cmd.spawn()
@@ -594,24 +621,17 @@ fn spawn_git_command_env(
     op_label: &str,
     env: &[(&str, &str)],
 ) -> Result<tokio::process::Child> {
-    let label = format!("git {}", op_label);
-    let mut cmd = crate::policy::tokio_git_command();
-    cmd.args(args)
-        .current_dir(repo)
-        .kill_on_drop(true)
-        .stdout(if args.contains(&"push") {
-            std::process::Stdio::piped()
-        } else {
-            std::process::Stdio::null()
-        })
-        .stderr(std::process::Stdio::piped());
-    for (k, v) in env {
-        cmd.env(k, v);
-    }
-    configure_git_process_group(&mut cmd);
-    super::push_resources::configure_child(&mut cmd, args);
-    cmd.spawn()
-        .with_context(|| format!("failed to spawn {} in {}", label, repo.display()))
+    spawn_git_command_inner(repo, args, op_label, env, None)
+}
+
+fn spawn_git_command_env_fenced(
+    repo: &Path,
+    args: &[&str],
+    op_label: &str,
+    env: &[(&str, &str)],
+    fence: &WriteFence,
+) -> Result<tokio::process::Child> {
+    spawn_git_command_inner(repo, args, op_label, env, Some(fence))
 }
 
 /// Run a git command with a timeout using the tokio git command builder.
@@ -634,6 +654,16 @@ async fn run_git_with_timeout_inner(
     timeout_secs: u64,
     op_label: &str,
 ) -> Result<()> {
+    run_git_with_timeout_inner_fenced(repo, args, timeout_secs, op_label, None).await
+}
+
+async fn run_git_with_timeout_inner_fenced(
+    repo: &Path,
+    args: &[&str],
+    timeout_secs: u64,
+    op_label: &str,
+    fence: Option<&WriteFence>,
+) -> Result<()> {
     let label = format!("git {}", op_label);
     let trace_add = args.first() == Some(&"add") && crate::policy::debug_enabled();
     let unix_ms = || {
@@ -649,7 +679,10 @@ async fn run_git_with_timeout_inner(
             unix_ms()
         );
     }
-    let child = spawn_git_command(repo, args, op_label)?;
+    let child = match fence {
+        Some(fence) => spawn_git_command_fenced(repo, args, op_label, fence)?,
+        None => spawn_git_command(repo, args, op_label)?,
+    };
     if trace_add {
         eprintln!(
             "scheduler: add_spawned repo={} unix_ms={} pid={:?}",
@@ -697,6 +730,22 @@ pub(crate) fn std_git_checked(
     }
 }
 
+/// Run a Git worktree-mutating command while a caller-owned canonical writer
+/// fence remains inherited by the complete process family through final close.
+pub(crate) async fn run_git_with_timeout_fenced(
+    repo: &Path,
+    args: &[&str],
+    timeout_secs: u64,
+    op_label: &str,
+    fence: &WriteFence,
+) -> Result<()> {
+    super::push_resources::command(
+        args,
+        run_git_with_timeout_inner_fenced(repo, args, timeout_secs, op_label, Some(fence)),
+    )
+    .await
+}
+
 /// Run a git command with extra environment variables and a timeout.
 pub(crate) async fn run_git_with_timeout_env(
     repo: &Path,
@@ -713,6 +762,23 @@ pub(crate) async fn run_git_with_timeout_env(
     .await
 }
 
+/// Run an environment-configured Git command under a caller-held worktree fence.
+pub(crate) async fn run_git_with_timeout_env_fenced(
+    repo: &Path,
+    args: &[&str],
+    timeout_secs: u64,
+    op_label: &str,
+    env: &[(&str, &str)],
+    fence: &WriteFence,
+) -> Result<()> {
+    super::push_resources::command(args, async {
+        let label = format!("git {}", op_label);
+        let child = spawn_git_command_env_fenced(repo, args, op_label, env, fence)?;
+        run_child(child, repo, timeout_secs, &label).await
+    })
+    .await
+}
+
 /// Run a git push/pull with a progress-aware idle timeout.
 pub(crate) async fn run_git_with_timeout_env_progress(
     repo: &Path,
@@ -724,6 +790,23 @@ pub(crate) async fn run_git_with_timeout_env_progress(
     super::push_resources::command(args, async {
         let label = format!("git {}", op_label);
         let child = spawn_git_command_env(repo, args, op_label, env)?;
+        run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
+    })
+    .await
+}
+
+/// Run a progress-aware Git operation while holding the caller's worktree fence.
+pub(crate) async fn run_git_with_timeout_env_progress_fenced(
+    repo: &Path,
+    args: &[&str],
+    timeout_secs: u64,
+    op_label: &str,
+    env: &[(&str, &str)],
+    fence: &WriteFence,
+) -> Result<()> {
+    super::push_resources::command(args, async {
+        let label = format!("git {}", op_label);
+        let child = spawn_git_command_env_fenced(repo, args, op_label, env, fence)?;
         run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
     })
     .await

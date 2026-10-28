@@ -2,6 +2,8 @@
 
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
+use tokio::time::Instant;
 
 use super::{git_ssh_hardening, has_origin_remote, has_tracking_upstream, is_safe_branch_name};
 
@@ -164,9 +166,32 @@ pub(crate) fn has_both_main_and_master(repo: &Path) -> bool {
     has_main && has_master
 }
 
+/// Run one known worktree-mutating Git command under the cooperative writer
+/// fence. The inherited descriptor keeps the lock alive until Git and helpers
+/// have closed their worktree writes.
+pub(crate) async fn run_worktree_git_fenced(
+    repo: &Path,
+    args: &[&str],
+    timeout_secs: u64,
+    op_label: &str,
+) -> Result<()> {
+    let wait = timeout_secs.clamp(1, 30);
+    let fence = super::write_fence::WriteFence::acquire_until(
+        repo,
+        Instant::now() + Duration::from_secs(wait),
+    )
+    .await?;
+    super::run_git_with_timeout_fenced(repo, args, timeout_secs, op_label, &fence).await
+}
+
 /// Consolidate to main: checkout main, delete local+remote master, push with upstream.
 pub(crate) async fn consolidate_to_main(repo: &Path) -> Result<()> {
     use crate::policy::std_git_command;
+    let fence = super::write_fence::WriteFence::acquire_until(
+        repo,
+        Instant::now() + Duration::from_secs(30),
+    )
+    .await?;
     let branch = current_branch(repo).unwrap_or_else(|| "main".to_string());
     if branch != "main" {
         // CHANGED 2026-07-21 (v0.112.33, audit M13/F2.4): require
@@ -174,13 +199,17 @@ pub(crate) async fn consolidate_to_main(repo: &Path) -> Result<()> {
         // (e.g. dirty working tree blocking the checkout) and
         // proceeded to `branch -D master` +
         // `push origin --delete master` on the FAILED precondition.
-        let mut checkout_cmd = std_git_command();
-        checkout_cmd.args(["checkout", "main"]).current_dir(repo);
-        super::ops::std_git_checked(
-            &mut checkout_cmd,
-            &format!("failed to checkout main in {}", repo.display()),
-        )?;
+        super::run_git_with_timeout_fenced(
+            repo,
+            &["checkout", "main"],
+            30,
+            "consolidate-checkout-main",
+            &fence,
+        )
+        .await
+        .with_context(|| format!("failed to checkout main in {}", repo.display()))?;
     }
+    drop(fence);
     if let Err(e) = std_git_command()
         .args(["branch", "-D", "master"])
         .current_dir(repo)
