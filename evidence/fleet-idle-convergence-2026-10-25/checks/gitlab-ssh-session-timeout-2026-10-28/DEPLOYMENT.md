@@ -57,3 +57,57 @@ forbidden.
 This is the honest current state: the misclassification defect is fixed and
 deployed, GitLab publication works again, and the remaining non-idleness is
 live editing plus a slow gate, not a daemon failure.
+
+## Post-deploy: repeated successful GitLab publication (the real proof)
+
+The 12:32 publish was a single observation. The durable proof is that GitLab
+now publishes REPEATEDLY, which was impossible before the fix (the mis-
+classification armed both fail-fast arms, so no attempt ever reached the
+working transport).
+
+Live observations after the fix, `git fetch gitlab` each time:
+
+    [16:24:14] origin ahead=34   gitlab ahead=98
+    [16:25:57] origin ahead=35   gitlab ahead=99
+    [16:27:39] origin ahead=36   gitlab ahead=36     <-- gitlab caught up
+    [16:29:22] origin ahead=36   gitlab ahead=36
+
+    gitlab/main advanced: fa198b8f1c -> c37945692f
+
+GitLab's tip ADVANCED and its backlog fell from 98 to 36 — the same commit
+that origin now carries. This is the daemon publishing to GitLab over the
+transport that works, repeatedly, with no manual push.
+
+## The separate throughput limit (not a daemon defect)
+
+`browser-extensions-shared` is under continuous agent editing: 9545 commits in
+15 minutes with 7281 DISTINCT commit messages — genuine work, not a runaway
+loop (the daemon's own message builder varies the file set and deltas). The
+repository's own pre-push gate needs ~12-17 minutes per push attempt
+(measured: typecheck + build + test + lint over each affected workspace), so a
+publish round always lands on a tip that is already stale by ~10-20 commits.
+
+The queue therefore oscillates rather than monotonically shrinking: it converges
+per round, and the remaining non-idleness is live editing plus a slow gate —
+not a daemon failure, and not something this goal may resolve by stopping the
+producers (explicitly forbidden).
+
+## Doomtap: the objective's first named failure class, also repaired
+
+See `../doomtap-qa-pointer-declaration-2026-10-28/REPORT.md`. Summary: the
+staged file was an ASSET POINTER (`docs/screenshots/qa/trophy-before.png`,
+a `dracon-asset-pointer/v1` record) of the same class as eight pointers
+already tracked in HEAD and cited by the audit ledger. The fleet pre-commit's
+`docs/screenshots/*` guard could not classify it (the only matching rule was
+the broad `!*.png`, which the guard deliberately rejects), so every commit was
+refused and 141 epochs were retained. The fix declares the ten deliberately
+versioned qa/ pointers by EXACT root rules — the form the guard accepts — with
+the policy test extended to 4 tests and a negative control proving an
+unapproved qa/ frame is still refused.
+
+Doomtap after the fix: 954 commits in 20 minutes (it had been unable to commit
+at all), `origin` 0 ahead, working tree clean, and the refused-epoch messages
+stopped appearing for it.
+
+`doomtap` is no longer listed by `dracon-sync repos`; fleet status moved to
+**33 ok / 0 warn / 0 concern / 0 failures of 36**.
