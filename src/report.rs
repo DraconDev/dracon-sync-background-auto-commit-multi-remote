@@ -11627,6 +11627,7 @@ mod tests {
             storage: crate::storage::StoragePolicy::default(),
             stale_dirty_alert_secs: 600,
             max_stage_batch_files: 100000,
+            max_captured_staged_files: default_max_captured_staged_files(),
             auto_resolve_unmerged: default_auto_resolve_unmerged(),
             push_debounce_secs: default_push_debounce_secs(),
             untracked_warn_threshold: default_untracked_warn_threshold(),
