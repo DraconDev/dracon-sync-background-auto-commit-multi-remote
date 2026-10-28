@@ -31,13 +31,21 @@ while an actual writer still has its inherited descriptor. Full crash/cancel
 family supervision remains a qualification obligation, not inferred from that
 FD-lifetime test. Detached writers which discard the descriptor are NOT covered.
 
-Current controls: 5 primitive + 4 write-fence CLI tests and a bounded Warden
-resmudge apply fence-wait test pass. The Warden/security package suite passes
-(480 passed, 6 ignored), strict package/all-target Clippy passes, and workspace
-`cargo deny check` is clean. These do NOT establish all-writer coverage, a
-successful encrypted resmudge write, or canonical publication. No
-binary/settings deployment in this phase.
-Task 4.1 is reopened for the changed source assembly.
+Current controls: 5 primitive + 4 write-fence CLI tests and the bounded
+Warden resmudge apply fence-wait test pass. A new end-to-end control runs
+`resmudge --apply` against a disposable encrypted tracked `.gitignore`: it
+cancels while the command waits behind a held fence and checks unchanged
+worktree/index bytes, then succeeds, checks plaintext worktree plus unchanged
+encrypted index, and reacquires the fence after process exit. Five sequential
+runs pass on dracon-warden `88d218482eeb`. The Warden/security package suite now
+passes (481 passed, 0 failed, 6 ignored); strict package/all-target Clippy and
+workspace `cargo deny check` pass. The first arbitrary fixture did not match a
+scanner rule and produced no marker; that fixture-precondition failure is
+retained separately from the passing results. Raw logs and the updated machine
+receipt are under this directory. These controls do NOT establish all-writer
+coverage, an overlapping cooperative writer at the exact final-close interval,
+or canonical publication. No binary/settings deployment in this phase.
+Task 4.1 remains open for the changed source assembly.
 
 ## Integration inventory / remaining implementation
 
@@ -47,12 +55,16 @@ Task 4.1 is reopened for the changed source assembly.
    canonical metadata. Generic library restore_file/migrate_markers_in_path
    reject direct canonical metadata targets. Their shared file writer, plus
    write_tracked_repair_file used by scrub/backfill/resmudge, opens without
-   truncation and refuses symlink/hardlink aliases before mutation. The bounded
-   two-package suite passes (480 passed, 6 ignored), and strict package/all-
-   target Clippy passes on the current Warden source. The receipt is
-   `warden-writer-controls-2026-10-28.json`. Tests include bounded apply-path
-   fence refusal, but not a successful encrypted resmudge write/close or a
-   concurrent writer schedule; there is no loaded-runtime proof.
+   truncation and refuses symlink/hardlink aliases before mutation. The
+   Warden/security package suite passes (481 passed, 0 failed, 6 ignored), with
+   strict package/all-target Clippy on Warden `88d218482eeb`. The receipt is
+   `warden-writer-controls-2026-10-28.json`. In addition to bounded apply-path
+   refusal, the end-to-end tracked `.gitignore` control covers cancellation
+   while waiting, successful encrypted resmudge, unchanged staged
+   ciphertext/index, plaintext worktree, and fence reacquisition after process
+   exit (five sequential passes; raw log adjacent). It does not test a competing
+   writer at the exact final-close interval or the `.gitattributes` variant;
+   there is no loaded-runtime proof.
 2. dracon-sync generated-ignore/excluded-restore publisher: source integrated,
    NOT deployed. Both entry points acquire before canonical target lookup and
    capture; the existing owned helper inherits the held OFD directly, preserving
@@ -160,14 +172,21 @@ Task 4.1 is reopened for the changed source assembly.
 
 ## Required next qualification
 
-- Exercise Warden `resmudge --apply` against a disposable encrypted tracked
-  `.gitignore`/`.gitattributes`, including lock wait, cancellation and final-close
-  behavior; current Warden tests cover the bounded fence helper and no-follow
-  repair primitives but not this end-to-end write schedule.
+- Extend the Warden end-to-end schedule to `.gitattributes` and add a second
+  cooperative writer contending across the actual final-close interval. The
+  current `.gitignore` test checks cancellation while waiting and immediate
+  fence reacquisition after the successful CLI process exits; it does not
+  observe an overlapping second writer during the apply operation.
 - Concurrent cooperative old/new writer schedules around actual publication;
   the current syscall positive covers one Warden participant waiting behind the
   helper. Expand it to the other supported writers and preserve the existing
-  raw-uncooperative negative control.
+  raw-uncooperative negative control. Preserve the excluded-recovery helper's
+  single-finalizing-exchange/no-rollback invariant: the saved reviewer flagged
+  the predecessor's second-exchange risk, while the current code returns
+  unresolved on post-exchange mismatch and retains the displaced bytes. The
+  current finalize-once and late-displaced-writer controls do not reproduce an
+  exact simultaneous queued old/new open schedule, so do not claim general
+  uncooperative-writer safety.
 - Uncooperative/unknown writers remain refusal/unsupported evidence, never a pass.
 - Parent death, timeout, cancellation, ENOSPC, symlink/namespace replacement,
   linked-worktree and independent-repository concurrency controls.
