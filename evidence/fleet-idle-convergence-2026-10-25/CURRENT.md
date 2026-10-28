@@ -1,5 +1,27 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## 2026-10-28 — current handoff after reviewer and evidence reconciliation
+
+The original goal remains active and incomplete. Warden's cooperative canonical-
+metadata source controls now include a bounded `resmudge --apply` fence-wait
+regression; the Warden/security package suite reports 480 passed, 6 ignored,
+strict package/all-target Clippy passes, and `cargo deny check` is clean. One
+intentional two-thread probe failed in a test that mutates process-global PATH;
+`.cargo/config.toml` requires serial Rust tests, and the standalone plus complete
+serial runs passed. Full-workspace gates, deployment and loaded-runtime proof
+remain outstanding; see
+`../../docs/design/canonical-writer-fence-2026-10-27/PLAN.md` and
+`../../docs/design/canonical-writer-fence-2026-10-27/warden-writer-controls-2026-10-28.json`
+for scope and raw outcomes.
+
+The operator's junk-runner tracking-policy choice was executed; do not treat the
+old pending-decision and pre-decision idle snapshot below as current. Their
+superseding notice points to `checks/final-assembly-2026-10-28/` evidence. The
+latest structural assessment says junk-runner converged and dracon-platform
+remains dirty through quarantined hegemon content. Task 5.2 is still open; no
+fresh final full-fleet clean-idle observation is claimed. The separate plaintext
+publication-safety repair remains queued, not completed by this checkpoint.
+
 ## 2026-10-27 — pre-push fail-closed repair was being silently reverted; fixed and deployed
 
 While re-verifying the earlier fail-closed pre-push repair, the LIVE global hook
