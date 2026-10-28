@@ -40,3 +40,8 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; fin
 
 
 === Repeat 5 / 5 on dracon-warden 88d218482eeb ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.32s
+     Running tests/integration_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/integration_test-c99131049d81da2e)
+
+running 1 test
+test resmudge_apply_waits_safely_and_releases_the_fence_after_publication ... 
