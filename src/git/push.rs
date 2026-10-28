@@ -1117,6 +1117,156 @@ mod publication_tests;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::git::write_fence::WriteFence;
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn fenced_pull_keeps_native_git_merge_serialized_through_post_merge_close() {
+        use std::os::unix::fs::PermissionsExt;
+        use std::time::Duration;
+
+        fn git(cwd: &Path, args: &[&str]) -> std::process::Output {
+            crate::test_helpers::test_git_cmd()
+                .args(args)
+                .current_dir(cwd)
+                .output()
+                .unwrap()
+        }
+        fn git_ok(cwd: &Path, args: &[&str]) {
+            let output = git(cwd, args);
+            assert!(
+                output.status.success(),
+                "git {:?} failed: {}",
+                args,
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+
+        let temp = tempfile::tempdir().unwrap();
+        let repo = temp.path().join("repo");
+        let bare = temp.path().join("origin.git");
+        let remote_worktree = temp.path().join("remote-edit");
+        let quiet_hooks = temp.path().join("quiet-hooks");
+        let active_hooks = temp.path().join("active-hooks");
+        std::fs::create_dir(&quiet_hooks).unwrap();
+        std::fs::create_dir(&active_hooks).unwrap();
+        std::fs::create_dir(&repo).unwrap();
+        git_ok(temp.path(), &["init", "--quiet", "--bare", bare.to_str().unwrap()]);
+        git_ok(
+            temp.path(),
+            &["init", "--quiet", "--initial-branch=main", repo.to_str().unwrap()],
+        );
+        for worktree in [&repo] {
+            git_ok(worktree, &["config", "user.name", "Fence Test"]);
+            git_ok(worktree, &["config", "user.email", "fence@example.invalid"]);
+            git_ok(worktree, &["config", "core.hooksPath", quiet_hooks.to_str().unwrap()]);
+        }
+        std::fs::write(
+            repo.join(".gitignore"),
+            "one\nTWO-BASE\nthree\nfour\nfive\nsix\nseven\nEIGHT-BASE\nnine\n",
+        )
+        .unwrap();
+        git_ok(&repo, &["add", ".gitignore"]);
+        git_ok(&repo, &["commit", "--no-verify", "--quiet", "-m", "base"]);
+        git_ok(&repo, &["remote", "add", "origin", bare.to_str().unwrap()]);
+        git_ok(&repo, &["push", "--quiet", "--set-upstream", "origin", "main"]);
+        git_ok(
+            temp.path(),
+            &[
+                "clone",
+                "--quiet",
+                "--branch",
+                "main",
+                bare.to_str().unwrap(),
+                remote_worktree.to_str().unwrap(),
+            ],
+        );
+        git_ok(
+            &remote_worktree,
+            &["config", "user.name", "Fence Test Remote"],
+        );
+        git_ok(
+            &remote_worktree,
+            &["config", "user.email", "remote@example.invalid"],
+        );
+        git_ok(
+            &remote_worktree,
+            &["config", "core.hooksPath", quiet_hooks.to_str().unwrap()],
+        );
+        std::fs::write(
+            remote_worktree.join(".gitignore"),
+            "one\nTWO-BASE\nthree\nfour\nfive\nsix\nseven\nEIGHT-REMOTE\nnine\n",
+        )
+        .unwrap();
+        git_ok(&remote_worktree, &["add", ".gitignore"]);
+        git_ok(
+            &remote_worktree,
+            &["commit", "--no-verify", "--quiet", "-m", "remote-only"],
+        );
+        git_ok(&remote_worktree, &["push", "--quiet", "origin", "main"]);
+
+        std::fs::write(
+            repo.join(".gitignore"),
+            "one\nTWO-LOCAL\nthree\nfour\nfive\nsix\nseven\nEIGHT-BASE\nnine\n",
+        )
+        .unwrap();
+        git_ok(&repo, &["add", ".gitignore"]);
+        git_ok(&repo, &["commit", "--no-verify", "--quiet", "-m", "local-only"]);
+
+        let entered = temp.path().join("post-merge-entered");
+        let release = temp.path().join("post-merge-release");
+        let hook = active_hooks.join("post-merge");
+        let quote = |path: &Path| format!("'{}'", path.to_string_lossy().replace('\'', "'\\''"));
+        std::fs::write(
+            &hook,
+            format!(
+                "#!/bin/sh\n: > {}\nwhile [ ! -e {} ]; do sleep 0.01; done\n",
+                quote(&entered),
+                quote(&release)
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o700)).unwrap();
+        git_ok(&repo, &["config", "core.hooksPath", active_hooks.to_str().unwrap()]);
+
+        let task_repo = repo.clone();
+        let pull = tokio::spawn(async move {
+            pull_merge_origin(&task_repo, 20, "test-fenced-pull").await
+        });
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while !entered.exists() {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("native git must reach the post-merge hook");
+        let merged = std::fs::read_to_string(repo.join(".gitignore")).unwrap();
+        assert!(merged.contains("TWO-LOCAL") && merged.contains("EIGHT-REMOTE"));
+        assert!(WriteFence::acquire_until(
+            &repo,
+            tokio::time::Instant::now() + Duration::from_millis(60)
+        )
+        .await
+        .is_err(), "another canonical writer must not enter before Git's final hook closes");
+        std::fs::write(&release, b"continue\n").unwrap();
+        tokio::time::timeout(Duration::from_secs(5), pull)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+
+        let _writer = WriteFence::acquire_until(
+            &repo,
+            tokio::time::Instant::now() + Duration::from_secs(1),
+        )
+        .await
+        .unwrap();
+        std::fs::write(repo.join(".gitignore"), "cooperative writer bytes\n").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(repo.join(".gitignore")).unwrap(),
+            "cooperative writer bytes\n"
+        );
+    }
 
     #[test]
     fn ref_update_races_require_exact_fresh_convergence_and_never_hide_hook_failures() {

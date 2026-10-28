@@ -421,6 +421,105 @@ pub(crate) fn repair_broken_tracking(repos: &[PathBuf]) -> usize {
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn fenced_checkout_keeps_metadata_writer_out_until_git_hook_closes() {
+        use crate::git::write_fence::WriteFence;
+        use crate::test_helpers::{create_test_repo, test_commit_cmd, test_git_cmd};
+        use std::os::unix::fs::PermissionsExt;
+
+        let repo = create_test_repo();
+        let git = |args: &[&str]| {
+            test_git_cmd()
+                .args(args)
+                .current_dir(&repo)
+                .output()
+                .unwrap()
+        };
+        let git_ok = |args: &[&str]| {
+            let output = git(args);
+            assert!(
+                output.status.success(),
+                "git {:?} failed: {}",
+                args,
+                String::from_utf8_lossy(&output.stderr)
+            );
+        };
+        git_ok(&["config", "user.name", "Fence Test"]);
+        git_ok(&["config", "user.email", "fence@example.invalid"]);
+        git_ok(&["branch", "-M", "main"]);
+        std::fs::write(repo.join(".gitignore"), "main branch\n").unwrap();
+        git_ok(&["add", ".gitignore"]);
+        let commit = test_commit_cmd()
+            .args(["-m", "main ignore"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        assert!(commit.status.success());
+        git_ok(&["checkout", "-b", "other"]);
+        std::fs::write(repo.join(".gitignore"), "other branch\n").unwrap();
+        git_ok(&["add", ".gitignore"]);
+        let commit = test_commit_cmd()
+            .args(["-m", "other ignore"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        assert!(commit.status.success());
+        git_ok(&["checkout", "main"]);
+
+        let hooks = repo.join(".git").join("fence-test-hooks");
+        std::fs::create_dir(&hooks).unwrap();
+        let entered = hooks.join("entered");
+        let release = hooks.join("release");
+        let hook = hooks.join("post-checkout");
+        let quote = |path: &Path| format!("'{}'", path.to_string_lossy().replace('\'', "'\\''"));
+        std::fs::write(
+            &hook,
+            format!(
+                "#!/bin/sh\n: > {}\nwhile [ ! -e {} ]; do sleep 0.01; done\n",
+                quote(&entered),
+                quote(&release)
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o700)).unwrap();
+        git_ok(&["config", "core.hooksPath", hooks.to_str().unwrap()]);
+
+        let task_repo = repo.clone();
+        let checkout = tokio::spawn(async move {
+            run_worktree_git_fenced(&task_repo, &["checkout", "other"], 10, "test-checkout")
+                .await
+        });
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while !entered.exists() {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("checkout must reach its post-checkout hook");
+        assert_eq!(std::fs::read_to_string(repo.join(".gitignore")).unwrap(), "other branch\n");
+        assert!(WriteFence::acquire_until(
+            &repo,
+            Instant::now() + Duration::from_millis(60)
+        )
+        .await
+        .is_err(), "cooperating metadata writer must remain excluded through Git's child hook");
+        std::fs::write(&release, b"continue\n").unwrap();
+        tokio::time::timeout(Duration::from_secs(5), checkout)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        let _writer = WriteFence::acquire_until(&repo, Instant::now() + Duration::from_secs(1))
+            .await
+            .unwrap();
+        std::fs::write(repo.join(".gitignore"), "cooperative writer\n").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(repo.join(".gitignore")).unwrap(),
+            "cooperative writer\n"
+        );
+    }
+
     #[test]
     fn missing_remote_branch_deletion_is_idempotent() {
         assert!(remote_branch_already_absent(
