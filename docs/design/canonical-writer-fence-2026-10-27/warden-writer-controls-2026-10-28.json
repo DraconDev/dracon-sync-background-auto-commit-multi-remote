@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "recordedAt": "2026-10-28T23:01:47Z",
+  "recordedAt": "2026-10-28T23:43:28Z",
   "scope": "dracon-warden and dracon-security source/package controls only; no deployment, loaded-runtime, or fleet claim",
   "sourceHeads": {
-    "dracon-warden": "e93540af791e7083c07e4ed5e43e41c1268c1174",
+    "dracon-warden": "88d218482eeb0147b73a420cd9db6ea183e98680",
     "workspace": "cc4e1fdf2bcc8c6488e7fd2acc4536c2e118fe7e"
   },
   "targetDir": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target",
@@ -11,7 +11,7 @@
     {
       "command": "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=<isolated> cargo test -p dracon-warden -p dracon-security --locked -- --test-threads=1",
       "exitCode": 0,
-      "passed": 480,
+      "passed": 481,
       "failed": 0,
       "ignored": 6
     },
@@ -31,11 +31,18 @@
   ],
   "targetedRegressions": {
     "resmudgeApplyFenceWait": "1 passed; actual resmudge_repo apply path waits at a held per-worktree fence, times out within the supplied deadline, and preserves canonical bytes and index",
+    "resmudgeApplyEncryptedCancellationAndPublication": "5 sequential passes on dracon-warden 88d218482eeb; disposable encrypted tracked .gitignore, cancel while the apply command waits behind a held fence and verify worktree/index bytes unchanged, then successful apply restores plaintext worktree while preserving encrypted index and permits immediate fence reacquisition after process exit; raw log: warden-resmudge-apply-e2e-2026-10-28.log",
     "wardenTrackedRepairHardlinkRefusal": "1 passed; refuses before truncating a hardlink alias to .gitignore",
     "securityMarkerMigrationAliases": "2 passed; refuses hardlink and symlink-root paths without changing metadata",
     "securityBackupRestoreHardlinkRefusal": "1 passed; refuses restoring through a hardlink alias before truncation"
   },
   "nonGateRuns": [
+    {
+      "command": "cargo test --locked -p dracon-warden --test integration_test resmudge_apply_waits_safely_and_releases_the_fence_after_publication -- --nocapture (initial fixture)",
+      "exitCode": 101,
+      "observedFailure": "filter-clean succeeded, but the arbitrary synthetic fixture did not match a scanner rule and produced no ciphertext marker",
+      "boundedAssessment": "Fixture-precondition failure, not a product regression. Replaced the payload with a scanner-positive synthetic ghp token; five sequential targeted passes and the full package suite then passed. Initial log: warden-resmudge-first-fixture-attempt-2026-10-28.log"
+    },
     {
       "command": "cargo test -p dracon-warden -p dracon-security --locked -- --test-threads=2",
       "exitCode": 101,
@@ -59,7 +66,7 @@
     "Tracked repair writes validate opened regular-file identity and single-link status before truncation."
   ],
   "remaining": [
-    "No end-to-end successful encrypted resmudge --apply write/close schedule or concurrent competing writer; current new control proves bounded refusal while the fence is held, and the existing CLI integration is dry-run only.",
+    "End-to-end encrypted resmudge --apply, wait cancellation, index/worktree preservation, and post-process fence reacquisition are now covered for tracked .gitignore. Still absent: a .gitattributes variant and a competing cooperative writer schedule at the exact final-close interval; no loaded-runtime proof.",
     "No full-workspace tests, release build, or strict all-target Clippy on the post-integration assembly; cargo deny check alone is not full qualification.",
     "No deployment or loaded-runtime verification; cooperative-writer coverage remains bounded to the recorded syscall receipt and does not qualify every tool interface."
   ]
