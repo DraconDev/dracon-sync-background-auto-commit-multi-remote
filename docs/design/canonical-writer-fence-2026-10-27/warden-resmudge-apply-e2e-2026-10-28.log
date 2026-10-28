@@ -1,0 +1,42 @@
+
+=== Repeat 1 / 5 on dracon-warden 88d218482eeb ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.92s
+     Running tests/integration_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/integration_test-c99131049d81da2e)
+
+running 1 test
+test resmudge_apply_waits_safely_and_releases_the_fence_after_publication ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 4.31s
+
+
+=== Repeat 2 / 5 on dracon-warden 88d218482eeb ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.58s
+     Running tests/integration_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/integration_test-c99131049d81da2e)
+
+running 1 test
+test resmudge_apply_waits_safely_and_releases_the_fence_after_publication ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 5.96s
+
+
+=== Repeat 3 / 5 on dracon-warden 88d218482eeb ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.40s
+     Running tests/integration_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/integration_test-c99131049d81da2e)
+
+running 1 test
+test resmudge_apply_waits_safely_and_releases_the_fence_after_publication ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 1.85s
+
+
+=== Repeat 4 / 5 on dracon-warden 88d218482eeb ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.08s
+     Running tests/integration_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/integration_test-c99131049d81da2e)
+
+running 1 test
+test resmudge_apply_waits_safely_and_releases_the_fence_after_publication ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 3.42s
+
+
+=== Repeat 5 / 5 on dracon-warden 88d218482eeb ===

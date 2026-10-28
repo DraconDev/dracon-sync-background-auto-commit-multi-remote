@@ -1,0 +1,672 @@
+   Compiling dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.13s
+     Running unittests src/lib.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/dracon_security-7762be516affc60d)
+
+running 87 tests
+test modules::backup::tests::write_backup_retries_when_timestamp_already_exists ... ok
+test modules::crypto::authorization_tests::delegated_dh_cannot_forge_owner_authorization_signature ... ok
+test modules::crypto::authorization_tests::delegated_machine_identity_cannot_authorize_new_recipient ... ok
+test modules::scanner::foreign_marker_does_not_suppress_the_scan ... ok
+test modules::scanner::tests::test_hook_shapes_are_posix_ere ... ok
+test modules::scanner::tests::test_hook_shapes_cover_tier1_names ... ok
+test modules::scanner::tests::test_hook_shapes_detect_their_tokens ... ok
+test modules::scanner::tests::test_openai_hook_boundary_matches_scanner_not_asset_substrings ... ok
+test modules::scanner::tests::test_scanner_custom_patterns_empty ... ok
+test modules::scanner::tests::test_scanner_truncates_utf8_snippet_at_char_boundary ... ok
+test modules::scanner::tests::test_scanner_with_custom_patterns ... ok
+test tests::d3_removed_apis_stay_removed ... ok
+test tests::generic_backup_restore_refuses_hardlink_alias_to_git_metadata ... ok
+test tests::generic_marker_migration_refuses_hardlink_alias_to_git_metadata ... ok
+test tests::generic_marker_migration_refuses_symlink_root_before_reading ... ok
+test tests::generic_warden_library_writers_refuse_canonical_git_metadata ... ok
+test tests::media_match_passes_the_gate_without_flipping_legacy_posture ... ok
+test tests::media_patterns_whole_file_encrypt_matched_binaries_only ... ok
+test tests::test_clean_encrypts_tag_shaped_plaintext_protected_file ... ok
+test tests::test_decrypt_v2_fails_with_wrong_identity ... ok
+test tests::test_decrypt_v2_requires_master_identity ... ok
+test tests::test_demon_security_once_cell_caching ... ok
+test tests::test_encrypt_v2_binary_data ... ok
+test tests::test_encrypt_v2_decrypt_v2_roundtrip ... ok
+test tests::test_encrypt_v2_empty_data ... ok
+test tests::test_encrypt_v2_for_all_empty_data ... ok
+test tests::test_encrypt_v2_for_all_roundtrip ... ok
+test tests::test_env_reencryption_preserves_body_whitespace ... ok
+test tests::test_env_versioning_increment_flow ... ok
+test tests::test_fresh_env_with_warden_comment_gets_v1_header ... ok
+test tests::test_gather_all_recipients_rejects_symlinked_repo_key_directory ... ok
+test tests::test_gather_all_recipients_rejects_symlinked_repo_recipient_file ... ok
+test tests::test_gather_all_recipients_separates_overlapping_home_repo ... ok
+test tests::test_gather_all_recipients_separates_symlinked_home_repo ... ok
+test tests::test_gather_all_recipients_validates_recipient_files ... ok
+test tests::test_get_env_version_edge_cases ... ok
+test tests::test_get_env_version_extracts_version ... ok
+test tests::test_git_seal_v1_rejects_ascii_prefix_binary_tail ... ok
+test tests::test_git_seal_v1_rejects_short_valid_text_wrong_key ... ok
+test tests::test_github_token_patterns_accept_variable_length ... ok
+test tests::test_hex_secret_quoted_requires_context ... ok
+test tests::test_high_entropy_secret_quoted_requires_context ... ok
+test tests::test_inline_roundtrip_arbitrary_unicode_context ... ok
+test tests::test_inline_tag_still_uses_smart_smudge ... ok
+test tests::test_inside_secret_tag_rejects_foreign_marker ... ok
+test tests::test_is_env_version_managed ... ok
+test tests::test_is_inside_secret_tag_detection ... ok
+test tests::test_mailgun_key_accepts_variable_length ... ok
+test tests::test_make_env_version_header_increments_version ... ok
+test tests::test_malformed_inline_tag_is_left_verbatim_and_reported ... ok
+test tests::test_managed_env_body_version_line_does_not_drive_increment ... ok
+test tests::test_managed_media_patterns_override_roundtrip ... ok
+test tests::test_managed_patterns_override_roundtrip ... ok
+test tests::test_marker_migration_in_place ... ok
+test tests::test_merge_clean_inline_ancestor_stays_inline ... ok
+test tests::test_merge_clean_whole_file_ancestor_stays_encrypted ... ok
+test tests::test_normalize_secret_marker_invalid ... ok
+test tests::test_normalize_secret_marker_valid ... ok
+test tests::test_path_is_protected_directory_prefix ... ok
+test tests::test_path_is_protected_doublestar_components ... ok
+test tests::test_path_is_protected_env_pattern ... ok
+test tests::test_path_is_protected_legacy_empty_passes_everything ... ok
+test tests::test_path_is_protected_path_patterns_are_repository_relative ... ok
+test tests::test_path_is_protected_single_star_matches_one_component ... ok
+test tests::test_path_is_protected_source_code_excluded ... ok
+test tests::test_protection_exemptions ... ok
+test tests::test_slack_bot_token_compact ... ok
+test tests::test_slack_bot_token_compact_has_length_cap ... ok
+test tests::test_smart_clean_skips_unprotected_large_input_when_patterns_set ... ok
+test tests::test_smart_clean_with_path_honors_single_star_attributes ... ok
+test tests::test_smart_clean_with_path_tier1_covers_unprotected_source_code ... ok
+test tests::test_smart_smudge_preserves_tag_with_binary_plaintext ... ok
+test tests::test_smudge_entrypoint_binary_roundtrip_byte_identical ... ok
+test tests::test_smudge_passes_binary_unchanged ... ok
+test tests::test_smudge_passes_through_tag_shaped_plaintext ... ok
+test tests::test_smudge_preserves_invalid_utf8_with_literal_marker ... ok
+test tests::test_smudge_robustness ... ok
+test tests::test_smudge_roundtrips_inline_secret_with_nul ... ok
+test tests::test_strip_env_version_header_only_strips_top_marker ... ok
+test tests::test_strip_env_version_header_passthrough_when_no_header ... ok
+test tests::test_strip_env_version_header_preserves_body_whitespace ... ok
+test tests::test_strip_env_version_header_removes_header ... ok
+test tests::test_tag_shaped_plaintext_is_not_recognized ... ok
+test tests::test_unlock_payload_error_has_no_ciphertext_dump ... ok
+test tests::test_unlock_payload_v2_roundtrip ... ok
+test tests::test_whole_file_tag_binary_roundtrip_byte_identical ... ok
+test tests::test_whole_file_tag_tolerates_crlf_and_multiple_newlines ... ok
+
+test result: ok. 87 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.72s
+
+     Running tests/atomic_write_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/atomic_write_test-ae2ee4742049d3ac)
+
+running 4 tests
+test test_accept_team_invite_rejects_nonexistent_path ... ok
+test test_backup_file_recursion_guard_rejects_arcane_backups ... ok
+test test_backup_file_recursion_guard_rejects_backups_dir ... ok
+test test_restore_rejects_nonexistent_path ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.33s
+
+     Running tests/backup_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/backup_test-f2a33da98e6a8a31)
+
+running 2 tests
+test test_backup_and_restore ... ok
+test test_backup_does_not_overwrite_same_second_backup ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+     Running tests/common.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/common-3abaec8f346d85fc)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/comprehensive_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/comprehensive_test-94e99b7fbeae9768)
+
+running 5 tests
+test test_auto_key_generation ... ok
+test test_backup_functionality ... ok
+test test_corpus_roundtrip ... ok
+test test_dracon_security_singleton_same_instance ... ok
+test test_encrypt_decrypt_multiple_recipients ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.45s
+
+     Running tests/conversation_dump_full_encrypt.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/conversation_dump_full_encrypt-e4c232a632b6c48d)
+
+running 9 tests
+test conversation_source_file_is_not_whole_file_encrypted ... ok
+test conversation_txt_gets_whole_file_encryption ... ok
+test conversation_txt_round_trips_through_smudge ... ok
+test dump_predicate_matches_only_dump_extensions ... ok
+test pi_session_html_at_depth_gets_whole_file_encryption ... ok
+test pi_session_systemd_unit_is_not_whole_file_encrypted ... ok
+test rollout_jsonl_gets_whole_file_encryption ... ok
+test rollout_prose_doc_is_not_whole_file_encrypted ... ok
+test trajectory_json_gets_whole_file_encryption ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.96s
+
+     Running tests/creds_json_full_encrypt.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/creds_json_full_encrypt-9f36c914337401cf)
+
+running 3 tests
+test creds_json_at_any_depth_gets_whole_file_encryption ... ok
+test creds_json_gets_whole_file_encryption ... ok
+test creds_json_round_trips_through_smudge ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/github_format_review.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/github_format_review-45b815810dfd631b)
+
+running 2 tests
+test github_invalid_boundaries_and_lengths_do_not_match ... ok
+test github_supported_formats_are_replaced_in_full ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+     Running tests/index_reuse.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/index_reuse-b0cf63fdacd8710b)
+
+running 5 tests
+test generated_env_header_does_not_reencrypt_an_unchanged_headerless_worktree ... ok
+test inline_key_tag_with_exterior_newline_reuses_only_exact_plaintext_and_layout ... ok
+test newly_detected_secrets_in_index_force_reencryption ... ok
+test policy_upgrade_does_not_reuse_partially_protected_index ... ok
+test unchanged_ciphertext_is_reused_but_edits_and_plaintext_are_not ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.75s
+
+     Running tests/keys_json_full_encrypt.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/keys_json_full_encrypt-9d61936248509c26)
+
+running 2 tests
+test keys_json_gets_whole_file_encryption ... ok
+test keys_json_round_trips_through_smudge ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/leak_prevention_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/leak_prevention_test-d99e4563164d0111)
+
+running 2 tests
+test prop_test_binary_passthrough_integrity ... ok
+test prop_test_hybrid_security_logic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 41.05s
+
+     Running tests/massive_secret_scan.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/massive_secret_scan-e9ed247cad3a4e51)
+
+running 1 test
+test test_massive_dataset_permutations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.68s
+
+     Running tests/pattern_integrity.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/pattern_integrity-2ba6e579cb9afde6)
+
+running 2 tests
+test test_no_nested_quantifiers_in_patterns ... ok
+test test_patterns_compile_and_have_reasonable_length ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+     Running tests/plaintext_sibling_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/plaintext_sibling_test-f94fa49a1f1c0c63)
+
+running 11 tests
+test clean_encrypts_absolute_hatched_path_fail_closed ... ok
+test clean_encrypts_normally_without_plaintext_sibling ... ok
+test clean_skips_encryption_when_plaintext_sibling_exists ... ok
+test clean_with_empty_sibling_path_is_a_noop ... ok
+test clean_with_plaintext_sibling_does_not_add_env_version_header ... ok
+test clean_with_plaintext_sibling_preserves_binary_content ... ok
+test is_hatched_in_repo_accepts_contained_paths ... ok
+test is_hatched_in_repo_rejects_escape_even_when_sibling_exists ... ok
+test is_hatched_rejects_absolute_and_dotdot ... ok
+test is_hatched_returns_false_for_empty_path ... ok
+test is_hatched_returns_false_when_sibling_missing ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.92s
+
+     Running tests/redos_stress_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/redos_stress_test-9bb96d8e4923b1c4)
+
+running 6 tests
+test test_azure_sas_scan ... ok
+test test_generic_assignment_pattern_completes_in_reasonable_time ... ok
+test test_nested_quantifier_patterns_do_not_cause_exponential_blowup ... ok
+test test_scanner_detects_known_secret_patterns ... ok
+test test_scanner_performance_mixed_secret_and_filler ... ok
+test test_scanner_performance_under_large_evil_input ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.11s
+
+     Running tests/registry_credentials_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/registry_credentials_test-9c7be593905e548a)
+
+running 1 test
+test test_load_registry_credentials_when_none_exist ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.80s
+
+     Running tests/restore_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/restore_test-6f9368770027b49c)
+
+running 1 test
+test test_restore_workflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+     Running tests/scanner_edge_cases_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/scanner_edge_cases_test-45ab95db3ce5eff3)
+
+running 12 tests
+test test_patterns_are_valid_regexes ... ok
+test test_scanner_completes_quickly_on_large_clean_input ... ok
+test test_scanner_detects_aws_access_key ... ok
+test test_scanner_detects_github_token ... ok
+test test_scanner_detects_private_key_formats_by_specific_name ... ok
+test test_scanner_detects_stripe_key ... ok
+test test_scanner_detects_unquoted_padded_generic_secret ... ok
+test test_scanner_detects_unquoted_padded_password ... ok
+test test_scanner_handles_clean_text ... ok
+test test_scanner_handles_empty_input ... ok
+test test_scanner_handles_unicode_content ... ok
+test test_scanner_ignores_too_short_unquoted_password ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.14s
+
+     Running tests/scanner_stress.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/scanner_stress-3ac3f7773533678b)
+
+running 1 test
+test test_scanner_stress_1000 ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.79s
+
+     Running tests/security_critical_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/security_critical_test-878833a897ff6c1e)
+
+running 44 tests
+test test_authorize_recipient_writes_verified_direct_pair ... ok
+test test_create_team_creates_private_key_without_overwrite ... ok
+test test_create_team_name_validation_rejects_backslash ... ok
+test test_create_team_name_validation_rejects_colon ... ok
+test test_create_team_name_validation_rejects_slash ... ok
+test test_decrypt_with_repo_key_too_short_ciphertext ... ok
+test test_encrypt_decrypt_repo_key_roundtrip ... ok
+test test_encrypt_for_node_uses_disk_master_identities ... ignored
+test test_encrypt_v2_for_all_uses_global_mesh_pub_without_master_identity ... ok
+test test_encrypt_with_repo_key_empty_plaintext ... ok
+test test_encrypt_with_repo_key_random_nonce_per_call ... ok
+test test_env_manager_combined ... ok
+test test_env_manager_load_from_env_file ... ok
+test test_env_manager_load_from_env_file_nonexistent ... ok
+test test_env_manager_load_from_env_file_with_embedded_equals ... ok
+test test_env_manager_load_from_env_file_with_single_quotes ... ok
+test test_env_manager_to_env_file_escapes_quotes ... ok
+test test_env_manager_to_env_file_secrets ... ok
+test test_env_manager_to_env_file_variables ... ok
+test test_gather_all_recipients_includes_global_mesh_pub_without_master_identity ... ok
+test test_gather_rejects_forged_repo_key_authorization_without_owner_proof ... ok
+test test_generate_master_identity_refuses_dedicated_master_private ... ok
+test test_generate_master_identity_refuses_dedicated_master_public ... ok
+test test_generate_master_identity_refuses_existing_identity ... ignored
+test test_generate_master_identity_refuses_legacy_identity ... ignored
+test test_list_authorized_recipients_rejects_symlink_aliases ... ok
+test test_load_repo_key_empty_keys_directory ... ok
+test test_load_repo_key_ignores_arbitrary_master_encrypted_age_blob ... ok
+test test_load_repo_key_machine_key_env_var ... ignored
+test test_load_repo_key_master_identity_success ... ok
+test test_load_repo_key_no_keys_directory ... ok
+test test_load_repo_key_team_key ... ignored
+test test_load_repo_key_with_master_identity_in_keys_dir ... ok
+test test_machine_and_team_recipients_require_authenticated_sidecars ... ok
+test test_machine_only_repo_key_requires_owner_authenticated_proof ... ok
+test test_repokey_from_file_empty ... ok
+test test_repokey_from_file_nonexistent ... ok
+test test_repokey_from_file_overlength ... ok
+test test_repokey_from_file_truncated ... ok
+test test_unlock_payload_empty ... ignored
+test test_unlock_payload_too_short ... ok
+test test_unlock_payload_v1_format ... ok
+test test_unlock_payload_v1_format_roundtrip ... ok
+test test_unlock_payload_wrong_key ... ok
+
+test result: ok. 38 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 4.06s
+
+     Running tests/team_key_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/team_key_test-2759ac1f0cc7f828)
+
+running 2 tests
+test test_add_team_member_rejects_invalid_key ... ok
+test test_create_team_invite_requires_existing_team ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests/tier1_source_encrypt.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/tier1_source_encrypt-a6872994bfe45f85)
+
+running 9 tests
+test tier1_binary_passthrough_unprotected ... ok
+test tier1_ignores_ordinary_code ... ok
+test tier1_is_subset_of_get_patterns ... ok
+test tier1_openai_boundaries_and_source_roundtrip ... ok
+test tier1_pem_block_in_source_is_caught ... ok
+test tier1_pkcs8_and_gcp_source_roundtrip ... ok
+test tier1_scanner_catches_structured_tokens ... ok
+test tier1_source_file_clean_and_roundtrip ... ok
+test tier1_square_requires_exact_body_length ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.37s
+
+     Running tests/tier_inventory.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/tier_inventory-a1c0a1d3e0a2c26a)
+
+running 2 tests
+test inventory_covers_every_builtin_family_and_tier ... ok
+test promoted_provider_tokens_replace_completely ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+     Running unittests src/main.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/dracon_warden-4b3cfe5eccb941ad)
+
+running 248 tests
+test encryption_scope_tests::encryption_only_scope_keeps_legacy_defaults_and_rejects_plaintext_conflicts ... ok
+test encryption_scope_tests::encryption_only_scope_never_unignores_credentials ... ok
+test index_batch::tests::index_batch_abrupt_owner_fixture ... ok
+test index_batch::tests::index_batch_descendant_has_no_live_process_after_cleanup ... ok
+test index_batch::tests::index_batch_descendant_retained_stdout_is_cancelled ... ok
+test index_batch::tests::index_batch_direct_helper_sigkill_cleans_descendants_without_drop ... ok
+test index_batch::tests::index_batch_drop_reaps_direct_child_and_kills_group ... ok
+test index_batch::tests::index_batch_invalid_framing_and_exit_recover ... ok
+test index_batch::tests::index_batch_nonreading_stdin_recovers ... ok
+test index_batch::tests::index_batch_outer_owner_sigkill_cleans_isolated_helper_group ... ok
+test index_batch::tests::index_batch_resolver_deadline_recovers ... ok
+test index_batch::tests::index_batch_reuses_authenticated_staged_ciphertext ... ok
+test index_batch::tests::index_batch_silent_and_partial_response_recover ... ok
+test prepush_failclosed_tests::prepush_scan_io_failure_refuses_while_harmless_change_passes ... ok
+test print::tests::format_bytes_mib ... ok
+test print::tests::format_secs_units ... ok
+test storage::tests::bounded_copy_refuses_oversize_without_whole_file_buffering ... ok
+test tests::binary_carve_out_tests::an_empty_exempt_list_restores_the_hard_failure ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::over_ceiling_reason_points_smudge_at_one_shot_recovery ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_exempt_binary_passes_through_intact ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_passthrough_is_bounded_and_never_truncated ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_protected_binary_still_refused ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_text_still_refused ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::passthrough_ceiling_scales_with_the_configured_limit ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::small_binary_still_takes_the_normal_clean_path ... ok
+test tests::binary_carve_out_tests::git_does_not_route_binary_files_through_the_filter ... ok
+test tests::binary_carve_out_tests::gitattributes_emits_binary_carveouts_after_the_catchall ... ok
+test tests::binary_carve_out_tests::gitattributes_emits_media_lines_between_carveouts_and_plaintext ... ok
+test tests::binary_carve_out_tests::oversize_binary_extension_is_not_refused ... ok
+test tests::binary_carve_out_tests::oversize_media_path_is_never_size_exempt ... ok
+test tests::binary_carve_out_tests::oversize_protected_path_with_binary_extension_still_fails_closed ... ok
+test tests::binary_carve_out_tests::oversize_text_and_secret_paths_still_fail_closed ... ok
+test tests::binary_carve_out_tests::policy_can_override_or_disable_the_defaults ... ok
+test tests::binary_carve_out_tests::smudge_direction_is_never_refused ... ok
+test tests::binary_carve_out_tests::unknown_extension_is_not_exempt ... ok
+test tests::filter_process_oversize_tests::clean_oversize_fails_closed_and_writes_no_content ... ok
+test tests::filter_process_oversize_tests::smudge_oversize_passthroughs_every_byte ... ok
+test tests::tests::apply_managed_file_creates_parent_dirs ... ok
+test tests::tests::apply_managed_file_detects_noop_second_write ... ok
+test tests::tests::apply_overwrite_file_creates_new_file ... ok
+test tests::tests::apply_overwrite_file_detects_noop_second_write ... ok
+test tests::tests::apply_overwrite_file_overwrites_existing ... ok
+test tests::tests::backfill_rejects_tracked_symlink_without_modifying_target ... ok
+test tests::tests::build_gitattributes_block_includes_expected_lines ... ok
+test tests::tests::build_gitattributes_block_sets_filter_for_env ... ok
+test tests::tests::build_gitignore_block_emits_managed_header ... ok
+test tests::tests::build_gitignore_block_includes_overrides ... ok
+test tests::tests::build_globset_empty_patterns_returns_empty_set ... ok
+test tests::tests::build_globset_invalid_pattern_returns_error ... ok
+test tests::tests::build_globset_multiple_patterns ... ok
+test tests::tests::build_globset_normalizes_backslash ... ok
+test tests::tests::build_globset_single_pattern_matches ... ok
+test tests::tests::cli_once_hardens_single_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_once_repo_0BA3gG/repo/.git/
+ok
+test tests::tests::cli_repair_dry_run_does_not_modify ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_dry_run_DS2PWr/repo/.git/
+ok
+test tests::tests::cli_repair_strict_fails_when_markers_remain ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_strict_84EMiH/repo/.git/
+ok
+test tests::tests::cli_resmudge_reports_on_plaintext_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plain_zOO1rP/repo/.git/
+ok
+test tests::tests::cli_resmudge_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plaintext_sibling_gfFV2l/repo/.git/
+ok
+test tests::tests::cli_scrub_markers_finds_markers_in_json ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_json_z1ebof/repo/.git/
+ok
+test tests::tests::cli_scrub_markers_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_plaintext_sibling_GJATTT/repo/.git/
+ok
+test tests::tests::conversation_defaults_agree_with_dump_predicate ... ok
+test tests::tests::discover_git_repos_finds_all_git_dirs ... ok
+test tests::tests::discover_git_repos_local_finds_basic_repos ... ok
+test tests::tests::discover_git_repos_local_finds_nested_repositories ... ok
+test tests::tests::discover_git_repos_rejects_symlinked_git_marker ... ok
+test tests::tests::effective_discovery_roots_handles_empty_policy ... ok
+test tests::tests::effective_discovery_roots_merges_watch_and_discover_deduped ... ok
+test tests::tests::effective_protected_patterns_empty_stays_empty ... ok
+test tests::tests::effective_protected_patterns_union_conversation_defaults ... ok
+test tests::tests::effective_repo_roots_handles_empty_policy ... ok
+test tests::tests::effective_repo_roots_merges_and_dedupes ... ok
+test tests::tests::ensure_repo_filter_config_registers_diff_and_merge_drivers ... ok
+test tests::tests::filter_clean_encrypts_content_with_secret_marker ... ok
+test tests::tests::filter_clean_passes_plaintext_unchanged ... ok
+test tests::tests::filter_clean_refusal_reason_fails_closed_for_clean_only ... ok
+test tests::tests::filter_configured_bounds_preserve_default_and_reject_unbounded_limits ... ok
+test tests::tests::filter_process_pkt_round_trip ... ok
+test tests::tests::filter_process_rejects_bad_handshake ... ok
+test tests::tests::filter_process_serve_clean_smudge_and_error ... ok
+test tests::tests::filter_smudge_handles_empty_input ... ok
+test tests::tests::filter_smudge_passes_plaintext_unchanged ... ok
+test tests::tests::filter_transform_batch_matches_oneshot ... ok
+test tests::tests::generated_gitattributes_and_filter_gate_match_single_star_paths ... ok
+test tests::tests::gitattributes_block_protects_conversation_dumps ... ok
+test tests::tests::gitignore_block_negates_conversation_dumps ... ok
+test tests::tests::global_hook_install_preserves_and_chains_foreign_hooks ... ok
+test tests::tests::harden_repo_changes_files_and_writes_key ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_repo_aKggCA/repo/.git/
+ok
+test tests::tests::harden_repo_preserves_operator_content_outside_managed_block ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_preserve_L35ORQ/repo/.git/
+ok
+test tests::tests::harden_repo_rejects_symlinked_dotfiles_without_republishing_target ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_symlink_dotfiles_7p4nJR/repo/.git/
+ok
+test tests::tests::harden_repo_sets_local_dracon_filter_config ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_repo_filter_cfg_qUU4Dc/repo/.git/
+ok
+test tests::tests::harden_repo_surfaces_hook_install_failure ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_error_NfZtY0/repo/.git/
+ok
+test tests::tests::harden_repos_fails_when_global_refresh_fails ... ok
+test tests::tests::hook_replacement_is_atomic_and_executable ... ok
+test tests::tests::index_batch_lock_skips_and_recovers ... ok
+test tests::tests::index_batch_respawns_after_stage ... ok
+test tests::tests::index_batch_returns_staged_blob_not_worktree ... ok
+test tests::tests::install_hooks_for_repo_skips_shadowed_git_hooks ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_shadowed_9QsLxp/repo/.git/
+ok
+test tests::tests::is_encrypted_env_content_detects_markers ... ok
+test tests::tests::is_env_file_name_detects_common_variants ... ok
+test tests::tests::is_legacy_warden_hook_matrix ... ok
+test tests::tests::is_marker_string_detects_both_markers ... ok
+test tests::tests::is_marker_string_edge_cases ... ok
+test tests::tests::linked_worktree_gitfile_uses_real_gitdir_for_checkout_lock ... ok
+test tests::tests::marker_prefix_at_edge_cases ... ok
+test tests::tests::marker_prefix_at_finds_correct_positions ... ok
+test tests::tests::media_protected_patterns_default_off_and_parse ... ok
+test tests::tests::merge_driver_decrypt_failure_is_err_with_current_untouched ... ok
+test tests::tests::merge_driver_encrypted_roundtrip_clean_merge ... ok
+test tests::tests::merge_driver_merge_file_error_is_not_a_conflict ... ok
+test tests::tests::merge_driver_text_merge_clean_and_conflict ... ok
+test tests::tests::merge_driver_untagged_files_clean_and_conflict ... ok
+test tests::tests::newest_file_picks_newest_existing ... ok
+test tests::tests::normalize_filter_path_relativizes_inside_root_and_refuses_outside ... ok
+test tests::tests::omitted_hygiene_patterns_use_product_defaults ... ok
+test tests::tests::owner_pubkeys_in_filters_only_owner_pub ... ok
+test tests::tests::pkt_encode_panics_on_oversize_payload - should panic ... ok
+test tests::tests::plaintext_cannot_overlap_protected_or_disable_env_encryption ... ok
+test tests::tests::policy_roots_expand_tilde_before_existence_filtering ... ok
+test tests::tests::pre_commit_hook_allows_unmanaged_repo ... ok
+test tests::tests::pre_commit_hook_bare_repo_unmarked_passes ... ok
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_drift ... ok
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_only_global_filter_config ... ok
+test tests::tests::pre_commit_hook_blocks_when_merge_driver_key_missing ... ok
+test tests::tests::pre_commit_hook_blocks_when_only_commented_filters_remain ... ok
+test tests::tests::pre_commit_hook_blocks_when_required_key_false ... ok
+test tests::tests::pre_commit_hook_blocks_when_required_key_missing ... ok
+test tests::tests::pre_commit_hook_blocks_when_textconv_key_missing ... ok
+test tests::tests::pre_commit_hook_chains_to_foreign_repo_local_hook ... ok
+test tests::tests::pre_commit_hook_commented_filters_do_not_mark_managed ... ok
+test tests::tests::pre_commit_hook_does_not_recurse_into_warden_seeded_local_hook ... ok
+test tests::tests::pre_commit_hook_no_repo_context_exits_1_with_message ... ok
+test tests::tests::pre_commit_hook_propagates_foreign_hook_failure ... ok
+test tests::tests::pre_commit_hygiene_distinguishes_exact_visual_inputs_from_frame_caches ... ok
+test tests::tests::pre_commit_hygiene_does_not_grant_blanket_or_nested_machine_local_exemptions ... ok
+test tests::tests::pre_commit_hygiene_honors_scoped_sources_without_skipping_security ... ok
+test tests::tests::pre_commit_hygiene_visual_source_permission_is_exact_and_not_cache_permission ... ok
+test tests::tests::pre_commit_wrapper_skips_legacy_warden_local_hook ... ok
+test tests::tests::pre_commit_wrapper_still_chains_user_local_hook ... ok
+test tests::tests::pre_push_binary_pem_labels_are_not_private_keys_but_material_is_blocked ... ok
+test tests::tests::pre_push_hook_allows_changed_line_with_ciphertext ... ok
+test tests::tests::pre_push_hook_allows_delete_only ... ok
+test tests::tests::pre_push_hook_allows_inherited_binary_secret_shape ... ok
+test tests::tests::pre_push_hook_allows_pure_rename_of_published_secret_shape ... ok
+test tests::tests::pre_push_hook_allows_republish_of_published_blob ... ok
+test tests::tests::pre_push_hook_announces_hatched_candidates ... ok
+test tests::tests::pre_push_hook_bare_repo_unmarked_passes ... ok
+test tests::tests::pre_push_hook_blocks_added_secret ... ok
+test tests::tests::pre_push_hook_blocks_begin_private_key_branch ... ok
+test tests::tests::pre_push_hook_blocks_github_token_shape ... ok
+test tests::tests::pre_push_hook_blocks_gitlab_token_shape ... ok
+test tests::tests::pre_push_hook_blocks_password_secret_api_key_double_quoted_branches ... ok
+test tests::tests::pre_push_hook_blocks_secret_in_added_binary ... ok
+test tests::tests::pre_push_hook_blocks_secret_in_space_filename ... ok
+test tests::tests::pre_push_hook_blocks_secret_introduced_by_merge_resolution ... ok
+test tests::tests::pre_push_hook_blocks_secret_removed_or_reverted_before_tip ... rm 'new-asset'
+rm 'new-asset'
+ok
+test tests::tests::pre_push_hook_blocks_single_quoted_secret_warden_m2_idiom ... ok
+test tests::tests::pre_push_hook_blocks_stripe_live_key_shape ... ok
+test tests::tests::pre_push_hook_blocks_unquoted_padded_password ... ok
+test tests::tests::pre_push_hook_chains_and_propagates_local_hook_failure ... ok
+test tests::tests::pre_push_hook_chains_to_repo_local_hook ... ok
+test tests::tests::pre_push_hook_checks_all_refs_before_chaining_and_replays_input ... ok
+test tests::tests::pre_push_hook_ciphertext_context_keeps_exposed_and_malformed_shapes_blocked ... ok
+test tests::tests::pre_push_hook_distinguishes_interpolated_placeholder_from_literal ... ok
+test tests::tests::pre_push_hook_enumerates_remote_objects_once_per_push ... ok
+test tests::tests::pre_push_hook_hatch_found_from_subdir_cwd ... ok
+test tests::tests::pre_push_hook_ignores_unpaired_assignment_quote ... ok
+test tests::tests::pre_push_hook_ignores_warden_ciphertext_assignment ... ok
+test tests::tests::pre_push_hook_masks_ciphertext_context_before_provider_extraction ... ok
+test tests::tests::pre_push_hook_openai_boundary_canonicalizes_inherited_binary_matches ... ok
+test tests::tests::pre_push_hook_openai_boundary_ignores_asset_names_not_credentials ... ok
+test tests::tests::pre_push_hook_openai_boundary_preserves_real_text_and_binary_detection ... ok
+test tests::tests::pre_push_hook_passes_on_clean_binary ... ok
+test tests::tests::pre_push_hook_passes_on_clean_commit ... ok
+test tests::tests::pre_push_hook_passes_trusted_author ... ok
+test tests::tests::pre_push_hook_preserves_explicit_plaintext_sibling_exception ... ok
+test tests::tests::pre_push_hook_rejects_test_identity_author ... ok
+test tests::tests::pre_push_hook_scan_survives_local_hook_stdin_consumption ... ok
+test tests::tests::pre_push_hook_secret_re_matches_token_shape_source ... ok
+test tests::tests::pre_push_hook_skips_legacy_warden_local_hook ... ok
+test tests::tests::pre_push_hook_still_blocks_secrets_around_tags ... ok
+test tests::tests::pre_push_hook_tag_does_not_rescan_published_history ... ok
+test tests::tests::pre_push_hook_test_identity_on_non_first_parent_merge_passes ... ok
+test tests::tests::pre_push_modified_binary_still_blocks_new_pem_material ... ok
+test tests::tests::pre_push_review_receipt_binds_blob_and_individual_match ... ok
+test tests::tests::pre_rebase_hook_allows_unpublished_commits ... ok
+test tests::tests::pre_rebase_hook_blocks_published_boundary_commit ... ok
+test tests::tests::pre_rebase_hook_blocks_published_commit_deeper_than_100 ... ok
+test tests::tests::pre_rebase_hook_chains_and_propagates_local_hook_failure ... ok
+test tests::tests::pre_rebase_hook_chains_to_repo_local_hook ... ok
+test tests::tests::pre_rebase_hook_stays_silent_after_fresh_fetch ... ok
+test tests::tests::pre_rebase_hook_stays_silent_without_remote ... ok
+test tests::tests::pre_rebase_hook_two_arg_form_checks_branch_tip ... ok
+test tests::tests::pre_rebase_hook_warns_on_stale_refs_without_blocking ... ok
+test tests::tests::publish_repo_pubkey_no_churn_different_valid_key ... ok
+test tests::tests::publish_repo_pubkey_rejects_non_owner_or_secret_key_material ... ok
+test tests::tests::publish_repo_pubkey_rejects_symlink_target_without_modifying_external ... ok
+test tests::tests::publish_repo_pubkey_rejects_symlinked_target_directory ... ok
+test tests::tests::publish_repo_pubkey_writes_and_is_idempotent ... ok
+test tests::tests::refresh_never_downgrades_a_newer_hook_generation ... ok
+test tests::tests::refresh_warden_hook_if_stale_matrix ... ok
+test tests::tests::rendered_hooks_carry_the_current_generation_marker ... ok
+test tests::tests::repeated_local_hook_install_keeps_collision_suffixed_foreign_hook ... ok
+test tests::tests::repeated_replace_block_scenarios_are_stable ... ok
+test tests::tests::replace_managed_block_appends_when_missing ... ok
+test tests::tests::replace_managed_block_empty_current_string ... ok
+test tests::tests::replace_managed_block_multiple_blocks_replaces_all ... ok
+test tests::tests::replace_managed_block_preserves_leading_whitespace ... ok
+test tests::tests::replace_managed_block_preserves_tail_after_malformed_marker ... ok
+test tests::tests::replace_managed_block_replaces_existing_and_keeps_tail ... ok
+test tests::tests::resmudge_apply_waits_at_metadata_fence_before_reading_canonical_file ... ok
+test tests::tests::resmudge_metadata_write_fence_is_bounded_and_scoped_to_apply_targets ... ok
+test tests::tests::resmudge_rejects_tracked_symlink_without_modifying_target ... ok
+test tests::tests::resolve_policy_path_local_falls_back_to_default_locations ... ok
+test tests::tests::resolve_policy_path_local_finds_temp_config ... ok
+test tests::tests::run_keygen_generates_keypair_successfully ... ok
+test tests::tests::run_keygen_refuses_to_overwrite_existing_pubkey ... ok
+test tests::tests::run_keygen_refuses_to_overwrite_existing_secret_key ... ok
+test tests::tests::run_keygen_refuses_when_dedicated_master_private_exists ... ok
+test tests::tests::run_keygen_refuses_when_dedicated_master_pub_exists ... ok
+test tests::tests::salvage_invalid_json_handles_nested_markers ... ok
+test tests::tests::salvage_invalid_json_marker_at_end_of_string ... ok
+test tests::tests::salvage_invalid_json_markers_multiple_in_sequence ... ok
+test tests::tests::salvage_invalid_json_no_marker_returns_none ... ok
+test tests::tests::salvage_invalid_json_preserves_unicode_before_marker ... ok
+test tests::tests::salvage_invalid_json_replaces_marker_tokens_and_parses ... ok
+test tests::tests::setup_hooks_local_resolves_linked_gitdir_and_chains_common_hook ... ok
+test tests::tests::setup_hooks_local_resolves_submodule_gitdir_and_preserves_hooks ... ok
+test tests::tests::setup_hooks_local_sets_core_hooks_path ... ok
+test tests::tests::smart_clean_with_path_hatch_resolves_against_files_repo_not_cwd ... ok
+test tests::tests::storage_pre_commit_quotes_pinned_executable_chains_and_propagates_failure ... ok
+test tests::tests::storage_pre_commit_requires_valid_explicit_guard_binding ... ok
+test tests::tests::test_deprecation_warning_for_watch_roots ... ok
+test tests::tests::test_no_deprecation_when_only_repo_roots_set ... ok
+test tests::tests::test_repo_roots_takes_precedence ... ok
+test tests::tests::tracked_repair_writer_refuses_hardlink_alias_before_truncation ... ok
+test tests::tests::warden_cli_runtime_has_a_bounded_async_worker_pool ... ok
+test tests::tests::warden_policy_allow_v1_fallback_wires_the_gate ... ok
+test tests::tests::warden_policy_validate_accepts_allowlisted_plaintext ... ok
+test tests::tests::warden_policy_validate_accepts_valid_policy ... ok
+test tests::tests::warden_policy_validate_rejects_non_allowlisted_plaintext ... ok
+test tests::tests::warden_policy_validate_rejects_overlapping_patterns ... ok
+test tests::tests::warden_policy_validate_rejects_secretish_plaintext ... ok
+test tests::tests::wire_managed_patterns_from_policy_loads_protected_patterns ... ok
+test tests::tests::zeroize_file_best_effort_wipes_full_length ... ok
+test write_fence::tests::git_pointer_and_symlink_alias_resolve_the_same_fence ... ok
+test write_fence::tests::replaced_namespace_and_expired_deadline_refuse ... ok
+test write_fence::tests::same_repository_wait_is_bounded_and_drop_recovers_without_unlink ... ok
+test write_fence::tests::unrelated_repositories_do_not_share_a_fence ... ok
+test write_fence::tests::unsafe_lock_files_are_not_followed_truncated_or_stolen ... ok
+
+test result: ok. 248 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 181.43s
+
+     Running tests/integration_test.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/integration_test-c674853b074fcce1)
+
+running 20 tests
+test hook_refreshing_commands_never_touch_the_operator_home ... ok
+test resmudge_apply_waits_safely_and_releases_the_fence_after_publication ... ok
+test test_filter_process_live_git_diff_and_add ... ok
+test test_filter_process_oversize_binary_passthrough_survives_real_pipes ... ok
+test test_merge_internal_error_exits_two_with_current_untouched ... ok
+test test_precommit_sync_only_dracon_dir_is_not_managed ... ok
+test test_precommit_warden_keys_dir_without_config_blocks_as_drift ... ok
+test test_prepush_newline_named_file_refuses_instead_of_skipping ... ok
+test test_prepush_space_named_file_still_pushes ... ok
+test test_warden_cli_help ... ok
+test test_warden_filter_clean ... ok
+test test_warden_filter_smudge ... ok
+test test_warden_keygen ... ok
+test test_warden_once_single_repo ... ok
+test test_warden_repair_dry_run ... ok
+test test_warden_repair_rejects_tracked_symlinks_end_to_end ... ok
+test test_warden_resmudge_dry_run ... ok
+test test_warden_scrub_markers ... ok
+test test_warden_setup_hooks_local ... ok
+test test_warden_status ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 49.23s
+
+     Running tests/storage_stream.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/storage_stream-0293cb2608642411)
+
+running 2 tests
+test forged_repo_recipient_wrong_identity_corruption_and_budget_fail_closed ... ok
+test warden_streams_more_than_git_filter_limit_and_restores_exact_bytes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 87.06s
+
+     Running tests/write_fence.rs (/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/deps/write_fence-3b64ad6e47b2d2d0)
+
+running 4 tests
+test cli_fences_same_repo_but_not_unrelated_repo_and_releases_on_close ... ok
+test inherited_fence_is_reentrant_and_wrong_repository_is_refused ... ok
+test killing_wrapper_does_not_release_fence_before_actual_writer_closes ... ok
+test operation_deadline_cleans_owned_family_and_does_not_steal_next_lock ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.02s
+
+   Doc-tests dracon_security
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
