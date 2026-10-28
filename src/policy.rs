@@ -586,6 +586,22 @@ pub(crate) struct SyncPolicy {
     #[serde(default = "default_max_stage_batch_files")]
     pub(crate) max_stage_batch_files: usize,
 
+    /// Bound on a staged set the user/agent ALREADY built (captured staged
+    /// intent), as opposed to `max_stage_batch_files` which paces what the
+    /// daemon stages by itself.
+    ///
+    /// These are different questions. The daemon's own staging is sliced into
+    /// reviewable batches; an existing index is one atomic intent that the epoch
+    /// commits whole or not at all. Applying the review-size limit to captured
+    /// intent therefore never defers — it blocks the same commit forever, which
+    /// is what happened to junk-runner's 127 small staged files (2026-10-28).
+    ///
+    /// Default 10_000: high enough that no realistic hand-built staging trips it,
+    /// low enough that one tree materialization stays bounded. Zero disables the
+    /// bound. Per-file guards (excluded paths, oversized blobs) are unaffected.
+    #[serde(default = "default_max_captured_staged_files")]
+    pub(crate) max_captured_staged_files: usize,
+
     /// Auto-resolve unmerged index entries when the working tree
     /// matches HEAD (the "ours" side of the merge). When true, the
     /// daemon runs `git reset HEAD -- <unmerged-paths>` to clear
@@ -1290,6 +1306,12 @@ fn default_max_stage_batch_files() -> usize {
     // Operator decision 2026-10-25: file-count batching is opt-in. Zero
     // must not become take(0), an empty batch, or a permanent deferral.
     0
+}
+
+fn default_max_captured_staged_files() -> usize {
+    // Bounds only one tree materialization of already-staged intent; never a
+    // review-size policy. See `max_captured_staged_files`.
+    10_000
 }
 
 pub(crate) fn default_auto_resolve_unmerged() -> bool {
