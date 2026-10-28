@@ -1,0 +1,84 @@
+{
+  "assembly": {
+    "note": "All four workspace gates ran on this committed assembly.",
+    "head": {
+      "parent": "26f7e331e1223dcfd0b670b5f1a3045aaade39f6",
+      "dracon-sync": "cac45a9d1922278583b58b362f9f3d025588fa04",
+      "dracon-warden": "c0bf959d8177faad9571fec3c705ef6d29131071",
+      "dracon-system": "00aca3ff0377d8cc5c1ae1fcc7fecb4715159959"
+    }
+  },
+  "gates": {
+    "cargo test --workspace --locked": {
+      "suites": 44,
+      "passed": 2892,
+      "failed": 0,
+      "exitCode": 0,
+      "tail": "rc=0"
+    },
+    "cargo build --release --locked": {
+      "exitCode": 0,
+      "tail": "    Finished `release` profile [optimized] target(s) in 0.95s\nrc=0"
+    },
+    "cargo clippy --workspace --locked --all-targets -- -D warnings": {
+      "exitCode": 0,
+      "tail": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 16.63s\nrc=0"
+    },
+    "cargo deny check": {
+      "exitCode": 0,
+      "tail": "advisories ok, bans ok, licenses ok, sources ok"
+    }
+  },
+  "youtube_filter": {
+    "repo": "/home/dracon/Dev/browser-extensions-shared",
+    "gate_repaired": true,
+    "gate_attempts": {
+      "dracon-pre-push.GqCEEf": "passed",
+      "dracon-pre-push.3RTN12": "passed",
+      "dracon-pre-push.IESiCU": "passed"
+    },
+    "extension_suite": {
+      "command": "npx vitest run",
+      "files": 59,
+      "passed": 1064,
+      "failed": 0
+    },
+    "typecheck": "npx tsc --noEmit -> clean",
+    "lint": "npm run lint --max-warnings 0 -> clean",
+    "receipt_gate": "node scripts/check-receipt-evidence.mjs -> OK (stamped=2)",
+    "falsifiability": "pre-fix logic restored -> 2 of 10 new tests fail",
+    "converged": {
+      "head": "b7ca4a1b0f89b283f9cee0c9ee437ce4a5e71bad",
+      "origin": "b7ca4a1b0f89b283f9cee0c9ee437ce4a5e71bad",
+      "gitlab": "b7ca4a1b0f89b283f9cee0c9ee437ce4a5e71bad",
+      "ahead": 0
+    }
+  },
+  "fleet": {
+    "ok": 34,
+    "active": 2,
+    "warn": 0,
+    "concern": 0,
+    "failures": 0,
+    "repos": 36,
+    "ahead": 0,
+    "pending": 0,
+    "dirty_with_push_ok": 3,
+    "observation": "fleet-converged.json"
+  },
+  "live_hook": {
+    "path": "/home/dracon/.config/git/hooks/pre-push",
+    "sha256": "cc7caa7b71fb314e44dc2b512397aebe4883957b028d6e61b0638e3d8a3cb5fc",
+    "marker": "managed-hook-v2"
+  },
+  "policy": {
+    "auto_push_restored": true,
+    "path": "/home/dracon/.dracon/utilities/sync/dracon-sync.toml"
+  },
+  "honest_limits": [
+    "Three repositories are DIRTY from live editing by their own agents (push=OK, nothing stranded).",
+    "GitHub for browser-extensions-shared was historically blocked by its 3.67 GiB pack vs the 2 GiB limit; a gitlab-side advance was observed regardless.",
+    "The A/B comparison still cannot always complete because the operator window closes the harness feed tab; the receipt now SAYS the comparison was unread instead of accusing the product.",
+    "No manual recovery push, history rewrite, force-push, hook bypass, or policy weakening was used."
+  ]
+}

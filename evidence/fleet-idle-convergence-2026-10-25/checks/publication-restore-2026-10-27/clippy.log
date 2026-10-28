@@ -1,0 +1,17 @@
+   Compiling openssl-sys v0.9.117
+   Compiling libz-sys v1.1.29
+   Compiling openssl v0.10.81
+   Compiling native-tls v0.2.18
+   Compiling libssh2-sys v0.3.3
+   Compiling libgit2-sys v0.18.8+1.9.7
+    Checking ssh2 v0.9.6
+    Checking tokio-native-tls v0.3.1
+    Checking hyper-tls v0.6.0
+    Checking reqwest v0.12.28
+    Checking dracon-system-lib v94.2.7
+    Checking dracon-system v0.112.51 (/home/dracon/Dev/dracon-utilities/dracon-system)
+    Checking git2 v0.21.0
+    Checking dracon-git v94.7.2
+    Checking dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 16.63s
+rc=0
