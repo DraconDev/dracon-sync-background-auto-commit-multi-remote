@@ -1452,6 +1452,27 @@ impl SyncPolicy {
         }
     }
 
+    /// Bound on a staged set the USER/agent already built, used by the captured
+    /// staged-intent epoch.
+    ///
+    /// DELIBERATELY SEPARATE from `stage_batch_limit`. That limit paces what the
+    /// daemon stages by itself so one auto-commit stays reviewable; captured
+    /// intent is already an atomic unit — the epoch commits all of it or none of
+    /// it — so applying the review-size limit there converts it into a permanent
+    /// deferral that no daemon cycle can ever clear (measured 2026-10-28:
+    /// junk-runner's 127 small staged files failed every commit for days).
+    ///
+    /// The default is generous because its only job is to keep one tree
+    /// materialization bounded. Per-file eligibility (excluded paths, oversized
+    /// blobs) is enforced independently and unchanged.
+    pub(crate) fn captured_stage_limit(&self) -> usize {
+        if self.max_captured_staged_files == 0 {
+            usize::MAX
+        } else {
+            self.max_captured_staged_files
+        }
+    }
+
     pub(crate) fn load(path: &Path) -> Result<Self> {
         let content = std::fs::read_to_string(path)
             .with_context(|| format!("failed to read policy {}", path.display()))?;

@@ -299,8 +299,28 @@ impl Epoch {
         policy: &SyncPolicy,
         excluded: &BTreeSet<String>,
     ) -> Result<()> {
+        // `max_stage_batch_files` bounds what the DAEMON stages on its own
+        // initiative, so a single auto-commit stays reviewable (operator
+        // decision 2026-06-20, lowered 100000 -> 100).
+        //
+        // It must NOT bound a staged set the USER or an agent already built,
+        // because that staging is one atomic intent: the epoch commits the
+        // whole index or none of it (`materialize_tree` writes every captured
+        // entry), so refusing on count is not "defer to the next cycle" — it
+        // is a PERMANENT deferral. Nothing the daemon does can make an existing
+        // 127-entry index shrink. Measured 2026-10-28: junk-runner had 127
+        // staged files, all small (8.24 MiB total, largest 3.6 MiB, far below
+        // `max_stage_file_bytes`), and the daemon failed the same commit every
+        // few minutes for days with "captured staged intent exceeds strict
+        // batch limit" while its journal reported Dispatch Starved for 99252s.
+        //
+        // So the two limits stay separate. Captured intent gets its own much
+        // larger ceiling (`max_captured_staged_files`) that exists only to keep
+        // one commit's tree materialization bounded, not to police review size.
+        // The per-file guards below (excluded paths, oversized blobs) still
+        // apply unchanged, so this does not admit anything previously rejected.
         ensure!(
-            self.snapshot.changed.len() <= policy.stage_batch_limit(),
+            self.snapshot.changed.len() <= policy.captured_stage_limit(),
             "captured staged intent exceeds strict batch limit"
         );
         let rejected = self.ineligible_paths(repo, policy, excluded).await?;
