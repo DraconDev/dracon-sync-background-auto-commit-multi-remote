@@ -45,11 +45,11 @@ Task 4.1 is reopened for the changed source assembly.
    reject direct canonical metadata targets. Their shared file writer, plus
    write_tracked_repair_file used by scrub/backfill/resmudge, opens without
    truncation and refuses symlink/hardlink aliases before mutation. The bounded
-   two-package suite passes (479 passed, 6 ignored), and strict package/all-
+   two-package suite passes (480 passed, 6 ignored), and strict package/all-
    target Clippy passes on the current Warden source. The receipt is
-   `warden-writer-controls-2026-10-28.json`. These are source/package controls,
-   not a loaded-runtime or concurrent resmudge --apply qualification; test-only
-   helpers and fixture writers are not live producer integrations.
+   `warden-writer-controls-2026-10-28.json`. Tests include bounded apply-path
+   fence refusal, but not a successful encrypted resmudge write/close or a
+   concurrent writer schedule; there is no loaded-runtime proof.
 2. dracon-sync generated-ignore/excluded-restore publisher: source integrated,
    NOT deployed. Both entry points acquire before canonical target lookup and
    capture; the existing owned helper inherits the held OFD directly, preserving

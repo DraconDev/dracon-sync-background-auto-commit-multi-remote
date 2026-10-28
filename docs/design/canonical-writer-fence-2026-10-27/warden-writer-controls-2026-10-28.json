@@ -1,18 +1,17 @@
 {
   "schema": 1,
-  "at": "2026-10-28T22:49:15Z",
+  "recordedAt": "2026-10-28T23:00:49Z",
   "scope": "dracon-warden and dracon-security source/package controls only; no deployment, loaded-runtime, or fleet claim",
   "sourceHeads": {
-    "dracon-warden": "3b867785a60d2aecff28d6630cd39a583709c496",
-    "dracon-sync-design": "e7630faa13170b88919e2fb4f4121fca7da27b9b",
+    "dracon-warden": "e93540af791e7083c07e4ed5e43e41c1268c1174",
     "workspace": "cc4e1fdf2bcc8c6488e7fd2acc4536c2e118fe7e"
   },
   "targetDir": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target",
-  "gates": [
+  "finalGates": [
     {
-      "command": "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=<isolated> cargo test -p dracon-warden -p dracon-security --locked -- --test-threads=2",
+      "command": "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=<isolated> cargo test -p dracon-warden -p dracon-security --locked -- --test-threads=1",
       "exitCode": 0,
-      "passed": 479,
+      "passed": 480,
       "failed": 0,
       "ignored": 6
     },
@@ -26,22 +25,36 @@
     }
   ],
   "targetedRegressions": {
+    "resmudgeApplyFenceWait": "1 passed; actual resmudge_repo apply path waits at a held per-worktree fence, times out within the supplied deadline, and preserves canonical bytes and index",
     "wardenTrackedRepairHardlinkRefusal": "1 passed; refuses before truncating a hardlink alias to .gitignore",
     "securityMarkerMigrationAliases": "2 passed; refuses hardlink and symlink-root paths without changing metadata",
     "securityBackupRestoreHardlinkRefusal": "1 passed; refuses restoring through a hardlink alias before truncation"
   },
-  "nonGateRun": {
-    "command": "cargo test -p dracon-warden -p dracon-security <two filters> -- --exact",
-    "exitCode": 0,
-    "result": "0 tests matched (filtered out); immediately replaced by successful substring-filtered targeted runs and the complete package test run above"
-  },
+  "nonGateRuns": [
+    {
+      "command": "cargo test -p dracon-warden -p dracon-security --locked -- --test-threads=2",
+      "exitCode": 101,
+      "observedFailure": "pre_push_hook_enumerates_remote_objects_once_per_push observed two enumerations instead of one",
+      "boundedAssessment": "The test mutates process-global PATH via PathGuard; .cargo/config.toml intentionally sets RUST_TEST_THREADS=1. The test passed alone, and the complete suite passed with the configured serial setting. The two-thread run overrode that guard."
+    },
+    {
+      "command": "cargo test -p dracon-warden --locked pre_push_hook_enumerates_remote_objects_once_per_push -- --nocapture",
+      "exitCode": 0,
+      "result": "1 passed"
+    },
+    {
+      "command": "cargo test -p dracon-warden -p dracon-security <two filters> -- --exact",
+      "exitCode": 0,
+      "result": "0 tests matched (filtered out); replaced by successful substring-filtered targeted runs and the complete serial package test run above"
+    }
+  ],
   "implementedBoundaries": [
     "Warden resmudge apply takes the per-worktree canonical writer fence before inspecting or opening tracked .gitignore/.gitattributes targets.",
     "Generic library restore/migration refuses direct canonical metadata names; shared writers reject final symlinks and multiple-link inodes before truncation.",
     "Tracked repair writes validate opened regular-file identity and single-link status before truncation."
   ],
   "remaining": [
-    "No end-to-end concurrent resmudge --apply test with encrypted canonical metadata; existing CLI integration is dry-run only.",
+    "No end-to-end successful encrypted resmudge --apply write/close schedule or concurrent competing writer; current new control proves bounded refusal while the fence is held, and the existing CLI integration is dry-run only.",
     "No post-integration full-workspace tests, release build, strict all-target Clippy, or cargo deny qualification.",
     "No deployment or loaded-runtime verification; cooperative-writer coverage remains bounded to the recorded syscall receipt and does not qualify every tool interface."
   ]
