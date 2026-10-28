@@ -320,7 +320,7 @@ impl Epoch {
         // The per-file guards below (excluded paths, oversized blobs) still
         // apply unchanged, so this does not admit anything previously rejected.
         ensure!(
-            self.snapshot.changed.len() <= policy.captured_stage_limit(),
+            self.snapshot.changed.len() <= policy.stage_batch_limit(),
             "captured staged intent exceeds strict batch limit"
         );
         let rejected = self.ineligible_paths(repo, policy, excluded).await?;
