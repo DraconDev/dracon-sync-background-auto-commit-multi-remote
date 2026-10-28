@@ -1663,3 +1663,43 @@ Fleet: `ok=34 active=2 warn=0 concern=0 failures=0`, zero AHEAD, zero PENDING
 (`checks/publication-restore-2026-10-27/fleet-converged.json`). Three repos are
 DIRTY with push=OK — live editing by their own agents, which the objective
 explicitly permits and requires not stopping.
+
+## 2026-10-28 — staged-intent permanent deferral repaired (objective's named class)
+
+`junk-runner` had 127 staged, small files and had not committed in three days;
+the journal repeated `captured staged intent exceeds strict batch limit` and
+`Dispatch Starved (>10 min) … 99252s` while `repos` showed
+`state_cause: committing`.
+
+Root cause: `max_stage_batch_files = 100` is the OPERATOR's reviewability cap on
+what the DAEMON stages by itself (2026-06-20, lowered from 100000); the ordinary
+path defers correctly by CHUNKING. `staged_epoch::eligible()` applied that same
+cap to intent the user had already staged, where it is not a deferral at all:
+`materialize_tree` commits the whole captured index, so the epoch either takes
+all 127 or none, and no cycle can ever shrink an existing index. A permanent
+refusal, restated forever. The files were fine (8.24 MiB total, largest 3.6 MiB).
+
+Repair: new `SyncPolicy::max_captured_staged_files` (default 10_000, 0 =
+unlimited) + `captured_stage_limit()`, used by `eligible()`. Per-file guards
+(excluded paths, oversized blobs) still apply unchanged, so nothing previously
+rejected for a real reason is now admitted. Field added to
+`OVERRIDE_COVERAGE_GLOBAL_ONLY`. Full report:
+`checks/staged-intent-batch-limit-2026-10-28/REPORT.md`.
+
+Regression: new test reproduces the 127-file shape and passes; the pre-existing
+test that asserted the OLD contract now pins the split instead. Negative
+control: restoring `stage_batch_limit()` in `eligible()` fails the new test with
+the exact production error.
+
+Gates: workspace tests 44 suites / **2893 passed / 0 failed**; release build,
+strict all-target Clippy and `cargo deny` all exit 0. Deployed via
+`dracon-sync maintenance`; installed binary `6a0458d6…` == qualified release,
+daemon restarted onto it and verified through `/proc/<pid>/exe`. Rollback:
+`~/.local/state/dracon/rollback-binaries/sync-20261028T041044Z`.
+
+After deployment the batch-limit refusal is GONE and the epoch builds the
+127-file message. The NEXT refusal is a different layer and remains open: the
+repository's own `.githooks/pre-commit` blocks three already-TRACKED
+machine-local `.pi-glla/*.json` files and states that the durable fix is scoped
+root rules — a repository policy decision, so it is left for the owner rather
+than guessed, with no hook bypassed.
