@@ -67,11 +67,15 @@ Task 4.1 is reopened for the changed source assembly.
    cancellation, stale render, link safety and scratch namespace substitution.
    The namespace regression initially FAILED (foreign cleanup entry deleted),
    then passed after directory-FD anchoring; its failure remains in the log.
-   An actual family-cancellation schedule pauses after private scratch fsync
-   before rename. An independent repo publishes while the first fence is held;
-   cancellation preserves its original canonical inode/bytes, clears scratch,
-   exits the blocked child and allows native reacquisition. This is NOT proof
-   for detached descendants or parent-only SIGKILL schedules.
+   The legacy helper-process cancellation test synchronizes at the real
+   pre-publication ownership lookup after private scratch is fully written,
+   fsynced and closed. While A remains fenced, a direct Warden participant
+   writes in independent repo B; after A is cancelled and scratch/fence cleanup
+   is verified, a full Pi metadata write in B succeeds. This does NOT show a
+   full Pi metadata transaction in B completing while A is held. Separate
+   in-process ordinary-write cancellation controls establish cross-repo
+   progress within that Pi process. Neither proves detached descendants or
+   parent-only SIGKILL schedules.
    Native write/writev and fsync ENOSPC fault controls also pass: each refuses,
    preserves the canonical inode/content, clears owned scratch and permits
    native reacquisition. No host disk was filled. Earlier receipt pi-io-controls.json
@@ -108,12 +112,27 @@ Task 4.1 is reopened for the changed source assembly.
    schedules (kernel I/O that never returns is NOT bounded by this proof),
    large inputs, other producers, ACL/xattr/durability, linked worktrees/devices,
    full assembly and live loaded proof. See README; no scope or gate is waived.
-4. Agent bash/user-bash, native Git worktree mutators (checkout/merge/restore,
-   etc.), scripts and other editors: coverage NOT established. Do not claim an
-   extension wrapping edit/write also covers arbitrary shell commands or hidden
-   dynamically constructed paths. Heuristic command matching is not proof of
-   a pre-open boundary. Inventory and integrate their concrete write interfaces;
-   unsupported/uncooperative writers must remain explicit negative controls.
+4. Pi bash/user-bash: source integration is now present in
+   `pi-plugins/extensions/pi-canonical-write-fence/index.js` and `shell.js`.
+   Both the model-facing `bash` tool and `user_bash` handler use one Warden
+   process-family fence for the repository owning the tool's initial cwd; the
+   host Pi shell configuration is resolved only at command execution, after
+   runtime binding. No command-text heuristic is used. Targeted controls cover
+   actual-loader registration, same-worktree native-Git serialization,
+   independent-worktree shell progress, cancellation/reacquisition, refusal
+   outside a worktree, and nested descriptor propagation. The loader fixture
+   supplies a settings getter stub; this is NOT an installed/live Pi runtime
+   observation. The extension remains source-only and is NOT deployed.
+   Critical boundary: the selected fence belongs to the initial cwd. Commands
+   which `cd` or use `git -C`/absolute paths into another worktree are not
+   discovered or refused by this wrapper, and detached descendants that discard
+   the inherited FD are unsupported. Thus this integration does not establish
+   coverage for arbitrary shell targets, native Git invoked outside the fenced
+   cwd, external scripts/editors, or other live producers. No fleet producer
+   inventory is complete. The latest full Pi suite attempt was 31/33; the two
+   failures (registration wording and an independent-writer timeout in the
+   legacy cancellation fixture) were corrected, and each affected test now
+   passes alone. No post-fix full-suite pass is recorded.
 5. Active-process inventory stores only PID/PPID/comm/exe/cwd, never command-line
    prompts or credentials. It identifies many live Pi sessions and Codex app
    server candidates; occurrence is NOT proof that a process writes .gitignore.
