@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "recordedAt": "2026-10-28T23:00:49Z",
+  "recordedAt": "2026-10-28T23:01:47Z",
   "scope": "dracon-warden and dracon-security source/package controls only; no deployment, loaded-runtime, or fleet claim",
   "sourceHeads": {
     "dracon-warden": "e93540af791e7083c07e4ed5e43e41c1268c1174",
@@ -18,6 +18,11 @@
     {
       "command": "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=<isolated> cargo clippy -p dracon-warden -p dracon-security --locked --all-targets -- -D warnings",
       "exitCode": 0
+    },
+    {
+      "command": "cargo deny check",
+      "exitCode": 0,
+      "notes": "advisories, bans, licenses, and sources all passed on the current workspace lockfile"
     },
     {
       "command": "rustfmt --edition 2021 --check --config skip_children=true <modified Warden Rust files>; git -C dracon-warden diff --check",
@@ -55,7 +60,7 @@
   ],
   "remaining": [
     "No end-to-end successful encrypted resmudge --apply write/close schedule or concurrent competing writer; current new control proves bounded refusal while the fence is held, and the existing CLI integration is dry-run only.",
-    "No post-integration full-workspace tests, release build, strict all-target Clippy, or cargo deny qualification.",
+    "No full-workspace tests, release build, or strict all-target Clippy on the post-integration assembly; cargo deny check alone is not full qualification.",
     "No deployment or loaded-runtime verification; cooperative-writer coverage remains bounded to the recorded syscall receipt and does not qualify every tool interface."
   ]
 }

@@ -31,9 +31,12 @@ while an actual writer still has its inherited descriptor. Full crash/cancel
 family supervision remains a qualification obligation, not inferred from that
 FD-lifetime test. Detached writers which discard the descriptor are NOT covered.
 
-Current controls: 5 primitive + 4 actual CLI tests pass. Full Warden suite and
-strict package/all-target Clippy pass. These do NOT establish all-writer coverage
-or successful canonical publication. No binary/settings deployment in this phase.
+Current controls: 5 primitive + 4 write-fence CLI tests and a bounded Warden
+resmudge apply fence-wait test pass. The Warden/security package suite passes
+(480 passed, 6 ignored), strict package/all-target Clippy passes, and workspace
+`cargo deny check` is clean. These do NOT establish all-writer coverage, a
+successful encrypted resmudge write, or canonical publication. No
+binary/settings deployment in this phase.
 Task 4.1 is reopened for the changed source assembly.
 
 ## Integration inventory / remaining implementation
