@@ -1,4 +1,4 @@
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.83s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.46s
      Running unittests src/lib.rs (target/debug/deps/dracon_security-89164f2f8fc61180)
 
 running 83 tests
@@ -86,7 +86,7 @@ test tests::test_unlock_payload_v2_roundtrip ... ok
 test tests::test_whole_file_tag_binary_roundtrip_byte_identical ... ok
 test tests::test_whole_file_tag_tolerates_crlf_and_multiple_newlines ... ok
 
-test result: ok. 83 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.96s
+test result: ok. 83 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.62s
 
      Running tests/atomic_write_test.rs (target/debug/deps/atomic_write_test-dd8c7555535a47ff)
 
@@ -96,7 +96,7 @@ test test_backup_file_recursion_guard_rejects_arcane_backups ... ok
 test test_backup_file_recursion_guard_rejects_backups_dir ... ok
 test test_restore_rejects_nonexistent_path ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
      Running tests/backup_test.rs (target/debug/deps/backup_test-1c3ba2e6f9a6bf49)
 
@@ -104,7 +104,7 @@ running 2 tests
 test test_backup_and_restore ... ok
 test test_backup_does_not_overwrite_same_second_backup ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
      Running tests/common.rs (target/debug/deps/common-337ad24a33652abb)
 
@@ -136,7 +136,7 @@ test rollout_jsonl_gets_whole_file_encryption ... ok
 test rollout_prose_doc_is_not_whole_file_encrypted ... ok
 test trajectory_json_gets_whole_file_encryption ... ok
 
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.59s
 
      Running tests/creds_json_full_encrypt.rs (target/debug/deps/creds_json_full_encrypt-8bc237ccdcd87c06)
 
@@ -145,7 +145,7 @@ test creds_json_at_any_depth_gets_whole_file_encryption ... ok
 test creds_json_gets_whole_file_encryption ... ok
 test creds_json_round_trips_through_smudge ... ok
 
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
 
      Running tests/github_format_review.rs (target/debug/deps/github_format_review-1b5e476c8a2934f0)
 
@@ -153,7 +153,7 @@ running 2 tests
 test github_invalid_boundaries_and_lengths_do_not_match ... ok
 test github_supported_formats_are_replaced_in_full ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
 
      Running tests/index_reuse.rs (target/debug/deps/index_reuse-735efb28c06cd903)
 
@@ -164,7 +164,7 @@ test newly_detected_secrets_in_index_force_reencryption ... ok
 test policy_upgrade_does_not_reuse_partially_protected_index ... ok
 test unchanged_ciphertext_is_reused_but_edits_and_plaintext_are_not ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.18s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
 
      Running tests/keys_json_full_encrypt.rs (target/debug/deps/keys_json_full_encrypt-307851ad30f45a33)
 
@@ -172,7 +172,7 @@ running 2 tests
 test keys_json_gets_whole_file_encryption ... ok
 test keys_json_round_trips_through_smudge ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
      Running tests/leak_prevention_test.rs (target/debug/deps/leak_prevention_test-0aab4a5f0d1183ff)
 
@@ -180,14 +180,14 @@ running 2 tests
 test prop_test_binary_passthrough_integrity ... ok
 test prop_test_hybrid_security_logic ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.42s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.99s
 
      Running tests/massive_secret_scan.rs (target/debug/deps/massive_secret_scan-eee5e26c6b5f79ce)
 
 running 1 test
 test test_massive_dataset_permutations ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.05s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.27s
 
      Running tests/pattern_integrity.rs (target/debug/deps/pattern_integrity-8d60532305725d35)
 
@@ -195,7 +195,7 @@ running 2 tests
 test test_no_nested_quantifiers_in_patterns ... ok
 test test_patterns_compile_and_have_reasonable_length ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
 
      Running tests/plaintext_sibling_test.rs (target/debug/deps/plaintext_sibling_test-641eae5c2a85ee83)
 
@@ -212,7 +212,7 @@ test is_hatched_rejects_absolute_and_dotdot ... ok
 test is_hatched_returns_false_for_empty_path ... ok
 test is_hatched_returns_false_when_sibling_missing ... ok
 
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.06s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.90s
 
      Running tests/redos_stress_test.rs (target/debug/deps/redos_stress_test-da1d1779664b1d49)
 
@@ -224,21 +224,21 @@ test test_scanner_detects_known_secret_patterns ... ok
 test test_scanner_performance_mixed_secret_and_filler ... ok
 test test_scanner_performance_under_large_evil_input ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.78s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.67s
 
      Running tests/registry_credentials_test.rs (target/debug/deps/registry_credentials_test-6c12fb5bf9bf840f)
 
 running 1 test
 test test_load_registry_credentials_when_none_exist ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
      Running tests/restore_test.rs (target/debug/deps/restore_test-ec1da6168d22ed90)
 
 running 1 test
 test test_restore_workflow ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
      Running tests/scanner_edge_cases_test.rs (target/debug/deps/scanner_edge_cases_test-a5f32595b6c32f78)
 
@@ -256,14 +256,14 @@ test test_scanner_handles_empty_input ... ok
 test test_scanner_handles_unicode_content ... ok
 test test_scanner_ignores_too_short_unquoted_password ... ok
 
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.05s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.32s
 
      Running tests/scanner_stress.rs (target/debug/deps/scanner_stress-50bc52a869597c2a)
 
 running 1 test
 test test_scanner_stress_1000 ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
 
      Running tests/security_critical_test.rs (target/debug/deps/security_critical_test-1c05470f804befc4)
 
@@ -313,7 +313,7 @@ test test_unlock_payload_v1_format ... ok
 test test_unlock_payload_v1_format_roundtrip ... ok
 test test_unlock_payload_wrong_key ... ok
 
-test result: ok. 38 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 3.95s
+test result: ok. 38 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 0.43s
 
      Running tests/team_key_test.rs (target/debug/deps/team_key_test-89871078c743c5bf)
 
@@ -321,7 +321,7 @@ running 2 tests
 test test_add_team_member_rejects_invalid_key ... ok
 test test_create_team_invite_requires_existing_team ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
      Running tests/tier1_source_encrypt.rs (target/debug/deps/tier1_source_encrypt-2393e334ecabbd35)
 
@@ -336,7 +336,7 @@ test tier1_scanner_catches_structured_tokens ... ok
 test tier1_source_file_clean_and_roundtrip ... ok
 test tier1_square_requires_exact_body_length ... ok
 
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.18s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
 
      Running tests/tier_inventory.rs (target/debug/deps/tier_inventory-8bcbf4b7ff500db9)
 
@@ -344,7 +344,7 @@ running 2 tests
 test inventory_covers_every_builtin_family_and_tier ... ok
 test promoted_provider_tokens_replace_completely ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
 
      Running unittests src/lib.rs (target/debug/deps/dracon_sync-c4ea6bb863ffe38d)
 
@@ -507,7 +507,7 @@ test storage_core::worker::tests::captured_version_is_prepared_copied_and_retry_
 test storage_core::worker::tests::encrypted_preparation_copies_only_approved_representation ... ok
 test storage_core::worker::tests::missing_warden_and_forbidden_class_do_not_prepare_or_upload ... ok
 
-test result: ok. 144 passed; 0 failed; 13 ignored; 0 measured; 0 filtered out; finished in 295.20s
+test result: ok. 144 passed; 0 failed; 13 ignored; 0 measured; 0 filtered out; finished in 43.06s
 
      Running unittests src/main.rs (target/debug/deps/dracon_sync-6df10b15ad956f11)
 
@@ -566,27 +566,27 @@ test bump::tests::test_extract_version_from_json ... ok
 test bump::tests::test_extract_version_from_json_escaped_quotes ... ok
 test bump::tests::test_extract_version_from_json_multiple_keys ... ok
 test bump::tests::test_extract_version_from_json_not_found ... ok
-test daemon::daemon_tests::test_get_status_after_push ... [main (root-commit) c396767] init
+test daemon::daemon_tests::test_get_status_after_push ... [main (root-commit) 3264073] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
-To /tmp/.tmpv9ITVb/remote.git
+To /tmp/.tmp7eRR0t/remote.git
  * [new branch]      main -> main
 branch 'main' set up to track 'origin/main'.
-[main 2665d7f] second
+[main 50ab0d7] second
  1 file changed, 1 insertion(+), 1 deletion(-)
-To /tmp/.tmpv9ITVb/remote.git
-   c396767..2665d7f  main -> main
+To /tmp/.tmp7eRR0t/remote.git
+   3264073..50ab0d7  main -> main
 ok
-test daemon::daemon_tests::test_get_status_detects_unpushed_commits ... [main (root-commit) c396767] init
+test daemon::daemon_tests::test_get_status_detects_unpushed_commits ... [main (root-commit) 7d939c5] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
-To /tmp/.tmpGRfgcf/remote.git
+To /tmp/.tmp9fkJt7/remote.git
  * [new branch]      main -> main
 branch 'main' set up to track 'origin/main'.
-[main 8604736] unpushed
+[main 2e357f4] unpushed
  1 file changed, 1 insertion(+), 1 deletion(-)
 ok
-test daemon::daemon_tests::test_get_status_refreshes_index ... [main (root-commit) ca6b2b3] init
+test daemon::daemon_tests::test_get_status_refreshes_index ... [main (root-commit) 08a9e04] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
 ok
@@ -671,7 +671,7 @@ test daemon::tests::quiet_evidence_future_missing_and_prestart_are_bounded ... o
 test daemon::tests::quiet_evidence_repeated_edits_keep_maximum_dirty_age ... ok
 test daemon::tests::quiet_evidence_uses_change_time_not_discovery_time ... ok
 test daemon::tests::ready_restart_work_precedes_unknown_inspection_with_fixed_pulse_budget ... ok
-test daemon::tests::refresh_publish_preserves_successfully_pushed_tracking_ref ... [main (root-commit) 6a63c91] initial
+test daemon::tests::refresh_publish_preserves_successfully_pushed_tracking_ref ... [main (root-commit) 4316a53] initial
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
 branch 'main' set up to track 'origin/main'.
@@ -686,16 +686,16 @@ test daemon::tests::test_classification_backoff_secs_matrix ... ok
 test daemon::tests::test_classification_pending_watchdog_due ... ok
 test daemon::tests::test_classification_result_expired_matrix ... ok
 test daemon::tests::test_commit_only_idle_skip_matrix ... ok
-test daemon::tests::test_configure_publish_upstream_if_missing_adds_github_upstream ... [main (root-commit) 6a63c91] initial
+test daemon::tests::test_configure_publish_upstream_if_missing_adds_github_upstream ... [main (root-commit) 4316a53] initial
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
 ok
 test daemon::tests::test_configure_publish_upstream_if_missing_preserves_existing_upstream ... ok
-test daemon::tests::test_configure_publish_upstream_reports_nonzero_merge_config ... [main (root-commit) 6a63c91] initial
+test daemon::tests::test_configure_publish_upstream_reports_nonzero_merge_config ... [main (root-commit) 4316a53] initial
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
 ok
-test daemon::tests::test_configure_publish_upstream_reports_nonzero_remote_config ... [main (root-commit) 6a63c91] initial
+test daemon::tests::test_configure_publish_upstream_reports_nonzero_remote_config ... [main (root-commit) 5cbbdeb] initial
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
 ok
@@ -720,14 +720,14 @@ test daemon::tests::test_record_push_failure_increments_counter ... ok
 test daemon::tests::test_record_push_failure_redacts_url_credentials ... ok
 test daemon::tests::test_record_push_failure_returns_repo_state ... ok
 test daemon::tests::test_record_push_success_clears_entry ... ok
-test daemon::tests::test_refresh_publish_upstream_fetches_primary_remote_ref ... [main (root-commit) 6a63c91] initial
+test daemon::tests::test_refresh_publish_upstream_fetches_primary_remote_ref ... [main (root-commit) 5cbbdeb] initial
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
-To /tmp/.tmpN0pGdE/remote.git
+To /tmp/.tmpR7K2Ut/remote.git
  * [new branch]      main -> main
 branch 'main' set up to track 'github/main'.
 ok
-test daemon::tests::test_refresh_publish_upstream_skips_origin_when_ssh_mirrors_exist ... [main (root-commit) 6a63c91] initial
+test daemon::tests::test_refresh_publish_upstream_skips_origin_when_ssh_mirrors_exist ... [main (root-commit) 2d7954a] initial
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
 ok
@@ -1019,15 +1019,17 @@ test git::staging::detect_large_blobs_ahead_regression::rev_list_failure_propaga
 test git::staging::tests::large_blob_record_preserves_spaces_in_path ... ok
 test git::staging::tests::test_build_filter_branch_args_escapes_single_quotes ... ok
 test git::staging::tests::test_build_filter_branch_args_shape ... ok
-test git::staging::tests::test_f31_noop_rewrite_deletes_backup_branch ... Parsed 1 commitsHEAD is now at b2e3353 init
+test git::staging::tests::test_f31_noop_rewrite_deletes_backup_branch ... 
+Parsed 1 commitsHEAD is now at b9e0487 init
 
 New history written in 0.02 seconds...
 Completely finished after 0.03 seconds.
 ok
-test git::staging::tests::test_real_rewrite_returns_outcome_with_bundle_and_lease ... Parsed 1 commitsHEAD is now at 3ac99d9 c1
+test git::staging::tests::test_real_rewrite_returns_outcome_with_bundle_and_lease ... 
+Parsed 1 commitsHEAD is now at 3d562fd c1
 
-New history written in 0.03 seconds...
-Completely finished after 0.04 seconds.
+New history written in 0.02 seconds...
+Completely finished after 0.03 seconds.
 ok
 test git::staging::tests::test_unstage_oversized_paths_exempts_gitlinks ... ok
 test git::staging::tests::test_unstage_oversized_paths_measures_staged_blob_not_worktree ... ok
@@ -1083,7 +1085,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1520 filtered out; f
 running 1 test
 test git::sync_lease::tests::child_process_lease_probe ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1520 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1520 filtered out; finished in 0.01s
 
 
 running 1 test
@@ -1105,7 +1107,7 @@ test git::tests::test_codeberg_https_url_ssh_protocol ... ok
 test git::tests::test_configure_all_remotes_adds_mirror ... ok
 test git::tests::test_configure_all_remotes_adds_multiple ... ok
 test git::tests::test_configure_all_remotes_idempotent ... ok
-test git::tests::test_consolidate_to_main_deletes_master_and_keeps_main ... [master (root-commit) 6a64327] init
+test git::tests::test_consolidate_to_main_deletes_master_and_keeps_main ... [master (root-commit) ee5b5de] init
  6 files changed, 165 insertions(+)
  create mode 100644 bare.git/HEAD
  create mode 100644 bare.git/config
@@ -1113,15 +1115,15 @@ test git::tests::test_consolidate_to_main_deletes_master_and_keeps_main ... [mas
  create mode 100755 bare.git/hooks/pre-push
  create mode 100755 bare.git/hooks/pre-rebase
  create mode 100644 file.txt
-To /tmp/.tmpfXHNkK/bare.git
+To /tmp/.tmpMrSzPS/bare.git
  * [new branch]      master -> master
 branch 'master' set up to track 'origin/master'.
 Switched to a new branch 'main'
-[main c06db5d] main commit
-To /tmp/.tmpfXHNkK/bare.git
+[main e37ef29] main commit
+To /tmp/.tmpMrSzPS/bare.git
  * [new branch]      main -> main
 branch 'main' set up to track 'origin/main'.
-Deleted branch master (was 6a64327).
+Deleted branch master (was ee5b5de).
 ok
 test git::tests::test_create_repo_on_codeberg_conflict_409 ... ok
 test git::tests::test_create_repo_on_codeberg_success_201 ... ok
@@ -1140,13 +1142,13 @@ test git::tests::test_detect_orphan_origin_ignores_legitimate_numeric_repo_suffi
 test git::tests::test_detect_orphan_origin_ignores_legitimate_version ... ok
 test git::tests::test_detect_orphan_origin_ignores_multi_digit_suffix ... ok
 test git::tests::test_detect_orphan_origin_no_suffix ... ok
-test git::tests::test_diagnose_divergence_divergent ... [master (root-commit) d0adb70] init
+test git::tests::test_diagnose_divergence_divergent ... [master (root-commit) 383ccff] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
-[master ac34f38] other commit
-HEAD is now at d0adb70 init
+[master 702e84d] other commit
+HEAD is now at 383ccff init
 ok
-test git::tests::test_diagnose_divergence_remote_purely_behind ... [master (root-commit) 0ffa8e3] init
+test git::tests::test_diagnose_divergence_remote_purely_behind ... [master (root-commit) 383ccff] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
 ok
@@ -1154,11 +1156,11 @@ test git::tests::test_ensure_remote_adds_new ... ok
 test git::tests::test_ensure_remote_idempotent ... ok
 test git::tests::test_ensure_remote_updates_url ... ok
 test git::tests::test_fallback_status_rank_ordering ... ok
-test git::tests::test_fix_orphan_origin_updates_remote_url ... [main (root-commit) 0ffa8e3] init
+test git::tests::test_fix_orphan_origin_updates_remote_url ... [main (root-commit) 383ccff] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
 ok
-test git::tests::test_fix_orphan_origin_updates_upstream_tracking ... [main (root-commit) a71b680] init
+test git::tests::test_fix_orphan_origin_updates_upstream_tracking ... [main (root-commit) 35b243c] init
  6 files changed, 165 insertions(+)
  create mode 100644 bare.git/HEAD
  create mode 100644 bare.git/config
@@ -1166,7 +1168,7 @@ test git::tests::test_fix_orphan_origin_updates_upstream_tracking ... [main (roo
  create mode 100755 bare.git/hooks/pre-push
  create mode 100755 bare.git/hooks/pre-rebase
  create mode 100644 file.txt
-To /tmp/.tmpGg6aQn/bare.git
+To /tmp/.tmpID4CT8/bare.git
  * [new branch]      main -> main
 branch 'main' set up to track 'origin/main'.
 ok
@@ -1181,7 +1183,7 @@ test git::tests::test_gitlab_https_url_already_https ... ok
 test git::tests::test_gitlab_https_url_non_gitlab ... ok
 test git::tests::test_gitlab_https_url_ssh_colon_path ... ok
 test git::tests::test_gitlab_https_url_ssh_protocol ... ok
-test git::tests::test_has_only_master_branch_detects_master_only ... [master (root-commit) 0ffa8e3] init
+test git::tests::test_has_only_master_branch_detects_master_only ... [master (root-commit) 9558315] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
 ok
@@ -1193,12 +1195,12 @@ test git::tests::test_is_git_worktree_file_gitdir_prefix ... ok
 test git::tests::test_is_git_worktree_file_nonexistent ... ok
 test git::tests::test_is_git_worktree_file_regular_git_dir ... ok
 test git::tests::test_is_git_worktree_file_with_whitespace ... ok
-test git::tests::test_is_repo_ready_empty_commit ... [main (root-commit) dddd0e6] init
+test git::tests::test_is_repo_ready_empty_commit ... [main (root-commit) 327f238] init
 ok
 test git::tests::test_is_repo_ready_empty_head ... ok
 test git::tests::test_is_repo_ready_no_commits ... ok
 test git::tests::test_is_repo_ready_no_head ... ok
-test git::tests::test_is_repo_ready_normal_repo ... [main (root-commit) 0c1463c] initial
+test git::tests::test_is_repo_ready_normal_repo ... [main (root-commit) 6d1c685] initial
  1 file changed, 1 insertion(+)
  create mode 100644 hello.txt
 ok
@@ -1216,13 +1218,13 @@ test git::tests::test_load_secret_prefers_named_github_env_file ... ok
 test git::tests::test_parse_name_status_line_invalid_status ... ok
 test git::tests::test_parse_name_status_line_renamed ... ok
 test git::tests::test_parse_name_status_line_valid_lines ... ok
-test git::tests::test_prune_other_default_branch_deletes_main_when_on_master ... [master (root-commit) 0ffa8e3] init
+test git::tests::test_prune_other_default_branch_deletes_main_when_on_master ... [master (root-commit) 9558315] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
 Switched to a new branch 'main'
 Switched to branch 'master'
 ok
-test git::tests::test_prune_other_default_branch_deletes_master_when_on_main ... [main (root-commit) 0ffa8e3] init
+test git::tests::test_prune_other_default_branch_deletes_master_when_on_main ... [main (root-commit) 9558315] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
 Switched to a new branch 'master'
@@ -1233,17 +1235,17 @@ test git::tests::test_push_to_all_remotes_returns_all_results ... ok
 test git::tests::test_push_to_named_remote_auto_force_when_behind ... ok
 test git::tests::test_push_to_named_remote_fails_on_invalid_remote ... ok
 test git::tests::test_push_to_named_remote_https_fallback_failure_still_retries_ssh ... ok
-test git::tests::test_push_to_named_remote_no_auto_force_when_disabled ... [master (root-commit) 0ffa8e3] init
+test git::tests::test_push_to_named_remote_no_auto_force_when_disabled ... [master (root-commit) 737f054] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
-[master 7bea1b7] other commit
-HEAD is now at 0ffa8e3 init
+[master 0036718] other commit
+HEAD is now at 737f054 init
 ok
-test git::tests::test_push_to_named_remote_no_auto_force_when_divergent ... [master (root-commit) 0ffa8e3] init
+test git::tests::test_push_to_named_remote_no_auto_force_when_divergent ... [master (root-commit) 737f054] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
-[master 7bea1b7] other commit
-HEAD is now at 0ffa8e3 init
+[master 0036718] other commit
+HEAD is now at 737f054 init
 ok
 test git::tests::test_push_to_named_remote_skips_https_fallback_on_permanent_rejection ... ok
 test git::tests::test_push_to_named_remote_ssh_fails_https_fallback ... ok
@@ -1264,7 +1266,7 @@ test git::tests::test_remove_stale_remotes_preserves_operator_remotes ... ok
 test git::tests::test_remove_stale_remotes_preserves_origin ... ok
 test git::tests::test_remove_stale_remotes_removes_marker_stamped_remote ... ok
 test git::tests::test_remove_stale_remotes_removes_nonkept ... ok
-test git::tests::test_rename_master_to_main_renames_and_deletes_remote_master ... [master (root-commit) 32ebf9f] init
+test git::tests::test_rename_master_to_main_renames_and_deletes_remote_master ... [master (root-commit) a72c10b] init
  6 files changed, 165 insertions(+)
  create mode 100644 bare.git/HEAD
  create mode 100644 bare.git/config
@@ -1272,20 +1274,20 @@ test git::tests::test_rename_master_to_main_renames_and_deletes_remote_master ..
  create mode 100755 bare.git/hooks/pre-push
  create mode 100755 bare.git/hooks/pre-rebase
  create mode 100644 file.txt
-To /tmp/.tmpYgHqZT/bare.git
+To /tmp/.tmpFIWqQM/bare.git
  * [new branch]      master -> master
 branch 'master' set up to track 'origin/master'.
 ok
-test git::tests::test_restore_paths_reverts_modified_file ... [master (root-commit) 09cee42] init
+test git::tests::test_restore_paths_reverts_modified_file ... [master (root-commit) 98c82a8] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
 ok
 test git::tests::test_run_child_includes_stderr_on_failure ... ok
-test git::tests::test_run_git_with_timeout_env_injects_env_vars ... [master (root-commit) 0667400] init
+test git::tests::test_run_git_with_timeout_env_injects_env_vars ... [master (root-commit) e382e46] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
 ok
-test git::tests::test_run_git_with_timeout_succeeds ... [master (root-commit) 0667400] init
+test git::tests::test_run_git_with_timeout_succeeds ... [master (root-commit) e382e46] init
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
 ok
@@ -1556,11 +1558,11 @@ test report::tests::test_apply_intentional_no_upstream_replaces_flag ... ok
 test report::tests::test_branch_cell_content_truncates_to_nine ... ok
 test report::tests::test_branch_color_for_main_master ... ok
 test report::tests::test_branch_color_for_other ... ok
-test report::tests::test_branch_upstream_gone_when_remote_tracking_ref_missing ... [main (root-commit) b589440] initial
+test report::tests::test_branch_upstream_gone_when_remote_tracking_ref_missing ... [main (root-commit) 1392778] initial
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
 ok
-test report::tests::test_branch_upstream_missing_when_no_config ... [main (root-commit) b589440] initial
+test report::tests::test_branch_upstream_missing_when_no_config ... [main (root-commit) 1392778] initial
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
 ok
@@ -1953,18 +1955,18 @@ test sync::staged_epoch::unmerged::tests::unmerged_entry_resolves_exact_names_an
 test sync::staged_epoch::unmerged::tests::unmerged_entry_retention_budget_uses_actual_blob_sizes_and_preserves_index_on_refusal ... ok
 test sync::staged_epoch::unmerged::tests::unmerged_entry_unknown_worktree_and_nonzero_other_index_flags_refuse_intact ... ok
 test sync::tests::bootstrap_absolute_staging_deadline_cancels_hardener_descendants ... ok
-test sync::tests::captured_epoch_commits_partial_index_and_keeps_unstaged_work ... [master (root-commit) 31cc814] init
+test sync::tests::captured_epoch_commits_partial_index_and_keeps_unstaged_work ... [master (root-commit) 5e9c409] init
 ok
 test sync::tests::committed_epoch_outcome_keeps_local_pending_and_transport_failure_distinct ... ok
 test sync::tests::github_mirror_comparison_accepts_transport_variants ... ok
 test sync::tests::github_mirror_comparison_uses_repository_identity_not_host_only ... ok
 test sync::tests::index_deferral_backlog_publication_preserves_meaningful_hook_refusal ... ok
-test sync::tests::ordinary_absolute_staging_deadline_cancels_hardener_descendants ... [main (root-commit) 986753b] disposable fixture baseline
+test sync::tests::ordinary_absolute_staging_deadline_cancels_hardener_descendants ... [main (root-commit) 73b5eee] disposable fixture baseline
 ok
 test sync::tests::parent_gitlink_propagates_after_standalone_commit ... ok
-test sync::tests::test_alert_unpushed_threshold ... [master (root-commit) 8df4f8a] init
+test sync::tests::test_alert_unpushed_threshold ... [master (root-commit) eb865ce] init
 ok
-test sync::tests::test_alert_unpushed_threshold_not_triggered ... [master (root-commit) 8df4f8a] init
+test sync::tests::test_alert_unpushed_threshold_not_triggered ... [master (root-commit) eb865ce] init
 ok
 test sync::tests::test_auto_commit_excludes_union_global_and_per_repo ... ok
 test sync::tests::test_auto_resolve_no_unmerged ... ok
@@ -1998,33 +2000,33 @@ test sync::tests::test_commit_guard_allows_trusted_identity ... ok
 test sync::tests::test_commit_guard_blocks_on_unparsable_override ... ok
 test sync::tests::test_commit_guard_blocks_untrusted_without_override ... ok
 test sync::tests::test_commit_guard_honors_owned_override_with_custom_identity ... ok
-test sync::tests::test_commit_only_commits_but_never_pushes ... [master (root-commit) f59cbc6] init
+test sync::tests::test_commit_only_commits_but_never_pushes ... [master (root-commit) 909c236] init
 ok
-test sync::tests::test_commit_only_control_pushes_and_fails ... [master (root-commit) f59cbc6] init
+test sync::tests::test_commit_only_control_pushes_and_fails ... [master (root-commit) c74d354] init
 ok
 test sync::tests::test_compute_blast_radius_merge_prefix ... ok
 test sync::tests::test_compute_diff_entries_propagates_filter_diff_failure ... ok
-test sync::tests::test_concurrent_staging_defers_then_captured_and_worktree_epochs_converge ... [master (root-commit) 7595fe6] init
+test sync::tests::test_concurrent_staging_defers_then_captured_and_worktree_epochs_converge ... [master (root-commit) 5ef8e1e] init
 ok
-test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) 682062b] init
+test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) 36e7cd4] init
 ok
 test sync::tests::test_count_ahead_commits_no_origin ... ok
-test sync::tests::test_count_ahead_commits_returns_zero_when_synced ... [main (root-commit) 682062b] init
+test sync::tests::test_count_ahead_commits_returns_zero_when_synced ... [main (root-commit) 7702666] init
 ok
-test sync::tests::test_count_ahead_commits_takes_max_across_tracking_refs ... [main (root-commit) ae148c5] c0
-[main 55a6819] c1
-[main 99e9733] c2
-[main d3634e1] c3
-[main 936247a] c4
+test sync::tests::test_count_ahead_commits_takes_max_across_tracking_refs ... [main (root-commit) 2950264] c0
+[main dd746dc] c1
+[main 5a45eb9] c2
+[main 3d5b64d] c3
+[main b953280] c4
 ok
-test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [main (root-commit) 6d63d98] c1
-[main a3ca059] c2
+test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [main (root-commit) f62951f] c1
+[main 3874285] c2
 ok
-test sync::tests::test_degraded_success_reports_paused_not_synced ... [master (root-commit) 58c5cdf] init
-To /tmp/.tmpCZK7Di/mirror.git
+test sync::tests::test_degraded_success_reports_paused_not_synced ... [master (root-commit) 522fc8c] init
+To /tmp/.tmp62Kyc8/mirror.git
  * [new branch]      master -> master
 ok
-test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) 56bed2e] init
+test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) e8006fd] init
 ok
 test sync::tests::test_doc_lock_predicates ... ok
 test sync::tests::test_docsonly_mirror_and_negative ... ok
@@ -2049,18 +2051,18 @@ ok
 test sync::tests::test_extension_histogram_top3_order ... ok
 test sync::tests::test_failing_remote_names_formats_sorted ... ok
 test sync::tests::test_file_extension_cases ... ok
-test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) 9f889db] init
+test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) affa238] init
 ok
 test sync::tests::test_filter_only_skip_still_pushes_ahead ... ok
-test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) a309f97] init
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) f8c0afe] init
 ok
-test sync::tests::test_forge_incident_declares_and_shields ... [master (root-commit) a309f97] init
-[master (root-commit) a309f97] init
+test sync::tests::test_forge_incident_declares_and_shields ... [master (root-commit) f8c0afe] init
+[master (root-commit) f8c0afe] init
 ok
 test sync::tests::test_goal_metrics_multibyte_utf8_no_panic ... ok
-test sync::tests::test_index_lock_contention_preserves_work_and_recovers ... [master (root-commit) e2413a3] init
+test sync::tests::test_index_lock_contention_preserves_work_and_recovers ... [master (root-commit) ff7c5f0] init
 ok
-test sync::tests::test_index_lock_contention_retries_then_succeeds ... [master (root-commit) cdeac5d] init
+test sync::tests::test_index_lock_contention_retries_then_succeeds ... [master (root-commit) 6acf9bf] init
 ok
 test sync::tests::test_is_backstop_active_above_threshold_and_old ... ok
 test sync::tests::test_is_backstop_active_above_threshold_but_recent ... ok
@@ -2071,33 +2073,33 @@ test sync::tests::test_is_index_lock_failure_matches_only_lock_errors ... ok
 test sync::tests::test_lcp_scope_cases ... ok
 test sync::tests::test_lock_token_and_negative ... ok
 test sync::tests::test_m2_filter_only_bypass_decision ... ok
-test sync::tests::test_m3_configured_upstream_missing_tracking_ref_still_pushes ... [master (root-commit) 2abec0f] init
+test sync::tests::test_m3_configured_upstream_missing_tracking_ref_still_pushes ... [master (root-commit) 2cb2d67] init
 ok
-test sync::tests::test_m3_mirror_only_no_unwanted_push ... [master (root-commit) 2abec0f] init
+test sync::tests::test_m3_mirror_only_no_unwanted_push ... [master (root-commit) 4b3f411] init
 ⚠️  Push contains commits authored by a test identity:
    test@test
    Amend the author identity before pushing (git commit --amend --reset-author).
-error: failed to push some refs to '/tmp/.tmpwqxOTY/mirror.git'
+error: failed to push some refs to '/tmp/.tmpSAcN10/mirror.git'
 ok
-test sync::tests::test_mirror_failure_ledger_names_remote ... [master (root-commit) 2abec0f] init
+test sync::tests::test_mirror_failure_ledger_names_remote ... [master (root-commit) 4b3f411] init
 ok
 test sync::tests::test_partition_gitignored_tracked_file_with_gitignore_rule ... ok
 test sync::tests::test_partition_gitignored_untracked_gitignored_is_skipped ... ok
 test sync::tests::test_paused_remote_names_incident_stretches_reprobe ... ok
 test sync::tests::test_paused_remote_names_lists_only_gated ... ok
-test sync::tests::test_push_succeeds_with_detached_head ... [main (root-commit) e77e0b3] init
+test sync::tests::test_push_succeeds_with_detached_head ... [main (root-commit) 2d3d52f] init
 ⚠️  Push contains commits authored by a test identity:
    test@test
    Amend the author identity before pushing (git commit --amend --reset-author).
-error: failed to push some refs to '/tmp/.tmpmCz8nK/origin.git'
-[main df2a4d4] ahead
-HEAD is now at df2a4d4 ahead
-To /tmp/.tmpmCz8nK/origin.git
+error: failed to push some refs to '/tmp/.tmpWpdk1A/origin.git'
+[main 8ca0bb6] ahead
+HEAD is now at 8ca0bb6 ahead
+To /tmp/.tmpWpdk1A/origin.git
  * [new branch]      HEAD -> main
 ok
 test sync::tests::test_push_with_retries_fetches_first_on_rejection ... ok
-test sync::tests::test_refresh_stale_upstream_ref_converges ... Initialized empty Git repository in /tmp/.tmpKvK9ho/remote.git/
-[master (root-commit) e77e0b3] init
+test sync::tests::test_refresh_stale_upstream_ref_converges ... Initialized empty Git repository in /tmp/.tmpfGkVuF/remote.git/
+[master (root-commit) b4f9aa6] init
 ok
 test sync::tests::test_refspec_format_is_always_qualified ... ok
 test sync::tests::test_rename_token_excludes_new_del ... ok
@@ -2106,9 +2108,9 @@ test sync::tests::test_repo_has_warden_filter_probe ... ok
 test sync::tests::test_safety_metric_predicate ... ok
 test sync::tests::test_sanitize_task_name_drops_explanatory_clauses ... ok
 test sync::tests::test_sanitize_task_name_limits_plain_text ... ok
-test sync::tests::test_sc01_stale_mirror_tracking_ref_retries_push ... [main (root-commit) e77e0b3] init
-[main f6d7186] second
-To /tmp/.tmpB1ze6h/mirror.git
+test sync::tests::test_sc01_stale_mirror_tracking_ref_retries_push ... [main (root-commit) ab30d1c] init
+[main 7ccd781] second
+To /tmp/.tmp3HZvdd/mirror.git
  * [new branch]      HEAD~1 -> main
 ok
 test sync::tests::test_sc05_post_stage_sweep_catches_filter_inflated_blob ... ok
@@ -2125,24 +2127,24 @@ test sync::tests::test_scope_root_files_backcompat ... ok
 test sync::tests::test_scope_shared_subtree_keeps_bracket ... ok
 test sync::tests::test_scope_single_file_full_path_drops_bracket ... ok
 test sync::tests::test_stage_existing_files_empty_after_filter_returns_ok ... ok
-test sync::tests::test_stage_existing_files_expands_directory_with_files ... [main (root-commit) 30b552f] init
-[main 68a6ab1] add tracked
+test sync::tests::test_stage_existing_files_expands_directory_with_files ... [main (root-commit) f9b26e8] init
+[main 847bda9] add tracked
  1 file changed, 1 insertion(+)
  create mode 100644 tracked.txt
 ok
 test sync::tests::test_stage_existing_files_filtered_skips_excluded_pattern_nested ... ok
 test sync::tests::test_stage_existing_files_filtered_skips_oversized_nested ... ok
-test sync::tests::test_stage_existing_files_recurses_deeply ... [main (root-commit) 30b552f] init
+test sync::tests::test_stage_existing_files_recurses_deeply ... [main (root-commit) f9b26e8] init
 ok
 test sync::tests::test_stage_existing_files_recurses_into_pi_dir ... ok
-test sync::tests::test_stage_existing_files_skips_directory_entries ... [main (root-commit) 30b552f] init
+test sync::tests::test_stage_existing_files_skips_directory_entries ... [main (root-commit) f9b26e8] init
 ok
-test sync::tests::test_stage_existing_files_skips_nested_git_repo ... [main (root-commit) 30b552f] init
+test sync::tests::test_stage_existing_files_skips_nested_git_repo ... [main (root-commit) f9b26e8] init
 ok
-test sync::tests::test_stage_existing_files_skips_node_modules_and_dotdirs ... [main (root-commit) 30b552f] init
+test sync::tests::test_stage_existing_files_skips_node_modules_and_dotdirs ... [main (root-commit) f9b26e8] init
 ok
 test sync::tests::test_stage_existing_files_skips_symlink_descendants ... ok
-test sync::tests::test_stage_existing_files_skips_vanished_files ... [main (root-commit) 30b552f] init
+test sync::tests::test_stage_existing_files_skips_vanished_files ... [main (root-commit) f9b26e8] init
 ok
 test sync::tests::test_stage_gitlink_updates_dry_run_does_not_modify_index ... warning: adding embedded git repository: sibling
 hint: You've added another git repository inside your current repository.
@@ -2180,95 +2182,95 @@ ok
 test sync::tests::test_staged_extra_paths_matching ... ok
 test sync::tests::test_stale_upstream_refresh_cooldown_is_per_repo ... ok
 test sync::tests::test_sync_repo_ahead_count_failure_fails_cycle ... ok
-test sync::tests::test_sync_repo_auto_commit_creates_commit ... [master (root-commit) cd6b762] init
+test sync::tests::test_sync_repo_auto_commit_creates_commit ... [master (root-commit) ca94ff7] init
 ok
-test sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo ... [master (root-commit) cd6b762] init
+test sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo ... [master (root-commit) ca94ff7] init
 ok
-test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) 6966254] init
+test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) 4dde5ef] init
 ok
-test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) 6966254] init
+test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) 4dde5ef] init
 ok
-test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) 0cf6ad7] init
+test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) 35dd161] init
 ok
 test sync::tests::test_sync_repo_bootstrap_failure_is_error_not_nothing_to_do ... ok
 test sync::tests::test_sync_repo_busy_lease_defers_without_committing ... ok
-test sync::tests::test_sync_repo_clean_repo_returns_false ... [master (root-commit) 0cf6ad7] init
+test sync::tests::test_sync_repo_clean_repo_returns_false ... [master (root-commit) 35dd161] init
 ok
-test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [master (root-commit) 3140fdd] init
+test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [master (root-commit) 70d274d] init
  1 file changed, 1 insertion(+)
  create mode 100644 dirty.txt
-[master 39709a6] unpushed
+[master 1190143] unpushed
  1 file changed, 1 insertion(+)
  create mode 100644 ahead.txt
 ok
-test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) 0cf6ad7] init
+test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) e395b64] init
 ok
-test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) adf3093] init
+test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) e395b64] init
 ok
-test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) adf3093] init
+test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) d291594] init
 ok
 test sync::tests::test_sync_repo_empty_repo_end_to_end ... ok
-test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) adf3093] init
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) 56524a0] init
 ok
-test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) adf3093] init
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) 56524a0] init
 ok
-test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) adf3093] init
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) 56524a0] init
 ok
-test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) 8fd7bb8] init
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) 712c23e] init
 ⚠️  Push contains commits authored by a test identity:
    test@test
    Amend the author identity before pushing (git commit --amend --reset-author).
-error: failed to push some refs to '/tmp/.tmpB6fQR2/origin.git'
+error: failed to push some refs to '/tmp/.tmpicVIny/origin.git'
 ok
-test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (root-commit) 65c1663] init
-To /tmp/.tmppWELBb/origin.git
+test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (root-commit) b27f058] init
+To /tmp/.tmp2zUlXO/origin.git
  * [new branch]      master -> master
 branch 'master' set up to track 'origin/master'.
 branch 'master' set up to track 'origin/master'.
 branch 'master' set up to track 'origin/master'.
 ok
-test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) 5f28f20] init
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) 76a0a2c] init
 ok
-test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-commit) b3a5058] init
+test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-commit) abc4346] init
 ok
 test sync::tests::test_sync_repo_not_git_repo_returns_false ... ok
-test sync::tests::test_sync_repo_partial_deletion_allowed ... [master (root-commit) b3a5058] init
+test sync::tests::test_sync_repo_partial_deletion_allowed ... [master (root-commit) 121d12f] init
 ok
-test sync::tests::test_sync_repo_pull_skip_when_no_origin ... [master (root-commit) b3a5058] init
+test sync::tests::test_sync_repo_pull_skip_when_no_origin ... [master (root-commit) 121d12f] init
 ok
-test sync::tests::test_sync_repo_pushes_detached_head_ahead_commit ... [main (root-commit) b3a5058] init
-[main 63bb4c6] ahead
-HEAD is now at 63bb4c6 ahead
+test sync::tests::test_sync_repo_pushes_detached_head_ahead_commit ... [main (root-commit) 121d12f] init
+[main f27a46a] ahead
+HEAD is now at f27a46a ahead
 ok
-test sync::tests::test_sync_repo_single_deleted_file_committed ... [master (root-commit) b3a5058] init
+test sync::tests::test_sync_repo_single_deleted_file_committed ... [master (root-commit) 84f80d3] init
 ok
-test sync::tests::test_sync_repo_skip_pull_when_dirty ... [master (root-commit) 83bfcaa] init
+test sync::tests::test_sync_repo_skip_pull_when_dirty ... [master (root-commit) 5204edd] init
 ok
-test sync::tests::test_sync_repo_skip_pull_when_not_behind ... [master (root-commit) 83bfcaa] init
+test sync::tests::test_sync_repo_skip_pull_when_not_behind ... [master (root-commit) 5204edd] init
 ok
-test sync::tests::test_sync_repo_skip_push_when_no_origin ... [master (root-commit) 83bfcaa] init
+test sync::tests::test_sync_repo_skip_push_when_no_origin ... [master (root-commit) 5204edd] init
 ok
-test sync::tests::test_sync_repo_skip_push_when_no_upstream ... [master (root-commit) 83bfcaa] init
+test sync::tests::test_sync_repo_skip_push_when_no_upstream ... [master (root-commit) 5204edd] init
 ok
-test sync::tests::test_sync_repo_skips_bisect_in_progress ... [master (root-commit) 83bfcaa] init
+test sync::tests::test_sync_repo_skips_bisect_in_progress ... [master (root-commit) 5204edd] init
 ok
-test sync::tests::test_sync_repo_skips_cherry_pick_in_progress ... [master (root-commit) 83bfcaa] init
+test sync::tests::test_sync_repo_skips_cherry_pick_in_progress ... [master (root-commit) 5204edd] init
 ok
-test sync::tests::test_sync_repo_skips_merge_in_progress ... [master (root-commit) 83bfcaa] init
+test sync::tests::test_sync_repo_skips_merge_in_progress ... [master (root-commit) 5204edd] init
 ok
-test sync::tests::test_sync_repo_skips_rebase_in_progress ... [master (root-commit) 83bfcaa] init
+test sync::tests::test_sync_repo_skips_rebase_in_progress ... [master (root-commit) 5204edd] init
 ok
-test sync::tests::test_sync_repo_skips_revert_in_progress ... [master (root-commit) 83bfcaa] init
+test sync::tests::test_sync_repo_skips_revert_in_progress ... [master (root-commit) 5204edd] init
 ok
-test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) 83bfcaa] init
+test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) 5204edd] init
 ok
-test sync::tests::test_sync_repo_unstages_excluded_dir_paths ... [master (root-commit) a50dd2e] init
+test sync::tests::test_sync_repo_unstages_excluded_dir_paths ... [master (root-commit) 23d13e5] init
 ok
-test sync::tests::test_sync_repo_unstages_oversized_file ... [master (root-commit) a50dd2e] init
+test sync::tests::test_sync_repo_unstages_oversized_file ... [master (root-commit) c73b903] init
 ok
-test sync::tests::test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked ... [master (root-commit) a50dd2e] init
+test sync::tests::test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked ... [master (root-commit) c73b903] init
 ok
-test sync::tests::test_sync_repo_with_duplicate_subjects_succeeds ... [master (root-commit) a50dd2e] init
+test sync::tests::test_sync_repo_with_duplicate_subjects_succeeds ... [master (root-commit) c73b903] init
 ok
 test sync::tests::test_truncate_task_at_sentence_boundary ... ok
 test sync::tests::test_truncate_task_hard_cutoff ... ok
@@ -2278,7 +2280,7 @@ test sync::tests::test_warden_auto_harden_disabled_never_forks ... ok
 test sync::tests::test_warden_auto_harden_hardens_once ... ok
 test sync::tests::test_warden_auto_harden_skips_dry_run ... ok
 test sync::tests::unlimited_batch_bootstraps_all_related_unborn_files ... ok
-test sync::tests::unlimited_batch_commits_all_related_worktree_files_in_one_epoch ... [master (root-commit) a6aa275] init
+test sync::tests::unlimited_batch_commits_all_related_worktree_files_in_one_epoch ... [master (root-commit) 0196989] init
 ok
 test test_helpers::tests::test_create_test_repo_registers_temp_dir ... ok
 test test_helpers::tests::test_env_restorer_remove_round_trip ... ok
@@ -2374,7 +2376,7 @@ test visibility::tests::test_visibility_cache_not_fresh_when_missing ... ok
 test visibility::tests::test_visibility_cache_stale_when_old ... ok
 test visibility::tests::test_visibility_cache_updates_timestamp ... ok
 
-test result: ok. 1518 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 251.92s
+test result: ok. 1518 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 335.44s
 
      Running tests/excluded_recovery_report.rs (target/debug/deps/excluded_recovery_report-fc7a48339d2bb592)
 
@@ -2382,7 +2384,7 @@ running 2 tests
 test late_archive_write_is_visible_in_real_json_even_with_same_size_and_restored_mtime ... ok
 test unresolved_private_recovery_is_a_machine_readable_concern_even_when_git_is_clean ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.92s
 
      Running tests/integration_test.rs (target/debug/deps/integration_test-e74793b196d8340c)
 
@@ -2398,14 +2400,14 @@ test test_sync_repo_push_to_bare ... ok
 test test_sync_repo_stash ... ok
 test test_sync_repo_tag ... ok
 
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
 
      Running tests/report_json_detail.rs (target/debug/deps/report_json_detail-9ca32b97ea85c61d)
 
 running 1 test
 test named_repository_json_is_a_real_envelope_not_vertical_text ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
 
      Running tests/storage_clean.rs (target/debug/deps/storage_clean-dff80d6ccd403a30)
 
@@ -2428,7 +2430,7 @@ test real_git_add_uses_only_exact_prepared_reference_and_preserves_edits ... ok
 test real_git_clean_preserves_non_utf8_path_identity ... ok
 test wrong_path_failed_job_and_foreign_repository_cannot_fall_back_to_raw ... ok
 
-test result: ok. 14 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 8.23s
+test result: ok. 14 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 12.62s
 
      Running unittests src/main.rs (target/debug/deps/dracon_system-3dae012e9af70063)
 
@@ -3143,7 +3145,7 @@ test tests::truncate_log_preserves_non_utf8_lines_verbatim ... ok
 test tests::truncate_log_preserves_open_writer_inode ... ok
 test zram_tests::memory_percent_default_and_bounds ... ok
 
-test result: ok. 709 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.47s
+test result: ok. 709 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.80s
 
      Running tests/events_cli.rs (target/debug/deps/events_cli-4492fc6413de5332)
 
@@ -3153,7 +3155,7 @@ test events_json_with_empty_log_emits_empty_jsonl ... ok
 test events_json_with_filter_matching_nothing_emits_empty_jsonl ... ok
 test events_json_with_missing_log_emits_empty_jsonl ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
 
      Running tests/guard_service.rs (target/debug/deps/guard_service-16e9d18beafbfd4a)
 
@@ -3171,7 +3173,7 @@ test unit_per_pass_comment_agrees_with_the_readme ... ok
 test watchdog_execstart_matches_install_destination ... ok
 test watchdog_unit_carries_baseline_sandbox ... ok
 
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
 
      Running unittests src/main.rs (target/debug/deps/dracon_warden-68a24dac5f0fbab2)
 
@@ -3228,19 +3230,19 @@ test tests::tests::build_globset_invalid_pattern_returns_error ... ok
 test tests::tests::build_globset_multiple_patterns ... ok
 test tests::tests::build_globset_normalizes_backslash ... ok
 test tests::tests::build_globset_single_pattern_matches ... ok
-test tests::tests::cli_once_hardens_single_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_once_repo_6PMvWO/repo/.git/
+test tests::tests::cli_once_hardens_single_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_once_repo_MUSkKQ/repo/.git/
 ok
-test tests::tests::cli_repair_dry_run_does_not_modify ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_dry_run_WVBUDW/repo/.git/
+test tests::tests::cli_repair_dry_run_does_not_modify ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_dry_run_tkTaSo/repo/.git/
 ok
-test tests::tests::cli_repair_strict_fails_when_markers_remain ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_strict_0rpwEc/repo/.git/
+test tests::tests::cli_repair_strict_fails_when_markers_remain ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_strict_ThBjIx/repo/.git/
 ok
-test tests::tests::cli_resmudge_reports_on_plaintext_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plain_iSXbAK/repo/.git/
+test tests::tests::cli_resmudge_reports_on_plaintext_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plain_bzGgPs/repo/.git/
 ok
-test tests::tests::cli_resmudge_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plaintext_sibling_i3GWP0/repo/.git/
+test tests::tests::cli_resmudge_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plaintext_sibling_NVBGn9/repo/.git/
 ok
-test tests::tests::cli_scrub_markers_finds_markers_in_json ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_json_MTqSJX/repo/.git/
+test tests::tests::cli_scrub_markers_finds_markers_in_json ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_json_5hI3GU/repo/.git/
 ok
-test tests::tests::cli_scrub_markers_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_plaintext_sibling_cOfc2S/repo/.git/
+test tests::tests::cli_scrub_markers_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_plaintext_sibling_keeZXa/repo/.git/
 ok
 test tests::tests::conversation_defaults_agree_with_dump_predicate ... ok
 test tests::tests::discover_git_repos_finds_all_git_dirs ... ok
@@ -3268,22 +3270,22 @@ test tests::tests::generated_gitattributes_and_filter_gate_match_single_star_pat
 test tests::tests::gitattributes_block_protects_conversation_dumps ... ok
 test tests::tests::gitignore_block_negates_conversation_dumps ... ok
 test tests::tests::global_hook_install_preserves_and_chains_foreign_hooks ... ok
-test tests::tests::harden_repo_changes_files_and_writes_key ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_repo_B91gtA/repo/.git/
+test tests::tests::harden_repo_changes_files_and_writes_key ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_repo_7FWbRt/repo/.git/
 ok
-test tests::tests::harden_repo_preserves_operator_content_outside_managed_block ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_preserve_gCmMvQ/repo/.git/
+test tests::tests::harden_repo_preserves_operator_content_outside_managed_block ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_preserve_Ge0uce/repo/.git/
 ok
-test tests::tests::harden_repo_rejects_symlinked_dotfiles_without_republishing_target ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_symlink_dotfiles_aM3rPE/repo/.git/
+test tests::tests::harden_repo_rejects_symlinked_dotfiles_without_republishing_target ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_symlink_dotfiles_jwWbyh/repo/.git/
 ok
-test tests::tests::harden_repo_sets_local_dracon_filter_config ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_repo_filter_cfg_TtxGZb/repo/.git/
+test tests::tests::harden_repo_sets_local_dracon_filter_config ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_repo_filter_cfg_c3DTlB/repo/.git/
 ok
-test tests::tests::harden_repo_surfaces_hook_install_failure ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_error_sBSxrd/repo/.git/
+test tests::tests::harden_repo_surfaces_hook_install_failure ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_error_FsYkae/repo/.git/
 ok
 test tests::tests::harden_repos_fails_when_global_refresh_fails ... ok
 test tests::tests::hook_replacement_is_atomic_and_executable ... ok
 test tests::tests::index_batch_lock_skips_and_recovers ... ok
 test tests::tests::index_batch_respawns_after_stage ... ok
 test tests::tests::index_batch_returns_staged_blob_not_worktree ... ok
-test tests::tests::install_hooks_for_repo_skips_shadowed_git_hooks ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_shadowed_C8dOMv/repo/.git/
+test tests::tests::install_hooks_for_repo_skips_shadowed_git_hooks ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_shadowed_vEdI82/repo/.git/
 ok
 test tests::tests::is_encrypted_env_content_detects_markers ... ok
 test tests::tests::is_env_file_name_detects_common_variants ... ok
@@ -3437,7 +3439,7 @@ test write_fence::tests::same_repository_wait_is_bounded_and_drop_recovers_witho
 test write_fence::tests::unrelated_repositories_do_not_share_a_fence ... ok
 test write_fence::tests::unsafe_lock_files_are_not_followed_truncated_or_stolen ... ok
 
-test result: ok. 245 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.67s
+test result: ok. 245 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 32.81s
 
      Running tests/integration_test.rs (target/debug/deps/integration_test-def75026a6e2f0d8)
 
@@ -3462,7 +3464,7 @@ test test_warden_scrub_markers ... ok
 test test_warden_setup_hooks_local ... ok
 test test_warden_status ... ok
 
-test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.10s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 27.68s
 
      Running tests/storage_stream.rs (target/debug/deps/storage_stream-e0875a5ada2169d5)
 
@@ -3470,7 +3472,7 @@ running 2 tests
 test forged_repo_recipient_wrong_identity_corruption_and_budget_fail_closed ... ok
 test warden_streams_more_than_git_filter_limit_and_restores_exact_bytes ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 42.34s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 49.68s
 
      Running tests/write_fence.rs (target/debug/deps/write_fence-fec12480c3fadabe)
 
@@ -3480,7 +3482,7 @@ test inherited_fence_is_reentrant_and_wrong_repository_is_refused ... ok
 test killing_wrapper_does_not_release_fence_before_actual_writer_closes ... ok
 test operation_deadline_cleans_owned_family_and_does_not_steal_next_lock ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.08s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.13s
 
    Doc-tests dracon_security
 

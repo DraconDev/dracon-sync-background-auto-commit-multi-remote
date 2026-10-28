@@ -1,37 +1,45 @@
 {
   "assembly": {
-    "note": "All four workspace gates ran on this committed tree; the loaded daemon binary is byte-identical to the qualified release build.",
+    "note": "All four gates re-run on THIS exact committed tree (idle HEAD at gate time). Review corrections applied: \"suites\" is a test-result line count, not a suite count, and the top-level binary/doc-test block count is recorded separately.",
     "head": {
       "parent": "26f7e331e1223dcfd0b670b5f1a3045aaade39f6",
-      "dracon-sync": "eef728db208dc2440ab961f0e0698c0cf49fe8ae",
+      "dracon-sync": "a05a5b7d3cc2915df8b09c62bb39665da37bc3b7",
       "dracon-warden": "c0bf959d8177faad9571fec3c705ef6d29131071",
       "dracon-system": "00aca3ff0377d8cc5c1ae1fcc7fecb4715159959"
     },
-    "clean": {
+    "cleanAtGateTime": {
       "dracon-sync": true,
       "dracon-warden": true,
       "dracon-system": true
-    }
+    },
+    "topLevelBlocks": 36,
+    "testResultLines": 44
   },
   "gates": {
     "cargo test --workspace --locked": {
-      "suites": 44,
       "passed": 2893,
       "failed": 0,
+      "testResultLines": 44,
+      "topLevelBlocks": 36,
       "exitCode": 0,
-      "tail": "rc=0"
+      "tail": "\nrc=0",
+      "log": "workspace-tests.log"
     },
     "cargo build --release --locked": {
       "exitCode": 0,
-      "tail": "    Finished `release` profile [optimized] target(s) in 0.49s\nrc=0"
+      "tail": "    Finished `release` profile [optimized] target(s) in 2m 11s\nrc=0",
+      "log": "release-build.log"
     },
     "cargo clippy --workspace --locked --all-targets -- -D warnings": {
       "exitCode": 0,
-      "tail": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.36s\nrc=0"
+      "tail": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 21.79s\nrc=0",
+      "log": "clippy.log",
+      "note": "Strict -D warnings: no diagnostics. The retained log is short because a clean strict run emits none; exit status plus the absence of any warning/error line is the evidence."
     },
     "cargo deny check": {
       "exitCode": 0,
-      "tail": "advisories ok, bans ok, licenses ok, sources ok"
+      "tail": "advisories ok, bans ok, licenses ok, sources ok\nrc=0",
+      "log": "deny.log"
     }
   },
   "deployment": {
@@ -39,39 +47,41 @@
     "installedSha256": "6a0458d60938cab992bfd7f846d74da412dc134ed3b8478822519c1bf2973745",
     "loadedDaemonSha256": "6a0458d60938cab992bfd7f846d74da412dc134ed3b8478822519c1bf2973745",
     "daemonPid": "2100864",
+    "allThreeMatch": true,
     "rollbackDir": "/home/dracon/.local/state/dracon/rollback-binaries/sync-20261028T041044Z",
-    "method": "dracon-sync maintenance (pause -> install -> resume), then daemon restart onto the new binary"
+    "method": "dracon-sync maintenance (pause -> install -> resume); daemon restarted onto the new binary and the loaded image re-read from /proc/<pid>/exe"
   },
   "repairs": {
     "staged_intent_batch_limit": {
       "report": "checks/staged-intent-batch-limit-2026-10-28/REPORT.md",
-      "root_cause": "eligible() applied the daemon auto-stage review cap (max_stage_batch_files=100) to already-captured user staging, where materialize_tree makes it an all-or-nothing permanent deferral",
-      "fix": "new max_captured_staged_files (default 10000) + captured_stage_limit(); per-file guards unchanged",
-      "negative_control": "restoring stage_batch_limit() makes captured_staging_above_the_daemon_batch_limit_is_not_permanently_deferred FAIL with the production error"
+      "root_cause": "staged_epoch::eligible() applied the daemon auto-stage review cap (max_stage_batch_files=100) to already-captured user staging, where materialize_tree makes it all-or-nothing, i.e. a permanent deferral",
+      "fix": "max_captured_staged_files (default 10000) + captured_stage_limit(); per-file guards unchanged",
+      "negative_control": "restoring stage_batch_limit() makes captured_staging_above_the_daemon_batch_limit_is_not_permanently_deferred FAIL with the production error text"
     },
     "youtube_filter_receipt_gate": {
       "report": "checks/publication-restore-2026-10-27/youtube-filter-gate-repair.md",
-      "root_cause": "A/B phase read a feed tab the operator window closed and the receipt blamed the PRODUCT for a comparison never read",
-      "fix": "re-targeting helper + pure real-feed-verdict.mjs adjudication + 72h-bounded carried-forward sightings",
-      "verification": "1064/1064 extension tests, gate OK with stamped=2, gate attempts GqCEEf/3RTN12/IESiCU PASSED"
+      "root_cause": "the A/B phase read a feed tab the operator window had closed, and the receipt reported it as product failure",
+      "fix": "feed-tab re-targeting + pure real-feed-verdict.mjs adjudication + 72h-bounded carried-forward sightings; gates GqCEEf/3RTN12/IESiCU PASSED"
     }
   },
   "fleet": {
-    "ok": 33,
-    "active": 3,
+    "ok": 35,
+    "active": 1,
     "warn": 0,
     "concern": 0,
     "failures": 0,
     "repos": 36,
-    "ahead": "1 draining",
-    "pending": 1,
-    "dirty_with_push_ok": 3,
-    "observation": "checks/publication-restore-2026-10-27/fleet-converged.json"
+    "ahead": 0,
+    "pending": 0,
+    "notOk": [
+      "/home/dracon/Dev/dracon-platform (DIRTY, gitlinks only)",
+      "/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner (DIRTY, own pre-commit policy)"
+    ],
+    "observation": "fleet-observation.json"
   },
   "honest_limits": [
-    "junk-runner still does not commit: its OWN .githooks/pre-commit blocks three already-TRACKED machine-local .pi-glla/*.json files and names the durable fix as scoped root rules \u2014 a repository policy decision left to the owner. No hook bypassed.",
-    "Three repos are DIRTY from live editing by their own agents (push=OK, nothing stranded).",
-    "browser-extensions-shared gate takes ~30-80 min per attempt, a duration property of its own 165 product gates.",
-    "No manual recovery push, history rewrite, force-push, hook bypass or policy weakening was used."
+    "Fleet idle acceptance NOT met: 2 of 36 repos are DIRTY. junk-runner is blocked by its OWN pre-commit policy on three files already tracked in HEAD; dracon-platform is dirty only through gitlinks to junk-runner and to the deliberately quarantined hegemon.",
+    "The github leg for browser-extensions-shared was historically blocked by its 3.67 GiB pack vs the 2 GiB limit.",
+    "No history rewrite, force-push, hook bypass, policy weakening, producer stop, or untracking of HEAD files was used."
   ]
 }
