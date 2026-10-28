@@ -1618,6 +1618,48 @@ supplies its own `ServerAliveInterval=5`, and the `~/.ssh/config` edit was
 reverted byte-for-byte; (2) a "silent revert" of `push_op_timeout_secs` — the
 900 value is the operator's documented later decision, left untouched.
 
-Goal status: task 4.1 complete; task 5 STILL UNMET — one repository is ahead,
-so "every watched repository clean and idle" does not hold, and 5 repos are
-DIRTY from ongoing editing (their push is OK, nothing stranded).
+Goal status (SUPERSEDED — see the youtube-filter repair section below): task 4.1
+complete; task 5 was unmet at that point because one repository was ahead.
+
+## 2026-10-28 — the blocking gate was a real harness defect; fleet converged
+
+`browser-extensions-shared` never published because its own pre-push gate
+CORRECTLY refused: `youtube-filter/TEST exited 1`, caused by
+`check-receipt-evidence.mjs` rejecting the committed real-feed receipt. The
+failure behind that was a genuine harness bug, reproduced live on the
+operator's own feed: the hunt phase found the Watch-together shelf stamped and
+hidden (82 video items intact — the FIRST genuine live sighting on record), and
+the A/B comparison phase then read a feed tab the operator's window had closed
+and reported `No Chrome tab with id …`. The receipt turned that into
+"switching the rule off did not bring it back — the receipt cannot attribute
+the removal to the extension", which accuses the PRODUCT of a comparison that
+was never read.
+
+Repaired in the browser-extensions-shared repo (no gate weakened):
+- `currentFeedTabId()` / `readFeedSample()` re-target a lost feed tab and
+  report `lostTab`, so a missing comparison is never scored as negative;
+- adjudication extracted to `tests/live/real-feed-verdict.mjs` (pure, testable)
+  with `abReadable` requiring both samples AND no lost tab;
+- verdict text no longer claims the element came back when it was not read;
+- carried-forward sightings emitted in the gate's shape, bounded to 72h so one
+  old observation cannot keep the gate green forever.
+
+Verification: vitest 59 files / **1064 passed, 0 failed** (was 1 failed);
+`tsc --noEmit` clean; `lint --max-warnings 0` clean; receipt gate **OK** with
+`stamped=2`. Falsifiability: reverting the module to exact pre-fix logic fails
+2 of the 10 new tests.
+
+Result — the gate now PASSES and the repository publishes:
+
+    gates: GqCEEf PASSED 02:30:37, 3RTN12 PASSED, IESiCU PASSED
+    ahead: 1609 -> 9 -> 0        github: 45c33097 -> 59775504 -> 3a7bcf91
+    final: local == origin == gitlab == b7ca4a1b0f
+
+The pre-fix stuck-ledger entry (3 consecutive failures) was cleared with the
+sanctioned `dracon-sync repair stuck-unstuck` once the cause was verified fixed
+AND a real published advance was observed.
+
+Fleet: `ok=34 active=2 warn=0 concern=0 failures=0`, zero AHEAD, zero PENDING
+(`checks/publication-restore-2026-10-27/fleet-converged.json`). Three repos are
+DIRTY with push=OK — live editing by their own agents, which the objective
+explicitly permits and requires not stopping.
