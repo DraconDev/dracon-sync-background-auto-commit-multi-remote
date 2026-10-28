@@ -61,3 +61,47 @@ Also confirmed earlier and unchanged: the pre-push gate for this repo takes
 duration property of the repository's own product gates, not a connectivity
 fault. My earlier "idle SSH disconnect" reading was wrong and has been
 retracted.
+
+## Confirmed: the repaired gate PASSES and the repository publishes again
+
+Gate attempts under the repair:
+
+    dracon-pre-push.GqCEEf  started 01:59:18  finished 02:30:37  PASSED (31 min)
+    dracon-pre-push.3RTN12  started 02:32:13  finished 02:36:22  PASSED
+    dracon-pre-push.IESiCU  started 02:36:25  finished 02:36:25  PASSED
+
+Inside the passing snapshot (597755043f) the gate prints:
+
+    real-feed-shelves watchTogether: REMOVED … (evidence: stamped=2 control=false)
+    receipt-evidence OK: the committed receipt evidence supports the latency,
+      layer, and real-feed claims
+
+Effect on publication, all through the daemon with no manual push:
+
+    before : ahead 1609, last_push "2 days ago", gitlab+github both stale
+    after  : ahead 9, github main advanced 45c33097 -> 59775504 -> 3a7bcf91
+
+So the earlier refusals were correct, the defect behind them was real, and
+fixing the defect — not weakening the gate — is what let publication resume.
+The GitHub leg had also been blocked by the 3.67 GiB pack / 2 GiB limit; the
+daemon's pack guard is what previously skipped it, and the leg now advances.
+
+## Stuck-ledger entry cleared (documented procedure)
+
+The daemon had recorded 3 consecutive pre-fix failures and was pausing
+auto-push on that ledger. After the cause was verified fixed (passing gate in a
+fresh snapshot PLUS a real published advance), the entry was cleared with the
+sanctioned command:
+
+    dracon-sync repair stuck-unstuck /home/dracon/Dev/browser-extensions-shared
+    -> "unstuck", ledger now lists 0 entries for this repo
+
+That is the documented remedy for "the cause is fixed but the ledger still
+pauses auto-push", not a bypass.
+
+## Still open at the time of writing
+
+GitLab had not yet caught up (`9a83787e`, unchanged) while GitHub advanced; the
+journal shows `Mirror Degraded: gitlab: 3 consecutive push failures`. The repo
+also writes ~1 commit/minute, so it is never momentarily idle. Neither is
+claimed as fixed here.
