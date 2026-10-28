@@ -1,3 +1,4 @@
+#[cfg(test)]
 use anyhow::Result;
 pub(crate) mod hygiene;
 use std::collections::BTreeSet;
@@ -1881,8 +1882,6 @@ pub(crate) fn handle_large_untracked(
 /// Common build / generated output directory names that should never be tracked.
 /// These are checked IN ADDITION to exclude_dir_names to catch directories
 /// that aren't in the standard exclusion list but are clearly build artifacts.
-#[cfg(test)] // used only by the legacy unit-only direct writer
-#[allow(dead_code)]
 pub(crate) fn is_build_output_dir_name(name: &str) -> bool {
     matches!(
         name,

@@ -43,6 +43,27 @@ fn excluded() -> BTreeSet<String> {
         .collect()
 }
 
+#[test]
+fn artifact_component_classifies_build_output_names_for_production_hygiene() {
+    let no_exclusions = BTreeSet::new();
+    for (file, expected) in [
+        ("app/.output/bundle.js", ".output"),
+        ("app/generated/module.js", "generated"),
+        ("app/build_output/a.bin", "build_output"),
+        ("app/output-cache/a.bin", "output-cache"),
+    ] {
+        assert_eq!(
+            hygiene::artifact_component(Path::new(file), &no_exclusions).as_deref(),
+            Some(expected),
+            "{file}"
+        );
+    }
+    assert_eq!(
+        hygiene::artifact_component(Path::new("app/src/main.rs"), &no_exclusions),
+        None
+    );
+}
+
 fn policy(cleanup: bool) -> SyncPolicy {
     toml::from_str(&format!(
         "auto_github_private=false\nauto_commit=true\nauto_pull=false\nauto_push=false\n\

@@ -676,7 +676,6 @@ fn ensure_origin_remote(repo: &Path, policy: &SyncPolicy) -> bool {
 }
 
 async fn auto_pull_merge(
-    svc: &GitService,
     ctx: &SyncContext<'_>,
     initial_status: &dracon_git::types::RepoStatus,
 ) -> Result<()> {
@@ -5666,7 +5665,7 @@ async fn sync_repo_local_with_ownership(
 
     preparation_phase("before_pull");
     if !commit_only {
-        auto_pull_merge(&svc, &ctx, &initial_status).await?;
+        auto_pull_merge(&ctx, &initial_status).await?;
     }
     preparation_phase("before_clean");
     // Cycle-entry capture proved no staged intent; do not erase later unknown
