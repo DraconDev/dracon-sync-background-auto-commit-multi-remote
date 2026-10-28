@@ -698,6 +698,34 @@ pub(crate) async fn push_with_retries_for_target(
 /// disjoint.
 pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
     let lower = err_msg.to_lowercase();
+    // FIXED 2026-10-28 (browser-extensions-shared GitLab wedge): a PASSING
+    // gate is not a refusal. The daemon's runner appends captured hook STDOUT
+    // to the error text (src/git/ops.rs), and the workspace gate prints its
+    // own "Pre-push:" banner on SUCCESS as well as on refusal. So the
+    // substring test below matched a SUCCESSFUL gate, and the transport
+    // failure that followed it (GitLab closing the SSH session at its 600s
+    // cap, while the ~12-minute gate was still running inside that session)
+    // was classified as "local pre-push hook failed".
+    //
+    // That misclassification was not cosmetic: `is_local_hook_rejection`
+    // gates the fail-fast arms in push_with_retries_for_target and
+    // push_to_named_remote_inner, so the daemon never attempted the
+    // HTTPS transport (which has no session cap) and never retried with a
+    // fresh connection — the mirror stayed 111+ commits ahead for hours.
+    //
+    // A refusal is now required to carry a refusal marker. A bare banner
+    // ("Pre-push: N affected workspace(s)") without any refusal evidence
+    // still classifies as a refusal, because a gate that cannot even report
+    // its verdict is not something to retry blindly.
+    if gate_refusal_markers(&lower) {
+        return true;
+    }
+    // No refusal evidence: the only "pre-push" text may be a success banner
+    // that merely travelled with the error. Such a message describes a
+    // transport problem, not a policy decision.
+    if gate_passed_markers(&lower) {
+        return false;
+    }
     lower.contains("pre-push")
         || lower.contains("pre-commit")
         || lower.contains("dracon-warden:")
@@ -707,6 +735,31 @@ pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
         // same class: the bytes never left the machine.
         || lower.contains("4-gate failed")
         || lower.contains("pre-push:")
+}
+
+/// Markers that positively identify a LOCAL hook refusal. Only these make a
+/// message a policy decision; a success banner alone does not.
+fn gate_refusal_markers(lower: &str) -> bool {
+    lower.contains("4-gate failed")
+        || lower.contains("4-gate failed for")
+        || lower.contains("possible plaintext secrets")
+        || lower.contains("dracon-warden:")
+        || lower.contains("dracon-warden hook")
+        || lower.contains("refusing")
+        || lower.contains("blocked this push")
+        // NOT "hook declined": that is a SERVER-side marker ("pre-receive
+        // hook declined") and must stay in the permanent-rejection arm so
+        // the two sets remain disjoint.
+        || lower.contains("pre-commit")
+        || lower.contains("pre-commit:")
+}
+
+/// Markers that identify a SUCCESSFUL gate. Their presence in an error text
+/// means the hook ran and PASSED, so the failure is downstream of the hook.
+fn gate_passed_markers(lower: &str) -> bool {
+    lower.contains("4-gate passed for all")
+        || lower.contains("4-gate passed")
+        || lower.contains("pre-push: 4-gate passed")
 }
 
 /// Check if an error message indicates the DAEMON'S OWN op-timeout kill —
