@@ -23,6 +23,7 @@ LIBC.ptrace.restype = ctypes.c_long
 TRACEME, GETREGS, SYSCALL, SETOPTIONS = 0, 12, 24, 0x4200
 TRACESYSGOOD, EXITKILL = 1, 0x100000
 RENAMEAT2 = 316
+INHERITED_FENCE_ENV = 'DRACON_CANONICAL_WRITER_FD_V1'
 
 class Registers(ctypes.Structure):
     _fields_ = [(name, ctypes.c_ulonglong) for name in (
@@ -100,7 +101,7 @@ def baseline(helper, parent):
     return {'response': json.loads(result.stdout), 'canonicalSha256': fingerprint(source)['sha256'],
             'displacedSha256': fingerprint(desired)['sha256'], 'pass': True}
 
-def adversarial(helper, parent, expect_final=True):
+def adversarial(helper, parent, expect_final=True, warden=None):
     repo, source, desired, request_path, request = fixture(parent, helper)
     before_index = (repo / '.git' / 'index').read_bytes()
     stdout_path, stderr_path = parent / 'helper.stdout', parent / 'helper.stderr'
@@ -121,6 +122,7 @@ def adversarial(helper, parent, expect_final=True):
     output.close()
     error.close()
     observations = {'expectFinalResponse': expect_final,
+                    'writerMode': 'uncooperative-raw-open' if warden is None else 'independent-warden-fenced-writer',
                     'helperPid': pid, 'requestOriginalInode': request['targets'][0]['before']['identity'][1],
                     'requestDesiredInode': request['targets'][0]['desired']['identity'][1], 'exchangeStops': []}
     try:
@@ -151,20 +153,35 @@ def adversarial(helper, parent, expect_final=True):
                             'Path(sys.argv[2]).write_text(json.dumps({"pid":os.getpid(),"inode":s.st_ino}));'
                             '\nwhile not Path(sys.argv[3]).exists():time.sleep(.002)\n'
                             'os.pwrite(f,b"OLD-WRITER",0);os.fsync(f);os.close(f)')
-                        queued = subprocess.Popen([sys.executable, '-c', writer, str(source), str(marker), str(go)],
-                                                  env=environment(), start_new_session=True)
-                        deadline = time.monotonic() + 3
-                        while True:
-                            locks = Path('/proc/locks').read_text().splitlines()
-                            rows = [line for line in locks if str(pid) in line.split()
-                                    and any(part.endswith(':' + str(source.stat().st_ino)) for part in line.split())]
-                            if any('BREAKING' in row for row in rows):
-                                observations['actualBreakingLeaseRows'] = rows
-                                break
-                            if time.monotonic() >= deadline:
-                                raise AssertionError(('actual old-inode open did not request lease break', rows))
-                            time.sleep(.002)
-                        assert not marker.exists(), 'old writer unexpectedly opened while lease held'
+                        writer_command = [sys.executable, '-c', writer, str(source), str(marker), str(go)]
+                        writer_env = environment()
+                        if warden is None:
+                            queued = subprocess.Popen(writer_command, env=writer_env, start_new_session=True)
+                            deadline = time.monotonic() + 3
+                            while True:
+                                locks = Path('/proc/locks').read_text().splitlines()
+                                rows = [line for line in locks if str(pid) in line.split()
+                                        and any(part.endswith(':' + str(source.stat().st_ino)) for part in line.split())]
+                                if any('BREAKING' in row for row in rows):
+                                    observations['actualBreakingLeaseRows'] = rows
+                                    break
+                                if time.monotonic() >= deadline:
+                                    raise AssertionError(('actual old-inode open did not request lease break', rows))
+                                time.sleep(.002)
+                        else:
+                            writer_env.pop(INHERITED_FENCE_ENV, None)
+                            queued = subprocess.Popen([
+                                str(warden), 'write-fence', '--repo', str(repo),
+                                '--wait-secs', '30', '--run-secs', '20', '--', *writer_command,
+                            ], env=writer_env, start_new_session=True)
+                            observations['writerFencePid'] = queued.pid
+                            deadline = time.monotonic() + 0.2
+                            while time.monotonic() < deadline:
+                                assert queued.poll() is None, 'fenced writer exited before acquiring the helper-held worktree fence'
+                                assert not marker.exists(), 'fenced writer opened before acquiring the worktree fence'
+                                time.sleep(.005)
+                            observations['writerWaitedAtFence'] = True
+                        assert not marker.exists(), 'old writer unexpectedly opened before helper publication settled'
                     if not entry:
                         assert registers.rax == 0, ('actual renameat2 failed', registers.rax)
                         exchanged += 1
@@ -209,7 +226,11 @@ def adversarial(helper, parent, expect_final=True):
             os.kill(pid, signal.SIGKILL)
             os.waitpid(pid, 0)
         if queued is not None and queued.poll() is None:
-            queued.kill()
+            if warden is None:
+                queued.kill()
+            else:
+                try: os.killpg(queued.pid, signal.SIGKILL)
+                except ProcessLookupError: pass
             queued.wait(timeout=5)
 
 def main():
@@ -218,10 +239,19 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--expect-final', choices=['true', 'false'], default='true',
                         help='expected helper finalization response')
+    parser.add_argument('--warden', type=Path,
+                        help='optional Warden CLI for the independent cooperative writer; default keeps the raw negative control')
     args = parser.parse_args()
     helper = args.helper.resolve()
+    warden = args.warden.resolve() if args.warden else None
+    if warden is not None:
+        assert warden.is_file() and os.access(warden, os.X_OK), f'Warden CLI is not executable: {warden}'
+        assert INHERITED_FENCE_ENV not in os.environ, 'run the qualification driver outside any outer writer fence'
     record = {'scope': 'actual isolated helper / owned disposable processes only; no deployment/fleet claim',
               'helper': str(helper), 'helperSha256': hashlib.sha256(helper.read_bytes()).hexdigest(),
+              'writerMode': 'uncooperative-raw-open' if warden is None else 'independent-warden-fenced-writer',
+              'warden': str(warden) if warden else None,
+              'wardenSha256': hashlib.sha256(warden.read_bytes()).hexdigest() if warden else None,
               'contract': 'Both accepted writer FDs retain canonical identity; private retention alone is not a pass.'}
     def timeout(_signum, _frame):
         raise TimeoutError('finite owned-helper qualification deadline expired')
@@ -234,7 +264,7 @@ def main():
             for name in ['baseline', 'adversarial']:
                 (root / name).mkdir()
             record['baseline'] = baseline(helper, root / 'baseline')
-            record['adversarial'] = adversarial(helper, root / 'adversarial', args.expect_final == 'true')
+            record['adversarial'] = adversarial(helper, root / 'adversarial', args.expect_final == 'true', warden)
             a = record['adversarial']
             record['pass'] = (a['newerWriterStillCanonical']
                               and a['canonicalContainsNewerWrite']
