@@ -1,0 +1,54 @@
+{
+  "scope": "actual isolated helper / owned disposable processes only; no deployment/fleet claim",
+  "helper": "/home/dracon/Dev/dracon-utilities/target/release/dracon-sync",
+  "helperSha256": "4ddf44f4dc53fa6a23a694facd9fc57a697fb04bbf03797f5f2405c59b33e4bd",
+  "writerMode": "independent-warden-fenced-writer",
+  "warden": "/home/dracon/Dev/dracon-utilities/target/release/dracon-warden",
+  "wardenSha256": "b31f59ad4f19f99b042a506ab722f163220647896d88bdf6cbb2a3873e3f9124",
+  "contract": "Both accepted writer FDs retain canonical identity; private retention alone is not a pass.",
+  "baseline": {
+    "response": [
+      "b01b1344c22facf60e41a33183e93db0f05db78068ee24ec84ac6d6aaeebb002",
+      true
+    ],
+    "canonicalSha256": "bf5bdfc0c458cb1606589bf152214bd4a0f2ea16ee37ac6d7ab98039bd00b9d4",
+    "displacedSha256": "4152ec480ad1a2792ade0de86653b3d0333e20199538d192efee30d317dfea97",
+    "pass": true
+  },
+  "adversarial": {
+    "expectFinalResponse": true,
+    "writerMode": "independent-warden-fenced-writer",
+    "helperPid": 3718851,
+    "requestOriginalInode": 35659806,
+    "requestDesiredInode": 35659835,
+    "exchangeStops": [
+      {
+        "entry": true,
+        "return": -38
+      },
+      {
+        "entry": false,
+        "return": 0
+      }
+    ],
+    "writerFencePid": 3718899,
+    "writerWaitedAtFence": true,
+    "newerOpenedInode": 35659835,
+    "canonicalAtNewOpen": 35659835,
+    "helperWaitStatus": 0,
+    "helperStdout": "[\"b01b1344c22facf60e41a33183e93db0f05db78068ee24ec84ac6d6aaeebb002\",true]",
+    "helperStderr": "",
+    "oldWriter": {
+      "pid": 3719013,
+      "inode": 35659835
+    },
+    "oldWriterLandedOnCanonical": true,
+    "oldWriterLandedDisplaced": false,
+    "canonicalAfterBothWrites": "4e45572d57524954455261642072657461696e65640a",
+    "privateAfterBothWrites": "6f70657261746f72204f524947494e414c207061796c6f61640a",
+    "indexPreserved": true,
+    "newerWriterStillCanonical": true,
+    "canonicalContainsNewerWrite": true
+  },
+  "pass": true
+}
