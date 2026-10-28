@@ -296,23 +296,37 @@ pub(crate) async fn pull_merge_origin_progress(
     pull_merge_origin_inner(repo, timeout_secs, op_label, true).await
 }
 
+/// Repair-path pull using the branch's configured upstream, matching plain
+/// `git pull` semantics while serializing its possible worktree checkout.
+pub(crate) async fn pull_merge_upstream(
+    repo: &Path,
+    timeout_secs: u64,
+    op_label: &str,
+) -> Result<()> {
+    let fence = acquire_pull_fence(repo, timeout_secs).await?;
+    pull_with_fence(repo, &["pull", "--no-rebase", "--no-edit"], timeout_secs, op_label, false, &fence)
+        .await
+}
+
+async fn acquire_pull_fence(
+    repo: &Path,
+    timeout_secs: u64,
+) -> Result<super::write_fence::WriteFence> {
+    let wait_secs = timeout_secs.clamp(1, 30);
+    super::write_fence::WriteFence::acquire_until(
+        repo,
+        tokio::time::Instant::now() + Duration::from_secs(wait_secs),
+    )
+    .await
+}
+
 async fn pull_merge_origin_inner(
     repo: &Path,
     timeout_secs: u64,
     op_label: &str,
     progress_aware: bool,
 ) -> Result<()> {
-    let wait_secs = timeout_secs.clamp(1, 30);
-    let fence = super::write_fence::WriteFence::acquire_until(
-        repo,
-        tokio::time::Instant::now() + Duration::from_secs(wait_secs),
-    )
-    .await?;
-    anyhow::ensure!(
-        !merge_in_progress(repo)?,
-        "refusing pull/merge in {}: a merge was already in progress",
-        repo.display()
-    );
+    let fence = acquire_pull_fence(repo, timeout_secs).await?;
     let pull_refspec = pull_refspec_for_branch(super::current_branch_from_head(repo), repo)?;
     eprintln!(
         "🔄 {} pulling origin {} in {}",
@@ -320,30 +334,54 @@ async fn pull_merge_origin_inner(
         pull_refspec,
         repo.display()
     );
+    let pull_args = ["pull", "--no-rebase", "--no-edit", "origin", &pull_refspec];
+    pull_with_fence(
+        repo,
+        &pull_args,
+        timeout_secs,
+        op_label,
+        progress_aware,
+        &fence,
+    )
+    .await
+}
+
+async fn pull_with_fence(
+    repo: &Path,
+    pull_args: &[&str],
+    timeout_secs: u64,
+    op_label: &str,
+    progress_aware: bool,
+    fence: &super::write_fence::WriteFence,
+) -> Result<()> {
+    anyhow::ensure!(
+        !merge_in_progress(repo)?,
+        "refusing pull/merge in {}: a merge was already in progress",
+        repo.display()
+    );
     let ssh_hardening = super::git_ssh_hardening();
     let env = [
         ("GIT_SSH_COMMAND", ssh_hardening.as_str()),
         ("GIT_TERMINAL_PROMPT", "0"),
     ];
-    let pull_args = ["pull", "--no-rebase", "--no-edit", "origin", &pull_refspec];
     let pull_result = if progress_aware {
         super::run_git_with_timeout_env_progress_fenced(
             repo,
-            &pull_args,
+            pull_args,
             timeout_secs,
             op_label,
             &env,
-            &fence,
+            fence,
         )
         .await
     } else {
         super::run_git_with_timeout_env_fenced(
             repo,
-            &pull_args,
+            pull_args,
             timeout_secs,
             op_label,
             &env,
-            &fence,
+            fence,
         )
         .await
     };
@@ -356,7 +394,7 @@ async fn pull_merge_origin_inner(
                 &["merge", "--abort"],
                 15,
                 "auto-pull-abort",
-                &fence,
+                fence,
             )
             .await
             {

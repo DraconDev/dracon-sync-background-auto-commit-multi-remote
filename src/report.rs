@@ -8131,14 +8131,7 @@ async fn handle_behind(
         println!("   plan: pull --no-rebase (merge)");
     }
     if apply {
-        match run_git_with_timeout(
-            repo,
-            &["pull", "--no-rebase"],
-            pull_timeout_secs,
-            "pull/merge",
-        )
-        .await
-        {
+        match crate::git::pull_merge_upstream(repo, pull_timeout_secs, "repair-pull-merge").await {
             Ok(()) => {
                 state.succeeded_ops += 1;
                 if human {
