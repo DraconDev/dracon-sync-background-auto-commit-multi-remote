@@ -376,12 +376,28 @@ mod secure_target {
     }
 }
 
+fn is_canonical_git_metadata_target(target: &str) -> bool {
+    matches!(
+        Path::new(target).file_name().and_then(|name| name.to_str()),
+        Some(".gitignore" | ".gitattributes")
+    )
+}
+
 pub(crate) fn copy_standard_file_within_repo(
     repo: &Path,
     target: &str,
     source: &Path,
     overwrite: bool,
 ) -> Result<bool> {
+    // Generic template copying has no content-preservation/recovery contract
+    // for Git's canonical metadata files. Those targets belong to the
+    // dedicated fenced publishers; refusing here also covers the manual CLI.
+    if is_canonical_git_metadata_target(target) {
+        anyhow::bail!(
+            "standard-file writer refuses Git metadata target '{}'; use its dedicated fenced publisher",
+            target
+        );
+    }
     // Keep the canonical preflight as the clear, user-facing rejection path.
     // Unix mutation below repeats the path decomposition using directory
     // descriptors so a later ancestor replacement cannot redirect I/O.
@@ -439,6 +455,13 @@ pub(crate) fn ensure_standard_files(
 
     for cfg in &policy.standard_files {
         if repo_override.skip_standard_files.contains(&cfg.target) {
+            continue;
+        }
+        if is_canonical_git_metadata_target(&cfg.target) {
+            eprintln!(
+                "⚠️ standard file '{}' refused: .gitignore and .gitattributes require dedicated fenced publishers — skipping",
+                cfg.target
+            );
             continue;
         }
 
@@ -532,6 +555,40 @@ mod tests {
         RepoPolicyOverride {
             skip_standard_files: skip,
             ..Default::default()
+        }
+    }
+
+    #[test]
+    fn generic_standard_files_never_overwrite_git_metadata() {
+        for target in [".gitignore", "nested/.gitattributes"] {
+            let dir = TempDir::new().unwrap();
+            let repo = dir.path();
+            let nested = repo.join("nested");
+            std::fs::create_dir_all(&nested).unwrap();
+            let target_path = repo.join(target);
+            std::fs::write(&target_path, "canonical bytes\n").unwrap();
+            let templates = dir.path().join("templates");
+            std::fs::create_dir(&templates).unwrap();
+            let source = templates.join("metadata");
+            std::fs::write(&source, "replacement bytes\n").unwrap();
+            let policy = make_policy(vec![StandardFileConfig {
+                source: "templates/metadata".into(),
+                target: target.into(),
+                overwrite: true,
+            }]);
+
+            let result = ensure_standard_files(
+                repo,
+                &policy,
+                &make_override(vec![]),
+                Some(dir.path()),
+                false,
+            )
+            .unwrap();
+            assert!(result.is_empty(), "metadata target must be skipped");
+            assert_eq!(std::fs::read(&target_path).unwrap(), b"canonical bytes\n");
+            assert!(copy_standard_file_within_repo(repo, target, &source, true).is_err());
+            assert_eq!(std::fs::read(&target_path).unwrap(), b"canonical bytes\n");
         }
     }
 
