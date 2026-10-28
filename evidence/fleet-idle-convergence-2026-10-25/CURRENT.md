@@ -1703,3 +1703,39 @@ repository's own `.githooks/pre-commit` blocks three already-TRACKED
 machine-local `.pi-glla/*.json` files and states that the durable fix is scoped
 root rules — a repository policy decision, so it is left for the owner rather
 than guessed, with no hook bypassed.
+
+## 2026-10-28 — operator decision executed: junk-runner unblocked (3-day stall ended)
+
+The remaining blocker was a POLICY choice, not a code defect, so it was
+escalated and the operator chose option 1: untrack the machine-local Pi state
+files and add scoped root `.gitignore` rules — the durable fix the Warden
+pre-commit hook itself names.
+
+Done: added `.pi-glla/{session-owner,update-check,pending-approval-renders}.json`
+and `.pi-glla/compactor-jobs/` to `.gitignore` (after the `!.pi-glla/**`
+negation, which is why they were being tracked), and untracked those five files.
+`.pi-glla/audit-loop/findings.baseline.md` was deliberately NOT excluded — the
+hook's durable-record category allows `.pi-glla/audit-loop/*.md`, and
+`git check-ignore --no-index -v` confirms it stays committable.
+
+`git rm --cached` first REFUSED ("staged content different from both the file
+and HEAD") because the index held a third, older snapshot. That snapshot was
+preserved to
+`~/.local/state/dracon/untracked-index-snapshots-junk-runner-20261028T095444Z/`
+before any force, and worktree md5s were verified unchanged afterwards — no
+worktree content was destroyed anywhere.
+
+Result: the repo's own hook returns rc=0, and the daemon committed
+`49a84d143` (129 files) and kept committing (~670 commits in 20 minutes of live
+agent work). Verified durable: the three files stay untracked in HEAD, exist on
+disk, and are ignored. `junk-runner` and `polis` are now fully converged in the
+parent (`parent-pin == nested HEAD`, 0 dirty).
+
+Remaining: `dracon-platform` DIRTY traces to `hegemon`, which the daemon
+DELIBERATELY quarantines in `exclude_repos` ("Remove only after its divergent
+mirror histories are reconciled"), plus live edits from agents still working.
+That is not convergence debt this goal may clear. Fleet stayed at zero warnings,
+zero concerns, zero failures throughout, with only transient AHEAD/PENDING as
+the daemon drained live edits.
+
+Full record: `checks/final-assembly-2026-10-28/DECISION-EXECUTED.md`.
