@@ -1507,6 +1507,78 @@ mod tests {
         );
     }
 
+    /// INCIDENT 2026-10-28 (junk-runner): 127 small staged files could never be
+    /// committed.
+    ///
+    /// `max_stage_batch_files = 100` paces what the DAEMON stages on its own so
+    /// one auto-commit stays reviewable. It was also being applied to intent the
+    /// user/agent had already staged. That is not a deferral: `materialize_tree`
+    /// writes the whole captured index, so the epoch either commits all 127 or
+    /// none, and nothing the daemon does makes an existing index shrink. The
+    /// journal showed the identical failure every few minutes for days:
+    ///
+    ///   "captured staged intent exceeds strict batch limit"
+    ///   "Dispatch Starved (>10 min): dirty but undispatched for 99252s"
+    ///
+    /// The two limits are now separate. This test fixes the symptom contract:
+    /// a hand-built staging well above the daemon's review batch still commits,
+    /// and every per-file guard (size, exclusion) still applies to it.
+    #[tokio::test]
+    async fn captured_staging_above_the_daemon_batch_limit_is_not_permanently_deferred() {
+        let (root, mut policy) = fixture().await;
+        // The real shape: 127 small files, all far below max_stage_file_bytes.
+        let names: Vec<_> = (0..127).map(|n| format!("staged-{n:03}.md")).collect();
+        for name in &names {
+            std::fs::write(root.path().join(name), b"small payload\n").unwrap();
+        }
+        let mut args = vec!["add", "--"];
+        args.extend(names.iter().map(String::as_str));
+        git(root.path(), &args, None).await.unwrap();
+
+        let epoch = Epoch::capture(root.path(), 30).await.unwrap();
+        assert_eq!(epoch.snapshot.changed.len(), 127);
+
+        // The operator's real configuration: daemon batch 100.
+        policy.max_stage_batch_files = 100;
+        assert_eq!(policy.stage_batch_limit(), 100);
+
+        // 127 > 100 no longer refuses: captured intent is one atomic unit.
+        epoch
+            .eligible(root.path(), &policy, &BTreeSet::new())
+            .await
+            .expect("127 already-staged small files must not be refused forever");
+
+        // The captured-intent ceiling still bounds tree materialization.
+        policy.max_captured_staged_files = 126;
+        assert!(
+            epoch
+                .eligible(root.path(), &policy, &BTreeSet::new())
+                .await
+                .is_err(),
+            "the captured-intent ceiling must still bound one materialization"
+        );
+
+        // And per-file guards are unaffected by the count change.
+        policy.max_captured_staged_files = 10_000;
+        policy.max_stage_file_bytes = 1;
+        assert!(
+            epoch
+                .eligible(root.path(), &policy, &BTreeSet::new())
+                .await
+                .is_err(),
+            "a captured staging batch must still respect the blob-size guard"
+        );
+        policy.max_stage_file_bytes = 1024;
+        policy.auto_commit_exclude_patterns = vec!["staged-000.md".into()];
+        assert!(
+            epoch
+                .eligible(root.path(), &policy, &BTreeSet::new())
+                .await
+                .is_err(),
+            "a captured staging batch must still respect exclusions"
+        );
+    }
+
     #[test]
     fn lock_contention_is_deferred_but_filesystem_failure_is_not() {        let root = tempfile::tempdir().unwrap();
         let path = root.path().join("index.lock");
