@@ -624,22 +624,10 @@ pub(crate) async fn push_with_retries_for_target(
                     // the repo in MERGING state (which the pre-v0.113.2
                     // conflict check couldn't even detect for nested
                     // submodules); abort instead.
-                    let pull_refspec =
-                        pull_refspec_for_branch(crate::git::branch::current_branch(repo), repo)?;
-                    eprintln!(
-                        "🔄 push rejected (non-fast-forward) for {} — pulling origin {} and retrying",
-                        repo.display(),
-                        pull_refspec
-                    );
-                    let pull_result = super::run_git_with_timeout_env_progress(
+                    let pull_result = pull_merge_origin_progress(
                         repo,
-                        &["pull", "--no-rebase", "--no-edit", "origin", &pull_refspec],
                         timeout_secs,
                         &format!("{}-auto-pull", op_label),
-                        &[
-                            ("GIT_SSH_COMMAND", ssh_hardening.as_str()),
-                            ("GIT_TERMINAL_PROMPT", "0"),
-                        ],
                     )
                     .await;
                     match pull_result {
@@ -661,20 +649,10 @@ pub(crate) async fn push_with_retries_for_target(
                             // bypassing the redactor (a credential-bearing
                             // remote URL would land in the journal).
                             eprintln!(
-                                "⚠️ auto-pull failed for {}: {} — aborting any partial merge, continuing with retry",
+                                "⚠️ auto-pull failed for {}: {} — continuing with retry",
                                 repo.display(),
                                 redact_credentials_for_log(&pull_err.to_string())
                             );
-                            // Best-effort: don't leave the repo in
-                            // MERGING state for the next sync cycle to
-                            // trip over. No-op when no merge is open.
-                            let _ = super::run_git_with_timeout(
-                                repo,
-                                &["merge", "--abort"],
-                                15,
-                                "auto-pull-abort",
-                            )
-                            .await;
                         }
                     }
                 }
