@@ -1,4 +1,10 @@
-# Task 5.2 — the idle observation, stated honestly
+# Task 5.2 — the pre-decision idle observation
+
+> **Superseded:** This snapshot predates the owner's tracking-policy decision.
+> `DECISION-EXECUTED.md` records that junk-runner was fixed and converged;
+> the later `REMAINING-STRUCTURAL.md` identifies the remaining dirty parent as
+> dracon-platform via quarantined hegemon content. The all-clean acceptance is
+> still unmet, and neither document is a fresh final full-fleet observation.
 
 ## What the daemon reports now
 

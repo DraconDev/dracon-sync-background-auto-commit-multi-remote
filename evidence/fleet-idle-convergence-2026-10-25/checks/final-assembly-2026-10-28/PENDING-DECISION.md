@@ -1,4 +1,8 @@
-# The one remaining blocker needs an owner decision (not an agent workaround)
+# The pre-decision blocker (historical)
+
+> **Superseded:** The owner chose option 1 and it was executed; see
+> `DECISION-EXECUTED.md`. This file preserves the prior decision request and is
+> not a current blocker report.
 
 ## State
 
