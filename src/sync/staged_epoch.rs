@@ -1456,16 +1456,24 @@ mod tests {
         let epoch = Epoch::capture(root.path(), 30).await.unwrap();
         assert_eq!(epoch.snapshot.changed.len(), 120);
         policy.max_stage_batch_files = 100;
-        assert!(epoch
-            .eligible(root.path(), &policy, &BTreeSet::new())
-            .await
-            .is_err());
-        policy.max_stage_batch_files = 0;
-        assert_eq!(policy.stage_batch_limit(), usize::MAX);
+        // CHANGED 2026-10-28: the DAEMON's staging batch limit no longer gates
+        // captured intent (see `captured_stage_limit`), so the previous
+        // assertion here — `eligible()` must fail at 120 > 100 — encoded the
+        // permanent-deferral bug this test now guards against.
+        assert_eq!(policy.stage_batch_limit(), 100);
+        assert_eq!(policy.captured_stage_limit(), 10_000);
         epoch
             .eligible(root.path(), &policy, &BTreeSet::new())
             .await
             .unwrap();
+        // The captured-intent bound still exists; it is just its own knob.
+        policy.max_captured_staged_files = 100;
+        assert!(epoch
+            .eligible(root.path(), &policy, &BTreeSet::new())
+            .await
+            .is_err());
+        policy.max_captured_staged_files = 0;
+        assert_eq!(policy.captured_stage_limit(), usize::MAX);
         policy.max_stage_file_bytes = 1;
         assert!(
             epoch
@@ -1500,8 +1508,7 @@ mod tests {
     }
 
     #[test]
-    fn lock_contention_is_deferred_but_filesystem_failure_is_not() {
-        let root = tempfile::tempdir().unwrap();
+    fn lock_contention_is_deferred_but_filesystem_failure_is_not() {        let root = tempfile::tempdir().unwrap();
         let path = root.path().join("index.lock");
         let owner = acquire_epoch_lock(path.clone()).unwrap();
         let busy = acquire_epoch_lock(path.clone()).err().expect("held lock");
