@@ -1827,7 +1827,8 @@ pub(crate) fn is_large_untracked(
     }
 }
 
-#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
+#[cfg(test)] // production writers use the fenced hygiene intent path
+#[allow(dead_code)]
 pub(crate) fn append_to_gitignore(repo: &Path, patterns: &[String]) -> Result<()> {
     let gitignore = repo.join(".gitignore");
     let current = match std::fs::read_to_string(&gitignore) {
@@ -1847,7 +1848,8 @@ pub(crate) fn append_to_gitignore(repo: &Path, patterns: &[String]) -> Result<()
 
 /// Handle large untracked files by adding them to .gitignore.
 /// Returns true if .gitignore was updated.
-#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
+#[cfg(test)] // legacy direct writer retained only for unit compatibility
+#[allow(dead_code)]
 pub(crate) fn handle_large_untracked(
     repo: &Path,
     to_restore: &[dracon_git::types::DiffFile],
@@ -1879,7 +1881,8 @@ pub(crate) fn handle_large_untracked(
 /// Common build / generated output directory names that should never be tracked.
 /// These are checked IN ADDITION to exclude_dir_names to catch directories
 /// that aren't in the standard exclusion list but are clearly build artifacts.
-#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
+#[cfg(test)] // used only by the legacy unit-only direct writer
+#[allow(dead_code)]
 pub(crate) fn is_build_output_dir_name(name: &str) -> bool {
     matches!(
         name,
@@ -1893,7 +1896,8 @@ pub(crate) fn is_build_output_dir_name(name: &str) -> bool {
 /// output directories. These should never have been committed (build artifacts,
 /// generated files, etc.). Removes them from git tracking and adds the directory
 /// patterns to .gitignore.
-#[allow(dead_code)] // in-flight staged_epoch refactor: superseded but not yet removed
+#[cfg(test)] // production exclusion uses the fenced hygiene intent path
+#[allow(dead_code)]
 pub(crate) fn remove_tracked_excluded_paths(
     repo: &Path,
     excluded_dir_names: &BTreeSet<String>,
