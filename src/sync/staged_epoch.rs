@@ -1461,6 +1461,10 @@ mod tests {
         // assertion here — `eligible()` must fail at 120 > 100 — encoded the
         // permanent-deferral bug this test now guards against.
         assert_eq!(policy.stage_batch_limit(), 100);
+        // `SyncPolicy::default()` leaves the captured-intent bound at 0
+        // (unlimited); the TOML default is 10_000. Set it explicitly so this
+        // test states the value it depends on.
+        policy.max_captured_staged_files = 10_000;
         assert_eq!(policy.captured_stage_limit(), 10_000);
         epoch
             .eligible(root.path(), &policy, &BTreeSet::new())
@@ -1541,6 +1545,9 @@ mod tests {
         // The operator's real configuration: daemon batch 100.
         policy.max_stage_batch_files = 100;
         assert_eq!(policy.stage_batch_limit(), 100);
+        // The TOML default for the captured-intent bound.
+        policy.max_captured_staged_files = 10_000;
+        assert_eq!(policy.captured_stage_limit(), 10_000);
 
         // 127 > 100 no longer refuses: captured intent is one atomic unit.
         epoch
