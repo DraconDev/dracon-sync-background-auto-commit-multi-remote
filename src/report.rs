@@ -1064,7 +1064,12 @@ fn measure_git_size_via_count_objects(git_dir: &std::path::Path) -> Option<u64> 
     // because that's where git's pack index lives. For bare gitdirs
     // (worktrees/submodules) this is correct; for normal `.git/`
     // dirs it's also correct.
-    let out = run_git_bounded(&["count-objects", "-v"], git_dir, &[], BOUND)?;
+    let out = match run_git_bounded(&["count-objects", "-v"], git_dir, &[], BOUND) {
+        BoundedProbe::Output(bytes) => bytes,
+        // A timeout here is not evidence about the repo; the caller falls back
+        // to `du -sb` exactly as it does for a git failure.
+        BoundedProbe::Failed | BoundedProbe::TimedOut => return None,
+    };
     let stdout = String::from_utf8_lossy(&out);
     // FIXED 2026-07-25 (v0.112.42): `count-objects -v` reports all
     // sizes in **KiB** (git-commit-tree docs: "size: disk space
