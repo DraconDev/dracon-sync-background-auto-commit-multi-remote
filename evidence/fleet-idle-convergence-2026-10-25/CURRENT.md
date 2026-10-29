@@ -92,8 +92,10 @@ scheduler snapshot showed browser publication and platform inspection/retry
 work active; do not treat the Doomtap remote check as fleet convergence. A later
 09:31 read-only check found utilities `dracon-sync` main
 `739c4492dfd9281d5c42d0dfff1380476a4768ce` advertised by all three configured
-remotes, while Codeberg remains unconfigured. The daemon journal still showed
-browser backlog 110 and trailing-drain activity; no full-fleet query was run.
+remotes, while Codeberg remains unconfigured. A subsequent 09:32 check showed
+the evidence-only utilities commit `7c5c18f974da30d2b8b7937cff51694cfd704838`
+on all three configured remotes. The daemon journal still showed browser
+backlog 114 and trailing-drain activity; no full-fleet query was run.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 

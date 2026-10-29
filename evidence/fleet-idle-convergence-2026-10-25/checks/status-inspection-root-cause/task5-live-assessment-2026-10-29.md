@@ -117,3 +117,12 @@ The 09:28 scheduler snapshot still showed a browser push and platform/polis
 retries; by 09:30:25 the browser unpushed count had risen to 110 and trailing
 drain work continued. The 09:27 resource snapshot and these active states still
 do not support a clean-idle claim. No full watched-repository query was run.
+
+## Follow-up — latest evidence publication (2026-10-29 ~09:32 UTC)
+
+The subsequent evidence-only daemon commit advanced local utilities main to
+`7c5c18f974da30d2b8b7937cff51694cfd704838`; read-only `ls-remote` showed
+`github`, `gitlab`, and `origin` all at that same tip. At 09:32:04 the daemon
+still reported trailing-drain work, and the last observed browser backlog was
+114 unpushed commits (09:31:32). This remains active, non-idle fleet state; the
+Codeberg destination remains absent and unresolved.
