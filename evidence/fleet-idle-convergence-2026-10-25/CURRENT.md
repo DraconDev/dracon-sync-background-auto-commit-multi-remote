@@ -57,6 +57,12 @@ commits by 01:13:50; this proves one publication epoch, not current-tip
 convergence. See
 `checks/status-inspection-root-cause/task5-browser-publication-receipt-2026-10-29.md`
 and its JSON receipt.
+A Doomtap follow-up found the repeated 15-minute refusals are attached to a
+staged new `docs/screenshots/qa/probe-unapproved.png` addition, absent from the
+exact visual-publication allowlist. The hook's exact refusal text is not
+preserved; the 1.7 MB file and staged index entry remain untouched pending
+operator classification. See
+`checks/status-inspection-root-cause/doomtap-unapproved-qa-staging-2026-10-29.md`.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
