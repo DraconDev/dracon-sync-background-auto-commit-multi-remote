@@ -1983,3 +1983,10 @@ test sync::tests::github_mirror_comparison_accepts_transport_variants ... ok
 test sync::tests::github_mirror_comparison_uses_repository_identity_not_host_only ... ok
 test sync::tests::index_deferral_backlog_publication_preserves_meaningful_hook_refusal ... ok
 test sync::tests::ordinary_absolute_staging_deadline_cancels_hardener_descendants ... [main (root-commit) d840ea6] disposable fixture baseline
+ok
+test sync::tests::parent_gitlink_propagates_after_standalone_commit ... ok
+test sync::tests::test_alert_unpushed_threshold ... [master (root-commit) 371fa6d] init
+ok
+test sync::tests::test_alert_unpushed_threshold_not_triggered ... [master (root-commit) 485a1ab] init
+ok
+test sync::tests::test_auto_commit_excludes_union_global_and_per_repo ... 
