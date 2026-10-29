@@ -22,6 +22,12 @@ is established by this update. A subsequent read-only `dracon-sync repos` query
 also timed out at 30 seconds without output, so no fresh fleet status is claimed;
 its bounded context is retained in
 `checks/status-inspection-root-cause/current-repos-cli-timeout-2026-10-29.md`.
+A subsequent partial journal shows the daemon active and this checkout's
+checkpoint commit synced late, but also records the browser-extension backlog
+rising 64→73 while publication remained owned by another worker, a late
+`dracon-platform` sync failure without a later result in the captured interval,
+and continuing trailing-drain work. This is not a clean-idle observation; see
+`checks/status-inspection-root-cause/daemon-followup-assessment-2026-10-29.md`.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
