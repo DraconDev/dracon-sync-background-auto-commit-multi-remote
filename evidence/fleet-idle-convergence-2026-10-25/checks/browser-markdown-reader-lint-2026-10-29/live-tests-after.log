@@ -1,0 +1,14 @@
+$ vitest run
+
+ RUN  v2.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader
+
+ ✓ tests/frontmatter.test.ts (7 tests) 4ms
+ ✓ tests/settings.test.ts (11 tests) 7ms
+ ✓ tests/dialects.test.ts (21 tests) 9ms
+ ✓ tests/markdown.test.ts (22 tests) 52ms
+
+ Test Files  4 passed (4)
+      Tests  61 passed (61)
+   Start at  18:41:21
+   Duration  1.07s (transform 213ms, setup 0ms, collect 313ms, tests 72ms, environment 2.03s, prepare 236ms)
+
