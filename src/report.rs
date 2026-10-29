@@ -4327,7 +4327,7 @@ pub(crate) async fn run_repos_report(
                     // ai-auto-writer, browser-extensions-shared all still
                     // BROKEN from a pre-repair cache while their probes now
                     // succeed in 3.6-8.2 s). Force exactly one recompute.
-                    && c.history_probe_timed_out.is_some()
+
             })
             .unwrap_or(false);
         let mut report_checks_deferred = false;
