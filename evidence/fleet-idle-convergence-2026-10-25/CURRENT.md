@@ -135,7 +135,10 @@ was `184fc508fc92621fe175357845196273b60d0724` (95 commits ahead of GitLab),
 `origin` remained at `9c665...`, and GitLab at `64c46...`. The second pre-push
 attempt `E34dYX` is for the `9c665...` / `64c46...` GitLab tuple; its seven
 dependency builds passed, provisioning finished, and `affiliate` CI was running.
-The current tip is newer than that snapshot and will still need publication. At 09:58:21 the daemon also reported a
+The current tip is newer than that snapshot and will still need publication.
+At 10:14:12, `affiliate` CI and all `ai-tts-pro` gates had passed; `clean-web`
+typecheck/build passed and its test was running. Later workspace gates were not
+yet completed in this attempt. At 09:58:21 the daemon also reported a
 parent-platform `update-ref` failure on an existing `main.lock`; read-only checks
 showed the zero-byte lock was over seven hours old with no holder. A guarded
 `dracon-sync maintenance` repair removed only that stale lock and resumed sync.

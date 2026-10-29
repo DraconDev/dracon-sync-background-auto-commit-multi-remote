@@ -280,4 +280,7 @@ identifying the GitLab leg. Its seven dependency builds passed by 10:09:44;
 workspace provisioning finished at 10:11:51 and `affiliate` CI was running at
 10:12:23. Thus the remote remains unchanged while an authorized gate is actively
 running; this is not a completed GitLab push. The local tip is newer than this
-snapshot and still requires publication after the current leg.
+snapshot and still requires publication after the current leg. At 10:14:12,
+`affiliate` CI and all `ai-tts-pro` gates had passed; `clean-web` typecheck and
+build had passed, with its test gate running. `web-time-tracker-limiter` and
+`youtube-filter` had not yet produced results in this attempt.
