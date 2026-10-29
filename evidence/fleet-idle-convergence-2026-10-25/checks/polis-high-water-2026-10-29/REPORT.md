@@ -98,9 +98,10 @@ real staged epoch (`0 orphan bun test/verify-release processes`, `"ok": true`,
 ## Classification
 
 - **Was this a daemon defect?** No. The guard, the refusal, the retained epoch
-  message and the 15-minute backoff were all correct. The daemon's only fault
-  was in *reporting*: it logs the retained message path but never the hook's
-  stderr, which is why this sat unclassified through many checkpoints. That
+  message and the 15-minute backoff were all correct. The refusal was initially
+  unclassified in preserved evidence; the system journal does contain the hook
+  output, including `BUCKET_STRATEGY_HIGH_WATER`. This report does not establish
+  a daemon stderr-suppression defect. That
   reporting gap is worth a follow-up, not a convergence blocker.
 - **Was this external?** No. It is a local object-database packing state.
 - **Could it recur?** Yes, for any repository that commits a large un-ignored
