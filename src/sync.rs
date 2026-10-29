@@ -2520,6 +2520,7 @@ pub(crate) async fn upload_publication(
     let origin_paused = plan.has_origin && paused.contains("origin");
     let mut map = std::mem::take(&mut plan.remote_failures);
     let mut origin_failed = false;
+    let mut origin_hook_refused = false;
     if plan.has_origin && !origin_paused {
         match crate::git::push_with_retries_for_target(
             repo,
@@ -2548,6 +2549,29 @@ pub(crate) async fn upload_publication(
                 fail.last_error = e.to_string();
                 fail.last_attempt_unix = crate::policy::timestamp_secs();
                 origin_failed = true;
+                // A LOCAL hook refusal for THIS pinned object is a verdict on
+                // these exact bytes. Re-running the same hook on the SAME
+                // immutable tree for every mirror leg buys nothing: the tree
+                // cannot change while the round is pinned, so the second and
+                // third legs pay a full gate run to re-learn a decided answer.
+                //
+                // Measured 2026-10-29 (browser-extensions-shared): one round
+                // pinned at 16:02 stayed otherwise idle for ~3h while a
+                // 44-workspace 4-gate (~12 min, 159 gate logs) re-ran for
+                // origin, github and gitlab over the identical pre-fix tree.
+                // Its `push_retries = 3` multiplied that per leg. The result
+                // was neither publication nor cheap failure: HEAD advanced
+                // 340 commits behind a pin that could never pass its own
+                // gate. Ending the round on a decided hook verdict returns
+                // control so the NEXT round pins the repaired tip.
+                if crate::git::is_local_hook_rejection(&e.to_string()) {
+                    eprintln!(
+                        "⛔ {} pin {} refused by the local pre-push hook; ending this round so the next one pins the current tip (mirror legs skipped for these bytes)",
+                        repo.display(),
+                        target.object_id()
+                    );
+                    origin_hook_refused = true;
+                }
             }
         }
     }
@@ -2561,6 +2585,19 @@ pub(crate) async fn upload_publication(
         }
     }
     configured.retain(|r| !paused.contains(&r.name));
+    // Same decided-verdict reasoning as the origin leg above: when origin's
+    // LOCAL hook already refused these exact pinned bytes, every mirror leg
+    // would re-run the identical hook over the identical immutable tree. The
+    // hook is per-worktree bytes, not per-destination, so a mirror cannot
+    // learn anything origin did not. Skipping them keeps the round finite and
+    // bounds the cost to one gate run for a decided refusal.
+    if origin_hook_refused {
+        plan.remote_failures = map;
+        return Ok(PushReport::Attempted {
+            ok: false,
+            degraded: false,
+        });
+    }
     let mirror_results = crate::git::multi_remote::push_to_all_remotes_for_target(
         repo,
         &configured,
