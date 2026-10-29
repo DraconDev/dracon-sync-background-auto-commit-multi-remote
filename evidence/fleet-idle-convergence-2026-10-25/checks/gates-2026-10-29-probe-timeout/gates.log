@@ -2102,3 +2102,20 @@ test sync::tests::test_m3_mirror_only_no_unwanted_push ... [master (root-commit)
 error: failed to push some refs to '/tmp/.tmp0XPl4r/mirror.git'
 ok
 test sync::tests::test_mirror_failure_ledger_names_remote ... [master (root-commit) 8e74840] init
+ok
+test sync::tests::test_partition_gitignored_tracked_file_with_gitignore_rule ... ok
+test sync::tests::test_partition_gitignored_untracked_gitignored_is_skipped ... ok
+test sync::tests::test_paused_remote_names_incident_stretches_reprobe ... ok
+test sync::tests::test_paused_remote_names_lists_only_gated ... ok
+test sync::tests::test_push_succeeds_with_detached_head ... [main (root-commit) cf67b6a] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpE91Wbg/origin.git'
+[main 5b96758] ahead
+HEAD is now at 5b96758 ahead
+To /tmp/.tmpE91Wbg/origin.git
+ * [new branch]      HEAD -> main
+ok
+test sync::tests::test_push_with_retries_fetches_first_on_rejection ... ok
+test sync::tests::test_refresh_stale_upstream_ref_converges ... Initialized empty Git repository in /tmp/.tmpBnWHPm/remote.git/
