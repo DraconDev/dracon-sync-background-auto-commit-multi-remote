@@ -67,4 +67,7 @@ studio, tools, books, chat, jobs`. It subsequently committed additional parent
 files, but no advertised parent ref was checked. At 10:07:48 the scheduler still
 showed the parent retrying with a backoff; the earlier stale-lock removal has
 not been shown to restore parent convergence. Do not infer the post-commit
-failure is caused by the removed lock.
+failure is caused by the removed lock. At 10:12:23, the scheduler showed the
+parent in a push phase with a retry timer, `polis` still retrying, and
+`endless-td` committing; no post-repair parent ref check or fleet-idle result
+was recorded.

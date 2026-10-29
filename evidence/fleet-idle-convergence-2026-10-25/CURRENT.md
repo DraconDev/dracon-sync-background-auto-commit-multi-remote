@@ -130,7 +130,12 @@ advanced to `9c665...`, while GitLab remained at
 `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`; local browser main was
 `8afc24db5e125acfdc2dcc0088412d63b819ecc5` and the daemon still reported a
 push in flight. Newer local commits are beyond the qualified snapshot, so this
-is partial publication rather than convergence. At 09:58:21 the daemon also reported a
+is partial publication rather than convergence. At 10:12:23, local browser main
+was `184fc508fc92621fe175357845196273b60d0724` (95 commits ahead of GitLab),
+`origin` remained at `9c665...`, and GitLab at `64c46...`. The second pre-push
+attempt `E34dYX` is for the `9c665...` / `64c46...` GitLab tuple; its seven
+dependency builds passed, provisioning finished, and `affiliate` CI was running.
+The current tip is newer than that snapshot and will still need publication. At 09:58:21 the daemon also reported a
 parent-platform `update-ref` failure on an existing `main.lock`; read-only checks
 showed the zero-byte lock was over seven hours old with no holder. A guarded
 `dracon-sync maintenance` repair removed only that stale lock and resumed sync.
@@ -138,8 +143,10 @@ The parent later reached five consecutive failures and a 15-minute backoff. At
 10:06:18 its post-commit hook failed after staged-epoch publication with
 `STALE: products, games, music, studio, tools, books, chat, jobs`; the daemon
 then committed additional parent files, but no advertised parent ref result was
-verified. At 10:07:48 the scheduler still showed parent retrying. No full-fleet
-clean-idle observation is established.
+verified. At 10:07:48 the scheduler still showed parent retrying. At 10:12:23 it showed
+dracon-platform in a push phase with a retry timer, Polis retrying, and
+endless-td committing. These remain active/incomplete states, not a clean-idle
+snapshot. No full-fleet clean-idle observation is established.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 

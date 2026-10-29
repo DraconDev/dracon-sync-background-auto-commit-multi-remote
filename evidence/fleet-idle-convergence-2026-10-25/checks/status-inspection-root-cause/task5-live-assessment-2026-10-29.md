@@ -269,3 +269,15 @@ The scheduler still showed the browser push active with the repo in-flight, and
 newer local commits are beyond the gate snapshot. This clears the current
 pre-push test failure for the corrected snapshot, but not the all-remotes/current-tip
 publication requirement. No manual push, ledger clear, or gate bypass was used.
+
+## Follow-up — GitLab pre-push leg is still active (2026-10-29 10:12 UTC)
+
+At 10:12:23, browser local main was `184fc508fc92621fe175357845196273b60d0724`
+(95 commits ahead of GitLab); `origin` remained at `9c665...` and GitLab at
+`64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`. A second gate manifest,
+`E34dYX`, started at 10:07:42 for tuple local `9c665...` / remote `64c46...`,
+identifying the GitLab leg. Its seven dependency builds passed by 10:09:44;
+workspace provisioning finished at 10:11:51 and `affiliate` CI was running at
+10:12:23. Thus the remote remains unchanged while an authorized gate is actively
+running; this is not a completed GitLab push. The local tip is newer than this
+snapshot and still requires publication after the current leg.
