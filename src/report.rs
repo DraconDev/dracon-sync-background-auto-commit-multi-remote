@@ -3818,7 +3818,8 @@ fn run_git_bounded(
                 if std::time::Instant::now() >= deadline {
                     let _ = child.kill();
                     let _ = child.wait();
-                    return BoundedProbe::Failed;
+                    // We gave up; git never said the history is broken.
+                    return BoundedProbe::TimedOut;
                 }
                 std::thread::sleep(std::time::Duration::from_millis(25));
             }
