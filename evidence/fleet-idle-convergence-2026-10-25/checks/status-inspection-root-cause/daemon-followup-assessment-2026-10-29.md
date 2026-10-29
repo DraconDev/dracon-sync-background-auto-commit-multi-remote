@@ -53,6 +53,8 @@ but at 10:03:32 the daemon reported five consecutive `dracon-platform` sync
 failures and a 15-minute backoff; the 10:03:51 scheduler showed a retry still
 roughly 880 seconds away. The sampled interval contains no per-attempt error
 explaining those failures and no post-repair parent ref result, so the stale-lock
-removal is not yet shown to have restored publication. Do not attribute the
-remaining failures to that lock or clear the retry state without a cause-specific
-qualification. No broader fleet query or browser-ledger clearing was done.
+removal is not yet shown to have restored publication. At 10:05:29 the scheduler
+still showed the parent in backoff, with roughly 734 seconds before retry; the
+lock remained absent in the 10:03 check. Do not attribute the remaining failures
+to that lock or clear the retry state without a cause-specific qualification. No
+broader fleet query or browser-ledger clearing was done.
