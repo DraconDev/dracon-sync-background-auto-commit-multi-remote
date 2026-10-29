@@ -106,7 +106,11 @@ its own retry, and at 09:43:58 read-only checks showed `gitlab` and `origin`
 (`github.com`) both at that commit. The exact server-hook cause remains unknown.
 At the 09:43 scheduler snapshot, browser publication and platform retry/Polis
 work were active, with 73 browser commits unpushed; this still is not a clean-
-idle fleet observation.
+idle fleet observation. At 09:47, browser `main` was 85 commits ahead of the
+matching `gitlab`/`origin` refs; a contemporaneous process snapshot showed the
+pre-push/Node/Git gate tree actively executing, but no ref advance in that
+snapshot. The platform parent and `polis` were still active/retrying, so a new
+full-fleet query remains deferred.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 

@@ -153,3 +153,18 @@ platform parent was retrying, and `polis` was working; the browser journal
 reported 73 unpushed commits and trailing-drain activity. Host load at 09:44
 was 9.58/9.62/14.77, with 3.4 GiB available and 30 GiB swap used. No full
 watched-repository query or clean-idle claim is available.
+
+## Follow-up — browser publication still executing (2026-10-29 ~09:48 UTC)
+
+The 09:47 scheduler snapshot showed `browser-extensions-shared` in `pushing`
+for 348 seconds, the `dracon-platform` parent working, and `polis` retrying. A
+path-limited read-only check showed browser local `main` at
+`07d46e01ce3fd5577a1179053e04315331b40dee`, while `gitlab` and `origin` both
+advertised `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`; local main was 85 commits
+ahead and the advertised tip was its ancestor. A contemporaneous process
+snapshot showed the daemon's Git/SSH push tree, the repository pre-push shell,
+a Node gate process, and a Git child using CPU in the gate snapshot worktree.
+This confirms active execution, but that one snapshot did not show the remote
+ref advancing. Host load was 9.62/9.46/13.75, with 3.2 GiB available and 30 GiB
+swap used. The full watched-repository query remains deferred while this work
+and platform retry are active.
