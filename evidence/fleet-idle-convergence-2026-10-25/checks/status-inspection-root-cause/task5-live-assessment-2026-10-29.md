@@ -241,3 +241,15 @@ The `IPQglO` manifest still shows the corrected `9c665` snapshot running. At
 `clean-web` and `youtube-filter` workspace results are still pending. A browser
 file was committed after this push snapshot began, so even a successful push of
 `9c665` would require subsequent daemon publication of newer local work.
+
+## Follow-up — corrected clean-web gate passes (2026-10-29 ~10:05 UTC)
+
+The `IPQglO` manifest confirms that corrected snapshot `9c665` passed `clean-web`
+typecheck, build, test, and lint; its test finished at 10:05:35 and lint at
+10:05:42. This resolves the old-snapshot syntax failure for this gate. At
+10:05:45, `web-time-tracker-limiter` typecheck was running; later
+`youtube-filter` checks have not yet completed. The browser push remained active
+(338 seconds in the 10:05:29 scheduler) while the daemon added another local
+commit (93 unpushed at 10:05:00). No remote advancement or successful publication
+of the corrected snapshot is established; the original receipt blocker remains
+unqualified.
