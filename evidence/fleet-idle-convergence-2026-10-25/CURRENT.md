@@ -191,6 +191,31 @@ regenerated; the earlier same-feed target sighting remains the positive evidence
 The browser publisher and Polis inspection/retry remained active, so fleet-idle
 acceptance is still open.
 
+### Follow-up — 2026-10-29 10:41 UTC: parent ref check and current blockers
+
+The parent `dracon-platform` ref-lock incident is resolved at the ref level:
+local `main` and all three advertised `github`, `gitlab`, and `origin` `main`
+refs were `f44b86...`; `.git/refs/heads/main.lock` was absent. The journal
+contains the original 09:58 `update-ref` failure but no recurrence. This does
+not requalify the separate 10:06 post-commit `STALE` hook result, and the parent
+still had active work.
+
+At 10:40:23, nested `polis` again refused a staged epoch and retained
+`dracon-epoch-message-lEjYhM`. That directory contains only the generated
+`COMMIT_EDITMSG`; the journal does not identify which commit hook refused or
+preserve its stderr. `run_sealed_commit_hooks` invokes `pre-commit`,
+`prepare-commit-msg`, and `commit-msg`, then logs only the retained-message
+path. Keep the cause unresolved and do not treat the retry as healthy.
+
+The browser tip had advanced to `80e0bd...` by 10:41:11 (31 commits ahead of
+each advertised `70545...` ref). The stale-snapshot retries still failed
+`TYPECHECK` for missing `abSameTab`; one had passed build/tests/lint and another
+was still in tests. Current local typecheck passes, but no current-tip full gate
+or publication is recorded. The survey watcher completed another ten-round
+intact-feed batch with no survey target and began batch 173; this remains
+absence, not removal evidence. Browser publication, Polis retry, and platform
+work remained active, so no clean-idle fleet result is established.
+
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
 The original goal remains active and incomplete. Warden's cooperative canonical-
