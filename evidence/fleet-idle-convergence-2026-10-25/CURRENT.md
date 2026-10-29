@@ -258,6 +258,12 @@ At 11:33:54 browser local `main` was `5a841f66...`, 38 commits ahead of `origin`
 
 A later host snapshot showed load 82.24 / 48.98 / 27.22, 28 GiB RAM used with 1.5 GiB available and 30 GiB swap used, while the daemon remained active with gate/build/push work. This is contemporaneous resource evidence only; it does not establish that resource pressure caused the `repair concerns` timeout. No retry/ledger clearing or producer shutdown was performed.
 
+### Follow-up — 2026-10-29 11:38 UTC: both gate snapshots green; GitLab push and status query unresolved
+
+The same-snapshot GitLab gate `Yj8PSt` finished with all 12 gates passing on `552942c5...` at 11:34:48. At that check `origin/main` advertised `552942c5...` but `gitlab/main` remained at `fbc42b18...`; therefore gate success is not GitLab publication. A later scheduler snapshot (11:37:27) still reported browser `phase=pushing` for 1,322 seconds, and the in-flight registry included browser, dracon-platform and Doomtap. This is an active long push, not proof of a completed or failed push. No manual push or ledger clearing was attempted.
+
+The last successful full `dracon-sync repos` query remains the 11:30 result (36 inspected, 30 clean, 5 active, 1 warning). A second query at 11:35 exceeded the shell's 60-second limit with no output; no matching CLI process remained at 11:36. The 11:30 `repair concerns` attempt separately exceeded 120 seconds with no output. The service remained active. At 11:36 the host showed load 57.41/51.04/32.66, 28 GiB RAM used, 2.4 GiB available, and 31 GiB swap used; the service used 1.44 GiB against its 1.5 GiB memory-high. These are bounded contemporaneous observations, not a proven cause for either CLI timeout. No further status retry was started under the same load.
+
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
 The original goal remains active and incomplete. Warden's cooperative canonical-
