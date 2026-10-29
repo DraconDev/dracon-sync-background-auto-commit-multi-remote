@@ -159,8 +159,9 @@ verdict tests passed 12/12, and package typecheck/lint passed, but no full gate
 covers the current tip yet. At 10:22:21 browser local main was `db959118d2`,
 `origin` `70545...`, and GitLab `9c665...`; the current tip remains unpublished.
 The latest live receipt was not regenerated. At 10:30:36, both browser remotes
-were at `70545...`, while local `main` was `71b22...` (22 ahead of `origin`, 27
-ahead of GitLab). Gate attempt `C4gRIL` was still running at 10:31:43 on older
+were at `70545...`, while local `main` was `71b22...` (22 commits ahead of
+both advertised refs; the local `gitlab/main` tracking ref was stale at
+`9c665...`). Gate attempt `C4gRIL` was still running at 10:31:43 on older
 snapshot `1526bb...`; it does not verify the current tip. The current verdict fix
 requires same-tab/same-URL feed samples, and its 14 focused tests, package
 typecheck/lint, and receipt-evidence check passed locally. The current tip has
@@ -168,6 +169,27 @@ no full pre-push result yet. The `dracon-sync` evidence updates are now publishe
 at `487a31...` on both `origin` and `gitlab`. `dracon-platform` and `polis` were
 still active/retrying in the scheduler. No full-fleet clean-idle observation is
 established.
+
+### Follow-up — 2026-10-29 10:37 UTC: stale-snapshot gate and live survey hunt
+
+Gate `C4gRIL` failed at 10:34:40 on frozen snapshot `1526bb...`: YouTube
+`TYPECHECK` reported eight missing-`abSameTab` declaration errors; its build,
+full package tests and lint passed. The later local declaration commit `b3a313...`
+adds `url` and `abSameTab`, and current local typecheck passes, but there is no
+full gate result on the current tip. Two more manifests were still running on
+the same stale `1526...` tuple at 10:37:29, with no workspace results recorded.
+Direct remote checks still showed `origin` and GitLab at `70545...`; local main
+`3bca32...` was 27 commits ahead of both advertised refs. The local GitLab
+tracking ref was stale at `9c665...`, so its derived ahead count is not a remote
+state.
+
+The independent patient survey hunt logged ten intact Home-feed rounds
+(53–76 videos, same tab, all targets absent) and began its next batch. This
+confirms only that no survey was served in that sample, not that the extension
+removed a rendered target. The separate real-feed shelves receipt was not
+regenerated; the earlier same-feed target sighting remains the positive evidence.
+The browser publisher and Polis inspection/retry remained active, so fleet-idle
+acceptance is still open.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
