@@ -131,3 +131,24 @@ read-only checks showed `gitlab` and `origin` both at that tip. `origin` resolve
 to `github.com`, so GitHub remains configured even though the separate `github`
 remote name present at 09:32 was absent by this check. The cause of the alias
 change is not established. Codeberg remains absent and unresolved.
+
+## Follow-up — GitLab pre-receive retry and current activity (2026-10-29 ~09:44 UTC)
+
+At 09:35:38 GitLab rejected evidence-only commit `781ce70d` with a generic
+`pre-receive hook declined`; the daemon recorded one server-side-policy failure
+and scheduled a retry. The hook supplied no detailed reason. Read-only GitLab
+settings show `main` allows Maintainers to push; SSH authentication identified
+`DraconDev`, whose project membership is Owner, so a simple protected-branch
+role denial is unlikely. The push-rule endpoint returned 404, which does not
+explain the refusal. No manual retry or remote/configuration change was made.
+
+By 09:43:58, local main `781ce70d0adcbee20cf1e0bc93c0c0216bfae2af` was
+advertised by the current `gitlab` and `origin` remotes (`gitlab.com` and
+`github.com` respectively); the daemon-managed publication had caught up.
+This shows recovery, not the cause of the transient server hook refusal.
+
+At the 09:43 scheduler snapshot, browser publication was still active, the
+platform parent was retrying, and `polis` was working; the browser journal
+reported 73 unpushed commits and trailing-drain activity. Host load at 09:44
+was 9.58/9.62/14.77, with 3.4 GiB available and 30 GiB swap used. No full
+watched-repository query or clean-idle claim is available.

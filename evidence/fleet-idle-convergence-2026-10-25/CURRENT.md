@@ -99,7 +99,13 @@ on all three configured remotes. The 09:33 read-only snapshot showed utilities `
 is GitHub). The separate `github` alias seen at 09:32 was gone by then; the
 reason is unknown, but GitHub remains covered through `origin`. The daemon
 journal still showed browser backlog 114 and trailing-drain activity; no
-full-fleet query was run.
+full-fleet query was run. Later, GitLab declined utilities evidence commit
+`781ce70d` at 09:35:38 with a generic pre-receive refusal; the daemon scheduled
+its own retry, and at 09:43:58 read-only checks showed `gitlab` and `origin`
+(`github.com`) both at that commit. The exact server-hook cause remains unknown.
+At the 09:43 scheduler snapshot, browser publication and platform retry/Polis
+work were active, with 73 browser commits unpushed; this still is not a clean-
+idle fleet observation.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
