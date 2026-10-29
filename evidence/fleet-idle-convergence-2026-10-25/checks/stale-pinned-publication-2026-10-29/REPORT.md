@@ -178,3 +178,46 @@ the correct next observation is whether a round started after a deployed fix
 pins the repaired tip. That is a live observation, not something this report can
 assert in advance.
 
+
+
+## Installed-execution receipt (released binary, disposable fixture)
+
+The released artifact (`target/release/dracon-sync`, sha256
+`13c7268cd3d4bc300672fb3f15de0fa35ca47d085ce4906bc549512b0304d8b3`,
+`dracon-sync 0.113.96`, containing both new repairs) was copied to an isolated
+qualification directory and **executed** as a process against a disposable
+fixture: a repo with a bare origin, **two configured mirrors**, and a local
+pre-push hook that refuses exactly like a product gate while appending one byte
+per invocation. Fixture-setup pushes used `core.hooksPath=/dev/null`; the
+measured runs did not.
+
+```
+pinned HEAD 359c3518aa12403ca2e43386027534cc3c7abf8b, 3 commits ahead
+repaired binary (13c7268c…):  hook executions = 1
+previous binary (4ddf44f4…):  hook executions = 3
+```
+
+Per-destination re-execution is exactly the amplification: origin + m1 + m2 gave
+three identical gate runs on one immutable tree. The repaired binary runs it
+once, logs
+
+```
+⛔ … pin 359c3518aa12403ca2e43386027534cc3c7abf8b refused by the local pre-push
+   hook; ending this round so the next one pins the current tip
+   (mirror legs skipped for these bytes)
+```
+
+and still reports the failure (`push failed`, `committed but push failed`), leaves
+the remote tip unchanged, and leaves local HEAD unchanged.
+
+Receipt and both raw logs:
+`/home/dracon/.local/state/dracon-sync/qualification/decided-verdict-loose-autogc-2026-10-29/`
+(`installed-execution-receipt.json`, `execution-repaired.log`,
+`execution-previous.log`).
+
+**Loaded runtime does NOT match this artifact.** `dracon-sync-operator.service`
+still executes `/home/dracon/.local/bin/dracon-sync` (sha256 `4ddf44f4…`), which
+contains neither new repair (`strings` finds 0 occurrences of
+`auto_gc_loose_threshold_bytes` and 0 of the decided-verdict message). So this is
+an executed-artifact receipt, not a deployed-daemon observation, and no fleet
+behaviour is claimed from it.

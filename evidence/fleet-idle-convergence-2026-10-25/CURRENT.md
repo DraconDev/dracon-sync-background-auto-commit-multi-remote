@@ -2218,6 +2218,28 @@ file was added between the gated revision and the current checkout, so `src/` is
 byte-identical to what was gated. Raw log and machine receipt:
 `checks/gates-2026-10-29-decided-verdict/`.
 
+**Executed-artifact receipt.** The released artifact (sha256 `13c7268c…`,
+`0.113.96`, containing both repairs) was copied to an isolated qualification dir
+and executed as a process against a disposable fixture: a repo with a bare origin,
+**two configured mirrors**, and a pre-push hook that refuses like a product gate
+and counts invocations. Result on one pinned HEAD (3 commits ahead): repaired
+binary = **1** hook execution; previous binary = **3**. Failures were still
+reported, remote tip unchanged, local HEAD unchanged. Receipt + raw logs:
+`/home/dracon/.local/state/dracon-sync/qualification/decided-verdict-loose-autogc-2026-10-29/`.
+
+**Deployment blocker reclassified.** The canonical-writer raw-uncooperative
+control is `pass=false` by construction, not by defect: its pass criterion
+requires an already-open file descriptor to follow a `RENAME_EXCHANGE` to a
+different inode, which no Linux interface does (a descriptor binds an inode, not a
+path). See
+`checks/epoch-integration-partial/raw-uncooperative-criterion-assessment-2026-10-29.md`.
+The behaviour the design actually promises for such a writer — bytes retained,
+surfaced as a concern, publication **blocked** — is covered by the passing
+regression `excluded_recovery_late_displaced_writer_after_archival_stays_visible_and_blocked`,
+which reproduces the shape with an identical byte count and a restored mtime so
+only `ctime` exposes the late write. Neither new repair touches
+`excluded_revert.rs`, so this boundary does not gate them.
+
 Not established at this checkpoint: the deployed/loaded binary is still the
 earlier build, so the two new repairs are **not** running in the daemon;
 `browser-extensions-shared` has not yet published; and there is still no
