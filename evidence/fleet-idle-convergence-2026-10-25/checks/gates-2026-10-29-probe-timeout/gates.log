@@ -408,4 +408,21 @@ test storage_core::index::tests::index_crash_helper ... ignored, subprocess help
 test storage_core::index::tests::lossless_non_utf8_paths_are_staged_as_exact_index_entries ... ok
 test storage_core::index::tests::manual_index_changes_and_foreign_locks_are_preserved ... ok
 test storage_core::index::tests::manual_managed_deletion_is_preserved_but_explicit_tombstone_stages ... ok
-test storage_core::index::tests::matched_index_pair_preserves_unrelated_staging_and_source ... 
+test storage_core::index::tests::matched_index_pair_preserves_unrelated_staging_and_source ... ok
+test storage_core::index::tests::matched_pair_recovers_before_and_after_atomic_publication ... ok
+test storage_core::index::tests::oversized_physical_index_is_rejected_before_libgit2_decode ... ok
+test storage_core::index::tests::saved_intent_conflict_releases_only_its_owned_lock ... ok
+test storage_core::index::tests::sticky_contracts_cannot_disappear_or_change_without_migration ... ok
+test storage_core::journal::tests::aggregate_capture_budget_refuses_new_work_without_deleting_retained_versions ... ok
+test storage_core::journal::tests::cancelled_and_changed_sources_do_not_overwrite_old_jobs ... ok
+test storage_core::journal::tests::complete_capture_recovers_after_death_before_or_after_snapshot_publish ... ok
+test storage_core::journal::tests::corrupt_unknown_or_unsafe_records_are_retained_and_not_green ... ok
+test storage_core::journal::tests::crash_child ... ignored, subprocess helper, invoked by the crash recovery test
+test storage_core::journal::tests::enrolled_clean_selection_refuses_ambiguous_sources_and_catalog_over_budget ... ok
+test storage_core::journal::tests::exact_version_identity_separates_source_policy_path_and_repository ... ok
+test storage_core::journal::tests::exclusive_leases_and_revision_checks_refuse_stale_updates ... ok
+test storage_core::journal::tests::forged_regression_and_plaintext_encryption_are_rejected ... ok
+test storage_core::journal::tests::payload_crash_child ... ignored, subprocess helper, invoked by payload crash recovery test
+test storage_core::journal::tests::payload_spools_resume_matching_prefix_and_have_independent_byte_budget ... ok
+test storage_core::journal::tests::prepared_payload_is_retained_once_and_cannot_change_across_restart ... ok
+test storage_core::journal::tests::prepared_payload_recovers_process_death_without_repeating_security_processing ... 
