@@ -72,6 +72,13 @@ round*. The runaway was **within** one round:
    paid a full 44-workspace 4-gate (~12 minutes, 159 gate logs) to re-learn a
    verdict already decided, and `push_retries = 3` multiplied it per leg.
 
+The timeline confirms it stayed inside one round: the round began at 16:02:56Z
+(it pinned `10671395b5`, committed 16:02:00Z) and ran until ~19:17Z — about
+**3 h 15 m**, matching the scheduler's `publication_secs=10488` (2 h 54 m) at
+18:57Z — with four full gate manifests started inside it (`yX25xv` 16:03Z,
+`xNjpDK` 17:33Z, `LyqohC` 18:20Z, `624gNQ` 18:43Z). It ended by exhausting its
+retry budget, not because of this repair (which is not deployed).
+
 So the round was not "publishing stale bytes forever" — it was spending hours
 re-running an expensive, deterministic hook on bytes that provably could not
 change. Confirmed by the negative control below: removing only the local-hook
@@ -135,7 +142,11 @@ Established by direct observation:
   scheduler stamp, `publication_secs=10488`).
 - Per-leg re-execution of the hook is the amplification: the negative control
   shows 5 executions where 1 is correct, on identical pinned bytes.
-- Publication had therefore not advanced for that repository for ~3 hours.
+- Publication had therefore not advanced for that repository for ~3 h 15 m, all
+  inside a single pinned round.
+- The round ended on its own (retry budget exhausted) and a later round pinned
+  the then-current tip `cf17489b33`. That is consistent with the repaired
+  behaviour but is NOT evidence for it, because the repair is undeployed.
 
 NOT established here, and deliberately not claimed:
 

@@ -2181,9 +2181,18 @@ only the fail-fast arm makes the new test observe the hook running **5 times**
 instead of once (`left: "xxxxx" right: "x"`, 10.67 s vs 0.10 s). Report:
 `checks/stale-pinned-publication-2026-10-29/REPORT.md`.
 
-Live confirmation of the intended effect: the next round
-(`dracon-pre-push.Km2eJj`, started 19:17:42Z) pins `cf17489b33` — the current
-tip — instead of the stale `10671395b5`.
+Live timeline that confirms the amplification (and the cost of leaving it in):
+the round that started at 16:02:56Z pinned `10671395b5` (committed 16:02:00Z, i.e.
+at round start) and ran until ~19:17Z — about **3 h 15 m in a single round**,
+matching the scheduler stamp of `publication_secs=10488` (2 h 54 m) at 18:57Z.
+Within that one round, four full gate manifests were started
+(`yX25xv` 16:03Z cancelled, `xNjpDK` 17:33Z failed, `LyqohC` 18:20Z failed,
+`624gNQ` 18:43Z running) — the origin leg plus the mirror legs and their
+retries, each re-validating the same immutable pre-fix tree at 20-47 minutes
+per gate run. The round then ended on its own by exhausting its retry budget,
+**not** because of this repair (which is not deployed), and a fresh round
+(`dracon-pre-push.Km2eJj`, 19:17:42Z) pinned the then-current tip `cf17489b33`.
+That is consistent with the fix's intent but is not evidence of it.
 
 **The gate failure itself is repaired.** `markdown-reader`'s LINT gate was the
 sole blocker in every one of those runs (BUILD/TYPECHECK/TEST all passed). Seven
