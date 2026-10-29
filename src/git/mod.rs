@@ -4844,13 +4844,83 @@ exit 0
 /// Returns BYTES (count-objects values are KiB — the v0.112.42
 /// unit lesson).
 pub(crate) fn parse_count_objects_garbage_bytes(stdout: &str) -> u64 {
-    for line in stdout.lines() {
-        if let Some(rest) = line.strip_prefix("size-garbage:") {
-            return rest.trim().parse::<u64>().unwrap_or(0) * 1024;
-        }
-    }
-    0
+    parse_count_objects_kib_field_bytes(stdout, "size-garbage:")
 }
+
+/// Parse loose-object storage (`size`, in KiB) from `git count-objects -v`.
+pub(crate) fn parse_count_objects_loose_bytes(stdout: &str) -> u64 {
+    parse_count_objects_kib_field_bytes(stdout, "size:")
+}
+
+fn parse_count_objects_kib_field_bytes(stdout: &str, field: &str) -> u64 {
+    stdout
+        .lines()
+        .find_map(|line| line.strip_prefix(field))
+        .and_then(|rest| rest.trim().parse::<u64>().ok())
+        .unwrap_or(0)
+        .saturating_mul(1024)
+}
+
+#[derive(Clone)]
+struct AutoGcState {
+    attempted_at: std::time::Instant,
+    loose_bytes_after_gc: u64,
+    succeeded: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AutoGcTrigger {
+    Garbage,
+    LooseObjects,
+}
+
+const AUTO_GC_GARBAGE_COOLDOWN_SECS: u64 = 3600;
+const AUTO_GC_LOOSE_COOLDOWN_SECS: u64 = 120;
+const AUTO_GC_LOOSE_FAILURE_COOLDOWN_SECS: u64 = 900;
+const AUTO_GC_LOOSE_PROBE_INTERVAL_SECS: u64 = 60;
+
+fn auto_gc_trigger(
+    garbage_bytes: u64,
+    loose_bytes: u64,
+    garbage_threshold_bytes: u64,
+    loose_threshold_bytes: u64,
+    last: Option<&AutoGcState>,
+    now: std::time::Instant,
+) -> Option<AutoGcTrigger> {
+    let elapsed = last
+        .map(|state| now.duration_since(state.attempted_at))
+        .unwrap_or(std::time::Duration::from_secs(u64::MAX));
+    let garbage_due = garbage_threshold_bytes > 0
+        && garbage_bytes >= garbage_threshold_bytes
+        && elapsed.as_secs() >= AUTO_GC_GARBAGE_COOLDOWN_SECS;
+    let loose_due = if loose_threshold_bytes == 0 || loose_bytes < loose_threshold_bytes {
+        false
+    } else {
+        match last {
+            None => true,
+            Some(state) if state.succeeded => {
+                elapsed.as_secs() >= AUTO_GC_LOOSE_COOLDOWN_SECS
+                    && loose_bytes.saturating_sub(state.loose_bytes_after_gc)
+                        >= loose_threshold_bytes
+            }
+            Some(_) => elapsed.as_secs() >= AUTO_GC_LOOSE_FAILURE_COOLDOWN_SECS,
+        }
+    };
+    if garbage_due {
+        Some(AutoGcTrigger::Garbage)
+    } else if loose_due {
+        Some(AutoGcTrigger::LooseObjects)
+    } else {
+        None
+    }
+}
+
+static AUTO_GC_ATTEMPTS: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, AutoGcState>>,
+> = std::sync::OnceLock::new();
+static AUTO_GC_PROBES: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, std::time::Instant>>,
+> = std::sync::OnceLock::new();
 
 /// Run plain `git gc` (2-week prune grace retained) when the repo's
 /// dangling-garbage size exceeds `threshold_bytes`. Returns
@@ -4886,10 +4956,6 @@ pub(crate) fn parse_count_objects_garbage_bytes(stdout: &str) -> u64 {
 // actual incident driver, are removed by gc regardless of prune
 // expiry), and a per-repo 1h attempt cooldown so a repo whose gc
 // keeps failing doesn't re-run a multi-minute gc every cycle.
-static AUTO_GC_ATTEMPTS: std::sync::OnceLock<
-    std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, std::time::Instant>>,
-> = std::sync::OnceLock::new();
-
 /// Read-only temporary-pack inspection; always returns zero reclaimed files
 /// and bytes. Cleanup is disabled pending producer-owned/cross-process proof.
 /// An old temporary pack can still belong to a stalled live producer. Its
@@ -4971,19 +5037,42 @@ pub(crate) async fn sweep_stale_tmp_packs(
     (removed, freed)
 }
 
-pub(crate) async fn maybe_auto_gc(repo: &std::path::Path, threshold_bytes: u64) -> Option<u64> {
-    if threshold_bytes == 0 {
+pub(crate) async fn maybe_auto_gc(
+    repo: &std::path::Path,
+    garbage_threshold_bytes: u64,
+    loose_threshold_bytes: u64,
+) -> Option<u64> {
+    if garbage_threshold_bytes == 0 && loose_threshold_bytes == 0 {
         return None;
     }
-    {
+    let now = std::time::Instant::now();
+    let last = {
         let attempts = AUTO_GC_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
-        let map = attempts.lock().unwrap_or_else(|p| p.into_inner());
-        if let Some(last) = map.get(repo) {
-            if last.elapsed() < std::time::Duration::from_secs(3600) {
-                return None;
-            }
-        }
+        attempts
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(repo)
+            .cloned()
+    };
+    if loose_threshold_bytes == 0
+        && last.as_ref().is_some_and(|state| {
+            state.attempted_at.elapsed().as_secs() < AUTO_GC_GARBAGE_COOLDOWN_SECS
+        })
+    {
+        return None;
     }
+    if loose_threshold_bytes > 0 {
+        let probes = AUTO_GC_PROBES.get_or_init(|| std::sync::Mutex::new(Default::default()));
+        let mut map = probes.lock().unwrap_or_else(|p| p.into_inner());
+        if map
+            .get(repo)
+            .is_some_and(|last| last.elapsed().as_secs() < AUTO_GC_LOOSE_PROBE_INTERVAL_SECS)
+        {
+            return None;
+        }
+        map.insert(repo.to_path_buf(), now);
+    }
+
     let out = crate::policy::std_git_command()
         .args(["count-objects", "-v"])
         .current_dir(repo)
@@ -4992,36 +5081,88 @@ pub(crate) async fn maybe_auto_gc(repo: &std::path::Path, threshold_bytes: u64) 
     if !out.status.success() {
         return None;
     }
-    let garbage = parse_count_objects_garbage_bytes(&String::from_utf8_lossy(&out.stdout));
-    if garbage < threshold_bytes {
-        return None;
+    let text = String::from_utf8_lossy(&out.stdout);
+    let garbage = parse_count_objects_garbage_bytes(&text);
+    let loose = parse_count_objects_loose_bytes(&text);
+    let trigger = auto_gc_trigger(
+        garbage,
+        loose,
+        garbage_threshold_bytes,
+        loose_threshold_bytes,
+        last.as_ref(),
+        now,
+    )?;
+    let trigger_bytes = match trigger {
+        AutoGcTrigger::Garbage => garbage,
+        AutoGcTrigger::LooseObjects => loose,
+    };
+    match trigger {
+        AutoGcTrigger::Garbage => eprintln!(
+            "🗑️ {} has {:.2} GiB dangling garbage (> threshold {:.2} GiB) — running git gc",
+            repo.display(),
+            garbage as f64 / 1073741824.0,
+            garbage_threshold_bytes as f64 / 1073741824.0,
+        ),
+        AutoGcTrigger::LooseObjects => eprintln!(
+            "🗑️ {} has {:.2} MiB loose objects (> threshold {:.2} MiB since last pack) — running git gc",
+            repo.display(),
+            loose as f64 / 1048576.0,
+            loose_threshold_bytes as f64 / 1048576.0,
+        ),
     }
-    eprintln!(
-        "🗑️ {} has {:.2} GiB dangling garbage (> threshold {:.2} GiB) — running git gc",
-        repo.display(),
-        garbage as f64 / 1073741824.0,
-        threshold_bytes as f64 / 1073741824.0,
-    );
-    {
-        let attempts = AUTO_GC_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
-        let mut map = attempts.lock().unwrap_or_else(|p| p.into_inner());
-        map.insert(repo.to_path_buf(), std::time::Instant::now());
-    }
+    let attempts = AUTO_GC_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
+    attempts
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .insert(
+            repo.to_path_buf(),
+            AutoGcState {
+                attempted_at: now,
+                loose_bytes_after_gc: loose.saturating_sub(loose_threshold_bytes),
+                succeeded: false,
+            },
+        );
+
     let started = std::time::Instant::now();
     match run_git_with_timeout(repo, &["gc", "--quiet"], 600, "gc (auto)").await {
         Ok(()) => {
+            let loose_after = crate::policy::std_git_command()
+                .args(["count-objects", "-v"])
+                .current_dir(repo)
+                .output()
+                .ok()
+                .filter(|output| output.status.success())
+                .map(|output| {
+                    parse_count_objects_loose_bytes(&String::from_utf8_lossy(&output.stdout))
+                })
+                .unwrap_or_else(|| loose.saturating_sub(loose_threshold_bytes));
+            attempts
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .insert(
+                    repo.to_path_buf(),
+                    AutoGcState {
+                        attempted_at: now,
+                        loose_bytes_after_gc: loose_after,
+                        succeeded: true,
+                    },
+                );
             eprintln!(
-                "🗑️ gc done for {} in {:.1}s (reclaimed ~{:.2} GiB garbage)",
+                "🗑️ gc done for {} in {:.1}s (observed {:.2} MiB loose bytes after pack)",
                 repo.display(),
                 started.elapsed().as_secs_f64(),
-                garbage as f64 / 1073741824.0,
+                loose_after as f64 / 1048576.0,
             );
         }
         Err(e) => {
-            eprintln!("⚠️ gc failed for {} (cooldown 1h): {:#}", repo.display(), e);
+            eprintln!(
+                "⚠️ gc failed for {} (garbage retry cooldown 1h; loose retry cooldown 15m): {:#}",
+                repo.display(),
+                e
+            );
         }
     }
-    Some(garbage)
+    Some(trigger_bytes)
 }
 
 // ---- v0.113.10: stale daemon-branch janitor (opt-in) ----
