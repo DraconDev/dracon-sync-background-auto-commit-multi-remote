@@ -305,3 +305,9 @@ No full pre-push result yet covers `db959`; the previous green gate is not proof
 for this newer tip. The committed live receipt was not regenerated, and its
 latest sample still reports no target in 12 rounds while retaining earlier
 same-feed sighting evidence.
+
+## Follow-up — both remotes advanced; current-tip gate still pending (2026-10-29 10:31 UTC)
+
+At 10:30:36, both browser remotes had advanced to `70545a394353793efe3aa64625adfc844e422041` after the `pv4dtY` and `jJ8Zpd` gate runs passed on that snapshot. The current local tip was `71b22fa8bb8bd0526c22f25aea7e5dba6c1f4da0`, 22 commits ahead of `origin` and 27 ahead of GitLab. Attempt `C4gRIL` started at 10:30:01 for snapshot `1526bb2bffdc1666cea151112ea127a6d81c9b65` against remote `70545...`; it was still running at 10:31:43, with no workspace gate result recorded yet. That snapshot predates the latest verdict declaration change, so it does not qualify the current local tip.
+
+The current verdict implementation also requires the off/on reads to come from the same tab and URL, records those identifiers in the receipt phases, and rejects changed-tab/page comparisons. The focused suite passed 14/14; typecheck, lint, and `check:receipt-evidence` passed. These are local checks, not a full pre-push result for `71b22...`; the newer commits remain unpublished. No new live feed capture was made, and no full-fleet clean-idle observation is established.

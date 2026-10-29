@@ -158,8 +158,16 @@ intact A/B feed samples and reports unreadable comparisons honestly. Its focused
 verdict tests passed 12/12, and package typecheck/lint passed, but no full gate
 covers the current tip yet. At 10:22:21 browser local main was `db959118d2`,
 `origin` `70545...`, and GitLab `9c665...`; the current tip remains unpublished.
-The latest live receipt was not regenerated. No full-fleet clean-idle
-observation is established.
+The latest live receipt was not regenerated. At 10:30:36, both browser remotes
+were at `70545...`, while local `main` was `71b22...` (22 ahead of `origin`, 27
+ahead of GitLab). Gate attempt `C4gRIL` was still running at 10:31:43 on older
+snapshot `1526bb...`; it does not verify the current tip. The current verdict fix
+requires same-tab/same-URL feed samples, and its 14 focused tests, package
+typecheck/lint, and receipt-evidence check passed locally. The current tip has
+no full pre-push result yet. The `dracon-sync` evidence updates are now published
+at `487a31...` on both `origin` and `gitlab`. `dracon-platform` and `polis` were
+still active/retrying in the scheduler. No full-fleet clean-idle observation is
+established.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
