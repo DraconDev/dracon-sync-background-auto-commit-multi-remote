@@ -284,3 +284,24 @@ snapshot and still requires publication after the current leg. At 10:14:12,
 `affiliate` CI and all `ai-tts-pro` gates had passed; `clean-web` typecheck and
 build had passed, with its test gate running. `web-time-tracker-limiter` and
 `youtube-filter` had not yet produced results in this attempt.
+
+## Follow-up — full gate progress and verdict-test repair (2026-10-29 ~10:22 UTC)
+
+The GitLab leg `E34dYX` passed all gates on `9c665...`; GitLab advanced from
+`64c46...` to `9c665...`. Attempt `dnIA3x` also passed all workspace gates on
+`70545...`, with the final YouTube lint finishing at 10:21:39; GitHub `origin`
+advanced to `70545...`. A second `70545...` / `9c665...` attempt (`pv4dtY`) was
+still running at 10:22:31. These gates predate the current verdict fix.
+
+Code review found that an incomplete A/B comparison could treat a missing
+switch-on sample as zero and report a successful return. The local daemon
+committed the correction as `db959118d2`; it requires both A/B samples and an
+intact feed in each, distinguishes unreadable comparisons from readable
+no-return failures, and removes the unsupported same-DOM-element wording.
+The focused verdict suite passed 12/12, and package typecheck and lint passed.
+At 10:22:21 local browser main was `db959118d20181704eadc98cd242e9c581ab05ef`,
+5 commits ahead of `origin` at `70545...` and 10 ahead of GitLab at `9c665...`.
+No full pre-push result yet covers `db959`; the previous green gate is not proof
+for this newer tip. The committed live receipt was not regenerated, and its
+latest sample still reports no target in 12 rounds while retaining earlier
+same-feed sighting evidence.

@@ -148,8 +148,18 @@ The parent later reached five consecutive failures and a 15-minute backoff. At
 then committed additional parent files, but no advertised parent ref result was
 verified. At 10:07:48 the scheduler still showed parent retrying. At 10:12:23 it showed
 dracon-platform in a push phase with a retry timer, Polis retrying, and
-endless-td committing. These remain active/incomplete states, not a clean-idle
-snapshot. No full-fleet clean-idle observation is established.
+endless-td committing. These remain active/incomplete states, not a clean-idle snapshot. Browser gate
+`E34dYX` passed on `9c665...` and GitLab advanced there; `dnIA3x` passed on
+`70545...` and GitHub `origin` advanced there. The next `70545...` / `9c665...`
+attempt `pv4dtY` was still running at 10:22:31. Those gate snapshots predate the
+new local verdict fix. Review found that a missing switch-on sample could be
+misread as a successful A/B return; daemon commit `db959118d2` now requires both
+intact A/B feed samples and reports unreadable comparisons honestly. Its focused
+verdict tests passed 12/12, and package typecheck/lint passed, but no full gate
+covers the current tip yet. At 10:22:21 browser local main was `db959118d2`,
+`origin` `70545...`, and GitLab `9c665...`; the current tip remains unpublished.
+The latest live receipt was not regenerated. No full-fleet clean-idle
+observation is established.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
