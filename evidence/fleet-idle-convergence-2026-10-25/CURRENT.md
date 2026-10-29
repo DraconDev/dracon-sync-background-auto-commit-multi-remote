@@ -246,7 +246,7 @@ At 11:09:47, parent local `main` was `b1955355...`, two commits ahead of directl
 
 At 11:17:46 browser local `main` was `b2a94634...`, 43 commits ahead of both direct remotes at `fbc42b18...`. Gate `C78xks` started on snapshot `552942c5...`, which contains the `af5a9b1a` fake-hunter test fix and all current YouTube-filter changes; the two commits after that snapshot touch only `ai-tts-pro`. The gate includes `ai-tts-pro`, `clean-web`, and `youtube-filter`, but was still running without per-gate results at 11:17:46. It is the first daemon gate to include the fix; no current-tip pass or publication is established.
 
-The local YouTube package checks remain green (61 test files / 1081 tests, typecheck, lint). The earlier `saW3So`, `n3Jg5x`, and `B4CLx7` failures are on the pre-fix snapshot and the same fake-Node call-count assertion. The watcher remains stopped; the complete latest saved feed sample is batch 178 and contains only visible-grid absence observations.
+The local YouTube package checks remain green (61 test files / 1081 tests, typecheck, lint). The earlier `saW3So`, `n3Jg5x`, and `B4CLx7` failures are on the pre-fix snapshot and the same fake-Node call-count assertion. The watcher remains stopped; the complete latest saved feed sample is batch 178 and contains only visible-grid absence observations. A fresh `dracon-sync repos` view at about 11:16 reported 36 inspected, 31 clean, 5 active, 0 blocked and 0 inspection failures; browser publication was failing/retrying, `dracon-platform` was publishing, and Polis was queued. The separate dry-run concern scan still found the unconfigured terhub upstream, with no repair applied.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
