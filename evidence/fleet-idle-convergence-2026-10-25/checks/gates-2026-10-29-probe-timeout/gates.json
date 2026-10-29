@@ -1,0 +1,46 @@
+{
+  "scope": "coherent committed workspace; third durable dracon-sync repair (probe timeout != broken history)",
+  "assembly": {
+    "dracon_sync": "d978215d673ec30057d6c3ee0d9ab633e5ccb4f1",
+    "parent": "f8bf156bf103d6dc77f074ef86ec867b42889642"
+  },
+  "gates": {
+    "workspace_tests": {
+      "exit": 0,
+      "suites": 44,
+      "passed": 2918,
+      "failed": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/gates-2026-10-29-probe-timeout/gates.log"
+    },
+    "release_build": {
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/gates-2026-10-29-probe-timeout/gates.log"
+    },
+    "clippy_all_targets_strict": {
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/gates-2026-10-29-probe-timeout/gates.log"
+    },
+    "cargo_deny": {
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/gates-2026-10-29-probe-timeout/gates.log",
+      "summary": "advisories ok, bans ok, licenses ok, sources ok"
+    }
+  },
+  "repair": {
+    "name": "probe timeout must not render as broken history",
+    "files": [
+      "dracon-sync/src/report.rs"
+    ],
+    "tests": [
+      "report::tests::probe_timeout_is_unmeasured_not_broken_history",
+      "report::tests::probe_history_retry_still_reports_genuinely_invalid_head_as_failed",
+      "report::tests::compute_cold_size_entry_populates_cache_record"
+    ],
+    "negativeControl": "collapsed BoundedProbe::TimedOut back into Failed -> probe_timeout_is_unmeasured_not_broken_history FAILED (assertion at the TimedOut check)",
+    "liveDefect": "4 repos (neonbreak, darklord, ai-auto-writer, browser-extensions-shared) rendered PUSH BROKEN while `rev-list --objects HEAD` exited 0 in 3.6-8.2s against the 10s bound at load 30-95"
+  },
+  "notEstablished": [
+    "deployment of this third repair",
+    "clean-idle full-fleet observation"
+  ]
+}
