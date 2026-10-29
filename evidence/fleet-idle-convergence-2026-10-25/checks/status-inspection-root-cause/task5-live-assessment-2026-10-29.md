@@ -232,3 +232,12 @@ result. The last direct browser remote check still showed `gitlab`/`origin` at
 `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`; no newer ref result was observed.
 The previously documented `youtube-filter` receipt blocker remains unqualified;
 no stuck-ledger clear, manual push, or gate bypass was used.
+
+## Follow-up — corrected gate advances through ai-tts (2026-10-29 ~10:04 UTC)
+
+The `IPQglO` manifest still shows the corrected `9c665` snapshot running. At
+10:04:13, `ai-tts-pro` typecheck, build, and test had passed; lint was running
+(started 10:04:07). This is continued gate progress, not a completed push. The
+`clean-web` and `youtube-filter` workspace results are still pending. A browser
+file was committed after this push snapshot began, so even a successful push of
+`9c665` would require subsequent daemon publication of newer local work.

@@ -117,23 +117,25 @@ on that corrected tip is available. By 09:54, the same old browser snapshot had 
 running. Browser local main was `75809018ffcc1c308923884ea01336fb34377833`,
 89 commits ahead of `gitlab`/`origin` at `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`;
 committed syntax fix `9df0bc` is included in local main, but the corrected tip
-has not yet passed a push gate. A 09:58:50 read-only query showed dracon-sync `main`
-`b0879640610fd843b7daea633eb8a61488177da1` advertised by all configured
-`github`, `gitlab`, and `origin` aliases. The old browser snapshot failed its gate at 09:54:47. After the daemon's
-300-second retry, a new pre-push attempt started at 09:59:52 on corrected
-snapshot `9c665ef1349198136f88ede60bfb6f49c56cb9bf`, which contains test fix
-`9df0bc`; all seven dependency builds passed and the hook was running under the
-`affiliate` workspace at 10:02:19. The last direct browser remote check showed
-`gitlab`/`origin` at `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`; no result for
-the corrected tip is available. `repair stuck-list` had reported one failure;
-no ledger clear or gate bypass was used, and the previously documented
-`youtube-filter` receipt blocker has not been shown cleared. At 09:58:21 the
-daemon also reported a parent-platform `update-ref` failure on an existing
-`main.lock`; read-only checks showed the zero-byte lock was over seven hours old
-with no holder. A guarded `dracon-sync maintenance` repair removed only that
-stale lock and resumed sync. The parent was still retrying at 10:02:19; no
-post-repair ref result is available. No full-fleet clean-idle observation is
-established.
+has not yet passed a push gate. A 10:04:13 read-only query showed dracon-sync `main`
+`e3a5a8d90ad31113768fab96d80ccf1ffe9b4aa4` advertised by all configured
+`github`, `gitlab`, and `origin` aliases. The old browser snapshot failed its gate
+at 09:54:47. After the daemon's 300-second retry, pre-push attempt `IPQglO`
+started at 09:59:52 on corrected snapshot `9c665ef1349198136f88ede60bfb6f49c56cb9bf`,
+which contains test fix `9df0bc`. All seven dependency builds passed; at
+10:04:13 `ai-tts-pro` typecheck/build/test had passed and lint was running. The
+`clean-web` and `youtube-filter` results remain pending, and no push result is
+available. The last direct browser remote check showed `gitlab`/`origin` at
+`64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`; a later local commit is beyond the
+active snapshot. `repair stuck-list` had reported one failure; no ledger clear or
+gate bypass was used, and the previously documented `youtube-filter` receipt
+blocker has not been shown cleared. At 09:58:21 the daemon also reported a
+parent-platform `update-ref` failure on an existing `main.lock`; read-only checks
+showed the zero-byte lock was over seven hours old with no holder. A guarded
+`dracon-sync maintenance` repair removed only that stale lock and resumed sync.
+The parent later reached five consecutive sync failures and a 15-minute backoff;
+the sampled journal did not identify the failure cause or show a post-repair ref
+result. No full-fleet clean-idle observation is established.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 

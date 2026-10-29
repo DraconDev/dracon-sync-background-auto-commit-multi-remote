@@ -48,6 +48,11 @@ stale-lock diagnosis, not an active transaction.
 Using the sanctioned `dracon-sync maintenance -- ...` wrapper, the daemon was
 paused while a guarded check revalidated the file type, owner, zero size, age
 (27,175 seconds), stable inode and absence of a holder twice, then removed only
-that empty lock. The wrapper reported sync resumed. **No post-repair parent
-retry/ref result has yet been observed**; at the preceding scheduler snapshot it
-was still retrying. No broader fleet query or browser-ledger clearing was done.
+that empty lock. The wrapper reported sync resumed. The lock remained absent on a later check,
+but at 10:03:32 the daemon reported five consecutive `dracon-platform` sync
+failures and a 15-minute backoff; the 10:03:51 scheduler showed a retry still
+roughly 880 seconds away. The sampled interval contains no per-attempt error
+explaining those failures and no post-repair parent ref result, so the stale-lock
+removal is not yet shown to have restored publication. Do not attribute the
+remaining failures to that lock or clear the retry state without a cause-specific
+qualification. No broader fleet query or browser-ledger clearing was done.
