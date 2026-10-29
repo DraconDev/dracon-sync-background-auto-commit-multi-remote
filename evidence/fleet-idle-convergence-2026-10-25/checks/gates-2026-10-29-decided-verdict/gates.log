@@ -409,4 +409,108 @@ test storage_core::index::tests::lossless_non_utf8_paths_are_staged_as_exact_ind
 test storage_core::index::tests::manual_index_changes_and_foreign_locks_are_preserved ... ok
 test storage_core::index::tests::manual_managed_deletion_is_preserved_but_explicit_tombstone_stages ... ok
 test storage_core::index::tests::matched_index_pair_preserves_unrelated_staging_and_source ... ok
-test storage_core::index::tests::matched_pair_recovers_before_and_after_atomic_publication ... 
+test storage_core::index::tests::matched_pair_recovers_before_and_after_atomic_publication ... ok
+test storage_core::index::tests::oversized_physical_index_is_rejected_before_libgit2_decode ... ok
+test storage_core::index::tests::saved_intent_conflict_releases_only_its_owned_lock ... ok
+test storage_core::index::tests::sticky_contracts_cannot_disappear_or_change_without_migration ... ok
+test storage_core::journal::tests::aggregate_capture_budget_refuses_new_work_without_deleting_retained_versions ... ok
+test storage_core::journal::tests::cancelled_and_changed_sources_do_not_overwrite_old_jobs ... ok
+test storage_core::journal::tests::complete_capture_recovers_after_death_before_or_after_snapshot_publish ... ok
+test storage_core::journal::tests::corrupt_unknown_or_unsafe_records_are_retained_and_not_green ... ok
+test storage_core::journal::tests::crash_child ... ignored, subprocess helper, invoked by the crash recovery test
+test storage_core::journal::tests::enrolled_clean_selection_refuses_ambiguous_sources_and_catalog_over_budget ... ok
+test storage_core::journal::tests::exact_version_identity_separates_source_policy_path_and_repository ... ok
+test storage_core::journal::tests::exclusive_leases_and_revision_checks_refuse_stale_updates ... ok
+test storage_core::journal::tests::forged_regression_and_plaintext_encryption_are_rejected ... ok
+test storage_core::journal::tests::payload_crash_child ... ignored, subprocess helper, invoked by payload crash recovery test
+test storage_core::journal::tests::payload_spools_resume_matching_prefix_and_have_independent_byte_budget ... ok
+test storage_core::journal::tests::prepared_payload_is_retained_once_and_cannot_change_across_restart ... ok
+test storage_core::journal::tests::prepared_payload_recovers_process_death_without_repeating_security_processing ... ok
+test storage_core::journal::tests::previously_tracked_runtime_and_changed_ignore_fail_before_private_capture ... ok
+test storage_core::journal::tests::private_runtime_inside_watched_repo_is_ignored_and_cannot_be_the_repo_root ... ok
+test storage_core::journal::tests::process_death_releases_lease_and_atomic_write_has_old_or_new_record ... ok
+test storage_core::journal::tests::record_budget_and_read_only_status_never_delete_or_create_state ... ok
+test storage_core::journal::tests::relative_paths_and_required_sets_are_validated ... ok
+test storage_core::journal::tests::required_copies_and_git_destinations_gate_preservation ... ok
+test storage_core::journal::tests::restart_preserves_upload_evidence_and_retry_backoff ... ok
+test storage_core::journal::tests::snapshot_crash_child ... ignored, subprocess helper, invoked by snapshot crash recovery test
+test storage_core::journal::tests::source_snapshots_resume_partial_capture_and_reuse_exact_completed_version ... ok
+test storage_core::journal::tests::symlinks_hard_links_and_public_permissions_fail_closed ... ok
+test storage_core::journal::tests::unmarked_nonempty_root_does_not_hide_or_overwrite_existing_user_files ... ok
+test storage_core::journal::tests::wrong_capture_prefix_and_corrupt_snapshot_fail_without_overwriting ... ok
+test storage_core::manifest::tests::ambiguous_paths_and_copy_sets_are_rejected ... ok
+test storage_core::manifest::tests::encoding_stops_at_metadata_budget_before_producing_oversized_output ... ok
+test storage_core::manifest::tests::malformed_untrusted_manifest_fails_without_echoing_private_fields ... ok
+test storage_core::manifest::tests::private_metadata_round_trip_matches_exact_pointer_and_lossless_path ... ok
+test storage_core::manifest::tests::tombstones_keep_contract_while_payload_edits_do_not_change_enrollment ... ok
+test storage_core::metadata::tests::approval_publication_crashes_preserve_exact_manifest_ciphertext ... ok
+test storage_core::metadata::tests::bad_exit_plain_output_and_budget_failure_keep_source_unapproved ... ok
+test storage_core::metadata::tests::cancelling_import_releases_lease_and_terminates_security_group ... ok
+test storage_core::metadata::tests::ciphertext_selection_refuses_ambiguous_manifests_and_excessive_catalogs ... ok
+test storage_core::metadata::tests::cold_import_crashes_recover_retained_exact_ciphertext ... ok
+test storage_core::metadata::tests::cold_import_honors_retention_limits_and_preserves_corrupted_source ... ok
+test storage_core::metadata::tests::cold_import_preserves_ciphertext_versions_and_existing_preparations ... ok
+test storage_core::metadata::tests::cold_import_refuses_wrong_repo_corruption_noncanonical_and_output_overflow ... ok
+test storage_core::metadata::tests::cold_import_timeout_terminates_descendant_and_publishes_no_record ... ok
+test storage_core::metadata::tests::corrupted_approved_ciphertext_is_permanent_and_never_reencrypted ... ok
+test storage_core::metadata::tests::corrupted_partial_source_requires_intervention_and_preserves_existing_bytes ... ok
+test storage_core::metadata::tests::foreign_binding_and_held_version_lease_refuse_before_capture ... ok
+test storage_core::metadata::tests::metadata_crash_child ... ignored, subprocess helper, invoked by metadata crash test
+test storage_core::metadata::tests::metadata_import_crash_child ... ignored, subprocess helper invoked by cold-import crash test
+test storage_core::metadata::tests::real_warden_manifest_restores_without_original_metadata_store ... ignored, operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary
+test storage_core::metadata::tests::source_record_and_aggregate_limits_never_evict_previous_versions ... ok
+test storage_core::metadata::tests::timeout_respects_retry_deadline_and_does_not_discard_captured_metadata ... ok
+test storage_core::metadata::tests::unchanged_manifest_reuses_ciphertext_after_reopen_without_record_churn ... ok
+test storage_core::reference::tests::canonical_pointer_round_trips_zero_and_large_lengths ... ok
+test storage_core::reference::tests::unsupported_or_malformed_pointers_fail_closed ... ok
+test storage_core::restore::tests::faulty_backend_and_byte_budgets_cannot_publish_unverified_output ... ok
+test storage_core::restore::tests::private_recovery_verifies_plain_and_encrypted_versions_and_preserves_edits ... ok
+test storage_core::restore::tests::publication_race_preserves_operator_destination_and_verified_capture ... ok
+test storage_core::restore::tests::real_cold_recovery_restores_large_encrypted_asset_without_original_source ... ignored, requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-built binary
+test storage_core::restore::tests::version_and_retention_limits_preserve_previous_recovery_and_tombstones_refuse ... ok
+test storage_core::restore::tests::wrong_grants_missing_keys_and_failed_authenticated_output_never_publish ... ok
+test storage_core::s3::credentials::tests::explicit_private_credentials_load_without_mutating_files ... ok
+test storage_core::s3::credentials::tests::git_tracked_or_unignored_credentials_refuse_without_mutation ... ok
+test storage_core::s3::credentials::tests::malformed_unknown_and_expired_records_redact_contents ... ok
+test storage_core::s3::credentials::tests::unsafe_permissions_links_and_oversized_records_refuse ... ok
+test storage_core::s3::http::tests::actual_http_corruption_and_provider_errors_produce_no_receipt_or_secret ... ok
+test storage_core::s3::http::tests::actual_http_creation_and_existing_object_require_signed_readback ... ok
+test storage_core::s3::http::tests::aws_published_get_and_put_signatures_match ... ok
+test storage_core::s3::http::tests::capability_probe_checks_competing_creates_and_preserved_conflicting_bytes ... ok
+test storage_core::s3::http::tests::capability_probe_refuses_double_create_success_and_false_refusal ... ok
+test storage_core::s3::http::tests::capability_probe_refuses_overwrite_and_corrupt_or_partial_readback ... ok
+test storage_core::s3::http::tests::conditional_header_and_session_token_are_bound_to_signature ... ok
+test storage_core::s3::http::tests::endpoints_credentials_and_namespace_fail_closed_without_echoing_input ... ok
+test storage_core::s3::http::tests::missing_and_wrong_length_objects_fail_before_publication ... ok
+test storage_core::s3::http::tests::redirects_are_not_followed_and_partial_or_encoded_bodies_are_rejected ... ok
+test storage_core::s3::http::tests::session_credentials_are_sent_signed_and_expiration_is_checked_per_request ... ok
+test storage_core::s3::http::tests::verified_write_scope_expiration_refuses_before_provider_contact ... ok
+test storage_core::s3::http::tests::whole_response_deadline_cannot_be_extended_by_trickled_bytes ... ok
+test storage_core::s3::tests::bounded_capture_refuses_before_remote_write_and_retrieval_bounds_body ... ok
+test storage_core::s3::tests::create_and_existing_both_require_complete_readback ... ok
+test storage_core::s3::tests::existing_corrupt_object_is_never_overwritten_or_accepted ... ok
+test storage_core::s3::tests::failed_readback_and_write_conflicts_cannot_issue_receipts ... ok
+test storage_core::s3::tests::interrupted_provider_body_and_destination_errors_fail_verification ... ok
+test storage_core::s3::tests::interrupted_source_cannot_contact_provider ... ok
+test storage_core::s3::tests::streaming_payload_above_git_limit_uses_bounded_reads ... ok
+test storage_core::security::tests::approval_and_publication_survive_process_death_without_reencrypting ... ok
+test storage_core::security::tests::bad_recovery_representation_records_failure_on_the_latest_revision ... ok
+test storage_core::security::tests::completed_unapproved_output_after_crash_is_not_adopted ... ok
+test storage_core::security::tests::deadline_kills_child_and_retry_respects_backoff ... ok
+test storage_core::security::tests::failed_exit_and_plaintext_stdout_cannot_approve_a_payload ... ok
+test storage_core::security::tests::foreign_repo_binding_cannot_encrypt_or_adopt_a_prepared_job ... ok
+test storage_core::security::tests::oversized_stdout_and_unapproved_orphan_do_not_escape_capacity ... ok
+test storage_core::security::tests::real_warden_large_payload_copies_and_cold_restore_use_fixture_keys ... ignored, operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary
+test storage_core::security::tests::security_crash_child ... ignored, subprocess helper, invoked by security crash recovery test
+test storage_core::security::tests::success_publishes_once_and_restart_does_not_spawn_again ... ok
+test storage_core::transfer::tests::apparent_upload_success_without_readback_is_not_a_receipt ... ok
+test storage_core::transfer::tests::changed_snapshot_cannot_reach_s3_transport ... ok
+test storage_core::transfer::tests::changed_snapshot_is_rejected_before_immutable_backend_publication ... ok
+test storage_core::transfer::tests::foreign_or_unapproved_security_bindings_refuse_before_backend_io ... ok
+test storage_core::transfer::tests::incomplete_consumption_cannot_produce_a_copy_receipt ... ok
+test storage_core::transfer::tests::missing_bindings_and_capacity_failure_cannot_mark_ready ... ok
+test storage_core::transfer::tests::required_copies_use_retained_bytes_and_restart_rechecks_corruption ... ok
+test storage_core::transfer::tests::selected_input_requires_exact_eof_even_for_empty_payloads ... ok
+test storage_core::transfer::tests::transient_readback_failure_retains_exact_payload_and_obeys_backoff ... ok
+test storage_core::worker::tests::captured_version_is_prepared_copied_and_retry_keeps_identity ... ok
+test storage_core::worker::tests::encrypted_preparation_copies_only_approved_representation ... 
