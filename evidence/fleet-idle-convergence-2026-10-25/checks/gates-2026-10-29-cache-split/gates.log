@@ -452,4 +452,16 @@ test storage_core::metadata::tests::cold_import_honors_retention_limits_and_pres
 test storage_core::metadata::tests::cold_import_preserves_ciphertext_versions_and_existing_preparations ... ok
 test storage_core::metadata::tests::cold_import_refuses_wrong_repo_corruption_noncanonical_and_output_overflow ... ok
 test storage_core::metadata::tests::cold_import_timeout_terminates_descendant_and_publishes_no_record ... ok
-test storage_core::metadata::tests::corrupted_approved_ciphertext_is_permanent_and_never_reencrypted ... 
+test storage_core::metadata::tests::corrupted_approved_ciphertext_is_permanent_and_never_reencrypted ... ok
+test storage_core::metadata::tests::corrupted_partial_source_requires_intervention_and_preserves_existing_bytes ... ok
+test storage_core::metadata::tests::foreign_binding_and_held_version_lease_refuse_before_capture ... ok
+test storage_core::metadata::tests::metadata_crash_child ... ignored, subprocess helper, invoked by metadata crash test
+test storage_core::metadata::tests::metadata_import_crash_child ... ignored, subprocess helper invoked by cold-import crash test
+test storage_core::metadata::tests::real_warden_manifest_restores_without_original_metadata_store ... ignored, operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary
+test storage_core::metadata::tests::source_record_and_aggregate_limits_never_evict_previous_versions ... ok
+test storage_core::metadata::tests::timeout_respects_retry_deadline_and_does_not_discard_captured_metadata ... ok
+test storage_core::metadata::tests::unchanged_manifest_reuses_ciphertext_after_reopen_without_record_churn ... ok
+test storage_core::reference::tests::canonical_pointer_round_trips_zero_and_large_lengths ... ok
+test storage_core::reference::tests::unsupported_or_malformed_pointers_fail_closed ... ok
+test storage_core::restore::tests::faulty_backend_and_byte_budgets_cannot_publish_unverified_output ... ok
+test storage_core::restore::tests::private_recovery_verifies_plain_and_encrypted_versions_and_preserves_edits ... 
