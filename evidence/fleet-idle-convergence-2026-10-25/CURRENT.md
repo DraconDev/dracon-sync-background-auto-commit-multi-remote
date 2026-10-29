@@ -43,7 +43,13 @@ was not retried under pressure. `repair stuck-list` showed only temporary test
 fixtures, not live convergence. See
 `checks/status-inspection-root-cause/task5-live-assessment-2026-10-29.md` and its
 raw snapshot. The active goal/task list still names fleet task 5; the mismatched
-bucket-strategy handoff was not treated as a scope change.
+bucket-strategy handoff was not treated as a scope change. At 01:08 UTC the
+browser GitLab push and pre-push gate remained active, with the first two
+workspaces' gates passed and the third workspace's tests running; the unpushed
+count reached 98. This is evidence of gate progress but not publication. Host
+pressure remained high, so no full-fleet query was attempted. See
+`checks/status-inspection-root-cause/task5-browser-gate-progress-2026-10-29.md`
+and its JSON snapshot.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 

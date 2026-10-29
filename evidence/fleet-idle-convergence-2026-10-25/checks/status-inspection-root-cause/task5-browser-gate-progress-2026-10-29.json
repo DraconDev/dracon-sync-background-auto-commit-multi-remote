@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-29T01:08:27Z",
+  "repo": "/home/dracon/Dev/browser-extensions-shared",
+  "push": {
+    "remote": "gitlab",
+    "localCommit": "5f35a18ed8fb78cd6c4e6895c87df8aa2d6d4c48",
+    "destinationRef": "refs/heads/main",
+    "baseCommit": "4eddca0f07cc7021cf6614a60a45ce064c4b2624",
+    "gitPushPid": 3518244,
+    "processSnapshotAt": "2026-10-29T01:07:46Z",
+    "elapsedAtSnapshot": "27:01",
+    "outcome": "in_progress_at_observation",
+    "remoteRefVerified": false
+  },
+  "hook": {
+    "manifestPath": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.yZFugk/manifest.json",
+    "ownerPid": 3519480,
+    "started": "2026-10-29T00:41:06.057Z",
+    "status": "running",
+    "workspaces": [
+      "extensions/standalones/ai-tts-pro",
+      "extensions/standalones/web-time-tracker-limiter",
+      "extensions/standalones/youtube-filter"
+    ],
+    "gates": [
+      {"workspace": "ai-tts-pro", "typecheck": "passed", "build": "passed", "test": "passed", "lint": "passed"},
+      {"workspace": "web-time-tracker-limiter", "typecheck": "passed", "build": "passed", "test": "passed", "lint": "passed"},
+      {"workspace": "youtube-filter", "typecheck": "passed", "build": "passed", "test": "running", "lint": "not_started"}
+    ],
+    "youtubeFilterTestStarted": "2026-10-29T01:08:27.886Z"
+  },
+  "browserUnpushedCount": {
+    "value": 98,
+    "observedAt": "2026-10-29T01:07:46Z",
+    "method": "dracon-sync journal alert"
+  },
+  "host": {
+    "observedAt": "2026-10-29T01:07:34Z",
+    "loadAverage": [99.85, 100.27, 94.53],
+    "availableMemoryDisplay": "1.0GiB (rounded by free -h)",
+    "swapUsedGiB": 36,
+    "daemonService": "active"
+  },
+  "scope": "Bounded browser publication progress only; not a full-fleet status or publication success claim."
+}
