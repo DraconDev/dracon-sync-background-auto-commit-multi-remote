@@ -915,4 +915,7 @@ test git::inspection::tests::covered_children_skip_recursive_dirt_but_keep_gitli
 test git::inspection::tests::gitlink_coverage_parsing_is_exact_and_conflicts_require_full_status ... ok
 test git::inspection::tests::handles_clean_detached_and_unborn_heads_and_rejects_bad_output ... ok
 test git::inspection::tests::head_presence_survives_owned_inspection_for_report_empty_detection ... ok
-test git::inspection::tests::hung_filter_is_killed_and_next_inspection_recovers ... 
+test git::inspection::tests::hung_filter_is_killed_and_next_inspection_recovers ... ok
+test git::inspection::tests::identity_accepts_linked_worktree_and_non_utf8_newline_roots ... ok
+test git::inspection::tests::inspects_real_repository_and_counts_nested_untracked_files ... ok
+test git::inspection::tests::owner_abort_kills_filter_and_next_inspection_recovers ... 
