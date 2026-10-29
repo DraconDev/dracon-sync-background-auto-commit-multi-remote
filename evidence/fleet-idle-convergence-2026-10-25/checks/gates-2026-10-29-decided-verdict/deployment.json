@@ -1,0 +1,16 @@
+{
+  "started_unix": 1793305377.3316565,
+  "old_pid": 1642878,
+  "old_loaded_sha256": "4ddf44f4dc53fa6a23a694facd9fc57a697fb04bbf03797f5f2405c59b33e4bd",
+  "expected_sha256": "13c7268cd3d4bc300672fb3f15de0fa35ca47d085ce4906bc549512b0304d8b3",
+  "gated_revision": "ce9cf5404ea9b7403877cf2d9520b9d62cab91af",
+  "deployed_from_revision": "dc7fb4f96291fd04ef7a5e58d9f2e5cf0681294c",
+  "backup": "/home/dracon/.local/state/dracon/deployments/20261029T202257Z-loose-autogc-decided-verdict",
+  "service_stop_used": false,
+  "method": "atomic binary replacement; pidfd SIGTERM; Restart=always",
+  "new_pid": 4032660,
+  "loaded_sha256": "13c7268cd3d4bc300672fb3f15de0fa35ca47d085ce4906bc549512b0304d8b3",
+  "installed_sha256": "13c7268cd3d4bc300672fb3f15de0fa35ca47d085ce4906bc549512b0304d8b3",
+  "verified_unix": 1793305390.4517398,
+  "ok": true
+}
