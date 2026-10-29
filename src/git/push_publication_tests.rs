@@ -226,3 +226,68 @@ async fn rejected_pinned_upload_does_not_pull_merge_or_change_local_edits() {
         remote_tip
     );
 }
+
+/// A LOCAL pre-push hook verdict on a pinned object is decided for that object.
+///
+/// Measured 2026-10-29 (browser-extensions-shared): one round stayed pinned on
+/// `10671395b5` for ~3 hours while a 44-workspace 4-gate (~12 minutes, 159 gate
+/// logs) re-ran for origin, github and gitlab over the identical immutable
+/// pre-fix tree, multiplied by `push_retries = 3`. Nothing could change the
+/// verdict, because the bytes under gate were pinned, and HEAD meanwhile ran
+/// 340 commits ahead of the unpublished pin. Ending the round on a decided hook
+/// refusal is what lets the next round pin the repaired tip.
+#[cfg(unix)]
+#[tokio::test]
+async fn local_hook_refusal_is_a_decided_verdict_for_a_pinned_object() {
+    use std::os::unix::fs::PermissionsExt;
+    let fixture = tempfile::tempdir().unwrap();
+    let repo = fixture.path().join("repo");
+    let bare = fixture.path().join("remote.git");
+    let hooks = fixture.path().join("hooks");
+    std::fs::create_dir(&repo).unwrap();
+    std::fs::create_dir(&hooks).unwrap();
+    git(&fixture.path().join("."), &["init", "--bare", bare.to_str().unwrap()]).await;
+    git(&repo, &["init", "-b", "main"]).await;
+    git(&repo, &["remote", "add", "origin", bare.to_str().unwrap()]).await;
+    std::fs::write(repo.join("file"), "pinned payload").unwrap();
+    git(&repo, &["add", "--", "file"]).await;
+    git(&repo, &["commit", "-m", "decided-verdict fixture"]).await;
+    let pinned = git(&repo, &["rev-parse", "HEAD"]).await;
+    let target = PublicationTarget::new(&pinned, "main").unwrap();
+
+    // A hook that refuses exactly the way a product gate does and records each
+    // invocation, so the assertion can count real executions rather than infer.
+    let hook = hooks.join("pre-push");
+    std::fs::write(
+        &hook,
+        "#!/bin/sh\nset -eu\nprintf x >> ../hook-count\nprintf '%s\\n' 'Pre-push: 4-gate FAILED' >&2\nexit 1\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+    git(&repo, &["config", "core.hooksPath", hooks.to_str().unwrap()]).await;
+
+    // A large retry budget is the point: only the decided-verdict rule keeps a
+    // refused pinned object from being re-gated (and re-timed-out) repeatedly.
+    let result = push_with_retries_for_target(&repo, 30, 5, "decided-verdict", Some(&target)).await;
+    let error = result.expect_err("a hook refusal must remain a publication failure");
+    assert!(
+        super::is_local_hook_rejection(&error.to_string()),
+        "the refusal must stay classified as a local hook decision: {error}"
+    );
+
+    assert_eq!(
+        std::fs::read_to_string(fixture.path().join("hook-count")).unwrap_or_default(),
+        "x",
+        "a decided hook verdict must not be re-executed for the same pinned object"
+    );
+    assert_eq!(
+        git(&bare, &["rev-parse", "refs/heads/main"]).await,
+        "",
+        "nothing may be published when the pinned bytes were refused"
+    );
+    assert_eq!(
+        git(&repo, &["rev-parse", "HEAD"]).await,
+        pinned,
+        "a refusal must never rewrite the local tip"
+    );
+}
