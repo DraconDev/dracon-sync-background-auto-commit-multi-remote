@@ -216,6 +216,12 @@ intact-feed batch with no survey target and began batch 173; this remains
 absence, not removal evidence. Browser publication, Polis retry, and platform
 work remained active, so no clean-idle fleet result is established.
 
+### Follow-up — 2026-10-29 10:46 UTC: stale gate retries and continued no-target sampling
+
+At 10:45:55, browser local `main` was `a3996a9380244d03815b3755e8148d87c70c2cd2`, 42 commits ahead of both directly advertised refs at `70545...`. The local `gitlab/main` tracking ref is stale and must not be used for advertised-remote counts. All three attempts on snapshot `1526bb...` (`C4gRIL`, `KGGFs6`, `JPCxS8`) failed the same YouTube typecheck because the snapshot omitted `abSameTab`; their build, full test and lint gates passed. The corrected local declaration typechecks, but no full gate or publication covers the current tip.
+
+The patient survey watcher continues to emit tracked evidence. Completed batch 174 had ten intact Home-feed rounds with no survey target; batch 175 was in progress at the last check. These remain absence observations, not removal proof. The saved real-feed shelves receipt was not refreshed. Parent refs were last verified equal at 10:41:11 (`f44b86...` on local and all three remotes, no `main.lock`); Polis still had an unclassified hook refusal at 10:40:23. No current full-fleet clean-idle snapshot is established.
+
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
 The original goal remains active and incomplete. Warden's cooperative canonical-
