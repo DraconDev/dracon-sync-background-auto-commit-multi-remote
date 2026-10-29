@@ -2066,9 +2066,10 @@ git gc` repacked 2.78 GB to 2.08 GB; stored dropped 2.253 GB → 1.735 GB and th
 guard now reports `code=OK` with 522 MB headroom. The real effective hook was
 executed on the live staged epoch and exited 0. Report:
 `checks/polis-high-water-2026-10-29/REPORT.md`. Classification: correct guard,
-correct daemon, real over-limit measurement; the only genuine defect found is
-that the daemon logs the retained epoch path but never the hook's stderr, which
-is why this stayed unclassified across many checkpoints.
+correct daemon, real over-limit measurement. The refusal was initially
+unclassified in preserved evidence; the journal does contain the
+`BUCKET_STRATEGY_HIGH_WATER` hook output, so no daemon stderr-suppression defect
+is established.
 
 **ai-tts-pro.** Every browser push since 14:57 failed the 4-gate on
 `ai-tts-pro TEST`. The failing file
@@ -2085,7 +2086,45 @@ the probe was retired and replaced with a hermetic inline-fixture regression in
 blob fails 2 of 3 new assertions and passes after the fix. Local gates on
 `ai-tts-pro`: typecheck clean, 285 tests / 0 fail, eslint clean, build OK.
 
-These two repairs close the two demonstrated causes of the current refusal and
-push-failure loops. Publication and a clean-idle fleet are still not claimed:
-the daemon must drain the remaining backlog, and polis's three local commits
-ahead of `318182d1e` were not pushed by hand.
+These two repairs resolve the demonstrated polis guard refusal and the
+ai-tts-pro test's host-`/tmp` failure. Publication and a clean-idle fleet were
+not established at this checkpoint: the daemon still had to drain the backlog,
+and polis's three local commits ahead of `318182d1e` had not been pushed by hand.
+
+### Follow-up — 2026-10-29 17:47 UTC: workspace gates pass; deployment and fleet convergence remain open
+
+The full workspace gates now pass together on committed dracon-sync source
+`b4a9e972541e4011549f64798c8b0857a784e9c6`, with parent `Cargo.lock`
+pinning the fixed `libz-sys 1.1.31`: 2,911 workspace tests passed / 0 failed,
+release build passed, strict all-target Clippy passed, and cargo-deny passed
+with advisories/bans/licenses/sources all `ok`. Raw logs and the machine receipt
+are in `checks/workspace-gates-2026-10-29/`. The first workspace-test attempt
+had one host-load-sensitive fixture-entry timeout; the same test passed 3/3 in
+isolation, the fixture-only entry budget was made scheduler-starvation tolerant,
+a negative control still failed when the hook never signalled, and the rerun
+passed. No production deadline was lengthened.
+
+This does **not** qualify deployment. The service is still executing
+`/home/dracon/.local/bin/dracon-sync` (SHA-256
+`4ddf44f4dc53fa6a23a694facd9fc57a697fb04bbf03797f5f2405c59b33e4bd`), while
+the gated release artifact is a different binary. The canonical publication
+boundary remains explicitly unqualified: the current raw syscall negative
+receipt `checks/epoch-integration-partial/exchange-syscalls-raw-negative-current-2026-10-29.json`
+records helper success while an uncooperative queued writer lands on the
+displaced inode (`pass=false`). The older passing receipt has an invalid
+preservation verdict and is not substituted. Do not install the new release or
+claim canonical-writer safety until this boundary is resolved and the
+installed/loaded behavior is qualified.
+
+The live scheduler snapshot at 17:47 UTC is partial (26 repositories in its
+map, not a fresh full-fleet observation): 4 pushing, 2 retrying, 2 inspecting;
+20 dispatch holds are `status-pending`. Browser publication is still pushing
+for 6,282 seconds with hundreds of local commits ahead and advertised `origin`
+and GitLab refs unchanged at `06fd267b…`; `dracon-platform` is retrying; Polis
+is retrying. Polis's configured `github`, `gitlab`, and `origin` main refs have
+autonomously advanced together to `b40fe41d…`, which is an ancestor of local
+`331615bc…` (one local commit remains ahead). That is real partial publication,
+not current-tip convergence. Host load is 67.52/69.83/60.30 with 527 MiB
+available, so no expensive status/gate retry was started. The last full
+`dracon-sync repos` snapshot remains earlier and cannot stand in for final
+acceptance.
