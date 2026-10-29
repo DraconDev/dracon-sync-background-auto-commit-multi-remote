@@ -218,3 +218,17 @@ failure for this repo. The current main includes `9df0bc`, but has not had a
 push gate result. The previously documented `youtube-filter` receipt blocker
 has not been shown cleared, so do not clear the stuck ledger or bypass the
 pre-push gate; wait for an authorized normal retry or a maintainer resolution.
+
+## Follow-up — normal retry on corrected browser snapshot (2026-10-29 ~10:02 UTC)
+
+The daemon's scheduled retry began at 09:59:47; pre-push attempt `IPQglO`
+started 09:59:52 on snapshot `9c665ef1349198136f88ede60bfb6f49c56cb9bf`, which
+contains the later `9df0bc` test-syntax fix (ancestor check passed). All seven
+dependency builds passed by 10:01:14. At 10:02:19, the daemon's push remained
+active and a process snapshot showed the hook running under the snapshot's
+`affiliate` workspace; the manifest had not yet recorded a completed workspace
+gate. This is genuine progress on the corrected tip, not a pass or publication
+result. The last direct browser remote check still showed `gitlab`/`origin` at
+`64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`; no newer ref result was observed.
+The previously documented `youtube-filter` receipt blocker remains unqualified;
+no stuck-ledger clear, manual push, or gate bypass was used.
