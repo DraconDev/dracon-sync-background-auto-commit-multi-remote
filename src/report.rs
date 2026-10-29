@@ -4602,6 +4602,11 @@ pub(crate) async fn run_repos_report(
             } else {
                 flags.push(format!("BROKEN_HISTORY:{}", missing_objects));
             }
+        } else if history_probe_timed_out {
+            // Unmeasured, not unhealthy. A separate flag so the operator sees
+            // why the history cell is unknown without the row claiming damage
+            // it never proved (and without silently hiding the gap).
+            flags.push("HISTORY_PROBE_TIMED_OUT".to_string());
         }
 
         // ── Ownership override (compute early) ─────────
@@ -4704,7 +4709,7 @@ pub(crate) async fn run_repos_report(
             // untracked and `last_commit_hash` as None. It is broken
             // history, not an empty repository.
             if history_probe_failed {
-                "history probe failed (invalid HEAD/ref or timeout) — repair from a verified remote; not an empty repo".to_string()
+                "history probe rejected by git (invalid HEAD/ref) — repair from a verified remote; not an empty repo".to_string()
             } else {
                 format!(
                     "history damaged ({} objects missing) — fresh clones fail; needs clone-from-forge or orphan cutover",
