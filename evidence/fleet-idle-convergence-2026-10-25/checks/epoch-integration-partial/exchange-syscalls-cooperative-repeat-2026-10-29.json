@@ -1,0 +1,153 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-10-29T09:24:16.567985+00:00",
+  "scope": "Actual disposable helper and owned ptrace processes only; no deployment, loaded-runtime, or fleet claim.",
+  "driver": {
+    "path": "qualify-exchange-syscalls.py",
+    "sha256": "94dcc2f4afe26d7374c7a48bb67c134242b228bb9504db6cb05d09a7799b3048",
+    "schedule": "Stop the real helper at renameat2 entry/exit; queue an independent Warden write-fence writer while the helper owns the per-worktree fence; open a newer canonical FD immediately after exchange; observe both writes and index."
+  },
+  "sourceHeads": {
+    "helperBuildSourceHead": "aba148619237e38c035a0df0537020f582942b49",
+    "currentDraconSyncHead": "05a5c960b07d0f2ee6e03e97f5b30f2bb1d9fbe2",
+    "currentDraconWardenHead": "aa351b5f6cab65199c4f69c3177641adfa12a5e9",
+    "sourceNote": "The helper build source inputs (dracon-sync Rust sources, build.rs, Cargo.toml and parent Cargo.lock) were checked unchanged from its recorded build revision through current HEAD."
+  },
+  "executables": {
+    "helperSha256": "1fd75c77cfe87d0ddc9e36efaa40479a13db420619c85901cac50b1875957bd4",
+    "wardenSha256": "e32b75f31d3c9e0d035546bc79e3b0e1b9b37b81a637a6272cb2e00790f8980d",
+    "targetDir": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target"
+  },
+  "cooperativeWardenWriter": {
+    "command": "python3 qualify-exchange-syscalls.py --helper <isolated>/debug/dracon-sync --warden <isolated>/debug/dracon-warden --output <per-run-json>",
+    "runs": [
+      {
+        "repeat": 1,
+        "pass": true,
+        "helperPid": 3700565,
+        "exchangeStops": [
+          {
+            "entry": true,
+            "return": -38
+          },
+          {
+            "entry": false,
+            "return": 0
+          }
+        ],
+        "writerWaitedAtFence": true,
+        "newerOpenedInode": 35403011,
+        "oldWriterInode": 35403011,
+        "oldWriterLandedOnCanonical": true,
+        "newerWriterStillCanonical": true,
+        "canonicalContainsNewerWrite": true,
+        "indexPreserved": true
+      },
+      {
+        "repeat": 2,
+        "pass": true,
+        "helperPid": 3701682,
+        "exchangeStops": [
+          {
+            "entry": true,
+            "return": -38
+          },
+          {
+            "entry": false,
+            "return": 0
+          }
+        ],
+        "writerWaitedAtFence": true,
+        "newerOpenedInode": 35399880,
+        "oldWriterInode": 35399880,
+        "oldWriterLandedOnCanonical": true,
+        "newerWriterStillCanonical": true,
+        "canonicalContainsNewerWrite": true,
+        "indexPreserved": true
+      },
+      {
+        "repeat": 3,
+        "pass": true,
+        "helperPid": 3705967,
+        "exchangeStops": [
+          {
+            "entry": true,
+            "return": -38
+          },
+          {
+            "entry": false,
+            "return": 0
+          }
+        ],
+        "writerWaitedAtFence": true,
+        "newerOpenedInode": 35409158,
+        "oldWriterInode": 35409158,
+        "oldWriterLandedOnCanonical": true,
+        "newerWriterStillCanonical": true,
+        "canonicalContainsNewerWrite": true,
+        "indexPreserved": true
+      },
+      {
+        "repeat": 4,
+        "pass": true,
+        "helperPid": 3709395,
+        "exchangeStops": [
+          {
+            "entry": true,
+            "return": -38
+          },
+          {
+            "entry": false,
+            "return": 0
+          }
+        ],
+        "writerWaitedAtFence": true,
+        "newerOpenedInode": 35522606,
+        "oldWriterInode": 35522606,
+        "oldWriterLandedOnCanonical": true,
+        "newerWriterStillCanonical": true,
+        "canonicalContainsNewerWrite": true,
+        "indexPreserved": true
+      },
+      {
+        "repeat": 5,
+        "pass": true,
+        "helperPid": 3711218,
+        "exchangeStops": [
+          {
+            "entry": true,
+            "return": -38
+          },
+          {
+            "entry": false,
+            "return": 0
+          }
+        ],
+        "writerWaitedAtFence": true,
+        "newerOpenedInode": 35408178,
+        "oldWriterInode": 35408178,
+        "oldWriterLandedOnCanonical": true,
+        "newerWriterStillCanonical": true,
+        "canonicalContainsNewerWrite": true,
+        "indexPreserved": true
+      }
+    ],
+    "passed": 5,
+    "failed": 0,
+    "rawLog": "exchange-syscalls-cooperative-repeat-2026-10-29.log",
+    "result": "5/5 pass: queued Warden writer waited at the fence, opened the post-exchange canonical inode, and both accepted writer FDs retained canonical identity; index unchanged."
+  },
+  "rawUncooperativeNegative": {
+    "artifact": "exchange-syscalls-raw-negative-current-2026-10-29.json",
+    "scriptExit": 1,
+    "strictPass": false,
+    "helperResponse": "[\"84cd80fa3bb8a1f77283a3ffdf8e10f1ce6caa3b2be844ed626cb82837111574\",true]",
+    "oldWriterLandedOnCanonical": false,
+    "oldWriterLandedDisplaced": true,
+    "newerWriterStillCanonical": true,
+    "indexPreserved": true,
+    "interpretation": "Uncooperative raw opener remains outside the cooperative guarantee: it followed the displaced inode while the newer canonical writer stayed canonical. This is a strict negative, not an accepted pass or a general preservation claim."
+  },
+  "historicalReceiptCaveat": "norollback-qualified-v3-receipt.json cites older raw-schedule artifacts as pass=true despite displaced old-writer identity; read it as the earlier narrower criterion, not as proof that arbitrary queued openers stay canonical. The independent review timed out.",
+  "remaining": "No current raw-opener settlement/refusal proof, full current dracon-sync suite, release/workspace gates, deployment, loaded-runtime verification, or fleet-idle observation is supplied by this qualification."
+}

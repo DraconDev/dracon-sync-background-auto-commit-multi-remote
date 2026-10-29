@@ -1,0 +1,285 @@
+
+=== Cooperative syscall repeat 1 / 5 ===
+{
+  "scope": "actual isolated helper / owned disposable processes only; no deployment/fleet claim",
+  "helper": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/dracon-sync",
+  "helperSha256": "1fd75c77cfe87d0ddc9e36efaa40479a13db420619c85901cac50b1875957bd4",
+  "writerMode": "independent-warden-fenced-writer",
+  "warden": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/dracon-warden",
+  "wardenSha256": "e32b75f31d3c9e0d035546bc79e3b0e1b9b37b81a637a6272cb2e00790f8980d",
+  "contract": "Both accepted writer FDs retain canonical identity; private retention alone is not a pass.",
+  "baseline": {
+    "response": [
+      "84cd80fa3bb8a1f77283a3ffdf8e10f1ce6caa3b2be844ed626cb82837111574",
+      true
+    ],
+    "canonicalSha256": "bf5bdfc0c458cb1606589bf152214bd4a0f2ea16ee37ac6d7ab98039bd00b9d4",
+    "displacedSha256": "4152ec480ad1a2792ade0de86653b3d0333e20199538d192efee30d317dfea97",
+    "pass": true
+  },
+  "adversarial": {
+    "expectFinalResponse": true,
+    "writerMode": "independent-warden-fenced-writer",
+    "helperPid": 3700565,
+    "requestOriginalInode": 35402820,
+    "requestDesiredInode": 35403011,
+    "exchangeStops": [
+      {
+        "entry": true,
+        "return": -38
+      },
+      {
+        "entry": false,
+        "return": 0
+      }
+    ],
+    "writerFencePid": 3700592,
+    "writerWaitedAtFence": true,
+    "newerOpenedInode": 35403011,
+    "canonicalAtNewOpen": 35403011,
+    "helperWaitStatus": 0,
+    "helperStdout": "[\"84cd80fa3bb8a1f77283a3ffdf8e10f1ce6caa3b2be844ed626cb82837111574\",true]",
+    "helperStderr": "",
+    "oldWriter": {
+      "pid": 3700680,
+      "inode": 35403011
+    },
+    "oldWriterLandedOnCanonical": true,
+    "oldWriterLandedDisplaced": false,
+    "canonicalAfterBothWrites": "4e45572d57524954455261642072657461696e65640a",
+    "privateAfterBothWrites": "6f70657261746f72204f524947494e414c207061796c6f61640a",
+    "indexPreserved": true,
+    "newerWriterStillCanonical": true,
+    "canonicalContainsNewerWrite": true
+  },
+  "pass": true
+}
+{"helperSha256": "1fd75c77cfe87d0ddc9e36efaa40479a13db420619c85901cac50b1875957bd4", "indexPreserved": true, "newerWriterStillCanonical": true, "oldWriterLandedOnCanonical": true, "pass": true, "repeat": 1, "wardenSha256": "e32b75f31d3c9e0d035546bc79e3b0e1b9b37b81a637a6272cb2e00790f8980d", "writerMode": "independent-warden-fenced-writer", "writerWaitedAtFence": true}
+
+=== Cooperative syscall repeat 2 / 5 ===
+{
+  "scope": "actual isolated helper / owned disposable processes only; no deployment/fleet claim",
+  "helper": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/dracon-sync",
+  "helperSha256": "1fd75c77cfe87d0ddc9e36efaa40479a13db420619c85901cac50b1875957bd4",
+  "writerMode": "independent-warden-fenced-writer",
+  "warden": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/dracon-warden",
+  "wardenSha256": "e32b75f31d3c9e0d035546bc79e3b0e1b9b37b81a637a6272cb2e00790f8980d",
+  "contract": "Both accepted writer FDs retain canonical identity; private retention alone is not a pass.",
+  "baseline": {
+    "response": [
+      "84cd80fa3bb8a1f77283a3ffdf8e10f1ce6caa3b2be844ed626cb82837111574",
+      true
+    ],
+    "canonicalSha256": "bf5bdfc0c458cb1606589bf152214bd4a0f2ea16ee37ac6d7ab98039bd00b9d4",
+    "displacedSha256": "4152ec480ad1a2792ade0de86653b3d0333e20199538d192efee30d317dfea97",
+    "pass": true
+  },
+  "adversarial": {
+    "expectFinalResponse": true,
+    "writerMode": "independent-warden-fenced-writer",
+    "helperPid": 3701682,
+    "requestOriginalInode": 35394361,
+    "requestDesiredInode": 35399880,
+    "exchangeStops": [
+      {
+        "entry": true,
+        "return": -38
+      },
+      {
+        "entry": false,
+        "return": 0
+      }
+    ],
+    "writerFencePid": 3701707,
+    "writerWaitedAtFence": true,
+    "newerOpenedInode": 35399880,
+    "canonicalAtNewOpen": 35399880,
+    "helperWaitStatus": 0,
+    "helperStdout": "[\"84cd80fa3bb8a1f77283a3ffdf8e10f1ce6caa3b2be844ed626cb82837111574\",true]",
+    "helperStderr": "",
+    "oldWriter": {
+      "pid": 3701746,
+      "inode": 35399880
+    },
+    "oldWriterLandedOnCanonical": true,
+    "oldWriterLandedDisplaced": false,
+    "canonicalAfterBothWrites": "4e45572d57524954455261642072657461696e65640a",
+    "privateAfterBothWrites": "6f70657261746f72204f524947494e414c207061796c6f61640a",
+    "indexPreserved": true,
+    "newerWriterStillCanonical": true,
+    "canonicalContainsNewerWrite": true
+  },
+  "pass": true
+}
+{"helperSha256": "1fd75c77cfe87d0ddc9e36efaa40479a13db420619c85901cac50b1875957bd4", "indexPreserved": true, "newerWriterStillCanonical": true, "oldWriterLandedOnCanonical": true, "pass": true, "repeat": 2, "wardenSha256": "e32b75f31d3c9e0d035546bc79e3b0e1b9b37b81a637a6272cb2e00790f8980d", "writerMode": "independent-warden-fenced-writer", "writerWaitedAtFence": true}
+
+=== Cooperative syscall repeat 3 / 5 ===
+{
+  "scope": "actual isolated helper / owned disposable processes only; no deployment/fleet claim",
+  "helper": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/dracon-sync",
+  "helperSha256": "1fd75c77cfe87d0ddc9e36efaa40479a13db420619c85901cac50b1875957bd4",
+  "writerMode": "independent-warden-fenced-writer",
+  "warden": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/dracon-warden",
+  "wardenSha256": "e32b75f31d3c9e0d035546bc79e3b0e1b9b37b81a637a6272cb2e00790f8980d",
+  "contract": "Both accepted writer FDs retain canonical identity; private retention alone is not a pass.",
+  "baseline": {
+    "response": [
+      "84cd80fa3bb8a1f77283a3ffdf8e10f1ce6caa3b2be844ed626cb82837111574",
+      true
+    ],
+    "canonicalSha256": "bf5bdfc0c458cb1606589bf152214bd4a0f2ea16ee37ac6d7ab98039bd00b9d4",
+    "displacedSha256": "4152ec480ad1a2792ade0de86653b3d0333e20199538d192efee30d317dfea97",
+    "pass": true
+  },
+  "adversarial": {
+    "expectFinalResponse": true,
+    "writerMode": "independent-warden-fenced-writer",
+    "helperPid": 3705967,
+    "requestOriginalInode": 35409106,
+    "requestDesiredInode": 35409158,
+    "exchangeStops": [
+      {
+        "entry": true,
+        "return": -38
+      },
+      {
+        "entry": false,
+        "return": 0
+      }
+    ],
+    "writerFencePid": 3705989,
+    "writerWaitedAtFence": true,
+    "newerOpenedInode": 35409158,
+    "canonicalAtNewOpen": 35409158,
+    "helperWaitStatus": 0,
+    "helperStdout": "[\"84cd80fa3bb8a1f77283a3ffdf8e10f1ce6caa3b2be844ed626cb82837111574\",true]",
+    "helperStderr": "",
+    "oldWriter": {
+      "pid": 3706025,
+      "inode": 35409158
+    },
+    "oldWriterLandedOnCanonical": true,
+    "oldWriterLandedDisplaced": false,
+    "canonicalAfterBothWrites": "4e45572d57524954455261642072657461696e65640a",
+    "privateAfterBothWrites": "6f70657261746f72204f524947494e414c207061796c6f61640a",
+    "indexPreserved": true,
+    "newerWriterStillCanonical": true,
+    "canonicalContainsNewerWrite": true
+  },
+  "pass": true
+}
+{"helperSha256": "1fd75c77cfe87d0ddc9e36efaa40479a13db420619c85901cac50b1875957bd4", "indexPreserved": true, "newerWriterStillCanonical": true, "oldWriterLandedOnCanonical": true, "pass": true, "repeat": 3, "wardenSha256": "e32b75f31d3c9e0d035546bc79e3b0e1b9b37b81a637a6272cb2e00790f8980d", "writerMode": "independent-warden-fenced-writer", "writerWaitedAtFence": true}
+
+=== Cooperative syscall repeat 4 / 5 ===
+{
+  "scope": "actual isolated helper / owned disposable processes only; no deployment/fleet claim",
+  "helper": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/dracon-sync",
+  "helperSha256": "1fd75c77cfe87d0ddc9e36efaa40479a13db420619c85901cac50b1875957bd4",
+  "writerMode": "independent-warden-fenced-writer",
+  "warden": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/dracon-warden",
+  "wardenSha256": "e32b75f31d3c9e0d035546bc79e3b0e1b9b37b81a637a6272cb2e00790f8980d",
+  "contract": "Both accepted writer FDs retain canonical identity; private retention alone is not a pass.",
+  "baseline": {
+    "response": [
+      "84cd80fa3bb8a1f77283a3ffdf8e10f1ce6caa3b2be844ed626cb82837111574",
+      true
+    ],
+    "canonicalSha256": "bf5bdfc0c458cb1606589bf152214bd4a0f2ea16ee37ac6d7ab98039bd00b9d4",
+    "displacedSha256": "4152ec480ad1a2792ade0de86653b3d0333e20199538d192efee30d317dfea97",
+    "pass": true
+  },
+  "adversarial": {
+    "expectFinalResponse": true,
+    "writerMode": "independent-warden-fenced-writer",
+    "helperPid": 3709395,
+    "requestOriginalInode": 35408298,
+    "requestDesiredInode": 35522606,
+    "exchangeStops": [
+      {
+        "entry": true,
+        "return": -38
+      },
+      {
+        "entry": false,
+        "return": 0
+      }
+    ],
+    "writerFencePid": 3709406,
+    "writerWaitedAtFence": true,
+    "newerOpenedInode": 35522606,
+    "canonicalAtNewOpen": 35522606,
+    "helperWaitStatus": 0,
+    "helperStdout": "[\"84cd80fa3bb8a1f77283a3ffdf8e10f1ce6caa3b2be844ed626cb82837111574\",true]",
+    "helperStderr": "",
+    "oldWriter": {
+      "pid": 3709482,
+      "inode": 35522606
+    },
+    "oldWriterLandedOnCanonical": true,
+    "oldWriterLandedDisplaced": false,
+    "canonicalAfterBothWrites": "4e45572d57524954455261642072657461696e65640a",
+    "privateAfterBothWrites": "6f70657261746f72204f524947494e414c207061796c6f61640a",
+    "indexPreserved": true,
+    "newerWriterStillCanonical": true,
+    "canonicalContainsNewerWrite": true
+  },
+  "pass": true
+}
+{"helperSha256": "1fd75c77cfe87d0ddc9e36efaa40479a13db420619c85901cac50b1875957bd4", "indexPreserved": true, "newerWriterStillCanonical": true, "oldWriterLandedOnCanonical": true, "pass": true, "repeat": 4, "wardenSha256": "e32b75f31d3c9e0d035546bc79e3b0e1b9b37b81a637a6272cb2e00790f8980d", "writerMode": "independent-warden-fenced-writer", "writerWaitedAtFence": true}
+
+=== Cooperative syscall repeat 5 / 5 ===
+{
+  "scope": "actual isolated helper / owned disposable processes only; no deployment/fleet claim",
+  "helper": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/dracon-sync",
+  "helperSha256": "1fd75c77cfe87d0ddc9e36efaa40479a13db420619c85901cac50b1875957bd4",
+  "writerMode": "independent-warden-fenced-writer",
+  "warden": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target/debug/dracon-warden",
+  "wardenSha256": "e32b75f31d3c9e0d035546bc79e3b0e1b9b37b81a637a6272cb2e00790f8980d",
+  "contract": "Both accepted writer FDs retain canonical identity; private retention alone is not a pass.",
+  "baseline": {
+    "response": [
+      "84cd80fa3bb8a1f77283a3ffdf8e10f1ce6caa3b2be844ed626cb82837111574",
+      true
+    ],
+    "canonicalSha256": "bf5bdfc0c458cb1606589bf152214bd4a0f2ea16ee37ac6d7ab98039bd00b9d4",
+    "displacedSha256": "4152ec480ad1a2792ade0de86653b3d0333e20199538d192efee30d317dfea97",
+    "pass": true
+  },
+  "adversarial": {
+    "expectFinalResponse": true,
+    "writerMode": "independent-warden-fenced-writer",
+    "helperPid": 3711218,
+    "requestOriginalInode": 35406845,
+    "requestDesiredInode": 35408178,
+    "exchangeStops": [
+      {
+        "entry": true,
+        "return": -38
+      },
+      {
+        "entry": false,
+        "return": 0
+      }
+    ],
+    "writerFencePid": 3711244,
+    "writerWaitedAtFence": true,
+    "newerOpenedInode": 35408178,
+    "canonicalAtNewOpen": 35408178,
+    "helperWaitStatus": 0,
+    "helperStdout": "[\"84cd80fa3bb8a1f77283a3ffdf8e10f1ce6caa3b2be844ed626cb82837111574\",true]",
+    "helperStderr": "",
+    "oldWriter": {
+      "pid": 3711309,
+      "inode": 35408178
+    },
+    "oldWriterLandedOnCanonical": true,
+    "oldWriterLandedDisplaced": false,
+    "canonicalAfterBothWrites": "4e45572d57524954455261642072657461696e65640a",
+    "privateAfterBothWrites": "6f70657261746f72204f524947494e414c207061796c6f61640a",
+    "indexPreserved": true,
+    "newerWriterStillCanonical": true,
+    "canonicalContainsNewerWrite": true
+  },
+  "pass": true
+}
+{"helperSha256": "1fd75c77cfe87d0ddc9e36efaa40479a13db420619c85901cac50b1875957bd4", "indexPreserved": true, "newerWriterStillCanonical": true, "oldWriterLandedOnCanonical": true, "pass": true, "repeat": 5, "wardenSha256": "e32b75f31d3c9e0d035546bc79e3b0e1b9b37b81a637a6272cb2e00790f8980d", "writerMode": "independent-warden-fenced-writer", "writerWaitedAtFence": true}
