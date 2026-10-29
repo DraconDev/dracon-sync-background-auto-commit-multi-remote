@@ -1,0 +1,35 @@
+{
+  "gate": "workspace-gates-2026-10-29",
+  "observedAt": "2026-10-29T17:42:50Z",
+  "sourceRevision": "b4a9e972541e4011549f64798c8b0857a784e9c6",
+  "sourceTreeDirty": true,
+  "gates": {
+    "workspaceTests": {
+      "command": "cargo test --workspace --locked -- --test-threads=1",
+      "exit": 0,
+      "passed": 2911,
+      "failed": 0
+    },
+    "releaseBuild": {
+      "command": "cargo build --release --locked",
+      "exit": 0,
+      "durationSeconds": 644
+    },
+    "clippy": {
+      "command": "cargo clippy --workspace --locked --all-targets -- -D warnings",
+      "exit": 0
+    },
+    "cargoDeny": {
+      "command": "cargo deny check",
+      "exit": 0,
+      "advisories": "ok",
+      "bans": "ok",
+      "licenses": "ok",
+      "sources": "ok"
+    }
+  },
+  "notes": [
+    "deny previously FAILED on RUSTSEC-2026-0418 (libz-sys build-script environment leak); repaired by cargo update -p libz-sys --precise 1.1.31, NOT by an ignore entry. deny.toml [advisories] ignore remains [].",
+    "The first workspace run failed one test (sync::push_isolation_tests::cancelled_push_hook_cleans_owned_descendants_but_not_interactive_sentinel) with 'hook never entered: Elapsed(())' at host load 66. It passed 3/3 in isolation (0.26s/2.77s/2.51s). Root cause was the fixture's 10s enter-budget being starved by ~1500 preceding serial tests, not a behavior regression. Repaired by introducing FIXTURE_ENTER_BUDGET (120s) for fixture *entry* waits only; production deadlines are unchanged. A negative control with the hook deliberately never signalling still FAILS the test (3.58s), so the assertion was not weakened."
+  ]
+}

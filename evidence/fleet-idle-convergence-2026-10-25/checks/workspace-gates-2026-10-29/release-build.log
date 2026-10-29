@@ -1,0 +1,13 @@
+   Compiling libz-sys v1.1.31
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+   Compiling dracon-security v0.4.0 (/home/dracon/Dev/dracon-utilities/dracon-warden/src/security)
+   Compiling dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+   Compiling libssh2-sys v0.3.3
+   Compiling libgit2-sys v0.18.8+1.9.7
+   Compiling ssh2 v0.9.6
+   Compiling dracon-system-lib v94.2.7
+   Compiling dracon-system v0.112.51 (/home/dracon/Dev/dracon-utilities/dracon-system)
+   Compiling git2 v0.21.0
+   Compiling dracon-git v94.7.2
+    Finished `release` profile [optimized] target(s) in 10m 44s
+EXIT:0
