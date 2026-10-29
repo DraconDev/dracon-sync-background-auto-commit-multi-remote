@@ -2047,3 +2047,45 @@ zero concerns, zero failures throughout, with only transient AHEAD/PENDING as
 the daemon drained live edits.
 
 Full record: `checks/final-assembly-2026-10-28/DECISION-EXECUTED.md`.
+
+### Follow-up — 2026-10-29 15:20 UTC: polis refusal root-caused and cleared; ai-tts-pro probe retired
+
+Two independent convergence blockers were root-caused by running the *real*
+mechanisms rather than inferring from status.
+
+**Polis.** The repeated 15-minute backoff was a genuine guard decision, not a
+daemon defect: reachable history measured 2,365,393,383 bytes against GitHub's
+2,344,615,936 limit (20.8 MB over), so `pre-commit` correctly refused and the
+daemon correctly backed off. The bloat was one un-ignored
+`pi-session-*.html` session export rewritten and re-committed 14 times as
+~75 MB loose blobs, which Git never delta-compressed: 4,606 loose objects
+holding 1.86 GB against 94,325 packed objects holding 0.91 GB. All loose
+objects were *reachable* (0 orphans), so this was not reclaimable garbage and
+`gc --prune=now` would have been the wrong fix. `dracon-sync maintenance --
+git gc` repacked 2.78 GB to 2.08 GB; stored dropped 2.253 GB → 1.735 GB and the
+guard now reports `code=OK` with 522 MB headroom. The real effective hook was
+executed on the live staged epoch and exited 0. Report:
+`checks/polis-high-water-2026-10-29/REPORT.md`. Classification: correct guard,
+correct daemon, real over-limit measurement; the only genuine defect found is
+that the daemon logs the retained epoch path but never the hook's stderr, which
+is why this stayed unclassified across many checkpoints.
+
+**ai-tts-pro.** Every browser push since 14:57 failed the 4-gate on
+`ai-tts-pro TEST`. The failing file
+`tests/real-wiki.tmp.test.ts` was an auto-committed *diagnostic probe* that
+reads `/tmp/train.html` from the host. The daemon's unit sets `PrivateTmp=true`,
+so the gate's frozen snapshot can never see that file — the probe failed with
+`ENOENT` no matter what the code did, blocking publication permanently. The
+probe had nonetheless found a real defect: extraction trims each text node
+independently, so an inline element abutting punctuation re-joined as
+"In Japan , which was…". Fixed in `lib/extract.ts` by collapsing the join space
+only where the right side cannot begin a word (`/[\s+([,.;:!?…)\]}%]|['’]\w)/`);
+the probe was retired and replaced with a hermetic inline-fixture regression in
+`tests/extract-wiki.dom.test.ts`. Negative control against the true pre-fix
+blob fails 2 of 3 new assertions and passes after the fix. Local gates on
+`ai-tts-pro`: typecheck clean, 285 tests / 0 fail, eslint clean, build OK.
+
+These two repairs close the two demonstrated causes of the current refusal and
+push-failure loops. Publication and a clean-idle fleet are still not claimed:
+the daemon must drain the remaining backlog, and polis's three local commits
+ahead of `318182d1e` were not pushed by hand.
