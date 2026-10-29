@@ -5108,17 +5108,14 @@ pub(crate) async fn maybe_auto_gc(
         ),
     }
     let attempts = AUTO_GC_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
-    attempts
-        .lock()
-        .unwrap_or_else(|p| p.into_inner())
-        .insert(
-            repo.to_path_buf(),
-            AutoGcState {
-                attempted_at: now,
-                loose_bytes_after_gc: loose.saturating_sub(loose_threshold_bytes),
-                succeeded: false,
-            },
-        );
+    attempts.lock().unwrap_or_else(|p| p.into_inner()).insert(
+        repo.to_path_buf(),
+        AutoGcState {
+            attempted_at: now,
+            loose_bytes_after_gc: loose.saturating_sub(loose_threshold_bytes),
+            succeeded: false,
+        },
+    );
 
     let started = std::time::Instant::now();
     match run_git_with_timeout(repo, &["gc", "--quiet"], 600, "gc (auto)").await {
@@ -5133,17 +5130,14 @@ pub(crate) async fn maybe_auto_gc(
                     parse_count_objects_loose_bytes(&String::from_utf8_lossy(&output.stdout))
                 })
                 .unwrap_or_else(|| loose.saturating_sub(loose_threshold_bytes));
-            attempts
-                .lock()
-                .unwrap_or_else(|p| p.into_inner())
-                .insert(
-                    repo.to_path_buf(),
-                    AutoGcState {
-                        attempted_at: now,
-                        loose_bytes_after_gc: loose_after,
-                        succeeded: true,
-                    },
-                );
+            attempts.lock().unwrap_or_else(|p| p.into_inner()).insert(
+                repo.to_path_buf(),
+                AutoGcState {
+                    attempted_at: now,
+                    loose_bytes_after_gc: loose_after,
+                    succeeded: true,
+                },
+            );
             eprintln!(
                 "🗑️ gc done for {} in {:.1}s (observed {:.2} MiB loose bytes after pack)",
                 repo.display(),
@@ -5567,26 +5561,12 @@ mod auto_gc_tests {
             succeeded: true,
         };
         assert_eq!(
-            super::auto_gc_trigger(
-                0,
-                threshold + threshold - 1,
-                0,
-                threshold,
-                Some(&last),
-                now,
-            ),
+            super::auto_gc_trigger(0, threshold + threshold - 1, 0, threshold, Some(&last), now,),
             None,
             "less than one threshold of new loose data must not repack repeatedly"
         );
         assert_eq!(
-            super::auto_gc_trigger(
-                0,
-                threshold * 2,
-                0,
-                threshold,
-                Some(&last),
-                now,
-            ),
+            super::auto_gc_trigger(0, threshold * 2, 0, threshold, Some(&last), now,),
             Some(super::AutoGcTrigger::LooseObjects)
         );
         let recent = super::AutoGcState {
@@ -5594,14 +5574,7 @@ mod auto_gc_tests {
             ..last
         };
         assert_eq!(
-            super::auto_gc_trigger(
-                0,
-                threshold * 3,
-                0,
-                threshold,
-                Some(&recent),
-                now,
-            ),
+            super::auto_gc_trigger(0, threshold * 3, 0, threshold, Some(&recent), now,),
             None,
             "the loose-object cooldown prevents a high-frequency gc loop"
         );
@@ -5617,14 +5590,7 @@ mod auto_gc_tests {
             succeeded: true,
         };
         assert_eq!(
-            super::auto_gc_trigger(
-                threshold,
-                0,
-                threshold,
-                0,
-                Some(&last),
-                now,
-            ),
+            super::auto_gc_trigger(threshold, 0, threshold, 0, Some(&last), now,),
             None
         );
         let old = super::AutoGcState {
@@ -5632,14 +5598,7 @@ mod auto_gc_tests {
             ..last
         };
         assert_eq!(
-            super::auto_gc_trigger(
-                threshold,
-                0,
-                threshold,
-                0,
-                Some(&old),
-                now,
-            ),
+            super::auto_gc_trigger(threshold, 0, threshold, 0, Some(&old), now,),
             Some(super::AutoGcTrigger::Garbage)
         );
     }
@@ -5693,9 +5652,11 @@ mod auto_gc_tests {
         // Both triggers disabled.
         assert!(super::maybe_auto_gc(&repo, 0, 0).await.is_none());
         // Fresh repo has ~0 garbage and no loose threshold configured.
-        assert!(super::maybe_auto_gc(&repo, 2 * 1024 * 1024 * 1024, 0)
-            .await
-            .is_none());
+        assert!(
+            super::maybe_auto_gc(&repo, 2 * 1024 * 1024 * 1024, 0)
+                .await
+                .is_none()
+        );
         let attempts =
             super::AUTO_GC_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
         let map = attempts.lock().unwrap_or_else(|p| p.into_inner());

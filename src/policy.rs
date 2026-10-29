@@ -2361,8 +2361,8 @@ mod tests {
             64 * 1024 * 1024,
             "TOML configs without the new field get the safe fleet default"
         );
-        let p: SyncPolicy = toml::from_str("auto_gc_loose_threshold_bytes = 0")
-            .expect("parse explicit opt-out");
+        let p: SyncPolicy =
+            toml::from_str("auto_gc_loose_threshold_bytes = 0").expect("parse explicit opt-out");
         assert_eq!(p.auto_gc_loose_threshold_bytes, 0);
         assert_eq!(SyncPolicy::default().auto_gc_loose_threshold_bytes, 0);
     }
