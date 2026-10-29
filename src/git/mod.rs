@@ -5101,7 +5101,7 @@ pub(crate) async fn maybe_auto_gc(
             garbage_threshold_bytes as f64 / 1073741824.0,
         ),
         AutoGcTrigger::LooseObjects => eprintln!(
-            "🗑️ {} has {:.2} MiB loose objects (> threshold {:.2} MiB since last pack) — running git gc",
+            "🗑️ {} has {:.2} MiB loose objects (growth threshold {:.2} MiB) — running git gc",
             repo.display(),
             loose as f64 / 1048576.0,
             loose_threshold_bytes as f64 / 1048576.0,
@@ -5128,14 +5128,16 @@ pub(crate) async fn maybe_auto_gc(
                 .filter(|output| output.status.success())
                 .map(|output| {
                     parse_count_objects_loose_bytes(&String::from_utf8_lossy(&output.stdout))
-                })
-                .unwrap_or_else(|| loose.saturating_sub(loose_threshold_bytes));
+                });
+            let baseline_known = loose_after.is_some();
+            let loose_after =
+                loose_after.unwrap_or_else(|| loose.saturating_sub(loose_threshold_bytes));
             attempts.lock().unwrap_or_else(|p| p.into_inner()).insert(
                 repo.to_path_buf(),
                 AutoGcState {
                     attempted_at: now,
                     loose_bytes_after_gc: loose_after,
-                    succeeded: true,
+                    succeeded: baseline_known,
                 },
             );
             eprintln!(
