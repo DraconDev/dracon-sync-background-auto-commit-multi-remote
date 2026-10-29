@@ -47,6 +47,15 @@ coverage, an overlapping cooperative writer at the exact final-close interval,
 or canonical publication. No binary/settings deployment in this phase.
 Task 4.1 remains open for the changed source assembly.
 
+On dracon-sync source `aba148619237`, `cargo build --locked -p dracon-sync`
+and strict all-target package Clippy now pass; targeted production hygiene and
+excluded-recovery regressions also pass. The full serial `cargo test -p
+dracon-sync` attempt timed out at 1800 seconds without a final suite result;
+its last alert-threshold test passed separately. Retained failures, pass logs and
+the bounded assessment are recorded in
+`../../../evidence/fleet-idle-convergence-2026-10-25/checks/epoch-integration-partial/current-sync-controls-2026-10-29.json`.
+This is not a release build or full-workspace gate.
+
 ## Integration inventory / remaining implementation
 
 1. Warden harden_repo and repair writers: source integrated, NOT deployed.

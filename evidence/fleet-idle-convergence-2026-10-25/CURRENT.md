@@ -1,5 +1,25 @@
 # Active systematic fleet-idle repair — checkpoint
 
+## 2026-10-29 — dracon-sync build and Clippy blocker corrected; full tests incomplete
+
+On dracon-sync source `aba148619237`, the debug package build and strict
+all-target package Clippy now pass. The build failure was a production call to
+`is_build_output_dir_name` hidden behind `cfg(test)`, plus an unused
+`auto_pull_merge` service parameter; both are corrected, and
+`artifact_component_classifies_build_output_names_for_production_hygiene`
+regresses the production path. The strict Clippy run then caught a single-element
+test-fixture loop in `dracon-sync/src/git/push.rs`; direct setup calls fixed it.
+
+Three targeted hygiene/excluded-recovery tests pass on the current source,
+including the one-exchange recovery result and archive-change concern behavior.
+The full serial `cargo test -p dracon-sync` attempt timed out at its 1800-second
+limit without a final suite summary; the last emitted alert-threshold test passed
+in isolation. This is incomplete evidence, not a passing package gate. Failure
+and pass logs plus a machine-readable assessment are retained in
+`checks/epoch-integration-partial/current-sync-controls-2026-10-29.json`.
+No release build, full-workspace gate, deployment, or loaded-runtime/fleet result
+is established by this update.
+
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
 The original goal remains active and incomplete. Warden's cooperative canonical-
