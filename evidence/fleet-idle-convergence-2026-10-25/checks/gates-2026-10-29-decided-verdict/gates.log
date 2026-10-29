@@ -1850,4 +1850,50 @@ test standard_files::tests::test_warns_when_template_missing ... ok
 test storage::tests::a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit ... ok
 test storage::tests::a_refusing_hook_blocks_a_storage_sealed_commit ... ok
 test storage::tests::a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order ... ok
-test storage::tests::attribute_query_caps_output_and_deadlines_blocked_input ... 
+test storage::tests::attribute_query_caps_output_and_deadlines_blocked_input ... ok
+test storage::tests::attribute_query_kills_descendants_holding_stdout_after_parent_exit ... ok
+test storage::tests::attribute_response_rejects_duplicates_excess_fields_and_large_values ... ok
+test storage::tests::batched_attribute_inventory_drains_large_pipes_and_keeps_literal_names ... ok
+test storage::tests::cold_clone_and_staged_attribute_removal_cannot_disable_storage_guard ... ok
+test storage::tests::comments_and_storage_named_patterns_do_not_activate_guard ... ok
+test storage::tests::configured_storage_commits_verified_tree_and_preserves_rejected_index ... ok
+test storage::tests::default_disabled_explicit_false_and_complete_rule_replacement ... ok
+test storage::tests::exclusions_and_large_unmatched_files_remain_visible ... ok
+test storage::tests::history_inventory_counts_unique_reachable_blobs_not_current_tree_bytes ... ok
+test storage::tests::history_inventory_handles_unborn_repository ... ok
+test storage::tests::included_driver_settings_require_an_explicit_guard_binding ... ok
+test storage::tests::journal_status_is_read_only_and_redacts_source_metadata ... ok
+test storage::tests::malformed_repo_storage_policy_is_a_hard_error_for_planning ... ok
+test storage::tests::ordinary_repo_has_no_storage_commit_or_guard_requirement ... ok
+test storage::tests::parent_inventory_does_not_follow_nested_standalone_repository ... ok
+test storage::tests::portable_detection_refuses_missing_blobs_oversize_and_symlink_indexes ... ok
+test storage::tests::real_attribute_query_drains_full_pipes_and_enforces_input_budget ... ok
+test storage::tests::real_git_inventory_is_read_only_ignores_payload_filters_and_reports_migration ... ok
+test storage::tests::reject_invalid_rules_and_secret_bearing_endpoints ... ok
+test storage::tests::reject_unapproved_backend_and_repo_backend_injection ... ok
+test storage::tests::repo_policy_symlinks_cannot_read_outside_repository ... ok
+test storage::tests::repository_cannot_downgrade_operator_backend_encryption ... ok
+test storage::tests::rule_order_threshold_and_no_universal_media_policy ... ok
+test storage::tests::sealed_commit_honors_a_refusing_reference_transaction_hook ... ok
+test storage::tests::sealed_commit_rejects_a_message_emptied_by_commit_msg ... ok
+test storage::tests::staged_nested_macro_and_quoted_storage_declarations_require_binding ... ok
+test storage::tests::storage_bootstrap_cannot_bypass_guard_with_no_verify ... ok
+test storage::tests::storage_bootstrap_without_local_driver_cannot_commit_hydrated_bytes ... ok
+test storage::tests::symlinks_and_non_utf8_paths_are_not_silently_followed_or_conflated ... ok
+test stuck_route::tests::cause_falls_back_to_first_lines ... ok
+test stuck_route::tests::dedups_same_tip_episode ... ok
+test stuck_route::tests::new_tip_is_a_new_episode ... ok
+test stuck_route::tests::rederive_files_despite_misclassified_summary ... warning: You appear to have cloned an empty repository.
+ok
+test stuck_route::tests::routes_hook_refusal_with_guard_json_cause ... ok
+test stuck_route::tests::skips_repo_without_ledger ... ok
+test stuck_route::tests::skips_transient_network ... ok
+test stuck_route::tests::skips_young_stuck ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_concurrent_manifest_preserves_independent_writer ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery ... ok
+test sync::bucket_qualification_tests::bucket_qualification_later_materialized_bytes_never_become_false_no_work ... ok
+test sync::diff_tests::test_fallback_entries_recalculate_staged_files ... ok
+test sync::diff_tests::test_retain_existing_stage_paths_drops_vanished ... ok
+test sync::excluded_revert::crash_tests::excluded_recovery_legacy_permission_repair_never_follows_archive_symlinks ... ok
+test sync::excluded_revert::crash_tests::excluded_recovery_parent_crash_kills_actual_lease_holder_without_late_restores ... 
