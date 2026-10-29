@@ -7,6 +7,16 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Semaphore;
 
+/// Budget for "wait until the fixture hook/runtime started".
+///
+/// These waits assert that a fixture *did* enter, so they must survive
+/// scheduler starvation rather than act as a behavior deadline. The workspace
+/// gate runs this file after ~1500 preceding tests on a shared host; a 10s
+/// window was observed to expire there while the same test passed in 0.26s in
+/// isolation. The assertion stays identical — only the host-pressure margin
+/// changes. Production behavior deadlines elsewhere stay tight on purpose.
+const FIXTURE_ENTER_BUDGET: Duration = Duration::from_secs(120);
+
 struct Fixture {
     root: tempfile::TempDir,
     repo: PathBuf,
@@ -122,7 +132,14 @@ exit 0
         })))
     }
     async fn entered(&self) -> (u32, u32) {
-        tokio::time::timeout(Duration::from_secs(10), async {
+        // A fixture wait, not a behavior deadline: the assertion is "the hook
+        // DID enter", so the budget must absorb scheduler starvation. At the
+        // workspace gate this file runs after ~1500 serial tests, and under a
+        // host load average above 60 the fixture once missed a 10s window
+        // while the identical test passed in 0.26s in isolation. Raising the
+        // wait keeps the assertion exactly as strict (it still fails when the
+        // hook never enters) without turning host pressure into a red gate.
+        tokio::time::timeout(FIXTURE_ENTER_BUDGET, async {
             loop {
                 if let Ok(text) = std::fs::read_to_string(self.repo.join("hook-entered")) {
                     let pids: Vec<u32> = text
