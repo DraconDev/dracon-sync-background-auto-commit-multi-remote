@@ -210,7 +210,7 @@ This is not a release build or full-workspace gate.
   queued-open approval. Preserve the single-exchange/no-rollback invariant,
   retain the raw negative, expand the cooperative schedule to other supported
   writers, and do not claim general uncooperative-writer safety.
-- Uncooperative/unknown writers remain refusal/unsupported evidence, never a pass.
+- Uncooperative/unknown writers remain unsupported, not a passing control. The current raw negative returns helper success while the old writer lands on the displaced inode; parent settlement/refusal for that exact timing must be qualified before anyone claims it blocks publication.
 - Parent death, timeout, cancellation, ENOSPC, symlink/namespace replacement,
   linked-worktree and independent-repository concurrency controls.
 - All affected tool interfaces loaded and executed, not merely installed; scope
