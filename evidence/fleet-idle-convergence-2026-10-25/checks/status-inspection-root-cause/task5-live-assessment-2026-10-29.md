@@ -84,3 +84,22 @@ The earlier 09:02 log still records retained follow-up work, and this was only
 a path-limited status check—not proof that Doomtap's whole worktree or the
 fleet is clean and idle. A fresh complete fleet status remains unrun while the
 browser publication worker and platform inspection/retry activity continue.
+
+## Follow-up — current daemon activity and utilities remotes (2026-10-29 09:29 UTC)
+
+The daemon remains active. The 09:28 scheduler snapshot has
+`browser-extensions-shared` in `pushing` (publication age about 398 seconds),
+`dracon-platform` and `polis` retrying, and multiple status-pending inspections;
+the journal reports the browser backlog growing from 86 to 105 unpushed commits
+through 09:28:15. At 09:27:54 host load was 12.28/19.62/23.64 with 1.4 GiB
+available and 28 GiB swap used. No full `dracon-sync repos` snapshot was run
+under this active work and memory pressure.
+
+The utilities `dracon-sync` checkout's local main
+`57fc613c38d86cd2e463255522a60c3f01a05da7` was advertised by read-only
+`ls-remote` on all three currently configured remotes (`github`, `gitlab`, and
+`origin`). The documented Codeberg destination is still absent from this
+checkout and remains the separate quota-safe operator blocker; matching
+configured refs do not satisfy that missing destination. This is evidence
+publication of the current utilities commit to configured remotes, not
+fleet-wide convergence.

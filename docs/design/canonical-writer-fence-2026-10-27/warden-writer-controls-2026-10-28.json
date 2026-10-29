@@ -37,6 +37,17 @@
     "securityMarkerMigrationAliases": "2 passed; refuses hardlink and symlink-root paths without changing metadata",
     "securityBackupRestoreHardlinkRefusal": "1 passed; refuses restoring through a hardlink alias before truncation"
   },
+  "postReceiptPublication": {
+    "observedDate": "2026-10-29",
+    "localHead": "aa351b5f6cab65199c4f69c3177641adfa12a5e9",
+    "advertisedMain": {
+      "github": "aa351b5f6cab65199c4f69c3177641adfa12a5e9",
+      "gitlab": "aa351b5f6cab65199c4f69c3177641adfa12a5e9",
+      "origin": "aa351b5f6cab65199c4f69c3177641adfa12a5e9"
+    },
+    "method": "read-only git ls-remote --heads <remote> refs/heads/main",
+    "scope": "Warden source/test publication only; this does not prove release deployment or loaded-runtime execution"
+  },
   "nonGateRuns": [
     {
       "command": "cargo test --locked -p dracon-warden --test integration_test resmudge_apply_waits_safely_and_releases_the_fence_after_publication -- --nocapture (initial fixture)",
