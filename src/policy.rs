@@ -2380,6 +2380,7 @@ mod tests {
         "auto_commit_backstop_min_age_secs",
         "auto_commit_backstop_threshold",
         "auto_gc_garbage_threshold_bytes",
+        "auto_gc_loose_threshold_bytes",
         "epoch_spool_max_age_secs",
         "auto_github_private",
         "auto_github_private_account",
