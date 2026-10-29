@@ -3527,3 +3527,5 @@ TEST_EXIT=0
     Finished `release` profile [optimized] target(s) in 1m 13s
 BUILD_EXIT=0
    Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 15.61s
+CLIPPY_EXIT=0
