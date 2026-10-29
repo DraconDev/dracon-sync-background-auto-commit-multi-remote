@@ -1924,4 +1924,7 @@ test sync::hygiene::tests::hygiene_durable_policy_optout_and_symlink_registry_re
 test sync::hygiene::tests::hygiene_durable_retry_survives_production_commit_and_process_exit_with_writer_refusal ... ok
 test sync::hygiene::tests::hygiene_durable_uncommitted_candidate_recovers_only_exact_owned_tree_after_restart ... ok
 test sync::hygiene::tests::hygiene_generated_ignore_never_adopts_intervening_content_as_old_baseline ... ok
-test sync::hygiene::tests::hygiene_generated_ignore_preserves_existing_writer_and_visible_recovery ... 
+test sync::hygiene::tests::hygiene_generated_ignore_preserves_existing_writer_and_visible_recovery ... ok
+test sync::hygiene::tests::hygiene_generated_ignore_rejects_symlink_and_hardlink_without_modifying_targets ... ok
+test sync::hygiene::tests::hygiene_generated_ignore_waits_for_writer_fence_before_capture_and_recovers ... ok
+test sync::hygiene::tests::hygiene_large_only_production_cycle_is_admitted_after_clean_warmup ... 
