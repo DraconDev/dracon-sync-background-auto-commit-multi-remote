@@ -48,6 +48,34 @@
       "log": "current-sync-targeted-regressions-2026-10-29.log"
     }
   ],
+  "postReceiptControls": {
+    "scope": "additional disposable actual-helper ptrace qualification; no deployment, loaded-runtime, or fleet claim",
+    "helperBuildSourceHead": "aba148619237e38c035a0df0537020f582942b49",
+    "currentDraconSyncHeadAtEvidenceReview": "05a5c960b07d0f2ee6e03e97f5b30f2bb1d9fbe2",
+    "helperSha256": "1fd75c77cfe87d0ddc9e36efaa40479a13db420619c85901cac50b1875957bd4",
+    "wardenSha256": "e32b75f31d3c9e0d035546bc79e3b0e1b9b37b81a637a6272cb2e00790f8980d",
+    "cooperativeWardenSchedule": {
+      "command": "python3 qualify-exchange-syscalls.py --helper <isolated>/debug/dracon-sync --warden <isolated>/debug/dracon-warden --output <per-run-json>",
+      "runs": 5,
+      "passed": 5,
+      "failed": 0,
+      "result": "Each run stopped the helper at real renameat2 entry/exit, verified the independent Warden writer waited on the canonical fence, then verified the queued writer and newer direct FD both remained on the canonical inode; index bytes unchanged.",
+      "receipt": "exchange-syscalls-cooperative-repeat-2026-10-29.json",
+      "rawLog": "exchange-syscalls-cooperative-repeat-2026-10-29.log"
+    },
+    "rawUncooperativeNegative": {
+      "runs": 1,
+      "scriptExit": 1,
+      "strictPass": false,
+      "helperResponse": true,
+      "oldWriterLandedOnCanonical": false,
+      "oldWriterLandedDisplaced": true,
+      "newerWriterStillCanonical": true,
+      "indexPreserved": true,
+      "receipt": "exchange-syscalls-raw-negative-current-2026-10-29.json",
+      "interpretation": "Raw nonparticipant remains outside the cooperative guarantee; exact parent settlement/refusal for this timing is not qualified and must not be claimed safe."
+    }
+  },
   "retainedInitialFailures": [
     {
       "command": "cargo build --locked -p dracon-sync",
