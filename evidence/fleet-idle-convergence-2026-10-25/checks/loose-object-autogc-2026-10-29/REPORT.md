@@ -117,3 +117,35 @@ polis un-pushable.
   in the sibling report predates it and went through `dracon-sync maintenance`.
 - The garbage trigger is unchanged in intent and cooldown; only the shared
   parser and the state bookkeeping it now shares with the loose trigger are new.
+
+## Installed-execution receipt (released binary, disposable fixture)
+
+The released artifact (sha256 `13c7268c…`, `dracon-sync 0.113.96`, containing
+this repair) was executed as a process against a disposable repo with 40
+committed ~200 KB blobs and **no** packed objects:
+
+```
+before: count=120 loose, size=10880 KiB, in-pack=0, packs=0   (≈10.62 MiB loose)
+threshold: auto_gc_loose_threshold_bytes = 1048576
+```
+
+Real run output:
+
+```
+🗑️ …/repo has 10.62 MiB loose objects (growth threshold 1.00 MiB) — running git gc
+🗑️ gc done for …/repo in 1.4s (observed 0.00 MiB loose bytes after pack)
+```
+
+```
+after:  count=0 loose, size=0 KiB, in-pack=120, packs=1
+```
+
+So the new trigger fires in the shipped binary, repacks reachable loose objects,
+and leaves `size-garbage` at 0 — i.e. it acted on **reachable** bloat, which the
+garbage trigger structurally cannot see. No history was rewritten and the
+worktree was not touched.
+
+Receipt: `/home/dracon/.local/state/dracon-sync/qualification/decided-verdict-loose-autogc-2026-10-29/installed-execution-receipt.json`.
+
+**Not a deployed-daemon observation:** the service still runs the earlier binary
+(`4ddf44f4…`), which has no `auto_gc_loose_threshold_bytes` string at all.
