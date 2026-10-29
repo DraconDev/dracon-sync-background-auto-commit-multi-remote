@@ -112,9 +112,10 @@ The temporary directory for a settled hygiene-review run was absent, but its
 saved reviewer report was recovered and preserved under
 `checks/final-assembly-2026-10-28/`. The review's second-exchange concern was
 about an earlier source revision: current excluded-recovery code performs one
-finalizing exchange and does not roll it back. A follow-up records the source
-comparison and the remaining limit—no exact simultaneous queued old/new open
-schedule has been qualified.
+finalizing exchange and does not roll it back. The initial review follow-up did
+not include an exact concurrent schedule; the 2026-10-29 requalification now
+records five cooperative Warden queue passes and preserves the raw-opener
+negative boundary below.
 
 The operator's junk-runner tracking-policy choice was executed; do not treat the
 old pending-decision and pre-decision idle snapshot below as current. Their
