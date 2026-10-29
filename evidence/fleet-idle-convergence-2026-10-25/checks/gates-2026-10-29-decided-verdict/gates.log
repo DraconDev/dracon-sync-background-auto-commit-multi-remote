@@ -2026,3 +2026,78 @@ ok
 test sync::tests::test_compute_blast_radius_merge_prefix ... ok
 test sync::tests::test_compute_diff_entries_propagates_filter_diff_failure ... ok
 test sync::tests::test_concurrent_staging_defers_then_captured_and_worktree_epochs_converge ... [master (root-commit) 81819b5] init
+ok
+test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) 5ce2b0c] init
+ok
+test sync::tests::test_count_ahead_commits_no_origin ... ok
+test sync::tests::test_count_ahead_commits_returns_zero_when_synced ... [main (root-commit) 5ce2b0c] init
+ok
+test sync::tests::test_count_ahead_commits_takes_max_across_tracking_refs ... [main (root-commit) 90a8295] c0
+[main 6c90bee] c1
+[main 1776c0f] c2
+[main 1723e70] c3
+[main db3ef68] c4
+ok
+test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [main (root-commit) 4b6a358] c1
+[main e87f03b] c2
+ok
+test sync::tests::test_degraded_success_reports_paused_not_synced ... [master (root-commit) 2625ffd] init
+To /tmp/.tmpCEqANP/mirror.git
+ * [new branch]      master -> master
+ok
+test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) dc10e63] init
+ok
+test sync::tests::test_doc_lock_predicates ... ok
+test sync::tests::test_docsonly_mirror_and_negative ... ok
+test sync::tests::test_excluded_tracked_file_edits_preserved_by_default ... ok
+test sync::tests::test_excluded_tracked_file_reverted_when_opted_in ... ok
+test sync::tests::test_ext_excludes_gitlink_paths ... warning: adding embedded git repository: sub.mod
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sub.mod
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sub.mod
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_extension_histogram_top3_order ... ok
+test sync::tests::test_failing_remote_names_formats_sorted ... ok
+test sync::tests::test_file_extension_cases ... ok
+test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) 788aecf] init
+ok
+test sync::tests::test_filter_only_skip_still_pushes_ahead ... ok
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) 3b09c35] init
+ok
+test sync::tests::test_forge_incident_declares_and_shields ... [master (root-commit) 3b09c35] init
+[master (root-commit) 3b09c35] init
+ok
+test sync::tests::test_goal_metrics_multibyte_utf8_no_panic ... ok
+test sync::tests::test_index_lock_contention_preserves_work_and_recovers ... [master (root-commit) 1fc6dbe] init
+ok
+test sync::tests::test_index_lock_contention_retries_then_succeeds ... [master (root-commit) 57fc3ea] init
+ok
+test sync::tests::test_is_backstop_active_above_threshold_and_old ... ok
+test sync::tests::test_is_backstop_active_above_threshold_but_recent ... ok
+test sync::tests::test_is_backstop_active_below_threshold ... ok
+test sync::tests::test_is_backstop_active_no_ahead_since ... ok
+test sync::tests::test_is_backstop_active_threshold_zero_disables ... ok
+test sync::tests::test_is_index_lock_failure_matches_only_lock_errors ... ok
+test sync::tests::test_lcp_scope_cases ... ok
+test sync::tests::test_lock_token_and_negative ... ok
+test sync::tests::test_m2_filter_only_bypass_decision ... ok
+test sync::tests::test_m3_configured_upstream_missing_tracking_ref_still_pushes ... [master (root-commit) 1e7b76f] init
+ok
+test sync::tests::test_m3_mirror_only_no_unwanted_push ... [master (root-commit) 1e7b76f] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpjllWOR/mirror.git'
+ok
+test sync::tests::test_mirror_failure_ledger_names_remote ... [master (root-commit) 1e7b76f] init
