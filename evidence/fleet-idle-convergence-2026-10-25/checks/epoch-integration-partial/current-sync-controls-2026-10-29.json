@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-10-29T00:43:52Z",
+  "scope": "dracon-sync debug package build, all-target package Clippy, and targeted hygiene/excluded-recovery tests; not a full workspace gate or deployment claim",
+  "sourceHeads": {
+    "dracon-sync": "aba148619237e38c035a0df0537020f582942b49",
+    "workspace": "cc4e1fdf2bcc8c6488e7fd2acc4536c2e118fe7e"
+  },
+  "targetDir": "/home/dracon/.local/state/dracon-sync/qualification/canonical-writer-fence-2026-10-27/target",
+  "checks": [
+    {
+      "command": "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=<isolated> cargo build --locked -p dracon-sync",
+      "outcome": "pass",
+      "exitCode": 0,
+      "notes": "Debug package binary only; no release/workspace build claimed. The earlier compile failure from a production call to a cfg(test)-only helper and an unused service parameter is retained and fixed.",
+      "log": "current-sync-debug-build-pass-2026-10-29.log"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=<isolated> cargo clippy --locked -p dracon-sync --all-targets -- -D warnings",
+      "outcome": "pass",
+      "exitCode": 0,
+      "notes": "The initial Clippy failure was one single-element loop in a test fixture; replaced it with direct setup calls without changing behavior.",
+      "log": "current-sync-package-clippy-pass-2026-10-29.log"
+    },
+    {
+      "command": "DRACON_EPOCH_TEST_HELPER=<isolated>/debug/dracon-sync CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=<isolated> cargo test --locked -p dracon-sync -- --test-threads=1",
+      "outcome": "incomplete-timeout",
+      "timeoutSeconds": 1800,
+      "notes": "No final suite summary was produced. The serial test process was still running; the last emitted test, test_alert_unpushed_threshold_not_triggered, passed in an isolated run in 1.91 seconds. The full package gate remains open; this was not a pass or a test-failure verdict. This attempt predates only the single-element-loop test cleanup.",
+      "log": "current-sync-package-tests-timeout-2026-10-28.log",
+      "lastTestIsolatedLog": "current-sync-last-test-isolated-pass-2026-10-29.log"
+    }
+  ],
+  "targetedRegressions": [
+    {
+      "test": "artifact_component_classifies_build_output_names_for_production_hygiene",
+      "result": "pass",
+      "log": "current-sync-targeted-regressions-2026-10-29.log"
+    },
+    {
+      "test": "excluded_recovery_finalizes_once_and_never_relocates_a_later_canonical_writer",
+      "result": "pass",
+      "log": "current-sync-targeted-regressions-2026-10-29.log"
+    },
+    {
+      "test": "excluded_recovery_late_displaced_writer_after_archival_stays_visible_and_blocked",
+      "result": "pass",
+      "log": "current-sync-targeted-regressions-2026-10-29.log"
+    }
+  ],
+  "retainedInitialFailures": [
+    {
+      "command": "cargo build --locked -p dracon-sync",
+      "exitCode": 101,
+      "cause": "sync/hygiene.rs used is_build_output_dir_name in production while the function was cfg(test); test-only anyhow::Result imports and an unused auto_pull_merge service parameter also generated warnings.",
+      "resolution": "Made the pure build-output-name predicate available to production, gated the legacy test-only Result import, removed the unused parameter/call, and added an artifact_component regression.",
+      "log": "current-sync-debug-build-failure-2026-10-28.log"
+    },
+    {
+      "command": "cargo clippy --locked -p dracon-sync --all-targets -- -D warnings",
+      "exitCode": 101,
+      "cause": "clippy::single_element_loop in the push test fixture.",
+      "resolution": "Replaced the one-element loop with direct calls; the strict all-target package Clippy run then passed.",
+      "log": "current-sync-package-clippy-failure-2026-10-29.log"
+    }
+  ],
+  "remaining": [
+    "Full dracon-sync package tests and the required complete workspace tests have not completed.",
+    "No release build, full-workspace strict Clippy, deployment, loaded-runtime proof, or fresh full-fleet clean-idle observation is established by these package controls."
+  ]
+}
