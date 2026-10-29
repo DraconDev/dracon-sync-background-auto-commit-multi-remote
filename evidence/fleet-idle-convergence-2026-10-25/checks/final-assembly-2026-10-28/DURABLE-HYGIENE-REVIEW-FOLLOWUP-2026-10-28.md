@@ -45,7 +45,14 @@ claim. The older `../epoch-integration-partial/norollback-qualified-v3-receipt.j
 artifact as `pass=true` despite its recorded displaced old-writer identity;
 this requalification narrows that interpretation to the cooperative control
 above and does not treat the older receipt as proof of arbitrary queued-open
-safety. The independent review still supplied no verdict.
+safety. A later independent review is now recovered in the Pi session archive
+as `durable-hygiene-review.05c0febe.5c59b1bf.md`; it gives a BLOCK verdict for
+its reviewed helper and reports a reproduced second-exchange/new-writer
+displacement. That exact rollback branch is absent from current source, but the
+current raw-opener syscall receipt still fails (`pass=false`): the old queued
+writer lands on the displaced inode while the helper reports success. Preserve
+this as an open canonical-preservation gap; no in-place `.gitignore` rewrite or
+partial-visibility tradeoff has been accepted.
 
 No full current dracon-sync test suite, release/workspace gates, deployment,
 loaded-runtime observation, or fleet clean-idle proof follows from these

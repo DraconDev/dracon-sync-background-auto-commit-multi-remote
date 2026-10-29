@@ -261,12 +261,16 @@ for scope and raw outcomes.
 
 The temporary directory for a settled hygiene-review run was absent, but its
 saved reviewer report was recovered and preserved under
-`checks/final-assembly-2026-10-28/`. The review's second-exchange concern was
-about an earlier source revision: current excluded-recovery code performs one
-finalizing exchange and does not roll it back. The initial review follow-up did
-not include an exact concurrent schedule; the 2026-10-29 requalification now
-records five cooperative Warden queue passes and preserves the raw-opener
-negative boundary below.
+`checks/final-assembly-2026-10-28/`. A later independent review artifact reports
+a P1 on its inspected helper: second-exchange rollback moved a newly opened
+writer's inode to private storage, and it returned BLOCK. That exact rollback
+branch is absent from the current one-exchange helper. However, the separate
+current raw-opener syscall receipt still returns `pass=false`: a queued old
+writer remains on the displaced inode while the helper reports success. Five
+cooperative Warden queue passes do not qualify that raw-opener schedule. Preserve
+the raw-opener failure as an unresolved canonical-preservation gap; the proposed
+in-place `.gitignore` rewrite remains unaccepted because interruption can expose
+partial security rules. See the detailed historical evidence below.
 
 The operator's junk-runner tracking-policy choice was executed; do not treat the
 old pending-decision and pre-decision idle snapshot below as current. Their
