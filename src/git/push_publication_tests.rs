@@ -2,6 +2,21 @@
 use super::*;
 use std::time::Duration;
 
+/// Same as [`git`] but tolerates a non-zero exit: used for assertions about
+/// state that legitimately does not exist yet (an unpublished remote branch).
+async fn listing(repo: &Path, args: &[&str]) -> String {
+    let child =
+        super::super::spawn_git_command_cancellable(repo, args, "publication-fixture").unwrap();
+    let (_, stdout, _) = tokio::time::timeout(
+        Duration::from_secs(30),
+        super::super::run_git_captured_output(child, repo, "publication-fixture"),
+    )
+    .await
+    .expect("fixture Git deadline")
+    .unwrap();
+    String::from_utf8(stdout).unwrap().trim().to_owned()
+}
+
 async fn git(repo: &Path, args: &[&str]) -> String {
     let child =
         super::super::spawn_git_command_cancellable(repo, args, "publication-fixture").unwrap();
@@ -280,9 +295,10 @@ async fn local_hook_refusal_is_a_decided_verdict_for_a_pinned_object() {
         "x",
         "a decided hook verdict must not be re-executed for the same pinned object"
     );
-    assert_eq!(
-        git(&bare, &["rev-parse", "refs/heads/main"]).await,
-        "",
+    assert!(
+        !listing(&bare, &["for-each-ref", "--format=%(refname)", "refs/heads"])
+            .await
+            .contains("refs/heads/main"),
         "nothing may be published when the pinned bytes were refused"
     );
     assert_eq!(
