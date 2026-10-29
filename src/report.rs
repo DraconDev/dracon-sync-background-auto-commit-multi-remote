@@ -15240,6 +15240,7 @@ mod size_cache_tests {
                 gitdir_sig: 99,
                 missing_objects: Some(0),
                 history_probe_failed: Some(false),
+                history_probe_timed_out: Some(false),
                 cached_at_secs: Some(1234567890),
                 git_modules_bytes: 0,
             },
@@ -15288,6 +15289,7 @@ mod size_cache_tests {
             gitdir_sig,
             missing_objects: Some(0),
             history_probe_failed: Some(false),
+            history_probe_timed_out: Some(false),
             cached_at_secs,
             git_modules_bytes: 0,
         }
