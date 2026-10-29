@@ -3884,14 +3884,14 @@ pub(crate) fn probe_history(repo: &Path) -> HistoryProbe {
                 missing_objects: 0,
                 failed: true,
                 timed_out: false,
-            }
+            };
         }
         BoundedProbe::TimedOut => {
             return HistoryProbe {
                 missing_objects: 0,
                 failed: false,
                 timed_out: true,
-            }
+            };
         }
     };
     // Strip the path annotations (`<sha> <path>` → `<sha>`) so
@@ -3916,14 +3916,14 @@ pub(crate) fn probe_history(repo: &Path) -> HistoryProbe {
                 missing_objects: 0,
                 failed: true,
                 timed_out: false,
-            }
+            };
         }
         BoundedProbe::TimedOut => {
             return HistoryProbe {
                 missing_objects: 0,
                 failed: false,
                 timed_out: true,
-            }
+            };
         }
     };
     HistoryProbe {
