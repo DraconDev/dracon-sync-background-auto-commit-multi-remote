@@ -2116,12 +2116,18 @@ preservation verdict and is not substituted. Do not install the new release or
 claim canonical-writer safety until this boundary is resolved and the
 installed/loaded behavior is qualified.
 
-The live scheduler snapshot at 17:47 UTC is partial (26 repositories in its
-map, not a fresh full-fleet observation): 4 pushing, 2 retrying, 2 inspecting;
-20 dispatch holds are `status-pending`. Browser publication is still pushing
-for 6,282 seconds with hundreds of local commits ahead and advertised `origin`
-and GitLab refs unchanged at `06fd267b…`; `dracon-platform` is retrying; Polis
-is retrying. Polis's configured `github`, `gitlab`, and `origin` main refs have
+The live scheduler snapshot written at 17:47 UTC is partial (26 repositories
+in its map, not a fresh full-fleet observation): 4 pushing, 2 retrying, 2
+inspecting; 20 dispatch holds are `status-pending`. Its browser
+`execution_secs=6,282` and `publication_secs=6,268` are scheduler counters, not
+a measured age for one continuously running process. At 17:49 UTC the observed
+Git/pre-push process tree had run 16m54s; the active gate snapshot
+`10671395b5b37308222308f939f20dfed7a20abd` was still running the
+`bookmarks-new-tab` TEST, with many individual suites passing but no final
+result. The journal showed the browser unpushed count rising to 232, and the
+last direct advertised-ref check (17:44 UTC) still had `origin` and GitLab at
+`06fd267b…`. `dracon-platform` and Polis were retrying in the 17:47 scheduler
+snapshot. Polis's configured `github`, `gitlab`, and `origin` main refs have
 autonomously advanced together to `b40fe41d…`, which is an ancestor of local
 `331615bc…` (one local commit remains ahead). That is real partial publication,
 not current-tip convergence. Host load is 67.52/69.83/60.30 with 527 MiB
