@@ -2246,3 +2246,66 @@ earlier build, so the two new repairs are **not** running in the daemon;
 clean-idle full-fleet observation. The canonical-publication raw-uncooperative
 negative also remains `pass=false` and continues to block deployment under the
 existing qualification rule.
+
+### Follow-up — 2026-10-29 20:42 UTC: qualified build DEPLOYED and running live
+
+Deployment completed with the sanctioned procedure (atomic replacement + pidfd
+SIGTERM + `Restart=always`; `systemctl stop` never used). The script refuses
+unless all four gates exited 0 **and** `src/`/`Cargo.toml` are byte-identical to
+the gated revision, and it verifies the two repair markers exist in the artifact.
+
+```
+old_loaded_sha256  4ddf44f4dc53fa6a23a694facd9fc57a697fb04bbf03797f5f2405c59b33e4bd
+expected_sha256    13c7268cd3d4bc300672fb3f15de0fa35ca47d085ce4906bc549512b0304d8b3
+loaded_sha256      13c7268cd3d4bc300672fb3f15de0fa35ca47d085ce4906bc549512b0304d8b3  ← matches
+installed_sha256   13c7268cd3d4bc300672fb3f15de0fa35ca47d085ce4906bc549512b0304d8b3  ← matches
+new_pid 4032660 · service active · backup 20261029T202257Z-loose-autogc-decided-verdict
+```
+
+Receipt: `checks/gates-2026-10-29-decided-verdict/deployment.json`.
+
+**Loose-object GC fired immediately on exactly the class the old trigger could
+not select** (all above the 64 MiB default, all with ~0 `size-garbage`):
+
+| repo | loose before | loose after | pack before | pack after |
+|---|---|---|---|---|
+| `browser-extensions-shared` | 772.8 MiB | **0.0 MiB** | 4269.9 MiB | 4946.5 MiB |
+| `.dracon` | 145.7 MiB | 4.3 MiB | — | 307.0 MiB |
+| `ai-auto-video` | 167.8 MiB | 0.0 MiB | — | — |
+
+Repacked, not discarded (packs grew). `browser-extensions-shared` is the repo
+whose 740.6 MiB of reachable loose objects was flagged pre-repair. GC wall clock
+on the 4.9 GiB pack was 290 s under host load ~94, inside the existing 600 s
+bound.
+
+**status inspection works again.** `dracon-sync repos` completed in well under
+its 180 s bound and produced a real full-fleet table (previously it timed out at
+30 s with no output).
+
+### Fresh full-fleet observation — 2026-10-29 20:42 UTC
+
+```
+36 inspected · 31 clean · 4 active · 1 unknown · 0 concerns · 0 inspection failures
+```
+
+`polis`, `doomtap` and `dracon-system` are **CLEAN** — the polis high-water
+refusal and the earlier doomtap/`dracon-system` findings are all resolved and
+published.
+
+Not yet clean+idle, and honestly so:
+
+- `browser-extensions-shared` — 374 unpushed, `PUBLISHING`, push `FAIL 1h`.
+  A 44-workspace gate is running against pin `cf17489b33` (started 20:28:45Z);
+  `markdown-reader LINT` now reports **0 errors** in that snapshot (the lint
+  repair is accepted by the real gate), and the round in flight is the first one
+  pinned to a post-repair tip.
+- `.dracon` — 1 unpushed, publishing.
+- `ai-auto-writer`, `junk-runner` — working (dirty/untracked work in progress by
+  their producers; not daemon defects).
+- `dracon-platform` — `UNKNOWN` with 8 modified files; scheduler evidence does
+  not yet classify it.
+
+This is progress, not acceptance: the goal requires every watched repository
+clean and idle with zero queued/retrying/blocked/unknown/committing/publishing
+states. The remaining blockers are real publication work in flight, not
+unexplained failures.
