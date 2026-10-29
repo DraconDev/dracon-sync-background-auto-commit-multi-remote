@@ -49,7 +49,14 @@ workspaces' gates passed and the third workspace's tests running; the unpushed
 count reached 98. This is evidence of gate progress but not publication. Host
 pressure remained high, so no full-fleet query was attempted. See
 `checks/status-inspection-root-cause/task5-browser-gate-progress-2026-10-29.md`
-and its JSON snapshot.
+and its JSON snapshot. A 01:12 UTC read-only check then found the gate passed,
+the daemon-owned GitLab push process had exited, and both unique configured
+browser destinations advertised commit `5f35a18ed8fb`. The local browser branch
+was 70 commits beyond that published commit, and the daemon reported 73 unpushed
+commits by 01:13:50; this proves one publication epoch, not current-tip
+convergence. See
+`checks/status-inspection-root-cause/task5-browser-publication-receipt-2026-10-29.md`
+and its JSON receipt.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 

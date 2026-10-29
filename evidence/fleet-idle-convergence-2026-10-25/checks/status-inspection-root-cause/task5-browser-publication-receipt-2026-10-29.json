@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "observedAt": "2026-10-29T01:12:44Z",
+  "repository": "/home/dracon/Dev/browser-extensions-shared",
+  "publishedCommit": "5f35a18ed8fb78cd6c4e6895c87df8aa2d6d4c48",
+  "daemonExecution": {
+    "daemonPid": 1642878,
+    "gitPushPid": 3518244,
+    "destinationRemote": "gitlab",
+    "pushProcessObservedAsDaemonChild": true,
+    "processAbsentAtObservation": true,
+    "prePushManifest": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.yZFugk/manifest.json",
+    "gateStatus": "passed",
+    "gateFinishedAt": "2026-10-29T01:10:33.574Z"
+  },
+  "advertisedRefs": {
+    "github": {
+      "remoteName": "origin",
+      "pushUrlAlias": "github",
+      "ref": "refs/heads/main",
+      "sha": "5f35a18ed8fb78cd6c4e6895c87df8aa2d6d4c48",
+      "queryExitCode": 0
+    },
+    "gitlab": {
+      "remoteName": "gitlab",
+      "ref": "refs/heads/main",
+      "sha": "5f35a18ed8fb78cd6c4e6895c87df8aa2d6d4c48",
+      "queryExitCode": 0
+    },
+    "observationNote": "Configured remote names are github, gitlab, origin; origin and github resolve to the same GitHub push URL. Both distinct destinations advertised the published commit."
+  },
+  "localStateAtObservation": {
+    "head": "3e504bba9dc72c0f1748346b14303ae9bbc121dc",
+    "publishedCommitIsAncestor": true,
+    "commitsAheadOfPublishedCommit": 70
+  },
+  "laterDaemonJournal": {
+    "observedAt": "2026-10-29T01:13:50Z",
+    "browserUnpushedCount": 73,
+    "message": "publication owned by another worker",
+    "processSnapshotAt": "2026-10-29T01:13:51Z",
+    "matchingBrowserPushProcessSeen": false
+  },
+  "scope": "This proves one daemon-owned GitLab publication execution and both unique configured remote refs advertising that commit. It does not prove the current browser tip is published, nor a clean-idle or full-fleet state."
+}
