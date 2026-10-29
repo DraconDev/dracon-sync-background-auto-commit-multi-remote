@@ -1,0 +1,87 @@
+{
+  "scope": "coherent committed workspace assembly; two durable dracon-sync repairs + one published-repo lint repair",
+  "assembly": {
+    "dracon_sync": "ce9cf5404ea9b7403877cf2d9520b9d62cab91af",
+    "parent": "f8bf156bf103d6dc77f074ef86ec867b42889642"
+  },
+  "gates": {
+    "workspace_tests": {
+      "exit": 0,
+      "suites": 44,
+      "passed": 2917,
+      "failed": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/gates-2026-10-29-decided-verdict/gates.log"
+    },
+    "release_build": {
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/gates-2026-10-29-decided-verdict/gates.log"
+    },
+    "clippy_all_targets_strict": {
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/gates-2026-10-29-decided-verdict/gates.log"
+    },
+    "cargo_deny": {
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/gates-2026-10-29-decided-verdict/gates.log",
+      "summary": "advisories ok, bans ok, licenses ok, sources ok"
+    }
+  },
+  "repairs": {
+    "loose_object_autogc": {
+      "report": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/loose-object-autogc-2026-10-29/REPORT.md",
+      "files": [
+        "dracon-sync/src/policy.rs",
+        "dracon-sync/src/git/mod.rs",
+        "dracon-sync/src/sync.rs",
+        "dracon-sync/src/report.rs",
+        "dracon-sync/dracon-sync.example.toml",
+        "AGENTS.md"
+      ],
+      "behavioral_tests": [
+        "git::auto_gc_tests::count_objects_sizes_are_parsed_as_bytes",
+        "git::auto_gc_tests::loose_gc_requires_threshold_growth_and_cooldown",
+        "git::auto_gc_tests::garbage_trigger_keeps_its_one_hour_cooldown",
+        "git::auto_gc_tests::loose_threshold_runs_gc_and_packs_reachable_objects",
+        "git::auto_gc_tests::test_maybe_auto_gc_disabled_and_below_threshold",
+        "policy::tests::test_auto_gc_loose_threshold_defaults_and_can_be_disabled"
+      ]
+    },
+    "decided_hook_verdict": {
+      "report": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/stale-pinned-publication-2026-10-29/REPORT.md",
+      "files": [
+        "dracon-sync/src/sync.rs",
+        "dracon-sync/src/git/push_publication_tests.rs"
+      ],
+      "behavioral_test": "git::push::publication_tests::local_hook_refusal_is_a_decided_verdict_for_a_pinned_object",
+      "negative_control": {
+        "method": "removed only the local-hook fail-fast arm from push_with_retries_for_target",
+        "observed_failure": "assertion left: \"xxxxx\" right: \"x\" -> hook re-ran 5x on one pinned object",
+        "elapsed_secs": 10.67,
+        "fixed_elapsed_secs": 0.1
+      }
+    },
+    "markdown_reader_lint": {
+      "report": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/browser-markdown-reader-lint-2026-10-29/REPORT.md",
+      "repo": "browser-extensions-shared",
+      "commits": [
+        "13041f4de0",
+        "43d316ca07"
+      ],
+      "live_gates": {
+        "lint": "exit 0 (0 errors, 17 pre-existing warnings)",
+        "typecheck": "exit 0",
+        "tests": "61 passed / 0 failed"
+      },
+      "negative_controls": {
+        "pre_fix_code": "61 passed (old code was functionally correct; the lint gate, not a test, was the blocker)",
+        "careless_fix_delete_chars": "2 failed",
+        "careless_fix_dash_as_range": "2 failed"
+      }
+    }
+  },
+  "not_established": [
+    "deployed/loaded-runtime identity of the changed binary",
+    "that browser-extensions-shared has published",
+    "a clean-idle full-fleet observation"
+  ]
+}
