@@ -35,6 +35,15 @@ its grace limit and defers history cleanup, no reconnect or push was attempted;
 Task 5.1 is reopened pending an operator-approved, quota-safe plan. Details are
 in `checks/status-inspection-root-cause/dracon-sync-remote-scope-2026-10-29.md`
 and its JSON receipt.
+A 01:04 UTC follow-up still does not permit an idle claim: host load was
+107/96/92 with 641 MiB available and 40 GiB swap used; the browser backlog had
+reached 95 unpushed commits while its 23-minute pre-push gate was still active,
+and dracon-platform had a 104-entry change-pileup alert. The full status query
+was not retried under pressure. `repair stuck-list` showed only temporary test
+fixtures, not live convergence. See
+`checks/status-inspection-root-cause/task5-live-assessment-2026-10-29.md` and its
+raw snapshot. The active goal/task list still names fleet task 5; the mismatched
+bucket-strategy handoff was not treated as a scope change.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
