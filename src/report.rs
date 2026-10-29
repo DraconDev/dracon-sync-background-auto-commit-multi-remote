@@ -4318,6 +4318,16 @@ pub(crate) async fn run_repos_report(
                 cached_entry_is_fresh(c)
                     && c.missing_objects.is_some()
                     && c.history_probe_failed.is_some()
+                    // CHANGED 2026-10-29: an entry written before the
+                    // timeout/broken split cannot be honoured, because its
+                    // `history_probe_failed` may encode a DEADLINE as damage.
+                    // Reusing one keeps serving `PUSH 🩹 BROKEN` for a healthy
+                    // repo until the hour-long TTL lapses — observed live after
+                    // the repair was deployed (neonbreak, darklord,
+                    // ai-auto-writer, browser-extensions-shared all still
+                    // BROKEN from a pre-repair cache while their probes now
+                    // succeed in 3.6-8.2 s). Force exactly one recompute.
+                    && c.history_probe_timed_out.is_some()
             })
             .unwrap_or(false);
         let mut report_checks_deferred = false;
@@ -11045,6 +11055,47 @@ mod tests {
         assert!(
             !(probe.failed || probe.missing_objects > 0),
             "the BROKEN_HISTORY predicate must stay false for an unmeasured probe"
+        );
+    }
+
+    /// Regression (2026-10-29): a cache entry written BEFORE the
+    /// timeout/broken split must not be honoured, because its
+    /// `history_probe_failed` may encode a deadline as damage.
+    ///
+    /// Live shape: after the repair was deployed, four healthy repos still
+    /// rendered `PUSH 🩹 BROKEN` from a pre-repair cache whose entries lacked
+    /// `history_probe_timed_out`, and the freshness check happily served them
+    /// for the full hour-long TTL.
+    #[test]
+    fn pre_split_cache_entries_are_not_honoured() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("repos-size-cache.json");
+        // An old entry exactly as the pre-repair binary wrote it: no
+        // `history_probe_timed_out` key at all.
+        std::fs::write(
+            &path,
+            r#"{"/repo":{"git_size_bytes":1,"pack_too_large":false,"pack_pushable_bytes":0,
+                "gitdir_sig":1,"missing_objects":0,"history_probe_failed":true,
+                "cached_at_secs":1800000000,"git_modules_bytes":0}}"#,
+        )
+        .unwrap();
+        let loaded: std::collections::HashMap<String, CachedRepoSize> =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        let old = loaded.get("/repo").expect("entry");
+        assert_eq!(
+            old.history_probe_failed,
+            Some(true),
+            "the legacy entry claims a failed probe"
+        );
+        assert_eq!(
+            old.history_probe_timed_out, None,
+            "and it cannot say whether that failure was a timeout"
+        );
+        // The freshness predicate requires the new field, so this entry is
+        // rejected and exactly one recompute happens.
+        assert!(
+            old.history_probe_timed_out.is_some(),
+            "a pre-split entry must not satisfy the completeness check"
         );
     }
 
