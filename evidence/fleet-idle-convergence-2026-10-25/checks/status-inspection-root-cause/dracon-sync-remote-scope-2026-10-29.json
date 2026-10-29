@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "observedAt": "2026-10-29T00:57:20Z",
+  "repository": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+  "localHead": "406be7273a57f81ecde853da8769fd4375cbda4d",
+  "configuredRemotes": [
+    {
+      "name": "origin",
+      "provider": "github",
+      "fetchUrlCount": 1,
+      "pushUrlCount": 1,
+      "advertisedMain": "406be7273a57f81ecde853da8769fd4375cbda4d"
+    },
+    {
+      "name": "gitlab",
+      "provider": "gitlab",
+      "fetchUrlCount": 1,
+      "pushUrlCount": 1,
+      "advertisedMain": "406be7273a57f81ecde853da8769fd4375cbda4d"
+    }
+  ],
+  "documentedDestinationNotConfigured": {
+    "provider": "codeberg",
+    "repository": "dracondev/dracon-sync-background-auto-commit-multi-remote",
+    "advertisedMain": "18dba43b326098292ddb873b55ebed9e23f2af16",
+    "advertisedCommitDate": "2026-08-11T23:07:14+01:00",
+    "ancestorOfLocalHead": true,
+    "localCommitsAhead": 4943
+  },
+  "designContext": {
+    "remoteScopeAuthority": "../../../../../AGENTS.md",
+    "quotaDesign": "../../../../../docs/design/codeberg-quota-leak-fix-2026-07-13.md",
+    "recordedQuota": "85 GiB used / 85 GiB grace quota; historical cleanup was deferred",
+    "historyPolicy": "No history rewrite or force-push authorized by the active goal; any sanctioned slimming requires operator-approved maintenance."
+  },
+  "methods": [
+    "Read local remote names and push-URL counts; classified provider names without retaining URL credentials.",
+    "Read-only git ls-remote main checks for origin, gitlab, and the Codeberg URL documented in AGENTS.md.",
+    "Local merge-base and rev-list checks against the advertised Codeberg commit."
+  ],
+  "notPerformed": [
+    "No Codeberg remote was added or reconnected.",
+    "No fetch, push, history rewrite, remote setting change, or quota cleanup was performed."
+  ],
+  "assessment": "The current local revision is advertised by GitHub and GitLab. Codeberg is documented as an intended destination but is not configured in this checkout, and its advertised main is 4,943 commits behind. Because the quota design records a full quota and defers historical cleanup, complete intended-destination publication is not established; operator authorization and a reviewed quota-safe plan are required before reconnecting or publishing there."
+}
