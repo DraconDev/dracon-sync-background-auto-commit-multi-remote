@@ -922,4 +922,5 @@ test git::inspection::tests::owner_abort_kills_filter_and_next_inspection_recove
 test git::inspection::tests::parses_branch_counts_renames_conflicts_and_non_utf8_paths ... ok
 test git::inspection::tests::rejects_copied_gitdir_alias_but_accepts_symlink_to_same_worktree ... ok
 test git::inspection::tests::shared_budget_accepts_slow_successful_filter ... ok
-test git::janitor_tests::aborts_when_bundle_fails ... 
+test git::janitor_tests::aborts_when_bundle_fails ... ok
+test git::janitor_tests::disabled_is_noop ... 
