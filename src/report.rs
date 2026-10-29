@@ -3974,6 +3974,33 @@ fn compute_cold_size_entry(
     (size, modules, pack, history)
 }
 
+/// Whether a cached size/probe entry may be reused verbatim.
+///
+/// Three independent requirements, each closing a real defect:
+///
+/// 1. `cached_at_secs` must be present and within `REPO_SIZE_CACHE_TTL_SECS`
+///    (pre-v0.112.40 entries have `None` and force one recompute).
+/// 2. The probe fields must be present — an entry that never recorded them
+///    cannot answer the question the render is asking.
+/// 3. `history_probe_timed_out` must be present. CHANGED 2026-10-29: entries
+///    written before the timeout/broken split may encode a DEADLINE as
+///    `history_probe_failed`, and honouring one keeps serving
+///    `PUSH 🩹 BROKEN` for a healthy repo until the hour-long TTL lapses.
+///    Observed live right after the repair was deployed: neonbreak, darklord,
+///    ai-auto-writer and browser-extensions-shared all still rendered BROKEN
+///    from a pre-repair cache while their own probes now completed in
+///    3.6-8.2 s. Rejecting the entry costs exactly one recompute.
+fn cache_entry_is_usable(c: &CachedRepoSize, now_secs: u64) -> bool {
+    let fresh = c
+        .cached_at_secs
+        .map(|t| now_secs.saturating_sub(t) < REPO_SIZE_CACHE_TTL_SECS)
+        .unwrap_or(false);
+    fresh
+        && c.missing_objects.is_some()
+        && c.history_probe_failed.is_some()
+        && c.history_probe_timed_out.is_some()
+}
+
 /// Cache file lives next to the policy toml (a config dir, never a watched
 /// git repo, so it is never auto-committed by the daemon).
 fn repo_size_cache_path(policy_path: &Path) -> PathBuf {
@@ -4304,31 +4331,9 @@ pub(crate) async fn run_repos_report(
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0);
-        let cached_entry_is_fresh = |c: &CachedRepoSize| -> bool {
-            // Old cache files (pre-v0.112.40) have `cached_at_secs: None`
-            // — treat them as stale to force one recompute, then start
-            // honoring the TTL.
-            c.cached_at_secs
-                .map(|t| now_secs.saturating_sub(t) < REPO_SIZE_CACHE_TTL_SECS)
-                .unwrap_or(false)
-        };
         let cached_entry = cache_lookup.get(&cache_key);
         let cache_entry_is_complete_and_fresh = cached_entry
-            .map(|c| {
-                cached_entry_is_fresh(c)
-                    && c.missing_objects.is_some()
-                    && c.history_probe_failed.is_some()
-                    // CHANGED 2026-10-29: an entry written before the
-                    // timeout/broken split cannot be honoured, because its
-                    // `history_probe_failed` may encode a DEADLINE as damage.
-                    // Reusing one keeps serving `PUSH 🩹 BROKEN` for a healthy
-                    // repo until the hour-long TTL lapses — observed live after
-                    // the repair was deployed (neonbreak, darklord,
-                    // ai-auto-writer, browser-extensions-shared all still
-                    // BROKEN from a pre-repair cache while their probes now
-                    // succeed in 3.6-8.2 s). Force exactly one recompute.
-
-            })
+            .map(|c| cache_entry_is_usable(c, now_secs))
             .unwrap_or(false);
         let mut report_checks_deferred = false;
         let (
@@ -11091,30 +11096,30 @@ mod tests {
             old.history_probe_timed_out, None,
             "and it cannot say whether that failure was a timeout"
         );
-        // Exercise the actual freshness/completeness contract the render path
-        // uses: a pre-split entry must NOT be considered complete-and-fresh.
-        let entry_is_complete_and_fresh = |c: &CachedRepoSize| {
-            c.cached_at_secs
-                .map(|t| 1_800_000_100u64.saturating_sub(t) < REPO_SIZE_CACHE_TTL_SECS)
-                .unwrap_or(false)
-                && c.missing_objects.is_some()
-                && c.history_probe_failed.is_some()
-                && c.history_probe_timed_out.is_some()
-        };
+        // Exercise the PRODUCTION predicate the render path uses.
+        let now = 1_800_000_100u64;
         assert!(
-            !entry_is_complete_and_fresh(old),
+            !cache_entry_is_usable(old, now),
             "a pre-split cache entry must be rejected so one recompute happens"
         );
-        // A post-split entry with the same values IS accepted: the guard rejects
-        // the missing semantic, not the healthy-or-broken verdict itself.
-        let current = CachedRepoSize {
-            history_probe_timed_out: Some(false),
+        // A post-split entry with otherwise identical values IS accepted: the
+        // guard rejects the missing semantic, not a broken verdict itself.
+        for timed_out in [false, true] {
+            let current = CachedRepoSize {
+                history_probe_timed_out: Some(timed_out),
+                ..old.clone()
+            };
+            assert!(
+                cache_entry_is_usable(&current, now),
+                "a current entry must stay cacheable (timed_out={timed_out})"
+            );
+        }
+        // The TTL still governs: an old-but-complete entry is stale.
+        let stale = CachedRepoSize {
+            cached_at_secs: Some(now - REPO_SIZE_CACHE_TTL_SECS - 1),
             ..old.clone()
         };
-        assert!(
-            entry_is_complete_and_fresh(&current),
-            "a current entry must stay cacheable"
-        );
+        assert!(!cache_entry_is_usable(&stale, now), "TTL must still apply");
     }
 
     #[test]
