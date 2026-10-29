@@ -5551,8 +5551,136 @@ mod tmp_pack_sweep_tests {
 
 #[cfg(test)]
 mod auto_gc_tests {
-    /// v0.113.2 (SYNC-H3): threshold 0 disables; a repo below the
-    /// threshold is a no-op (and records no attempt cooldown).
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn count_objects_sizes_are_parsed_as_bytes() {
+        let output = "count: 3\nsize: 12\nsize-pack: 99\nsize-garbage: 4\n";
+        assert_eq!(super::parse_count_objects_loose_bytes(output), 12 * 1024);
+        assert_eq!(super::parse_count_objects_garbage_bytes(output), 4 * 1024);
+    }
+
+    #[test]
+    fn loose_gc_requires_threshold_growth_and_cooldown() {
+        let now = Instant::now();
+        let threshold = 64 * 1024 * 1024;
+        let last = super::AutoGcState {
+            attempted_at: now - Duration::from_secs(super::AUTO_GC_LOOSE_COOLDOWN_SECS),
+            loose_bytes_after_gc: threshold,
+            succeeded: true,
+        };
+        assert_eq!(
+            super::auto_gc_trigger(
+                0,
+                threshold + threshold - 1,
+                0,
+                threshold,
+                Some(&last),
+                now,
+            ),
+            None,
+            "less than one threshold of new loose data must not repack repeatedly"
+        );
+        assert_eq!(
+            super::auto_gc_trigger(
+                0,
+                threshold * 2,
+                0,
+                threshold,
+                Some(&last),
+                now,
+            ),
+            Some(super::AutoGcTrigger::LooseObjects)
+        );
+        let recent = super::AutoGcState {
+            attempted_at: now - Duration::from_secs(super::AUTO_GC_LOOSE_COOLDOWN_SECS - 1),
+            ..last
+        };
+        assert_eq!(
+            super::auto_gc_trigger(
+                0,
+                threshold * 3,
+                0,
+                threshold,
+                Some(&recent),
+                now,
+            ),
+            None,
+            "the loose-object cooldown prevents a high-frequency gc loop"
+        );
+    }
+
+    #[test]
+    fn garbage_trigger_keeps_its_one_hour_cooldown() {
+        let now = Instant::now();
+        let threshold = 2 * 1024 * 1024 * 1024;
+        let last = super::AutoGcState {
+            attempted_at: now - Duration::from_secs(super::AUTO_GC_GARBAGE_COOLDOWN_SECS - 1),
+            loose_bytes_after_gc: 0,
+            succeeded: true,
+        };
+        assert_eq!(
+            super::auto_gc_trigger(
+                threshold,
+                0,
+                threshold,
+                0,
+                Some(&last),
+                now,
+            ),
+            None
+        );
+        let old = super::AutoGcState {
+            attempted_at: now - Duration::from_secs(super::AUTO_GC_GARBAGE_COOLDOWN_SECS),
+            ..last
+        };
+        assert_eq!(
+            super::auto_gc_trigger(
+                threshold,
+                0,
+                threshold,
+                0,
+                Some(&old),
+                now,
+            ),
+            Some(super::AutoGcTrigger::Garbage)
+        );
+    }
+
+    #[tokio::test]
+    async fn loose_threshold_runs_gc_and_packs_reachable_objects() {
+        let repo = crate::test_helpers::create_test_repo();
+        let before = crate::policy::std_git_command()
+            .args(["count-objects", "-v"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        assert!(before.status.success());
+        let before_text = String::from_utf8_lossy(&before.stdout);
+        let loose_before = super::parse_count_objects_loose_bytes(&before_text);
+        assert!(loose_before > 1, "fixture must contain loose objects");
+
+        assert_eq!(
+            super::maybe_auto_gc(&repo, 0, 1).await,
+            Some(loose_before),
+            "a tiny threshold should select the loose-object trigger"
+        );
+
+        let after = crate::policy::std_git_command()
+            .args(["count-objects", "-v"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        assert!(after.status.success());
+        assert_eq!(
+            super::parse_count_objects_loose_bytes(&String::from_utf8_lossy(&after.stdout)),
+            0,
+            "plain git gc should pack reachable loose objects"
+        );
+    }
+
+    /// Threshold 0 disables; a repo below the garbage threshold is a no-op
+    /// and records no GC attempt cooldown.
     #[tokio::test]
     async fn test_maybe_auto_gc_disabled_and_below_threshold() {
         let tmp = tempfile::tempdir().unwrap();
@@ -5565,13 +5693,12 @@ mod auto_gc_tests {
             .unwrap();
         assert!(status.success());
 
-        // Disabled.
-        assert!(super::maybe_auto_gc(&repo, 0).await.is_none());
-        // Fresh repo has ~0 garbage — far below a 2 GiB threshold.
-        assert!(super::maybe_auto_gc(&repo, 2 * 1024 * 1024 * 1024)
+        // Both triggers disabled.
+        assert!(super::maybe_auto_gc(&repo, 0, 0).await.is_none());
+        // Fresh repo has ~0 garbage and no loose threshold configured.
+        assert!(super::maybe_auto_gc(&repo, 2 * 1024 * 1024 * 1024, 0)
             .await
             .is_none());
-        // No attempt was recorded (nothing to gc).
         let attempts =
             super::AUTO_GC_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
         let map = attempts.lock().unwrap_or_else(|p| p.into_inner());
