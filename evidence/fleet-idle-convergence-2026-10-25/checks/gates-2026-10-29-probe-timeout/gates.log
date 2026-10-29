@@ -467,4 +467,11 @@ test storage_core::restore::tests::faulty_backend_and_byte_budgets_cannot_publis
 test storage_core::restore::tests::private_recovery_verifies_plain_and_encrypted_versions_and_preserves_edits ... ok
 test storage_core::restore::tests::publication_race_preserves_operator_destination_and_verified_capture ... ok
 test storage_core::restore::tests::real_cold_recovery_restores_large_encrypted_asset_without_original_source ... ignored, requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-built binary
-test storage_core::restore::tests::version_and_retention_limits_preserve_previous_recovery_and_tombstones_refuse ... 
+test storage_core::restore::tests::version_and_retention_limits_preserve_previous_recovery_and_tombstones_refuse ... ok
+test storage_core::restore::tests::wrong_grants_missing_keys_and_failed_authenticated_output_never_publish ... ok
+test storage_core::s3::credentials::tests::explicit_private_credentials_load_without_mutating_files ... ok
+test storage_core::s3::credentials::tests::git_tracked_or_unignored_credentials_refuse_without_mutation ... ok
+test storage_core::s3::credentials::tests::malformed_unknown_and_expired_records_redact_contents ... ok
+test storage_core::s3::credentials::tests::unsafe_permissions_links_and_oversized_records_refuse ... ok
+test storage_core::s3::http::tests::actual_http_corruption_and_provider_errors_produce_no_receipt_or_secret ... ok
+test storage_core::s3::http::tests::actual_http_creation_and_existing_object_require_signed_readback ... 
