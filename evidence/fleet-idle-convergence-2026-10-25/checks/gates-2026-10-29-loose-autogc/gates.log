@@ -918,4 +918,7 @@ test git::inspection::tests::head_presence_survives_owned_inspection_for_report_
 test git::inspection::tests::hung_filter_is_killed_and_next_inspection_recovers ... ok
 test git::inspection::tests::identity_accepts_linked_worktree_and_non_utf8_newline_roots ... ok
 test git::inspection::tests::inspects_real_repository_and_counts_nested_untracked_files ... ok
-test git::inspection::tests::owner_abort_kills_filter_and_next_inspection_recovers ... 
+test git::inspection::tests::owner_abort_kills_filter_and_next_inspection_recovers ... ok
+test git::inspection::tests::parses_branch_counts_renames_conflicts_and_non_utf8_paths ... ok
+test git::inspection::tests::rejects_copied_gitdir_alias_but_accepts_symlink_to_same_worktree ... ok
+test git::inspection::tests::shared_budget_accepts_slow_successful_filter ... 
