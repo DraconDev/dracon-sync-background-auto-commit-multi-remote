@@ -181,11 +181,15 @@ This is not a release build or full-workspace gate.
 
 ## Required next qualification
 
-- Extend the Warden end-to-end schedule to `.gitattributes` and add a second
-  cooperative writer contending across the actual final-close interval. The
-  current `.gitignore` test checks cancellation while waiting and immediate
-  fence reacquisition after the successful CLI process exits; it does not
-  observe an overlapping second writer during the apply operation.
+- Warden `.gitattributes` contention control is implemented and has five
+  sequential targeted passes. A Linux read lease pauses actual `resmudge
+  --apply` at its target write-open; a second Warden `write-fence` process is
+  queued, excluded while the resmudge fence is held, then observes the completed
+  plaintext and writes its own final payload after admission. The staged index
+  remains byte-identical. Raw log: `warden-gitattributes-writer-e2e-2026-10-29.log`.
+  This is bounded integration-test evidence, not deployed/loaded runtime proof.
+  The separate `.gitignore` control still provides cancel-while-waiting and
+  immediate post-process fence reacquisition.
 - Concurrent cooperative old/new writer schedules around actual publication;
   the current syscall positive covers one Warden participant waiting behind the
   helper. Expand it to the other supported writers and preserve the existing
