@@ -1,9 +1,10 @@
 # Task 5 live assessment — 2026-10-29 01:04 UTC
 
-The active `.pi-glla` goal state and task list identify the current work as
-fleet-convergence task 5. The utilities `handoff-brief.md` instead describes an
-unrelated `dracon-platform` bucket strategy; it conflicts with the active goal,
-so no bucket-strategy scope switch was made.
+The active goal file and `.pi-glla` task list identify the current work as
+fleet-convergence task 5. The on-disk utilities and platform handoff briefs
+instead describe a Dracon AI slice; they do not match the platform bucket-
+strategy text included in the post-compaction message. No scope switch was made:
+the active goal remains fleet convergence.
 
 ## Observed state
 

@@ -42,8 +42,9 @@ and dracon-platform had a 104-entry change-pileup alert. The full status query
 was not retried under pressure. `repair stuck-list` showed only temporary test
 fixtures, not live convergence. See
 `checks/status-inspection-root-cause/task5-live-assessment-2026-10-29.md` and its
-raw snapshot. The active goal/task list still names fleet task 5; the mismatched
-bucket-strategy handoff was not treated as a scope change. At 01:08 UTC the
+raw snapshot. The active goal/task list still names fleet task 5. The on-disk utilities and
+platform handoffs describe a Dracon AI slice, not the bucket-strategy text in
+the post-compaction message; no scope switch was made. At 01:08 UTC the
 browser GitLab push and pre-push gate remained active, with the first two
 workspaces' gates passed and the third workspace's tests running; the unpushed
 count reached 98. This is evidence of gate progress but not publication. Host
