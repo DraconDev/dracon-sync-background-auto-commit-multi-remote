@@ -3998,6 +3998,7 @@ fn cache_entry_is_usable(c: &CachedRepoSize, now_secs: u64) -> bool {
     fresh
         && c.missing_objects.is_some()
         && c.history_probe_failed.is_some()
+        && c.history_probe_timed_out.is_some()
 }
 
 /// Cache file lives next to the policy toml (a config dir, never a watched
