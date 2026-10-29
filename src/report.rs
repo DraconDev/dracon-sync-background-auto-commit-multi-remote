@@ -4387,8 +4387,9 @@ pub(crate) async fn run_repos_report(
                 (pack_too_large, pack_pushable_bytes),
                 missing_objects,
                 history_probe_failed,
+                history_probe_timed_out,
                 last_known_modules,
-            ) = last_known.unwrap_or(((false, 0), 0, false, 0));
+            ) = last_known.unwrap_or(((false, 0), 0, false, false, 0));
             let git_modules_bytes = resolve_modules_bytes(last_known_modules, has_module_gitdirs);
             (
                 own_bytes,
@@ -4396,6 +4397,7 @@ pub(crate) async fn run_repos_report(
                 (pack_too_large, pack_pushable_bytes),
                 missing_objects,
                 history_probe_failed,
+                history_probe_timed_out,
             )
         } else {
             // CHANGED 2026-07-24 (v0.112.40): the TTL is the primary
@@ -4437,12 +4439,27 @@ pub(crate) async fn run_repos_report(
                     (false, 0u64),
                     HistoryProbe {
                         missing_objects: 0,
-                        failed: true,
+                        failed: false,
+                        timed_out: true,
                     },
                 ))
             };
-            (size, Some(modules), pack, history.missing_objects, history.failed)
+            (
+                size,
+                Some(modules),
+                pack,
+                history.missing_objects,
+                history.failed,
+                history.timed_out,
+            )
         };
+        // CHANGED 2026-10-29 (false-BROKEN fix): a probe that merely ran out of
+        // time is NOT broken history. Only git's own rejection
+        // (`history_probe_failed`) or positively counted missing objects may
+        // classify a repository as BROKEN. Conflating the two made a loaded host
+        // render four healthy repos (neonbreak, darklord, ai-auto-writer,
+        // browser-extensions-shared) as `PUSH 🩹 BROKEN` while `rev-list
+        // --objects HEAD` exited 0 in 3.6-8.2 s against a 10 s bound.
         let history_broken = history_probe_failed || missing_objects > 0;
 
         // Classification: a repo is WARN if it has TRACKED modifications or
