@@ -242,6 +242,12 @@ The latest `dracon-sync repos` view (about 11:09) reported 36 inspected reposito
 
 At 11:09:47, parent local `main` was `b1955355...`, two commits ahead of directly checked `origin` and `gitlab` refs at `7ee1bd29...`; `main.lock` was absent. The parent still had active nested and outpost-eden work. The browser local tip remained `af5a9b1a...`, 39 commits ahead of both remotes at `fbc42b18...`. `V7InRp`/`0eJuTA` passed the corrected declaration on `fbc42`; the later test failure on `7e8eff` was the fake-Node test-harness issue described above. The test fix is locally committed and package checks pass, but it has no qualifying gate or remote publication yet. `n3Jg5x` failed on the same pre-fix snapshot; `B4CLx7` was still running on that snapshot at the last status read.
 
+### Follow-up — 2026-10-29 11:18 UTC: first gate includes test-harness repair
+
+At 11:17:46 browser local `main` was `b2a94634...`, 43 commits ahead of both direct remotes at `fbc42b18...`. Gate `C78xks` started on snapshot `552942c5...`, which contains the `af5a9b1a` fake-hunter test fix and all current YouTube-filter changes; the two commits after that snapshot touch only `ai-tts-pro`. The gate includes `ai-tts-pro`, `clean-web`, and `youtube-filter`, but was still running without per-gate results at 11:17:46. It is the first daemon gate to include the fix; no current-tip pass or publication is established.
+
+The local YouTube package checks remain green (61 test files / 1081 tests, typecheck, lint). The earlier `saW3So`, `n3Jg5x`, and `B4CLx7` failures are on the pre-fix snapshot and the same fake-Node call-count assertion. The watcher remains stopped; the complete latest saved feed sample is batch 178 and contains only visible-grid absence observations.
+
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
 The original goal remains active and incomplete. Warden's cooperative canonical-
