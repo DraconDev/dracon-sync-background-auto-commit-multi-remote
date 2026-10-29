@@ -4922,22 +4922,20 @@ static AUTO_GC_PROBES: std::sync::OnceLock<
     std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, std::time::Instant>>,
 > = std::sync::OnceLock::new();
 
-/// Run plain `git gc` (2-week prune grace retained) when the repo's
-/// dangling-garbage size exceeds `threshold_bytes`. Returns
-/// Some(garbage_bytes) when a gc ran. Best-effort: all failures are
-/// logged, never fatal.
-/// CORRECTED 2026-10-03 (audit R3-L16): the old first line claimed
-/// `--prune=now`, but the SYNC-H3 fix below deliberately runs plain
-/// `gc` (prune-race + reflog safety); the doc invited "fixing"
-/// toward the unsafe form.
+/// Run plain `git gc` with Git's two-week prune grace when either dangling
+/// garbage or loose-object bytes cross their configured threshold. The return
+/// value is the byte count for the trigger that selected the run. Best-effort:
+/// failures are logged, never fatal. Loose-object probes are rate-limited to
+/// once per minute; successful repacks require another threshold of new loose
+/// bytes and at least 2 minutes before a repeat. Failed loose-triggered GC is
+/// retried no more often than every 15 minutes; the garbage trigger retains
+/// its 1-hour cooldown.
 ///
 /// ADDED 2026-07-25 (v0.113.0). Motivation: hegemon's `.git`
 /// ballooned to 4.9 GiB and dracon-platform's to 37 GiB from
 /// dangling tmp_pack_* objects (failed/interrupted pushes),
-/// tripping the 2 GiB GitHub pack guard and disk pressure. Manual
-/// `git gc --prune=now` fixed both; this knob makes the daemon
-/// self-heal instead of waiting for the next disk-pressure incident.
-/// `threshold_bytes = 0` disables.
+/// tripping the 2 GiB GitHub pack guard and disk pressure. Automatic
+/// GC removes this garbage while retaining Git's ordinary prune grace.
 // CHANGED 2026-07-26 (v0.113.2, audit SYNC-H3): three defects in
 // the v0.113.0 implementation — (1) synchronous
 // `std::process::Command::output()` with NO timeout inside the
@@ -4954,8 +4952,7 @@ static AUTO_GC_PROBES: std::sync::OnceLock<
 // (600s, kill-on-timeout) using the shared git builder, plain
 // `git gc` (2-week grace retained — stale tmp_pack_* files, the
 // actual incident driver, are removed by gc regardless of prune
-// expiry), and a per-repo 1h attempt cooldown so a repo whose gc
-// keeps failing doesn't re-run a multi-minute gc every cycle.
+// expiry).
 /// Read-only temporary-pack inspection; always returns zero reclaimed files
 /// and bytes. Cleanup is disabled pending producer-owned/cross-process proof.
 /// An old temporary pack can still belong to a stalled live producer. Its
