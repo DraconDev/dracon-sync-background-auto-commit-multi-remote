@@ -187,3 +187,19 @@ This is a diagnosed gate failure plus an existing committed correction, not a
 passing retry. No manual gate, push, history rewrite, or hook bypass was used;
 allow the active snapshot attempt to finish before evaluating the daemon's next
 retry.
+
+## Follow-up — same snapshot advancing through gates (2026-10-29 ~09:54 UTC)
+
+The live `kgtpu1` manifest confirms its `ac036` snapshot repeated the same
+`clean-web TEST` failure (09:52:12–09:52:51); `clean-web` typecheck, build, and
+lint passed, but the test still parsed the old malformed file. The gate then
+continued: `web-time-tracker-limiter` test and lint passed, and `youtube-filter`
+typecheck had started at 09:54:00. This is actual progress through the workspace
+gates, not a completed push.
+
+By 09:53:53, browser local main had advanced to
+`75809018ffcc1c308923884ea01336fb34377833`, 89 commits ahead of the still
+matching `gitlab`/`origin` refs at `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`;
+the committed `9df0bc` syntax fix remains an ancestor of local main. The active
+old-snapshot gate has not yet qualified or published the corrected tip, and no
+full-fleet query is appropriate while it and platform work remain active.
