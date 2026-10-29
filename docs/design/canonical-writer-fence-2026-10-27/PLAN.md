@@ -190,16 +190,24 @@ This is not a release build or full-workspace gate.
   This is bounded integration-test evidence, not deployed/loaded runtime proof.
   The separate `.gitignore` control still provides cancel-while-waiting and
   immediate post-process fence reacquisition.
-- Concurrent cooperative old/new writer schedules around actual publication;
-  the current syscall positive covers one Warden participant waiting behind the
-  helper. Expand it to the other supported writers and preserve the existing
-  raw-uncooperative negative control. Preserve the excluded-recovery helper's
-  single-finalizing-exchange/no-rollback invariant: the saved reviewer flagged
-  the predecessor's second-exchange risk, while the current code returns
-  unresolved on post-exchange mismatch and retains the displaced bytes. The
-  current finalize-once and late-displaced-writer controls do not reproduce an
-  exact simultaneous queued old/new open schedule, so do not claim general
-  uncooperative-writer safety.
+- Exact helper-level cooperative queue schedule: five sequential passes with
+  `qualify-exchange-syscalls.py --warden` stop the real helper at `renameat2`,
+  queue an independent Warden writer behind the held fence, open a newer
+  canonical FD immediately after exchange, and verify both accepted writer FDs
+  remain canonical with the index unchanged. Receipt/log:
+  `exchange-syscalls-cooperative-repeat-2026-10-29.{json,log}`. This qualifies
+  the no-second-exchange fix for this Warden cooperative participant, not every
+  producer.
+- The current raw-uncooperative negative on the same helper returned success
+  while the queued raw writer landed on the displaced inode; the strict result
+  is `pass=false` (see `exchange-syscalls-raw-negative-current-2026-10-29.json`).
+  This is unsupported-boundary evidence, not a pass. The parent settlement /
+  refusal behavior for that exact simultaneous timing is not qualified. The
+  older `norollback-qualified-v3-receipt.json` cites a weaker raw result as
+  `pass=true` despite the displaced identity; do not treat it as blanket
+  queued-open approval. Preserve the single-exchange/no-rollback invariant,
+  retain the raw negative, expand the cooperative schedule to other supported
+  writers, and do not claim general uncooperative-writer safety.
 - Uncooperative/unknown writers remain refusal/unsupported evidence, never a pass.
 - Parent death, timeout, cancellation, ENOSPC, symlink/namespace replacement,
   linked-worktree and independent-repository concurrency controls.
