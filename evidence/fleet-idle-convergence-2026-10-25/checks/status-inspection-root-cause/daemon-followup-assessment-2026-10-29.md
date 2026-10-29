@@ -35,3 +35,19 @@ manual push, state cleanup, or producer shutdown was performed.
 then separately verify the browser publication result, the parent-platform ref
 outcome, and all intended advertised refs. Preserve active producers and the
 recorded local work.
+
+## Later bounded follow-up — stale parent ref lock (2026-10-29 ~09:59 UTC)
+
+At 09:58:21 the daemon reported a late `dracon-platform` `update-ref` failure:
+`.git/refs/heads/main.lock` already existed. A 09:59 read-only check found that
+path was a zero-byte regular file owned by `dracon`, last modified at 02:27:25;
+`fuser -v` found no holder, the matching Git-process query was empty, and the
+scheduler showed the parent retrying rather than executing. This supports a
+stale-lock diagnosis, not an active transaction.
+
+Using the sanctioned `dracon-sync maintenance -- ...` wrapper, the daemon was
+paused while a guarded check revalidated the file type, owner, zero size, age
+(27,175 seconds), stable inode and absence of a holder twice, then removed only
+that empty lock. The wrapper reported sync resumed. **No post-repair parent
+retry/ref result has yet been observed**; at the preceding scheduler snapshot it
+was still retrying. No broader fleet query or browser-ledger clearing was done.
