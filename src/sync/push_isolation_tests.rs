@@ -15,7 +15,7 @@ use tokio::sync::Semaphore;
 /// window was observed to expire there while the same test passed in 0.26s in
 /// isolation. The assertion stays identical — only the host-pressure margin
 /// changes. Production behavior deadlines elsewhere stay tight on purpose.
-const FIXTURE_ENTER_BUDGET: Duration = Duration::from_secs(3);
+const FIXTURE_ENTER_BUDGET: Duration = Duration::from_secs(120);
 
 struct Fixture {
     root: tempfile::TempDir,
@@ -86,7 +86,7 @@ set -eu
 (sh -c 'trap "" TERM; exec sleep 120') </dev/null >/dev/null 2>&1 &
 helper=$!
 printf '%s %s\n' "$$" "$helper" > hook-entered.tmp
-mv hook-entered.tmp hook-entered.never
+mv hook-entered.tmp hook-entered
 while [ ! -e hook-release ]; do sleep 0.01; done
 kill -KILL "$helper" 2>/dev/null || :
 wait "$helper" 2>/dev/null || :
