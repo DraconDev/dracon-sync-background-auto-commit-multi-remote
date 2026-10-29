@@ -1,0 +1,91 @@
+Oct 29 00:45:04 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td private staging deferred; concurrent intent retained: private staging retained at /home/dracon/Dev/dracon-platform/.git/modules/web-games-endless-td/dracon-staging-nhUZqE: epoch index lock held by another operation
+Oct 29 00:45:11 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/dracon-utilities/dracon-sync staged epoch has retained follow-up work (late)
+Oct 29 00:45:22 nixos dracon-sync[1642878]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:45:22 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td private staging deferred; concurrent intent retained: private staging retained at /home/dracon/Dev/dracon-platform/.git/modules/web-games-endless-td/dracon-staging-T1dT16: epoch index lock held by another operation
+Oct 29 00:45:31 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:45:31 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 29 00:45:31 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner committed; publication owned by another worker (this pass did not push)
+Oct 29 00:45:31 nixos dracon-sync[1642878]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 29 00:45:31 nixos dracon-sync[1642878]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 64 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 29 00:45:31 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 29 00:45:35 nixos dracon-sync[1642878]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/polis: refused epoch message retained at /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-gx8Aql
+Oct 29 00:45:41 nixos dracon-sync[1642878]: 📝 committed 5 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 29 00:45:42 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td private staging deferred; concurrent intent retained: private staging retained at /home/dracon/Dev/dracon-platform/.git/modules/web-games-endless-td/dracon-staging-b5a6C2: epoch index lock held by another operation
+Oct 29 00:45:44 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:45:54 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td private staging deferred; concurrent intent retained: private staging retained at /home/dracon/Dev/dracon-platform/.git/modules/web-games-endless-td/dracon-staging-9jOj3k: epoch index lock held by another operation
+Oct 29 00:46:06 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 29 00:46:06 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/deathrun committed; publication owned by another worker (this pass did not push)
+Oct 29 00:46:06 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner staged epoch has retained follow-up work (late)
+Oct 29 00:46:07 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 29 00:46:07 nixos dracon-sync[1642878]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 65 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 29 00:46:07 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 29 00:46:09 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td private staging deferred; concurrent intent retained: private staging retained at /home/dracon/Dev/dracon-platform/.git/modules/web-games-endless-td/dracon-staging-nPax9X: epoch index lock held by another operation
+Oct 29 00:46:10 nixos dracon-sync[1642878]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:46:12 nixos dracon-sync[1642878]: 🧹 index.lock sweep: found index.lock in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td (checking fuser...)
+Oct 29 00:46:13 nixos dracon-sync[1642878]: 🧹 index.lock sweep: removed stale lock in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td (fuser-clean, age over 120s)
+Oct 29 00:46:22 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:46:29 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 29 00:46:29 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/deathrun committed; publication owned by another worker (this pass did not push)
+Oct 29 00:46:30 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:46:37 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:46:44 nixos dracon-sync[1642878]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 29 00:46:44 nixos dracon-sync[1642878]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 66 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 29 00:46:44 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 29 00:46:57 nixos dracon-sync[1642878]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 29 00:46:57 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/deathrun committed; publication owned by another worker (this pass did not push)
+Oct 29 00:46:57 nixos dracon-sync[1642878]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform elapsed_ms=9729 outcome=success
+Oct 29 00:46:58 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:47:03 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 29 00:47:04 nixos dracon-sync[1642878]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform/web/games/wip/doomtap elapsed_ms=7893 outcome=success
+Oct 29 00:47:09 nixos dracon-sync[1642878]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 29 00:47:14 nixos dracon-sync[1642878]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td local commit during publication failed (publication unaffected): staged epoch deadline expired; ref outcome may require inspection: deadline has elapsed
+Oct 29 00:47:19 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td staged epoch has retained follow-up work (late)
+Oct 29 00:47:24 nixos dracon-sync[1642878]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:47:32 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 29 00:47:32 nixos dracon-sync[1642878]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 67 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 29 00:47:32 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 29 00:47:34 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:47:35 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 29 00:47:40 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:48:00 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:48:01 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 29 00:48:02 nixos dracon-sync[1642878]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 68 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 29 00:48:02 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 29 00:48:10 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:48:21 nixos dracon-sync[1642878]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform: staged epoch deadline expired; ref outcome may require inspection
+Oct 29 00:48:30 nixos dracon-sync[1642878]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 29 00:48:33 nixos dracon-sync[1642878]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 29 00:48:38 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:48:42 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/freeport
+Oct 29 00:48:54 nixos dracon-sync[1642878]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 29 00:48:54 nixos dracon-sync[1642878]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 69 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 29 00:48:54 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 29 00:49:01 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:49:20 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 29 00:49:20 nixos dracon-sync[1642878]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 70 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 29 00:49:20 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 29 00:49:26 nixos dracon-sync[1642878]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform/web/games/wip/doomtap elapsed_ms=6538 outcome=success
+Oct 29 00:49:27 nixos dracon-sync[1642878]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 29 00:49:31 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:49:35 nixos dracon-sync[1642878]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:49:43 nixos dracon-sync[1642878]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 29 00:49:43 nixos dracon-sync[1642878]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/freeport
+Oct 29 00:49:51 nixos dracon-sync[1642878]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 29 00:50:03 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:50:04 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 29 00:50:08 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 29 00:50:08 nixos dracon-sync[1642878]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 71 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 29 00:50:08 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 29 00:50:12 nixos dracon-sync[1642878]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 29 00:50:37 nixos dracon-sync[1642878]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 29 00:50:38 nixos dracon-sync[1642878]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 72 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 29 00:50:38 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 29 00:50:42 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:50:52 nixos dracon-sync[1642878]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform/web/games/wip/polis elapsed_ms=6905 outcome=success
+Oct 29 00:50:57 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:50:58 nixos dracon-sync[1642878]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 29 00:50:58 nixos dracon-sync[1642878]: 🚨 ALERT: /home/dracon/Dev/browser-extensions-shared has 73 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 29 00:50:58 nixos dracon-sync[1642878]: ⏳ /home/dracon/Dev/browser-extensions-shared committed; publication owned by another worker (this pass did not push)
+Oct 29 00:51:06 nixos dracon-sync[1642878]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 29 00:51:28 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 29 00:51:34 nixos dracon-sync[1642878]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
