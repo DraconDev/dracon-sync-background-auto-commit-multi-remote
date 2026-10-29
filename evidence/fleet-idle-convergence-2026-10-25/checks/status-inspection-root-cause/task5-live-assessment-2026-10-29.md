@@ -168,3 +168,22 @@ This confirms active execution, but that one snapshot did not show the remote
 ref advancing. Host load was 9.62/9.46/13.75, with 3.2 GiB available and 30 GiB
 swap used. The full watched-repository query remains deferred while this work
 and platform retry are active.
+
+## Follow-up — old browser gate snapshot and corrected source tip (2026-10-29 09:51 UTC)
+
+At 09:47:35 the `origin` push failed because `clean-web`'s `TEST` gate exited
+1. Its log identifies a deterministic TypeScript parse error at
+`test/engine.test.ts:315`: a duplicate `{` in pushed snapshot
+`ac036eb25e4487e4fc97f4a20bab91ce31422bfd`. The current browser checkout has a
+later tracked fix, commit `9df0bc7584`, that removes the extra brace; it is an
+ancestor of current local `main` `e3bc4fb30c28cc956165ad7b64ef4182bdd89d94`.
+
+A separate live hook manifest still shows a run against the old `ac036` snapshot
+(started 09:47:36): seven dependency builds passed and the `affiliate` CI gate
+was still running at 09:50:23. Current local main is 87 commits ahead of both
+advertised `gitlab`/`origin` refs (`64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`);
+the daemon has not yet provided a result for a gate run on the corrected tip.
+This is a diagnosed gate failure plus an existing committed correction, not a
+passing retry. No manual gate, push, history rewrite, or hook bypass was used;
+allow the active snapshot attempt to finish before evaluating the daemon's next
+retry.
