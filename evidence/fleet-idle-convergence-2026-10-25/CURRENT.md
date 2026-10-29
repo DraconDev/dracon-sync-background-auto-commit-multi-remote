@@ -109,8 +109,13 @@ work were active, with 73 browser commits unpushed; this still is not a clean-
 idle fleet observation. At 09:47, browser `main` was 85 commits ahead of the
 matching `gitlab`/`origin` refs; a contemporaneous process snapshot showed the
 pre-push/Node/Git gate tree actively executing, but no ref advance in that
-snapshot. The platform parent and `polis` were still active/retrying, so a new
-full-fleet query remains deferred.
+snapshot. The 09:47:35 `origin` gate then failed on `clean-web TEST` because
+snapshot `ac036eb` had a duplicate brace in `engine.test.ts`; later committed
+fix `9df0bc` is an ancestor of current local tip `e3bc4fb`, but no gate result
+on that corrected tip is available. The old snapshot attempt still showed
+`affiliate` CI running at 09:50:23, and browser main was 87 commits ahead of
+both remotes at 09:50:41. The platform parent and `polis` remained
+active/retrying, so a new full-fleet query remains deferred.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
