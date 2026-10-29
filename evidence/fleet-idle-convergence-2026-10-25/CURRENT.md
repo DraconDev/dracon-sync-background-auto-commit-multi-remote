@@ -2134,3 +2134,84 @@ not current-tip convergence. Host load is 67.52/69.83/60.30 with 527 MiB
 available, so no expensive status/gate retry was started. The last full
 `dracon-sync repos` snapshot remains earlier and cannot stand in for final
 acceptance.
+
+### Follow-up — 2026-10-29 19:20 UTC: two more shared causes repaired; gates pass on the new assembly
+
+Two further demonstrated delay classes were root-caused and repaired, both in
+`dracon-sync`, both with behavioural regressions and disposable negative
+controls.
+
+**Loose-object bloat had no trigger (the polis class, generalised).** The polis
+repair repacked one repository by hand, and that report's own "Could it recur?"
+answer named the gap: the automatic path triggers on `count-objects`
+`size-garbage` (unreachable debris) and is therefore *structurally blind* to
+loose-but-reachable bloat. Polis had 1.86 GB of **reachable** loose objects and
+almost no garbage, so no threshold value could ever have caught it. A second
+independent trigger, `auto_gc_loose_threshold_bytes` (default 64 MiB, compared
+against `count-objects` `size:`), now repacks reachable loose objects with Git's
+normal two-week prune grace. Cost stays bounded: probes are rate-limited to once
+per minute per repo, a repeat requires another threshold of new loose bytes
+measured from the post-GC baseline **and** a 2-minute cooldown, and a failed
+attempt backs off 15 minutes; the garbage trigger keeps its independent 1-hour
+cooldown. Measured live before the repair, `browser-extensions-shared` held
+740.6 MiB and `dracon-system` 89.1 MiB of reachable loose objects — both above
+the new default and both previously ineligible for automatic gc. Report and
+evidence: `checks/loose-object-autogc-2026-10-29/REPORT.md`. The AGENTS.md,
+example-policy and `SyncPolicy` docs were also corrected: all three still
+described the automatic path as `git gc --prune=now`, which has been wrong since
+the v0.113.2 SYNC-H3 fix (the audit R3-L16 note records the same drift).
+
+**A decided hook verdict was re-bought once per mirror leg.** `browser-extensions-shared`
+was blocked for hours while its repairable gate failure was already fixed in
+`main`. Four separate gate runs (16:03Z, 17:33Z, 18:20Z, 18:43Z) all pinned the
+*same* object `10671395b5` (committed 16:02Z) while `HEAD` ran 340 commits ahead;
+the failure they reported (`markdown-reader` LINT) was fixed in `13041f4de0`.
+Direct `/proc` inspection confirmed the publisher was the daemon's own pinned
+round (`git push github 10671395b5…:refs/heads/main`, plus a scheduler stamp of
+`publication_secs=10488`). The origin leg correctly failed fast on the local hook
+refusal, but `upload_publication` then ran the **mirror legs regardless**, each
+re-executing the identical 44-workspace gate over the identical immutable tree,
+multiplied by `push_retries = 3`. A local hook gates worktree bytes, not
+destinations, so the mirrors could learn nothing new. A hook refusal of the
+pinned object is now a decided verdict for that round: mirrors are skipped, the
+failure is still recorded/notified/backed-off exactly as before, and the round
+ends so the next one pins the current tip. The per-round pin guarantee is
+unchanged — no upload ever publishes a moving HEAD. Negative control: removing
+only the fail-fast arm makes the new test observe the hook running **5 times**
+instead of once (`left: "xxxxx" right: "x"`, 10.67 s vs 0.10 s). Report:
+`checks/stale-pinned-publication-2026-10-29/REPORT.md`.
+
+Live confirmation of the intended effect: the next round
+(`dracon-pre-push.Km2eJj`, started 19:17:42Z) pins `cf17489b33` — the current
+tip — instead of the stale `10671395b5`.
+
+**The gate failure itself is repaired.** `markdown-reader`'s LINT gate was the
+sole blocker in every one of those runs (BUILD/TYPECHECK/TEST all passed). Seven
+regex character classes carried an unnecessary escape inside `[...]`, which the
+repo's `no-useless-escape` (from `js.configs.recommended`) treats as an error.
+Removing exactly the redundant backslash preserves behaviour — verified by
+executing all seven old/new pattern pairs over 91,003 generated samples
+(637,021 combinations, zero mismatches) — and two invariants were kept
+deliberately: the dash stays last in `[A-Za-z0-9_.-]` so it remains literal, and
+`[`/`]` stay escaped so bracket escaping is unchanged. Live gates after the fix:
+lint exit 0 with **0 errors** (17 pre-existing `no-explicit-any` warnings
+untouched), typecheck exit 0, 61/61 tests. Disposable controls prove the added
+assertions accept the behaviour-preserving cleanup and reject the two plausible
+wrong fixes (deleting the character; treating the dash as a range: both fail 2
+assertions). Report: `checks/browser-markdown-reader-lint-2026-10-29/REPORT.md`.
+
+**Gates on the new assembly.** Committed `dracon-sync` source
+`69162fd37839cf7b4098fad053274bfb1239d703` with parent
+`f8bf156bf103d6dc77f074ef86ec867b42889642`: **2,917 workspace tests passed / 0
+failed** across 44 suites, release build passed, strict all-target Clippy passed,
+and cargo-deny passed with advisories/bans/licenses/sources all `ok`. Only a log
+file was added between the gated revision and the current checkout, so `src/` is
+byte-identical to what was gated. Raw log and machine receipt:
+`checks/gates-2026-10-29-decided-verdict/`.
+
+Not established at this checkpoint: the deployed/loaded binary is still the
+earlier build, so the two new repairs are **not** running in the daemon;
+`browser-extensions-shared` has not yet published; and there is still no
+clean-idle full-fleet observation. The canonical-publication raw-uncooperative
+negative also remains `pass=false` and continues to block deployment under the
+existing qualification rule.
