@@ -119,19 +119,21 @@ running. Browser local main was `75809018ffcc1c308923884ea01336fb34377833`,
 committed syntax fix `9df0bc` is included in local main, but the corrected tip
 has not yet passed a push gate. A 09:58:50 read-only query showed dracon-sync `main`
 `b0879640610fd843b7daea633eb8a61488177da1` advertised by all configured
-`github`, `gitlab`, and `origin` aliases. The browser old-snapshot gate failed
-again at 09:54:47, and the daemon paused browser publication in commit-only mode
-at 09:55:51; the 09:56 scheduler had no browser in-flight entry. Local browser
-main `9e5fad8b62bfb0c25ee90f7ac6e083b8beabdb37` remained 90 commits ahead of
-`gitlab`/`origin` at `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`, with one
-consecutive failure in `repair stuck-list` and no gate result on the corrected
-tip. The previously documented `youtube-filter` receipt blocker has not been
-shown cleared; the stuck ledger and pre-push gate were left untouched. At
-09:58:21 the daemon also reported a parent-platform `update-ref` failure on an
-existing `main.lock`; read-only checks showed the zero-byte lock was over seven
-hours old with no holder. A guarded `dracon-sync maintenance` repair removed
-only that stale lock and resumed sync; the parent retry/ref result remains
-unobserved. No full-fleet clean-idle observation is established.
+`github`, `gitlab`, and `origin` aliases. The old browser snapshot failed its gate at 09:54:47. After the daemon's
+300-second retry, a new pre-push attempt started at 09:59:52 on corrected
+snapshot `9c665ef1349198136f88ede60bfb6f49c56cb9bf`, which contains test fix
+`9df0bc`; all seven dependency builds passed and the hook was running under the
+`affiliate` workspace at 10:02:19. The last direct browser remote check showed
+`gitlab`/`origin` at `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`; no result for
+the corrected tip is available. `repair stuck-list` had reported one failure;
+no ledger clear or gate bypass was used, and the previously documented
+`youtube-filter` receipt blocker has not been shown cleared. At 09:58:21 the
+daemon also reported a parent-platform `update-ref` failure on an existing
+`main.lock`; read-only checks showed the zero-byte lock was over seven hours old
+with no holder. A guarded `dracon-sync maintenance` repair removed only that
+stale lock and resumed sync. The parent was still retrying at 10:02:19; no
+post-repair ref result is available. No full-fleet clean-idle observation is
+established.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
