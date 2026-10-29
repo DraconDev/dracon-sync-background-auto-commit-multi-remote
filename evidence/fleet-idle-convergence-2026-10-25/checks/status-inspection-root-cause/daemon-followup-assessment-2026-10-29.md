@@ -58,3 +58,13 @@ still showed the parent in backoff, with roughly 734 seconds before retry; the
 lock remained absent in the 10:03 check. Do not attribute the remaining failures
 to that lock or clear the retry state without a cause-specific qualification. No
 broader fleet query or browser-ledger clearing was done.
+
+## Later parent hook result (2026-10-29 ~10:07 UTC)
+
+At 10:06:18 the daemon reported that `dracon-platform`'s post-commit hook
+failed **after staged-epoch publication** with `STALE: products, games, music,
+studio, tools, books, chat, jobs`. It subsequently committed additional parent
+files, but no advertised parent ref was checked. At 10:07:48 the scheduler still
+showed the parent retrying with a backoff; the earlier stale-lock removal has
+not been shown to restore parent convergence. Do not infer the post-commit
+failure is caused by the removed lock.

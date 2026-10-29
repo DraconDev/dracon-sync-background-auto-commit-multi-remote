@@ -117,27 +117,29 @@ on that corrected tip is available. By 09:54, the same old browser snapshot had 
 running. Browser local main was `75809018ffcc1c308923884ea01336fb34377833`,
 89 commits ahead of `gitlab`/`origin` at `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`;
 committed syntax fix `9df0bc` is included in local main, but the corrected tip
-has not yet passed a push gate. A 10:04:13 read-only query saw dracon-sync `main`
-`e3a5a8d90ad31113768fab96d80ccf1ffe9b4aa4` on the then-configured aliases; at
-10:05:45 local `main` `7d04b4c1b1e7941529dfe90e087edaaad4595f57` matched current
-`gitlab` and `origin` (GitHub) refs. The separate `github` alias was absent
-again; Codeberg remains unconfigured. The old browser snapshot failed its gate
-at 09:54:47. After the daemon's 300-second retry, pre-push attempt `IPQglO`
-started at 09:59:52 on corrected snapshot `9c665ef1349198136f88ede60bfb6f49c56cb9bf`,
-which contains test fix `9df0bc`. All seven dependency builds passed; `ai-tts-pro` typecheck/build/test/lint
-passed, and the corrected `clean-web` typecheck/build/test/lint all passed by
-10:05:42. `web-time-tracker-limiter` typecheck was running at 10:05:45;
-`youtube-filter` remains pending, and no push result is available. The last direct browser remote check showed `gitlab`/`origin` at
-`64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`; a later local commit is beyond the
-active snapshot. `repair stuck-list` had reported one failure; no ledger clear or
-gate bypass was used, and the previously documented `youtube-filter` receipt
-blocker has not been shown cleared. At 09:58:21 the daemon also reported a
+has not yet passed a push gate. At 10:07:48, dracon-sync local `main`
+`54675a5173d8ffb058de3d4b542b1259d643d524` matched both `gitlab` and `origin`
+(GitHub); no separate `github` alias was configured, and Codeberg remains
+unconfigured. The old browser snapshot failed its gate at 09:54:47. After the daemon's normal
+retry, attempt `IPQglO` passed every workspace gate at 10:07:36 on corrected
+snapshot `9c665ef1349198136f88ede60bfb6f49c56cb9bf`, including `clean-web` and
+`youtube-filter`. The receipt tests accepted the real committed evidence; it
+still states the latest 12-round run saw no targets and relies on an earlier
+same-feed sighting/stamp for removal evidence. At 10:07:48, GitHub `origin` had
+advanced to `9c665...`, while GitLab remained at
+`64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`; local browser main was
+`8afc24db5e125acfdc2dcc0088412d63b819ecc5` and the daemon still reported a
+push in flight. Newer local commits are beyond the qualified snapshot, so this
+is partial publication rather than convergence. At 09:58:21 the daemon also reported a
 parent-platform `update-ref` failure on an existing `main.lock`; read-only checks
 showed the zero-byte lock was over seven hours old with no holder. A guarded
 `dracon-sync maintenance` repair removed only that stale lock and resumed sync.
-The parent later reached five consecutive sync failures and a 15-minute backoff;
-the sampled journal did not identify the failure cause or show a post-repair ref
-result. No full-fleet clean-idle observation is established.
+The parent later reached five consecutive failures and a 15-minute backoff. At
+10:06:18 its post-commit hook failed after staged-epoch publication with
+`STALE: products, games, music, studio, tools, books, chat, jobs`; the daemon
+then committed additional parent files, but no advertised parent ref result was
+verified. At 10:07:48 the scheduler still showed parent retrying. No full-fleet
+clean-idle observation is established.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 

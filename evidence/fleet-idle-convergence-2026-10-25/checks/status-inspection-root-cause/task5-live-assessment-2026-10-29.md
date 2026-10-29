@@ -253,3 +253,19 @@ typecheck, build, test, and lint; its test finished at 10:05:35 and lint at
 commit (93 unpushed at 10:05:00). No remote advancement or successful publication
 of the corrected snapshot is established; the original receipt blocker remains
 unqualified.
+
+## Follow-up — corrected full gate passes; partial remote publication (2026-10-29 10:07 UTC)
+
+Attempt `IPQglO` finished with status `passed` at 10:07:36 on corrected snapshot
+`9c665ef1349198136f88ede60bfb6f49c56cb9bf`. All workspace gates passed,
+including `youtube-filter`'s 61-file test suite; its 25 receipt-evidence tests
+passed, including acceptance of the real committed receipt. The receipt still
+records that its latest 12-round sample saw no targets, while preserving an
+earlier same-feed sighting/stamp as removal evidence; do not describe the latest
+run itself as seeing a target. At 10:07:48, local browser main was
+`8afc24db5e125acfdc2dcc0088412d63b819ecc5`, GitHub `origin` was at the gate
+snapshot `9c665...`, and GitLab remained at `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`.
+The scheduler still showed the browser push active with the repo in-flight, and
+newer local commits are beyond the gate snapshot. This clears the current
+pre-push test failure for the corrected snapshot, but not the all-remotes/current-tip
+publication requirement. No manual push, ledger clear, or gate bypass was used.
