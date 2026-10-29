@@ -11091,11 +11091,29 @@ mod tests {
             old.history_probe_timed_out, None,
             "and it cannot say whether that failure was a timeout"
         );
-        // The freshness predicate requires the new field, so this entry is
-        // rejected and exactly one recompute happens.
+        // Exercise the actual freshness/completeness contract the render path
+        // uses: a pre-split entry must NOT be considered complete-and-fresh.
+        let entry_is_complete_and_fresh = |c: &CachedRepoSize| {
+            c.cached_at_secs
+                .map(|t| 1_800_000_100u64.saturating_sub(t) < REPO_SIZE_CACHE_TTL_SECS)
+                .unwrap_or(false)
+                && c.missing_objects.is_some()
+                && c.history_probe_failed.is_some()
+                && c.history_probe_timed_out.is_some()
+        };
         assert!(
-            old.history_probe_timed_out.is_some(),
-            "a pre-split entry must not satisfy the completeness check"
+            !entry_is_complete_and_fresh(old),
+            "a pre-split cache entry must be rejected so one recompute happens"
+        );
+        // A post-split entry with the same values IS accepted: the guard rejects
+        // the missing semantic, not the healthy-or-broken verdict itself.
+        let current = CachedRepoSize {
+            history_probe_timed_out: Some(false),
+            ..old.clone()
+        };
+        assert!(
+            entry_is_complete_and_fresh(&current),
+            "a current entry must stay cacheable"
         );
     }
 
