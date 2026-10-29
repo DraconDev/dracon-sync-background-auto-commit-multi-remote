@@ -3212,4 +3212,127 @@ test index_batch::tests::index_batch_invalid_framing_and_exit_recover ... ok
 test index_batch::tests::index_batch_nonreading_stdin_recovers ... ok
 test index_batch::tests::index_batch_outer_owner_sigkill_cleans_isolated_helper_group ... ok
 test index_batch::tests::index_batch_resolver_deadline_recovers ... ok
-test index_batch::tests::index_batch_reuses_authenticated_staged_ciphertext ... 
+test index_batch::tests::index_batch_reuses_authenticated_staged_ciphertext ... ok
+test index_batch::tests::index_batch_silent_and_partial_response_recover ... ok
+test prepush_failclosed_tests::prepush_scan_io_failure_refuses_while_harmless_change_passes ... ok
+test print::tests::format_bytes_mib ... ok
+test print::tests::format_secs_units ... ok
+test storage::tests::bounded_copy_refuses_oversize_without_whole_file_buffering ... ok
+test tests::binary_carve_out_tests::an_empty_exempt_list_restores_the_hard_failure ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::over_ceiling_reason_points_smudge_at_one_shot_recovery ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_exempt_binary_passes_through_intact ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_passthrough_is_bounded_and_never_truncated ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_protected_binary_still_refused ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_text_still_refused ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::passthrough_ceiling_scales_with_the_configured_limit ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::small_binary_still_takes_the_normal_clean_path ... ok
+test tests::binary_carve_out_tests::git_does_not_route_binary_files_through_the_filter ... ok
+test tests::binary_carve_out_tests::gitattributes_emits_binary_carveouts_after_the_catchall ... ok
+test tests::binary_carve_out_tests::gitattributes_emits_media_lines_between_carveouts_and_plaintext ... ok
+test tests::binary_carve_out_tests::oversize_binary_extension_is_not_refused ... ok
+test tests::binary_carve_out_tests::oversize_media_path_is_never_size_exempt ... ok
+test tests::binary_carve_out_tests::oversize_protected_path_with_binary_extension_still_fails_closed ... ok
+test tests::binary_carve_out_tests::oversize_text_and_secret_paths_still_fail_closed ... ok
+test tests::binary_carve_out_tests::policy_can_override_or_disable_the_defaults ... ok
+test tests::binary_carve_out_tests::smudge_direction_is_never_refused ... ok
+test tests::binary_carve_out_tests::unknown_extension_is_not_exempt ... ok
+test tests::filter_process_oversize_tests::clean_oversize_fails_closed_and_writes_no_content ... ok
+test tests::filter_process_oversize_tests::smudge_oversize_passthroughs_every_byte ... ok
+test tests::tests::apply_managed_file_creates_parent_dirs ... ok
+test tests::tests::apply_managed_file_detects_noop_second_write ... ok
+test tests::tests::apply_overwrite_file_creates_new_file ... ok
+test tests::tests::apply_overwrite_file_detects_noop_second_write ... ok
+test tests::tests::apply_overwrite_file_overwrites_existing ... ok
+test tests::tests::backfill_rejects_tracked_symlink_without_modifying_target ... ok
+test tests::tests::build_gitattributes_block_includes_expected_lines ... ok
+test tests::tests::build_gitattributes_block_sets_filter_for_env ... ok
+test tests::tests::build_gitignore_block_emits_managed_header ... ok
+test tests::tests::build_gitignore_block_includes_overrides ... ok
+test tests::tests::build_globset_empty_patterns_returns_empty_set ... ok
+test tests::tests::build_globset_invalid_pattern_returns_error ... ok
+test tests::tests::build_globset_multiple_patterns ... ok
+test tests::tests::build_globset_normalizes_backslash ... ok
+test tests::tests::build_globset_single_pattern_matches ... ok
+test tests::tests::cli_once_hardens_single_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_once_repo_lynGjZ/repo/.git/
+ok
+test tests::tests::cli_repair_dry_run_does_not_modify ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_dry_run_Qgh1PS/repo/.git/
+ok
+test tests::tests::cli_repair_strict_fails_when_markers_remain ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_strict_USEMpg/repo/.git/
+ok
+test tests::tests::cli_resmudge_reports_on_plaintext_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plain_T6xdHb/repo/.git/
+ok
+test tests::tests::cli_resmudge_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plaintext_sibling_Y6cx5Z/repo/.git/
+ok
+test tests::tests::cli_scrub_markers_finds_markers_in_json ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_json_BVNYpy/repo/.git/
+ok
+test tests::tests::cli_scrub_markers_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_plaintext_sibling_VmK1wr/repo/.git/
+ok
+test tests::tests::conversation_defaults_agree_with_dump_predicate ... ok
+test tests::tests::discover_git_repos_finds_all_git_dirs ... ok
+test tests::tests::discover_git_repos_local_finds_basic_repos ... ok
+test tests::tests::discover_git_repos_local_finds_nested_repositories ... ok
+test tests::tests::discover_git_repos_rejects_symlinked_git_marker ... ok
+test tests::tests::effective_discovery_roots_handles_empty_policy ... ok
+test tests::tests::effective_discovery_roots_merges_watch_and_discover_deduped ... ok
+test tests::tests::effective_protected_patterns_empty_stays_empty ... ok
+test tests::tests::effective_protected_patterns_union_conversation_defaults ... ok
+test tests::tests::effective_repo_roots_handles_empty_policy ... ok
+test tests::tests::effective_repo_roots_merges_and_dedupes ... ok
+test tests::tests::ensure_repo_filter_config_registers_diff_and_merge_drivers ... ok
+test tests::tests::filter_clean_encrypts_content_with_secret_marker ... ok
+test tests::tests::filter_clean_passes_plaintext_unchanged ... ok
+test tests::tests::filter_clean_refusal_reason_fails_closed_for_clean_only ... ok
+test tests::tests::filter_configured_bounds_preserve_default_and_reject_unbounded_limits ... ok
+test tests::tests::filter_process_pkt_round_trip ... ok
+test tests::tests::filter_process_rejects_bad_handshake ... ok
+test tests::tests::filter_process_serve_clean_smudge_and_error ... ok
+test tests::tests::filter_smudge_handles_empty_input ... ok
+test tests::tests::filter_smudge_passes_plaintext_unchanged ... ok
+test tests::tests::filter_transform_batch_matches_oneshot ... ok
+test tests::tests::generated_gitattributes_and_filter_gate_match_single_star_paths ... ok
+test tests::tests::gitattributes_block_protects_conversation_dumps ... ok
+test tests::tests::gitignore_block_negates_conversation_dumps ... ok
+test tests::tests::global_hook_install_preserves_and_chains_foreign_hooks ... ok
+test tests::tests::harden_repo_changes_files_and_writes_key ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_repo_wwKWO1/repo/.git/
+ok
+test tests::tests::harden_repo_preserves_operator_content_outside_managed_block ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_preserve_5jwsnO/repo/.git/
+ok
+test tests::tests::harden_repo_rejects_symlinked_dotfiles_without_republishing_target ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_symlink_dotfiles_P5syZW/repo/.git/
+ok
+test tests::tests::harden_repo_sets_local_dracon_filter_config ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_repo_filter_cfg_wkgE5C/repo/.git/
+ok
+test tests::tests::harden_repo_surfaces_hook_install_failure ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_error_N0LRgz/repo/.git/
+ok
+test tests::tests::harden_repos_fails_when_global_refresh_fails ... ok
+test tests::tests::hook_replacement_is_atomic_and_executable ... ok
+test tests::tests::index_batch_lock_skips_and_recovers ... ok
+test tests::tests::index_batch_respawns_after_stage ... ok
+test tests::tests::index_batch_returns_staged_blob_not_worktree ... ok
+test tests::tests::install_hooks_for_repo_skips_shadowed_git_hooks ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_shadowed_XAKMuV/repo/.git/
+ok
+test tests::tests::is_encrypted_env_content_detects_markers ... ok
+test tests::tests::is_env_file_name_detects_common_variants ... ok
+test tests::tests::is_legacy_warden_hook_matrix ... ok
+test tests::tests::is_marker_string_detects_both_markers ... ok
+test tests::tests::is_marker_string_edge_cases ... ok
+test tests::tests::linked_worktree_gitfile_uses_real_gitdir_for_checkout_lock ... ok
+test tests::tests::marker_prefix_at_edge_cases ... ok
+test tests::tests::marker_prefix_at_finds_correct_positions ... ok
+test tests::tests::media_protected_patterns_default_off_and_parse ... ok
+test tests::tests::merge_driver_decrypt_failure_is_err_with_current_untouched ... ok
+test tests::tests::merge_driver_encrypted_roundtrip_clean_merge ... ok
+test tests::tests::merge_driver_merge_file_error_is_not_a_conflict ... ok
+test tests::tests::merge_driver_text_merge_clean_and_conflict ... ok
+test tests::tests::merge_driver_untagged_files_clean_and_conflict ... ok
+test tests::tests::newest_file_picks_newest_existing ... ok
+test tests::tests::normalize_filter_path_relativizes_inside_root_and_refuses_outside ... ok
+test tests::tests::omitted_hygiene_patterns_use_product_defaults ... ok
+test tests::tests::owner_pubkeys_in_filters_only_owner_pub ... ok
+test tests::tests::pkt_encode_panics_on_oversize_payload - should panic ... ok
+test tests::tests::plaintext_cannot_overlap_protected_or_disable_env_encryption ... ok
+test tests::tests::policy_roots_expand_tilde_before_existence_filtering ... ok
+test tests::tests::pre_commit_hook_allows_unmanaged_repo ... ok
+test tests::tests::pre_commit_hook_bare_repo_unmarked_passes ... ok
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_drift ... ok
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_only_global_filter_config ... ok
+test tests::tests::pre_commit_hook_blocks_when_merge_driver_key_missing ... 
