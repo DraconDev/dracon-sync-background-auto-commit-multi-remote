@@ -4861,7 +4861,7 @@ fn parse_count_objects_kib_field_bytes(stdout: &str, field: &str) -> u64 {
         .saturating_mul(1024)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 struct AutoGcState {
     attempted_at: std::time::Instant,
     loose_bytes_after_gc: u64,
