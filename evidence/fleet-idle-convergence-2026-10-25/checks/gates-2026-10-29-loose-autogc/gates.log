@@ -2239,3 +2239,14 @@ test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-co
    test@test
    Amend the author identity before pushing (git commit --amend --reset-author).
 error: failed to push some refs to '/tmp/.tmp1PxTPU/origin.git'
+ok
+test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (root-commit) 8816d88] init
+To /tmp/.tmpUPvsDN/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) e056cf1] init
+ok
+test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-commit) 10fcfd9] init
