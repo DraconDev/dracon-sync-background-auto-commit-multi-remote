@@ -2080,7 +2080,7 @@ so the gate's frozen snapshot can never see that file — the probe failed with
 probe had nonetheless found a real defect: extraction trims each text node
 independently, so an inline element abutting punctuation re-joined as
 "In Japan , which was…". Fixed in `lib/extract.ts` by collapsing the join space
-only where the right side cannot begin a word (`/[\s+([,.;:!?…)\]}%]|['’]\w)/`);
+only where the right side cannot begin a word (`/\s+([,.;:!?…)\]}%]|['’]\w)/g`);
 the probe was retired and replaced with a hermetic inline-fixture regression in
 `tests/extract-wiki.dom.test.ts`. Negative control against the true pre-fix
 blob fails 2 of 3 new assertions and passes after the fix. Local gates on
