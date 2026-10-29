@@ -1958,4 +1958,66 @@ test sync::staged_epoch::tests::only_typed_intent_conflicts_are_nonfailure_defer
 test sync::staged_epoch::tests::ordinary_size_rejection_prunes_only_private_delta_but_refuses_captured_intent ... ok
 test sync::staged_epoch::tests::private_staging_foreign_child_is_not_a_prefix_waiver ... ok
 test sync::staged_epoch::tests::private_staging_same_path_conflict_retains_both_payloads ... ok
-test sync::staged_epoch::tests::published_epoch_deadline_is_pending_not_a_failed_commit ... 
+test sync::staged_epoch::tests::published_epoch_deadline_is_pending_not_a_failed_commit ... ok
+test sync::staged_epoch::tests::published_epoch_releases_its_spool_and_unpublished_one_keeps_it ... ok
+test sync::staged_epoch::tests::retention_pack_excludes_unchanged_parent_tree_but_keeps_new_payload ... ok
+test sync::staged_epoch::tests::settled_epoch_preserves_original_conflicts_and_rejected_bytes ... ok
+test sync::staged_epoch::tests::zero_batch_limit_accepts_all_captured_files_without_relaxing_positive_limit ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_concurrent_index_ref_and_deadline_refuse_without_losing_data ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_foreign_lock_disabled_policy_and_active_merge_preserve_exact_index ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_never_relocates_an_active_worktree_writer ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_preserves_prior_partial_staging_and_rejects_late_cached_replacement ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_commits_only_verified_entry_staging_and_preserves_worktree ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_resolves_stale_slots_without_manufacturing_a_commit ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_resolves_exact_names_and_retains_all_stage_payloads_independently ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_retention_budget_uses_actual_blob_sizes_and_preserves_index_on_refusal ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_unknown_worktree_and_nonzero_other_index_flags_refuse_intact ... ok
+test sync::tests::bootstrap_absolute_staging_deadline_cancels_hardener_descendants ... ok
+test sync::tests::captured_epoch_commits_partial_index_and_keeps_unstaged_work ... [master (root-commit) 33de95d] init
+ok
+test sync::tests::committed_epoch_outcome_keeps_local_pending_and_transport_failure_distinct ... ok
+test sync::tests::github_mirror_comparison_accepts_transport_variants ... ok
+test sync::tests::github_mirror_comparison_uses_repository_identity_not_host_only ... ok
+test sync::tests::index_deferral_backlog_publication_preserves_meaningful_hook_refusal ... ok
+test sync::tests::ordinary_absolute_staging_deadline_cancels_hardener_descendants ... [main (root-commit) 8e89e42] disposable fixture baseline
+ok
+test sync::tests::parent_gitlink_propagates_after_standalone_commit ... ok
+test sync::tests::test_alert_unpushed_threshold ... [master (root-commit) 75eef90] init
+ok
+test sync::tests::test_alert_unpushed_threshold_not_triggered ... [master (root-commit) 75eef90] init
+ok
+test sync::tests::test_auto_commit_excludes_union_global_and_per_repo ... ok
+test sync::tests::test_auto_resolve_no_unmerged ... ok
+test sync::tests::test_auto_resolve_unmerged_disabled ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_matches_head ... ok
+test sync::tests::test_bootstrap_empty_repo_all_oversized_returns_false ... ok
+test sync::tests::test_bootstrap_empty_repo_auto_commit_disabled ... ok
+test sync::tests::test_bootstrap_empty_repo_creates_root_commit ... ok
+test sync::tests::test_bootstrap_empty_repo_nothing_to_stage ... ok
+test sync::tests::test_bootstrap_empty_repo_respects_gitignore ... ok
+test sync::tests::test_bootstrap_empty_repo_skips_oversized_files ... ok
+test sync::tests::test_bootstrap_empty_repo_unowned_skipped ... ok
+test sync::tests::test_bootstrap_sweep_measures_staged_blob_not_worktree ... ok
+test sync::tests::test_budget_caps_pathological_subject ... ok
+test sync::tests::test_cap_batch_union_caps_the_union_not_each_list ... ok
+test sync::tests::test_cap_batch_union_gitlink_priority ... ok
+test sync::tests::test_cap_batch_union_single_class_behavior_unchanged ... ok
+test sync::tests::test_cap_batch_union_under_limit_is_unchanged ... ok
+test sync::tests::test_check_untracked_threshold_above ... ok
+test sync::tests::test_check_untracked_threshold_below ... ok
+test sync::tests::test_check_untracked_threshold_gitignored_excluded ... ok
+test sync::tests::test_check_untracked_threshold_keeps_plain_untracked_dirs ... ok
+test sync::tests::test_check_untracked_threshold_subtracts_multiple_nested_repos ... ok
+test sync::tests::test_check_untracked_threshold_subtracts_nested_repo ... ok
+test sync::tests::test_check_untracked_threshold_zero_disables ... ok
+test sync::tests::test_classify_failing_remotes_dedupes_divergence ... ok
+test sync::tests::test_classify_failing_remotes_empty_map ... ok
+test sync::tests::test_commit_guard_allows_path_owned_untrusted_identity ... ok
+test sync::tests::test_commit_guard_allows_trusted_identity ... ok
+test sync::tests::test_commit_guard_blocks_on_unparsable_override ... ok
+test sync::tests::test_commit_guard_blocks_untrusted_without_override ... ok
+test sync::tests::test_commit_guard_honors_owned_override_with_custom_identity ... ok
+test sync::tests::test_commit_only_commits_but_never_pushes ... [master (root-commit) bd05de5] init
+ok
+test sync::tests::test_commit_only_control_pushes_and_fails ... [master (root-commit) 83774dc] init
