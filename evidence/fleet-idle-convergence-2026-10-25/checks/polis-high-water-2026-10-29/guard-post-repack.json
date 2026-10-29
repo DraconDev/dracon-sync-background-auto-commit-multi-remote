@@ -1,0 +1,148 @@
+{
+  "ref": "refs/heads/main",
+  "refs": [
+    {
+      "name": "refs/heads/main",
+      "ref": "refs/heads/main",
+      "remoteRef": "refs/heads/main",
+      "objectId": "21e1ce22c52cb437b66db4b548f359d2aa12d781",
+      "remoteTip": null
+    }
+  ],
+  "targetRemote": null,
+  "effectiveLimitBytes": 2344615936,
+  "limitingRemote": "github",
+  "limitingProvider": "github",
+  "scenarios": [
+    {
+      "remote": "github",
+      "url": "git@github.com:DraconDev/web-games-polis.git",
+      "provider": "github",
+      "limitBytes": 2344615936,
+      "target": false,
+      "refs": [
+        {
+          "name": "refs/heads/main",
+          "ref": "refs/heads/main",
+          "remoteRef": "refs/heads/main",
+          "objectId": "21e1ce22c52cb437b66db4b548f359d2aa12d781",
+          "remoteTip": null,
+          "trackingTip": "318182d1e59ff59aa20f69e4a79865f6c9230d15"
+        }
+      ],
+      "measurementBasis": "complete-reachable-stored-pack-plus-repack-reserve",
+      "trackingTips": [
+        "318182d1e59ff59aa20f69e4a79865f6c9230d15"
+      ],
+      "objectCount": 98602,
+      "reachableObjectCount": 98600,
+      "deltaBaseCount": 69925,
+      "uncompressedBytes": 6866971895,
+      "storedBytes": 1735438858,
+      "storedPackBytes": 1822210801,
+      "storedPackReserveBytes": 86771943,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 1822277810,
+      "policyEstimateBytes": 7566422686,
+      "packPolicyEstimateBytes": 7566355677,
+      "packUpperBoundBytes": 7566355677,
+      "prospectiveCommitAllowanceBytes": 67009,
+      "prospectiveCommitMessageBytes": 1473,
+      "basisBytes": 1822277810
+    },
+    {
+      "remote": "gitlab",
+      "url": "git@gitlab.com:DraconDev/web-games-polis.git",
+      "provider": "gitlab",
+      "limitBytes": 2344615936,
+      "target": false,
+      "refs": [
+        {
+          "name": "refs/heads/main",
+          "ref": "refs/heads/main",
+          "remoteRef": "refs/heads/main",
+          "objectId": "21e1ce22c52cb437b66db4b548f359d2aa12d781",
+          "remoteTip": null,
+          "trackingTip": "318182d1e59ff59aa20f69e4a79865f6c9230d15"
+        }
+      ],
+      "measurementBasis": "complete-reachable-stored-pack-plus-repack-reserve",
+      "trackingTips": [
+        "318182d1e59ff59aa20f69e4a79865f6c9230d15"
+      ],
+      "objectCount": 98602,
+      "reachableObjectCount": 98600,
+      "deltaBaseCount": 69925,
+      "uncompressedBytes": 6866971895,
+      "storedBytes": 1735438858,
+      "storedPackBytes": 1822210801,
+      "storedPackReserveBytes": 86771943,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 1822277810,
+      "policyEstimateBytes": 7566422686,
+      "packPolicyEstimateBytes": 7566355677,
+      "packUpperBoundBytes": 7566355677,
+      "prospectiveCommitAllowanceBytes": 67009,
+      "prospectiveCommitMessageBytes": 1473,
+      "basisBytes": 1822277810
+    },
+    {
+      "remote": "origin",
+      "url": "git@gitlab.com:DraconDev/web-games-polis.git",
+      "provider": "gitlab",
+      "limitBytes": 2344615936,
+      "target": false,
+      "refs": [
+        {
+          "name": "refs/heads/main",
+          "ref": "refs/heads/main",
+          "remoteRef": "refs/heads/main",
+          "objectId": "21e1ce22c52cb437b66db4b548f359d2aa12d781",
+          "remoteTip": null,
+          "trackingTip": "318182d1e59ff59aa20f69e4a79865f6c9230d15"
+        }
+      ],
+      "measurementBasis": "complete-reachable-stored-pack-plus-repack-reserve",
+      "trackingTips": [
+        "318182d1e59ff59aa20f69e4a79865f6c9230d15"
+      ],
+      "objectCount": 98602,
+      "reachableObjectCount": 98600,
+      "deltaBaseCount": 69925,
+      "uncompressedBytes": 6866971895,
+      "storedBytes": 1735438858,
+      "storedPackBytes": 1822210801,
+      "storedPackReserveBytes": 86771943,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 1822277810,
+      "policyEstimateBytes": 7566422686,
+      "packPolicyEstimateBytes": 7566355677,
+      "packUpperBoundBytes": 7566355677,
+      "prospectiveCommitAllowanceBytes": 67009,
+      "prospectiveCommitMessageBytes": 1473,
+      "basisBytes": 1822277810
+    }
+  ],
+  "maxBasisBytes": 1822277810,
+  "stagedBytes": 75224292,
+  "stagedTree": "83665fff9cada0b510b63ce05ac5cc615ae55b1d",
+  "projectedBytes": 1822277810,
+  "highWaterBytes": 2344615936,
+  "atOrAboveLimit": false,
+  "measurable": true,
+  "ok": true,
+  "code": "OK",
+  "limitBytes": 2344615936,
+  "remainingBytes": 522338126,
+  "errors": [],
+  "forwardOnly": {
+    "ok": true,
+    "code": "OK",
+    "checked": {
+      "staged": true,
+      "refs": 0
+    },
+    "violations": [],
+    "errors": []
+  }
+}
