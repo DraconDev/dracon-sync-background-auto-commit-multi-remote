@@ -125,3 +125,30 @@ pushed manually.
 | `guard-post-repack.json` | full guard JSON after (`code=OK`) |
 | `pre-repack-objects.txt` | `count-objects -v` + loose/pack byte split before |
 | `post-repack-objects.txt` | same after |
+
+## Addendum — 2026-10-29 15:40 UTC: `cargo deny` gate repaired
+
+While starting the workspace gate for task 4.1, `cargo deny check` failed:
+
+```
+error[vulnerability]: libz-sys build script leaks environment variables in the build directory
+    ├ ID: RUSTSEC-2026-0418
+advisories FAILED, bans ok, licenses ok, sources ok
+```
+
+`libz-sys <= 1.1.30` prints its full build environment to stdout under `cc >=
+1.6.0`, and cargo stores build-script stdout under `target/` — so any CI cache
+or shared `target/` leaks those values. The workspace was pinned at 1.1.29.
+
+Fixed by a real dependency upgrade, **not** an ignore entry:
+
+```
+cargo update -p libz-sys --precise 1.1.31
+```
+
+`deny.toml [advisories] ignore` remains `[]`. Re-run: `advisories ok, bans ok,
+licenses ok, sources ok`.
+
+Adding an advisory ignore here would have been the tempting shortcut and would
+have left the leak in place for every future build-cache publication. The
+patch release is the durable repair.
