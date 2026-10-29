@@ -3210,4 +3210,6 @@ test index_batch::tests::index_batch_direct_helper_sigkill_cleans_descendants_wi
 test index_batch::tests::index_batch_drop_reaps_direct_child_and_kills_group ... ok
 test index_batch::tests::index_batch_invalid_framing_and_exit_recover ... ok
 test index_batch::tests::index_batch_nonreading_stdin_recovers ... ok
-test index_batch::tests::index_batch_outer_owner_sigkill_cleans_isolated_helper_group ... 
+test index_batch::tests::index_batch_outer_owner_sigkill_cleans_isolated_helper_group ... ok
+test index_batch::tests::index_batch_resolver_deadline_recovers ... ok
+test index_batch::tests::index_batch_reuses_authenticated_staged_ciphertext ... 
