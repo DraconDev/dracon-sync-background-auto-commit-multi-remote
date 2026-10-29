@@ -3675,11 +3675,16 @@ struct CachedRepoSize {
     /// (forces one recompute, then cached).
     #[serde(default)]
     missing_objects: Option<u64>,
-    /// Whether the history probe failed (invalid HEAD, missing ref, or
-    /// timeout). `None` means this field predates the probe-failure state
-    /// and forces one recomputation.
+    /// Whether git REJECTED the history probe (invalid HEAD, missing ref).
+    /// `None` means this field predates the probe-failure state and forces one
+    /// recomputation.
     #[serde(default)]
     history_probe_failed: Option<bool>,
+    /// Whether the probe merely ran out of time. Cached so a slow host does not
+    /// re-probe on every render, and kept distinct from `history_probe_failed`
+    /// so an unmeasured history is never rendered as a broken one.
+    #[serde(default)]
+    history_probe_timed_out: Option<bool>,
     /// ADDED 2026-07-24 (v0.112.40): wall-clock time the cache entry
     /// was written, in seconds since UNIX epoch. Combined with
     /// `REPO_SIZE_CACHE_TTL_SECS`, lets the cache survive brief
@@ -3953,6 +3958,7 @@ fn compute_cold_size_entry(
             gitdir_sig,
             missing_objects: Some(history.missing_objects),
             history_probe_failed: Some(history.failed),
+            history_probe_timed_out: Some(history.timed_out),
             // ADDED 2026-07-24 (v0.112.40): record the
             // wall-clock write time so the TTL check can
             // honor fresh entries across daemon activity.
@@ -4316,6 +4322,7 @@ pub(crate) async fn run_repos_report(
             pack_too_large,
             missing_objects,
             history_probe_failed,
+            history_probe_timed_out,
         ) = if cache_entry_is_complete_and_fresh {
             let c = cached_entry.expect("fresh cache entry must be present");
             (
@@ -4324,6 +4331,7 @@ pub(crate) async fn run_repos_report(
                 (c.pack_too_large, c.pack_pushable_bytes),
                 c.missing_objects.unwrap_or(0),
                 c.history_probe_failed.unwrap_or(false),
+                c.history_probe_timed_out.unwrap_or(false),
             )
         } else if !deep {
             // Interactive reports must not launch a multi-GiB
@@ -4359,6 +4367,7 @@ pub(crate) async fn run_repos_report(
                     (c.pack_too_large, c.pack_pushable_bytes),
                     c.missing_objects.unwrap_or(0),
                     c.history_probe_failed.unwrap_or(false),
+                    c.history_probe_timed_out.unwrap_or(false),
                     c.git_modules_bytes,
                 )
             });
