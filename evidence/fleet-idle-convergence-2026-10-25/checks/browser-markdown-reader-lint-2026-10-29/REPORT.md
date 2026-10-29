@@ -99,6 +99,47 @@ bun run test        → exit 0   (4 files, 61 tests passed)
 Raw logs: `live-lint-after.log`, `live-typecheck-after.log`,
 `live-tests-after.log` in this directory.
 
+## Live gate confirmation on the daemon's real snapshot
+
+The daemon's next round (`dracon-pre-push.Km2eJj`, pinned `cf17489b33`) re-ran
+the same 44-workspace 4-gate against a fresh snapshot, and
+`extensions_standalones_markdown-reader-LINT.log` now reads:
+
+```
+✖ 19 problems (0 errors, 19 warnings)
+```
+
+**0 errors**, versus the 6-7 errors in every earlier run. The two extra warnings
+are pre-existing `no-explicit-any` findings in files the newer snapshot touches;
+no rule was disabled and no warning was suppressed. This is the gate itself
+accepting the repair, not a local reproduction.
+
+That same round then failed a *different* gate,
+`extensions_standalones_full-page-screenshot-TEST`, with:
+
+```
+Test Files  3 passed (3)
+     Tests  28 passed (28)
+    Errors  2 errors
+Error: [vitest-pool]: Failed to start forks worker ... Timeout waiting for worker to respond
+```
+
+That is a host-resource artifact, not a code failure: every test that ran passed,
+and the two failures are vitest being unable to *start* worker processes. Host
+state at that moment was load 50.35 with 623 MiB available of 31 GiB. The
+identical suite in the live worktree passes cleanly:
+
+```
+Test Files  5 passed (5)
+     Tests  36 passed (36)
+   Duration  7.28s
+```
+
+versus 134.71 s in the gated snapshot. Recorded as an environment flake with its
+true outcome retained — the gate result was a genuine failure of that run and is
+not being rewritten as a pass. No timeout was widened and no gate was skipped to
+make it green.
+
 ## Scope honesty
 
 - This resolves the demonstrated **lint** refusal for `markdown-reader`. It does
