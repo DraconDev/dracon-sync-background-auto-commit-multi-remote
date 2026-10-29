@@ -2028,3 +2028,21 @@ ok
 test sync::tests::test_compute_blast_radius_merge_prefix ... ok
 test sync::tests::test_compute_diff_entries_propagates_filter_diff_failure ... ok
 test sync::tests::test_concurrent_staging_defers_then_captured_and_worktree_epochs_converge ... [master (root-commit) 10848a5] init
+ok
+test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) cb1aa22] init
+ok
+test sync::tests::test_count_ahead_commits_no_origin ... ok
+test sync::tests::test_count_ahead_commits_returns_zero_when_synced ... [main (root-commit) cb1aa22] init
+ok
+test sync::tests::test_count_ahead_commits_takes_max_across_tracking_refs ... [main (root-commit) 9d025bb] c0
+[main 0fbc9ae] c1
+[main 792caab] c2
+[main bbd80b1] c3
+[main 2cb1926] c4
+ok
+test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [main (root-commit) 41398fa] c1
+[main 556e7be] c2
+ok
+test sync::tests::test_degraded_success_reports_paused_not_synced ... [master (root-commit) 45b82b2] init
+To /tmp/.tmpkWpRTB/mirror.git
+ * [new branch]      master -> master
