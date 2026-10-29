@@ -1207,14 +1207,12 @@ mod tests {
                 repo.to_str().unwrap(),
             ],
         );
-        for worktree in [&repo] {
-            git_ok(worktree, &["config", "user.name", "Fence Test"]);
-            git_ok(worktree, &["config", "user.email", "fence@example.invalid"]);
-            git_ok(
-                worktree,
-                &["config", "core.hooksPath", quiet_hooks.to_str().unwrap()],
-            );
-        }
+        git_ok(&repo, &["config", "user.name", "Fence Test"]);
+        git_ok(&repo, &["config", "user.email", "fence@example.invalid"]);
+        git_ok(
+            &repo,
+            &["config", "core.hooksPath", quiet_hooks.to_str().unwrap()],
+        );
         std::fs::write(
             repo.join(".gitignore"),
             "one\nTWO-BASE\nthree\nfour\nfive\nsix\nseven\nEIGHT-BASE\nnine\n",
