@@ -3525,3 +3525,11 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 TEST_EXIT=0
    Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `release` profile [optimized] target(s) in 1m 29s
+BUILD_EXIT=0
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 14.53s
+CLIPPY_EXIT=0
+advisories ok, bans ok, licenses ok, sources ok
+DENY_EXIT=0
+=== done 2026-10-29T19:18:34+00:00 ===
