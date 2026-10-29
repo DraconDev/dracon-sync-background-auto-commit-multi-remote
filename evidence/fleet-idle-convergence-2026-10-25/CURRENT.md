@@ -222,6 +222,12 @@ At 10:45:55, browser local `main` was `a3996a9380244d03815b3755e8148d87c70c2cd2`
 
 The patient survey watcher continues to emit tracked evidence. Completed batch 174 had ten intact Home-feed rounds with no survey target; batch 175 was in progress at the last check. These remain absence observations, not removal proof. The saved real-feed shelves receipt was not refreshed. Parent refs were last verified equal at 10:41:11 (`f44b86...` on local and all three remotes, no `main.lock`); Polis still had an unclassified hook refusal at 10:40:23. No current full-fleet clean-idle snapshot is established.
 
+### Follow-up — 2026-10-29 10:50 UTC: corrected-code gate in progress
+
+At 10:48:19, browser `main` was `5ca6d68c5ef32de269d88f8d57e87fc922f86669`, 51 commits ahead of both directly advertised refs at `70545...`. The new `V7InRp` gate started at 10:46:49 on snapshot `fbc42b18fdbb309b57183a7328db10c4f610cbf5`, seven commits behind that local tip; the verdict source, declaration and tests are unchanged between those revisions. This snapshot includes the corrected `abSameTab` declaration. At 10:50:31, its clean-web gates and YouTube typecheck had passed; YouTube build was still running, with no full gate result or publication yet.
+
+The passive survey watcher remained alive. Batch 176 had five of ten rounds recorded, all absent on visible Home-feed grids; this does not show filtering. The local branch is still unpublished and continues accumulating evidence commits. The new gate is useful progress on the corrected code, but does not establish current-tip publication or fleet idleness.
+
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
 The original goal remains active and incomplete. Warden's cooperative canonical-
