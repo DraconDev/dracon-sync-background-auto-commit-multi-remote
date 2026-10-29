@@ -2286,3 +2286,17 @@ ok
 test sync::tests::test_sync_repo_unstages_excluded_dir_paths ... [master (root-commit) 76c61a7] init
 ok
 test sync::tests::test_sync_repo_unstages_oversized_file ... [master (root-commit) 76c61a7] init
+ok
+test sync::tests::test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked ... [master (root-commit) 76c61a7] init
+ok
+test sync::tests::test_sync_repo_with_duplicate_subjects_succeeds ... [master (root-commit) 20a825e] init
+ok
+test sync::tests::test_truncate_task_at_sentence_boundary ... ok
+test sync::tests::test_truncate_task_hard_cutoff ... ok
+test sync::tests::test_truncate_task_multibyte_utf8 ... ok
+test sync::tests::test_truncate_task_short ... ok
+test sync::tests::test_warden_auto_harden_disabled_never_forks ... ok
+test sync::tests::test_warden_auto_harden_hardens_once ... ok
+test sync::tests::test_warden_auto_harden_skips_dry_run ... ok
+test sync::tests::unlimited_batch_bootstraps_all_related_unborn_files ... ok
+test sync::tests::unlimited_batch_commits_all_related_worktree_files_in_one_epoch ... [master (root-commit) c749a3e] init
