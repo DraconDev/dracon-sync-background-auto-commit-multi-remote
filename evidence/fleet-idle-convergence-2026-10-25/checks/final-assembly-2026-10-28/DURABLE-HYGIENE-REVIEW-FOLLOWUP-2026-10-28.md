@@ -22,7 +22,7 @@ The specific second-exchange relocation branch is absent in current
 `excluded_revert.rs`: the helper performs one finalizing exchange, verifies both
 fingerprints, and never exchanges back. The finalize-once and late-displaced
 regressions passed in the targeted controls recorded at
-`epoch-integration-partial/current-sync-controls-2026-10-29.json`; the relevant
+`../epoch-integration-partial/current-sync-controls-2026-10-29.json`; the relevant
 Rust source inputs were unchanged from that helper build through current
 `dracon-sync` HEAD.
 
@@ -32,8 +32,8 @@ proved the Warden writer waited at the held fence, opened a newer canonical FD,
 then verified both accepted writers remained on the canonical inode and the
 index stayed byte-identical. All five passed. The helper and Warden executable
 hashes and per-run observations are in
-`epoch-integration-partial/exchange-syscalls-cooperative-repeat-2026-10-29.json`
-(and its raw log).
+`../epoch-integration-partial/exchange-syscalls-cooperative-repeat-2026-10-29.json`
+(and its matching `.log`).
 
 The same current helper was also run once with an uncooperative raw opener. That
 strict negative returned `pass=false`: the helper response was `true`, the old
@@ -41,7 +41,7 @@ opener landed on the displaced inode, and the newer canonical FD remained
 canonical. This does not undo the cooperative Warden result; it does mean the
 helper/parent settlement behavior for that exact raw-opener timing is not
 qualified. Preserve it as an unsupported/open boundary, never a passing safety
-claim. The older `norollback-qualified-v3-receipt.json` cites a raw-schedule
+claim. The older `../epoch-integration-partial/norollback-qualified-v3-receipt.json` cites a raw-schedule
 artifact as `pass=true` despite its recorded displaced old-writer identity;
 this requalification narrows that interpretation to the cooperative control
 above and does not treat the older receipt as proof of arbitrary queued-open

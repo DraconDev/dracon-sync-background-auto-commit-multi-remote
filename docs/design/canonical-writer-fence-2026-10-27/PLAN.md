@@ -195,16 +195,18 @@ This is not a release build or full-workspace gate.
   queue an independent Warden writer behind the held fence, open a newer
   canonical FD immediately after exchange, and verify both accepted writer FDs
   remain canonical with the index unchanged. Receipt/log:
-  `exchange-syscalls-cooperative-repeat-2026-10-29.{json,log}`. This qualifies
-  the no-second-exchange fix for this Warden cooperative participant, not every
-  producer.
+  `../../../evidence/fleet-idle-convergence-2026-10-25/checks/epoch-integration-partial/exchange-syscalls-cooperative-repeat-2026-10-29.json`
+  and the matching `.log`. This qualifies the no-second-exchange fix for this
+  Warden cooperative participant, not every producer.
 - The current raw-uncooperative negative on the same helper returned success
   while the queued raw writer landed on the displaced inode; the strict result
-  is `pass=false` (see `exchange-syscalls-raw-negative-current-2026-10-29.json`).
+  is `pass=false` (see
+  `../../../evidence/fleet-idle-convergence-2026-10-25/checks/epoch-integration-partial/exchange-syscalls-raw-negative-current-2026-10-29.json`).
   This is unsupported-boundary evidence, not a pass. The parent settlement /
   refusal behavior for that exact simultaneous timing is not qualified. The
-  older `norollback-qualified-v3-receipt.json` cites a weaker raw result as
-  `pass=true` despite the displaced identity; do not treat it as blanket
+  older `../../../evidence/fleet-idle-convergence-2026-10-25/checks/epoch-integration-partial/norollback-qualified-v3-receipt.json`
+  cites a weaker raw result as `pass=true` despite the displaced identity; do
+  not treat it as blanket
   queued-open approval. Preserve the single-exchange/no-rollback invariant,
   retain the raw negative, expand the cooperative schedule to other supported
   writers, and do not claim general uncooperative-writer safety.
