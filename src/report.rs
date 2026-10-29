@@ -10986,6 +10986,68 @@ mod tests {
         assert!(probe.failed, "invalid HEAD after retries must stay failed");
     }
 
+    /// Regression (2026-10-29): a probe that runs out of time is UNMEASURED,
+    /// not broken. Conflating the two rendered four healthy repos as
+    /// `PUSH 🩹 BROKEN` on a loaded host (`rev-list --objects HEAD` exited 0 in
+    /// 3.6-8.2 s against the 10 s bound).
+    ///
+    /// Driven through the real bounded runner with a duration no subprocess can
+    /// beat, so the assertion covers the deadline path rather than a mock.
+    #[test]
+    fn probe_timeout_is_unmeasured_not_broken_history() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        std::process::Command::new("git")
+            .args(["init", "-q", "-b", "main"])
+            .current_dir(repo)
+            .status()
+            .unwrap();
+        // A real commit so a *successful* probe would find a healthy history;
+        // only the deadline can make this probe fail.
+        for args in [
+            vec!["config", "user.email", "t@t.local"],
+            vec!["config", "user.name", "t"],
+        ] {
+            std::process::Command::new("git")
+                .args(&args)
+                .current_dir(repo)
+                .status()
+                .unwrap();
+        }
+        std::fs::write(repo.join("f"), "x").unwrap();
+        for args in [vec!["add", "f"], vec!["commit", "-q", "-m", "init"]] {
+            std::process::Command::new("git")
+                .args(&args)
+                .current_dir(repo)
+                .status()
+                .unwrap();
+        }
+
+        // Zero budget: the deadline is already past on the first poll.
+        let outcome = run_git_bounded(
+            &["rev-list", "--objects", "HEAD"],
+            repo,
+            &[],
+            std::time::Duration::from_millis(0),
+        );
+        assert!(
+            matches!(outcome, BoundedProbe::TimedOut),
+            "an expired deadline must be reported as TimedOut, not Failure: {outcome:?}"
+        );
+
+        // And the shape a caller sees for that outcome must not claim damage.
+        let probe = HistoryProbe {
+            missing_objects: 0,
+            failed: false,
+            timed_out: true,
+        };
+        assert!(!probe.failed, "a timeout is not git rejecting the request");
+        assert!(
+            !(probe.failed || probe.missing_objects > 0),
+            "the BROKEN_HISTORY predicate must stay false for an unmeasured probe"
+        );
+    }
+
     #[test]
     fn compute_cold_size_entry_populates_cache_record() {
         // CHANGED 2026-08-22: the cold-path probes were extracted into
@@ -11028,6 +11090,7 @@ mod tests {
         assert_eq!(entry.git_size_bytes, size.unwrap_or(0));
         assert_eq!(entry.missing_objects, Some(0));
         assert_eq!(entry.history_probe_failed, Some(false));
+        assert_eq!(entry.history_probe_timed_out, Some(false));
         assert_eq!(entry.cached_at_secs, Some(now));
         assert_eq!(entry.gitdir_sig, 42);
     }
@@ -11036,13 +11099,15 @@ mod tests {
     fn run_git_bounded_feeds_large_stdin_without_pipe_block() {
         let dir = tempfile::tempdir().unwrap();
         let input = vec![b'x'; 256 * 1024];
-        let output = run_git_bounded(
+        let output = match run_git_bounded(
             &["hash-object", "--stdin"],
             dir.path(),
             &input,
             std::time::Duration::from_secs(5),
-        )
-        .expect("hash-object probe should complete");
+        ) {
+            BoundedProbe::Output(bytes) => bytes,
+            other => panic!("hash-object probe should complete, got {other:?}"),
+        };
         let hash = String::from_utf8_lossy(&output);
         assert!(
             hash.trim().len() == 40 || hash.trim().len() == 64,
