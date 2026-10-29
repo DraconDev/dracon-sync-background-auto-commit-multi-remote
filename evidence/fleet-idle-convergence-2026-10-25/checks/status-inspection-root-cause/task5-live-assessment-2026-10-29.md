@@ -124,5 +124,10 @@ The subsequent evidence-only daemon commit advanced local utilities main to
 `7c5c18f974da30d2b8b7937cff51694cfd704838`; read-only `ls-remote` showed
 `github`, `gitlab`, and `origin` all at that same tip. At 09:32:04 the daemon
 still reported trailing-drain work, and the last observed browser backlog was
-114 unpushed commits (09:31:32). This remains active, non-idle fleet state; the
-Codeberg destination remains absent and unresolved.
+114 unpushed commits (09:31:32). This remains active, non-idle fleet state.
+
+At 09:33, local utilities main was `39e4b1eac983b50885421787d021f5d8890a6950`;
+read-only checks showed `gitlab` and `origin` both at that tip. `origin` resolves
+to `github.com`, so GitHub remains configured even though the separate `github`
+remote name present at 09:32 was absent by this check. The cause of the alias
+change is not established. Codeberg remains absent and unresolved.

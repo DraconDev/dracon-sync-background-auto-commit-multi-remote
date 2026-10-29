@@ -94,8 +94,12 @@ work active; do not treat the Doomtap remote check as fleet convergence. A later
 `739c4492dfd9281d5c42d0dfff1380476a4768ce` advertised by all three configured
 remotes, while Codeberg remains unconfigured. A subsequent 09:32 check showed
 the evidence-only utilities commit `7c5c18f974da30d2b8b7937cff51694cfd704838`
-on all three configured remotes. The daemon journal still showed browser
-backlog 114 and trailing-drain activity; no full-fleet query was run.
+on all three configured remotes. The 09:33 read-only snapshot showed utilities `main`
+`39e4b1eac983b50885421787d021f5d8890a6950` on `gitlab` and `origin` (whose host
+is GitHub). The separate `github` alias seen at 09:32 was gone by then; the
+reason is unknown, but GitHub remains covered through `origin`. The daemon
+journal still showed browser backlog 114 and trailing-drain activity; no
+full-fleet query was run.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
