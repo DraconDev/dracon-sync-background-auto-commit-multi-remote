@@ -112,10 +112,16 @@ pre-push/Node/Git gate tree actively executing, but no ref advance in that
 snapshot. The 09:47:35 `origin` gate then failed on `clean-web TEST` because
 snapshot `ac036eb` had a duplicate brace in `engine.test.ts`; later committed
 fix `9df0bc` is an ancestor of current local tip `e3bc4fb`, but no gate result
-on that corrected tip is available. The old snapshot attempt still showed
-`affiliate` CI running at 09:50:23, and browser main was 87 commits ahead of
-both remotes at 09:50:41. The platform parent and `polis` remained
-active/retrying, so a new full-fleet query remains deferred.
+on that corrected tip is available. By 09:54, the same old browser snapshot had failed `clean-web TEST` again;
+`web-time-tracker-limiter` test/lint passed and `youtube-filter` typecheck was
+running. Browser local main was `75809018ffcc1c308923884ea01336fb34377833`,
+89 commits ahead of `gitlab`/`origin` at `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`;
+committed syntax fix `9df0bc` is included in local main, but the corrected tip
+has not yet passed a push gate. A read-only query at 09:53 showed dracon-sync
+`main` `b872e7833b99eb1c298e40c9e2b3abc41cc59afd` advertised by all configured
+`github`, `gitlab`, and `origin` aliases. The platform parent and `polis` were
+active/retrying in the 09:52 scheduler snapshot; no new full-fleet query or
+clean-idle observation is established.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
