@@ -75,7 +75,10 @@ that exact publication only; the whole Doomtap tree and fleet were not checked.
 See `checks/status-inspection-root-cause/task5-live-assessment-2026-10-29.md`.
 
 The Warden `.gitattributes` resmudge/competing-writer integration control now
-passes five sequential targeted runs. The actual excluded-recovery helper's
+passes five sequential targeted runs; read-only checks showed Warden `main`
+`aa351b5f6cab65199c4f69c3177641adfa12a5e9` advertised by all three configured
+remotes. This verifies source/test publication, not release deployment or loaded
+runtime. The actual excluded-recovery helper's
 `renameat2` schedule also passes five times with a cooperative Warden writer
 queued at the fence; a same-helper raw-uncooperative negative still returns
 success while its old writer lands on the displaced inode, so arbitrary-writer

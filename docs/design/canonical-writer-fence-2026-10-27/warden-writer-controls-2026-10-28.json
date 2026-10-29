@@ -85,6 +85,7 @@
   ],
   "remaining": [
     "End-to-end encrypted resmudge --apply, cancellation/index preservation, and post-process fence reacquisition are covered for tracked .gitignore; a separate .gitattributes integration control queues a second Warden write-fence writer during the actual resmudge write-open/final-close path (five sequential targeted passes). No loaded-runtime proof.",
+    "After adding the .gitattributes integration test, only that targeted test was run five times; the Warden package-wide tests and all-target Clippy were not rerun on this test revision.",
     "No full-workspace tests, release build, or strict all-target Clippy on the post-integration assembly; cargo deny check alone is not full qualification.",
     "No deployment or loaded-runtime verification; cooperative-writer coverage remains bounded to the recorded syscall receipt and does not qualify every tool interface."
   ]
