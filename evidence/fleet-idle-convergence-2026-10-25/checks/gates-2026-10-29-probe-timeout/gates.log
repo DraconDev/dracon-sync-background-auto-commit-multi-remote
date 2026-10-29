@@ -3335,4 +3335,6 @@ test tests::tests::pre_commit_hook_allows_unmanaged_repo ... ok
 test tests::tests::pre_commit_hook_bare_repo_unmarked_passes ... ok
 test tests::tests::pre_commit_hook_blocks_managed_repo_with_drift ... ok
 test tests::tests::pre_commit_hook_blocks_managed_repo_with_only_global_filter_config ... ok
-test tests::tests::pre_commit_hook_blocks_when_merge_driver_key_missing ... 
+test tests::tests::pre_commit_hook_blocks_when_merge_driver_key_missing ... ok
+test tests::tests::pre_commit_hook_blocks_when_only_commented_filters_remain ... ok
+test tests::tests::pre_commit_hook_blocks_when_required_key_false ... 
