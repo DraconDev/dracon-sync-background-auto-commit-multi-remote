@@ -123,9 +123,11 @@ async fn pinned_origin_and_mirror_publish_the_same_commit_after_head_advances() 
         result = &mut push => panic!("push ended before hook release: {result:?}"),
         () = entered => {}
     }
-    assert!(super::super::sync_lease::try_acquire_publication(&repo)
-        .unwrap()
-        .is_none());
+    assert!(
+        super::super::sync_lease::try_acquire_publication(&repo)
+            .unwrap()
+            .is_none()
+    );
     let local = super::super::sync_lease::try_acquire(&repo)
         .unwrap()
         .unwrap();
@@ -261,7 +263,11 @@ async fn local_hook_refusal_is_a_decided_verdict_for_a_pinned_object() {
     let hooks = fixture.path().join("hooks");
     std::fs::create_dir(&repo).unwrap();
     std::fs::create_dir(&hooks).unwrap();
-    git(&fixture.path().join("."), &["init", "--bare", bare.to_str().unwrap()]).await;
+    git(
+        &fixture.path().join("."),
+        &["init", "--bare", bare.to_str().unwrap()],
+    )
+    .await;
     git(&repo, &["init", "-b", "main"]).await;
     git(&repo, &["remote", "add", "origin", bare.to_str().unwrap()]).await;
     std::fs::write(repo.join("file"), "pinned payload").unwrap();
@@ -279,7 +285,11 @@ async fn local_hook_refusal_is_a_decided_verdict_for_a_pinned_object() {
     )
     .unwrap();
     std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
-    git(&repo, &["config", "core.hooksPath", hooks.to_str().unwrap()]).await;
+    git(
+        &repo,
+        &["config", "core.hooksPath", hooks.to_str().unwrap()],
+    )
+    .await;
 
     // A large retry budget is the point: only the decided-verdict rule keeps a
     // refused pinned object from being re-gated (and re-timed-out) repeatedly.
@@ -296,9 +306,12 @@ async fn local_hook_refusal_is_a_decided_verdict_for_a_pinned_object() {
         "a decided hook verdict must not be re-executed for the same pinned object"
     );
     assert!(
-        !listing(&bare, &["for-each-ref", "--format=%(refname)", "refs/heads"])
-            .await
-            .contains("refs/heads/main"),
+        !listing(
+            &bare,
+            &["for-each-ref", "--format=%(refname)", "refs/heads"]
+        )
+        .await
+        .contains("refs/heads/main"),
         "nothing may be published when the pinned bytes were refused"
     );
     assert_eq!(
