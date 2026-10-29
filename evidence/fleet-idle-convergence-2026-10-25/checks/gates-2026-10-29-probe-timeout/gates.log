@@ -425,4 +425,10 @@ test storage_core::journal::tests::forged_regression_and_plaintext_encryption_ar
 test storage_core::journal::tests::payload_crash_child ... ignored, subprocess helper, invoked by payload crash recovery test
 test storage_core::journal::tests::payload_spools_resume_matching_prefix_and_have_independent_byte_budget ... ok
 test storage_core::journal::tests::prepared_payload_is_retained_once_and_cannot_change_across_restart ... ok
-test storage_core::journal::tests::prepared_payload_recovers_process_death_without_repeating_security_processing ... 
+test storage_core::journal::tests::prepared_payload_recovers_process_death_without_repeating_security_processing ... ok
+test storage_core::journal::tests::previously_tracked_runtime_and_changed_ignore_fail_before_private_capture ... ok
+test storage_core::journal::tests::private_runtime_inside_watched_repo_is_ignored_and_cannot_be_the_repo_root ... ok
+test storage_core::journal::tests::process_death_releases_lease_and_atomic_write_has_old_or_new_record ... ok
+test storage_core::journal::tests::record_budget_and_read_only_status_never_delete_or_create_state ... ok
+test storage_core::journal::tests::relative_paths_and_required_sets_are_validated ... ok
+test storage_core::journal::tests::required_copies_and_git_destinations_gate_preservation ... 
