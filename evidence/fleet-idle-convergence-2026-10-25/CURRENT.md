@@ -236,6 +236,12 @@ The operator chose to stop the passive watcher after batch 176. The stop was not
 
 At 11:01:23, parent local `main` (`a33daf...`) was one commit ahead of directly verified `origin` and `gitlab` refs (`63d8e3...`), with no `main.lock`; the working tree still had active nested and outpost-eden changes. Polis's 10:55:30 epoch refusal (`0KLVtZ`) remained unclassified after five failures/backoff; a later filter-aware status query succeeded, but did not explain the refusing hook. Full-fleet clean-idle acceptance remains open.
 
+### Follow-up — 2026-10-29 11:10 UTC: current daemon state and remaining stale gate
+
+The latest `dracon-sync repos` view (about 11:09) reported 36 inspected repositories: 32 clean, 3 active, 1 blocked, and 0 inspection failures. It showed `dracon-platform` blocked, browser publishing, and Polis queued. `repair stuck-list` returned no stuck repositories. The dry-run `repair concerns` separately found one existing `terhub` concern (clean and equal to origin but lacking upstream); no repair was applied.
+
+At 11:09:47, parent local `main` was `b1955355...`, two commits ahead of directly checked `origin` and `gitlab` refs at `7ee1bd29...`; `main.lock` was absent. The parent still had active nested and outpost-eden work. The browser local tip remained `af5a9b1a...`, 39 commits ahead of both remotes at `fbc42b18...`. `V7InRp`/`0eJuTA` passed the corrected declaration on `fbc42`; the later test failure on `7e8eff` was the fake-Node test-harness issue described above. The test fix is locally committed and package checks pass, but it has no qualifying gate or remote publication yet. `n3Jg5x` failed on the same pre-fix snapshot; `B4CLx7` was still running on that snapshot at the last status read.
+
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
 The original goal remains active and incomplete. Warden's cooperative canonical-

@@ -345,3 +345,11 @@ At 10:50:31 the patient watcher was alive in batch 176, with five of ten rounds 
 The operator chose to stop the diagnostic watcher after batch 176. Due to delayed application, batches 177 and 178 completed and batch 179 started; the watcher was stopped at 10:58:57 after three partial rounds (all `absent`, visible grid, 78/58/77 video items). The tracked JSON remains the latest complete batch 178, ten absent observations with visible grids (56–74 items); the partial batch-179 log is retained under `/tmp/yff-feedback-survey-watcher/`. This overran the requested boundary; no editor, agent, or daemon was stopped. Absence does not demonstrate filtering, and the real-feed shelves receipt was not refreshed.
 
 At 11:01:23 parent `main` was one commit ahead of directly verified `origin` and `gitlab` refs, with no `main.lock`; the parent still had active changes. Polis again refused an epoch at 10:55:30 and entered backoff after five failures; the refusing hook remains unknown. No full-fleet clean-idle state is established.
+
+## Follow-up — fresh fleet state and publication backlog (2026-10-29 11:10 UTC)
+
+The latest `dracon-sync repos` view (about 11:09) reported 36 inspected, 32 clean, 3 active, 1 blocked, and zero inspection failures. The table showed `dracon-platform` blocked, browser publication active, and Polis queued. `repair stuck-list` found none. A separate dry-run concerns scan found one `terhub` missing-upstream item; it was not applied.
+
+At 11:09:47 parent local `main` was `b1955355...`, two commits ahead of directly verified `origin` and `gitlab` refs (`7ee1bd29...`), with no `main.lock`; active parent and nested work remains. Browser local `main` was `af5a9b1a...`, 39 commits ahead of both advertised refs at `fbc42b18...`. The test-only fake-hunter fix passes local YouTube package tests (61 files, 1081 tests), typecheck and lint, but no pre-push gate or remote yet qualifies it. Gate `n3Jg5x` failed on the same old `7e8eff` snapshot; `B4CLx7` was still running on that snapshot at the last check.
+
+The patient watcher is stopped following the operator's choice. Its stop overran batch 176: batches 177/178 completed and batch 179 was interrupted after three absent, visible-grid rounds. The complete tracked JSON remains batch 178; no new real-feed receipt or filtering proof resulted.
