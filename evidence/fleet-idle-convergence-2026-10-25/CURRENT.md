@@ -64,6 +64,30 @@ preserved; the 1.7 MB file and staged index entry remain untouched pending
 operator classification. See
 `checks/status-inspection-root-cause/doomtap-unapproved-qa-staging-2026-10-29.md`.
 
+### Follow-up — 2026-10-29 09:10 UTC and later
+
+The pending Doomtap classification is superseded: the daemon later committed the
+exact `docs/screenshots/qa/probe-unapproved.png` pointer, and read-only remote
+checks showed `github`, `gitlab`, and `origin` `main` refs all at local HEAD
+`6e991b6e8a91f2e95e7e1f7b182ab919088587af`. The path-limited status for that
+pointer, `.gitignore`, and the publication-policy test is clean. This verifies
+that exact publication only; the whole Doomtap tree and fleet were not checked.
+See `checks/status-inspection-root-cause/task5-live-assessment-2026-10-29.md`.
+
+The Warden `.gitattributes` resmudge/competing-writer integration control now
+passes five sequential targeted runs. The actual excluded-recovery helper's
+`renameat2` schedule also passes five times with a cooperative Warden writer
+queued at the fence; a same-helper raw-uncooperative negative still returns
+success while its old writer lands on the displaced inode, so arbitrary-writer
+preservation and that timing's parent settlement/refusal remain open. Receipts
+are in `../../docs/design/canonical-writer-fence-2026-10-27/PLAN.md` and
+`checks/epoch-integration-partial/`.
+
+No full current dracon-sync suite, full-workspace gates, deployment, loaded
+runtime, or fresh full-fleet clean-idle observation is established. The earlier
+scheduler snapshot showed browser publication and platform inspection/retry
+work active; do not treat the Doomtap remote check as fleet convergence.
+
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
 The original goal remains active and incomplete. Warden's cooperative canonical-
