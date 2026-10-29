@@ -877,4 +877,16 @@ test git::discovery::nested_repo_tests::count_nested_repo_untracked_entries_zero
 test git::discovery::nested_repo_tests::is_nested_repo_path_rejects_unsafe_paths ... ok
 test git::discovery::safe_path_tests::test_is_safe_git_path_rejects_parent_dir_at_any_depth ... ok
 test git::discovery::safe_path_tests::test_literal_pathspec_prefixes_magic ... ok
-test git::discovery::submodule_tests::discover_git_repos_dedups_standalone_with_nested_submodule ... 
+test git::discovery::submodule_tests::discover_git_repos_dedups_standalone_with_nested_submodule ... ok
+test git::discovery::submodule_tests::discover_git_repos_exclude_repos_suppresses_submodule_fallback_candidate ... ok
+test git::discovery::submodule_tests::discover_git_repos_finds_no_submodule_candidates_when_no_gitmodules ... ok
+test git::discovery::submodule_tests::discover_git_repos_finds_submodule_candidates ... ok
+test git::discovery::submodule_tests::list_submodules_handles_broken_gitmodules ... ok
+test git::discovery::submodule_tests::list_submodules_ignores_unknown_sections ... ok
+test git::discovery::submodule_tests::list_submodules_parses_gitmodules_with_index_shas ... ok
+test git::discovery::submodule_tests::list_submodules_returns_empty_sha_when_not_in_index ... ok
+test git::discovery::submodule_tests::list_submodules_returns_empty_when_no_gitmodules ... ok
+test git::epoch_spool::tests::old_unpublished_recovery_survives_apply_and_automatic_cleanup ... ok
+test git::github_pack_tests::a_single_behind_remote_is_not_converged ... ok
+test git::github_pack_tests::async_wrapper_matches_sync_verdict ... ok
+test git::github_pack_tests::cache_hit_performs_no_remeasurement ... 
