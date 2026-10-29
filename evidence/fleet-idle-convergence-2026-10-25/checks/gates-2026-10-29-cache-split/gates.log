@@ -3209,4 +3209,75 @@ test index_batch::tests::index_batch_descendant_retained_stdout_is_cancelled ...
 test index_batch::tests::index_batch_direct_helper_sigkill_cleans_descendants_without_drop ... ok
 test index_batch::tests::index_batch_drop_reaps_direct_child_and_kills_group ... ok
 test index_batch::tests::index_batch_invalid_framing_and_exit_recover ... ok
-test index_batch::tests::index_batch_nonreading_stdin_recovers ... 
+test index_batch::tests::index_batch_nonreading_stdin_recovers ... ok
+test index_batch::tests::index_batch_outer_owner_sigkill_cleans_isolated_helper_group ... ok
+test index_batch::tests::index_batch_resolver_deadline_recovers ... ok
+test index_batch::tests::index_batch_reuses_authenticated_staged_ciphertext ... ok
+test index_batch::tests::index_batch_silent_and_partial_response_recover ... ok
+test prepush_failclosed_tests::prepush_scan_io_failure_refuses_while_harmless_change_passes ... ok
+test print::tests::format_bytes_mib ... ok
+test print::tests::format_secs_units ... ok
+test storage::tests::bounded_copy_refuses_oversize_without_whole_file_buffering ... ok
+test tests::binary_carve_out_tests::an_empty_exempt_list_restores_the_hard_failure ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::over_ceiling_reason_points_smudge_at_one_shot_recovery ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_exempt_binary_passes_through_intact ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_passthrough_is_bounded_and_never_truncated ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_protected_binary_still_refused ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::oversize_text_still_refused ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::passthrough_ceiling_scales_with_the_configured_limit ... ok
+test tests::binary_carve_out_tests::filter_process_passthrough::small_binary_still_takes_the_normal_clean_path ... ok
+test tests::binary_carve_out_tests::git_does_not_route_binary_files_through_the_filter ... ok
+test tests::binary_carve_out_tests::gitattributes_emits_binary_carveouts_after_the_catchall ... ok
+test tests::binary_carve_out_tests::gitattributes_emits_media_lines_between_carveouts_and_plaintext ... ok
+test tests::binary_carve_out_tests::oversize_binary_extension_is_not_refused ... ok
+test tests::binary_carve_out_tests::oversize_media_path_is_never_size_exempt ... ok
+test tests::binary_carve_out_tests::oversize_protected_path_with_binary_extension_still_fails_closed ... ok
+test tests::binary_carve_out_tests::oversize_text_and_secret_paths_still_fail_closed ... ok
+test tests::binary_carve_out_tests::policy_can_override_or_disable_the_defaults ... ok
+test tests::binary_carve_out_tests::smudge_direction_is_never_refused ... ok
+test tests::binary_carve_out_tests::unknown_extension_is_not_exempt ... ok
+test tests::filter_process_oversize_tests::clean_oversize_fails_closed_and_writes_no_content ... ok
+test tests::filter_process_oversize_tests::smudge_oversize_passthroughs_every_byte ... ok
+test tests::tests::apply_managed_file_creates_parent_dirs ... ok
+test tests::tests::apply_managed_file_detects_noop_second_write ... ok
+test tests::tests::apply_overwrite_file_creates_new_file ... ok
+test tests::tests::apply_overwrite_file_detects_noop_second_write ... ok
+test tests::tests::apply_overwrite_file_overwrites_existing ... ok
+test tests::tests::backfill_rejects_tracked_symlink_without_modifying_target ... ok
+test tests::tests::build_gitattributes_block_includes_expected_lines ... ok
+test tests::tests::build_gitattributes_block_sets_filter_for_env ... ok
+test tests::tests::build_gitignore_block_emits_managed_header ... ok
+test tests::tests::build_gitignore_block_includes_overrides ... ok
+test tests::tests::build_globset_empty_patterns_returns_empty_set ... ok
+test tests::tests::build_globset_invalid_pattern_returns_error ... ok
+test tests::tests::build_globset_multiple_patterns ... ok
+test tests::tests::build_globset_normalizes_backslash ... ok
+test tests::tests::build_globset_single_pattern_matches ... ok
+test tests::tests::cli_once_hardens_single_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_once_repo_iy3tnM/repo/.git/
+ok
+test tests::tests::cli_repair_dry_run_does_not_modify ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_dry_run_jiFce1/repo/.git/
+ok
+test tests::tests::cli_repair_strict_fails_when_markers_remain ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_strict_sy7tTI/repo/.git/
+ok
+test tests::tests::cli_resmudge_reports_on_plaintext_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plain_AUOkYQ/repo/.git/
+ok
+test tests::tests::cli_resmudge_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plaintext_sibling_JD2D3S/repo/.git/
+ok
+test tests::tests::cli_scrub_markers_finds_markers_in_json ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_json_NIMt84/repo/.git/
+ok
+test tests::tests::cli_scrub_markers_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_plaintext_sibling_DwsJJ8/repo/.git/
+ok
+test tests::tests::conversation_defaults_agree_with_dump_predicate ... ok
+test tests::tests::discover_git_repos_finds_all_git_dirs ... ok
+test tests::tests::discover_git_repos_local_finds_basic_repos ... ok
+test tests::tests::discover_git_repos_local_finds_nested_repositories ... ok
+test tests::tests::discover_git_repos_rejects_symlinked_git_marker ... ok
+test tests::tests::effective_discovery_roots_handles_empty_policy ... ok
+test tests::tests::effective_discovery_roots_merges_watch_and_discover_deduped ... ok
+test tests::tests::effective_protected_patterns_empty_stays_empty ... ok
+test tests::tests::effective_protected_patterns_union_conversation_defaults ... ok
+test tests::tests::effective_repo_roots_handles_empty_policy ... ok
+test tests::tests::effective_repo_roots_merges_and_dedupes ... ok
+test tests::tests::ensure_repo_filter_config_registers_diff_and_merge_drivers ... ok
+test tests::tests::filter_clean_encrypts_content_with_secret_marker ... ok
+test tests::tests::filter_clean_passes_plaintext_unchanged ... 
