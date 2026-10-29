@@ -32,6 +32,7 @@
   "targetedRegressions": {
     "resmudgeApplyFenceWait": "1 passed; actual resmudge_repo apply path waits at a held per-worktree fence, times out within the supplied deadline, and preserves canonical bytes and index",
     "resmudgeApplyEncryptedCancellationAndPublication": "5 sequential passes on dracon-warden 88d218482eeb; disposable encrypted tracked .gitignore, cancel while the apply command waits behind a held fence and verify worktree/index bytes unchanged, then successful apply restores plaintext worktree while preserving encrypted index and permits immediate fence reacquisition after process exit; raw log: warden-resmudge-apply-e2e-2026-10-28.log",
+    "resmudgeGitattributesContendedWriter": "5 sequential passes (1 passed, 0 failed each) on dracon-warden aa351b5f6cab65199c4f69c3177641adfa12a5e9; a Linux read lease pauses actual tracked .gitattributes resmudge at its write-open while a second Warden write-fence process queues; after release, the admitted writer observes the completed plaintext bytes, writes its own result, and index bytes remain unchanged; raw log: warden-gitattributes-writer-e2e-2026-10-29.log",
     "wardenTrackedRepairHardlinkRefusal": "1 passed; refuses before truncating a hardlink alias to .gitignore",
     "securityMarkerMigrationAliases": "2 passed; refuses hardlink and symlink-root paths without changing metadata",
     "securityBackupRestoreHardlinkRefusal": "1 passed; refuses restoring through a hardlink alias before truncation"
@@ -58,6 +59,12 @@
       "command": "cargo test -p dracon-warden -p dracon-security <two filters> -- --exact",
       "exitCode": 0,
       "result": "0 tests matched (filtered out); replaced by successful substring-filtered targeted runs and the complete serial package test run above"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=<isolated> cargo test -p dracon-warden --test integration_test resmudge_apply_fences_gitattributes_through_final_close_against_cooperative_writer --locked -- --exact --nocapture",
+      "exitCode": 101,
+      "observedFailure": "initial compile of the new integration test failed because std::process::Command was not imported (rustc E0433); no test executed",
+      "boundedAssessment": "Added the local Command import, formatted, then ran the corrected targeted test five sequential times successfully. Initial compile log: /home/dracon/.local/share/rtk/tee/1793264957_cargo_test.log"
     }
   ],
   "implementedBoundaries": [
@@ -66,7 +73,7 @@
     "Tracked repair writes validate opened regular-file identity and single-link status before truncation."
   ],
   "remaining": [
-    "End-to-end encrypted resmudge --apply, wait cancellation, index/worktree preservation, and post-process fence reacquisition are now covered for tracked .gitignore. Still absent: a .gitattributes variant and a competing cooperative writer schedule at the exact final-close interval; no loaded-runtime proof.",
+    "End-to-end encrypted resmudge --apply, cancellation/index preservation, and post-process fence reacquisition are covered for tracked .gitignore; a separate .gitattributes integration control queues a second Warden write-fence writer during the actual resmudge write-open/final-close path (five sequential targeted passes). No loaded-runtime proof.",
     "No full-workspace tests, release build, or strict all-target Clippy on the post-integration assembly; cargo deny check alone is not full qualification.",
     "No deployment or loaded-runtime verification; cooperative-writer coverage remains bounded to the recorded syscall receipt and does not qualify every tool interface."
   ]
