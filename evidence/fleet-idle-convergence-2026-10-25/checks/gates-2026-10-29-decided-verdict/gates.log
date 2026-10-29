@@ -1006,4 +1006,24 @@ test git::push::tests::test_local_workspace_gate_refusal_is_not_transport_failur
 test git::push::tests::test_passing_gate_banner_is_not_a_local_hook_refusal ... ok
 test git::push::tests::test_permanent_rejection_bypasses_auto_pull ... ok
 test git::push::tests::test_pull_refspec_for_branch_rejects_unsafe_names ... ok
-test git::push::tests::test_push_with_retries_total_budget_counts_https_chain ... 
+test git::push::tests::test_push_with_retries_total_budget_counts_https_chain ... ok
+test git::push::tests::test_redact_credentials_for_log_covers_all_schemes ... ok
+test git::push::tests::test_token_skip_entry_names_forge_without_material ... ok
+test git::push::tests::test_transient_forge_outage_does_not_swallow_policy ... ok
+test git::push::tests::test_transient_forge_outage_gitaly_unavailable ... ok
+test git::push::tests::test_transient_forge_outage_gitlab_push_timeout ... ok
+test git::push::tests::test_transient_forge_outage_http_numeric_5xx ... ok
+test git::push::tests::test_transient_network_outage_dns_resolution ... ok
+test git::push_resources::round_tests::completed_upload_cannot_hold_capacity_while_draining_a_queued_refresh ... ok
+test git::push_resources::round_tests::coordinator_frame_does_not_embed_the_upload_payload ... ok
+test git::push_resources::round_tests::failed_upload_cannot_hold_capacity_while_draining_a_queued_refresh ... ok
+test git::push_resources::round_tests::started_refresh_finishes_before_outer_capacity_is_restored ... ok
+test git::push_resources::tests::cancelled_local_refresh_drops_work_before_releasing_its_capacity ... ok
+test git::push_resources::tests::local_refresh_is_bounded_and_leaves_publication_yielded ... ok
+test git::push_resources::tests::push_commands_overlap_and_cancellation_drops_only_owned_work ... ok
+test git::push_resources::tests::push_phase_restores_local_capacity_on_error_and_nested_mirror_work ... ok
+test git::staged_intent::tests::index_lock_contention_and_replaced_inode_cleanup ... ok
+test git::staged_intent::tests::materialized_empty_root_and_invalid_input_refusals ... ok
+test git::staged_intent::tests::materialized_tree_is_captured_not_live_and_preserves_repository ... ok
+test git::staged_intent::tests::materialized_tree_output_requires_exact_count_width_and_oid ... ok
+test git::staged_intent::tests::observation_deadline_and_caller_drop_terminate_actual_git_pid ... 
