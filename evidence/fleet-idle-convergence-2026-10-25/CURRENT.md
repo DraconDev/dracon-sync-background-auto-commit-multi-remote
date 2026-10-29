@@ -18,7 +18,10 @@ in isolation. This is incomplete evidence, not a passing package gate. Failure
 and pass logs plus a machine-readable assessment are retained in
 `checks/epoch-integration-partial/current-sync-controls-2026-10-29.json`.
 No release build, full-workspace gate, deployment, or loaded-runtime/fleet result
-is established by this update.
+is established by this update. A subsequent read-only `dracon-sync repos` query
+also timed out at 30 seconds without output, so no fresh fleet status is claimed;
+its bounded context is retained in
+`checks/status-inspection-root-cause/current-repos-cli-timeout-2026-10-29.md`.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
