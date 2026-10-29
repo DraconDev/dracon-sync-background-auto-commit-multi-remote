@@ -89,7 +89,11 @@ are in `../../docs/design/canonical-writer-fence-2026-10-27/PLAN.md` and
 No full current dracon-sync suite, full-workspace gates, deployment, loaded
 runtime, or fresh full-fleet clean-idle observation is established. The earlier
 scheduler snapshot showed browser publication and platform inspection/retry
-work active; do not treat the Doomtap remote check as fleet convergence.
+work active; do not treat the Doomtap remote check as fleet convergence. A later
+09:31 read-only check found utilities `dracon-sync` main
+`739c4492dfd9281d5c42d0dfff1380476a4768ce` advertised by all three configured
+remotes, while Codeberg remains unconfigured. The daemon journal still showed
+browser backlog 110 and trailing-drain activity; no full-fleet query was run.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
