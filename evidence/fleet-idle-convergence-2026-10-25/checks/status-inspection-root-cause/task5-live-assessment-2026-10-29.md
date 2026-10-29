@@ -66,3 +66,21 @@ At 08:57 the host was at load 18.50/15.00/10.80, with 2.7 GiB available and
 scheduled daemon retry to evaluate the exact exception, then record its actual
 hook result; keep full-fleet verification deferred until active work and
 resource pressure subside.
+
+## Follow-up — Doomtap retry, commit and advertised refs (2026-10-29 09:10 UTC)
+
+The daemon logged Doomtap's five-failure/15-minute backoff at 09:01:23, then
+reported a one-file commit for `docs/screenshots/qa/probe-unapproved.png` at
+09:01:35 and a 44-file commit at 09:02:05. The path-specific status is now
+clean for the approved pointer, `.gitignore`, and publication-policy test; the
+exact `.gitignore` rule is present in `HEAD`. No post-fix Doomtap hook refusal
+was observed. This is daemon commit-path evidence; no manual staging, commit,
+or push was performed.
+
+At 09:10, read-only `ls-remote` checks showed `github`, `gitlab`, and `origin`
+`refs/heads/main` all at local HEAD `6e991b6e8a91f2e95e7e1f7b182ab919088587af`.
+That verifies the current Doomtap main tip on all three configured remotes.
+The earlier 09:02 log still records retained follow-up work, and this was only
+a path-limited status check—not proof that Doomtap's whole worktree or the
+fleet is clean and idle. A fresh complete fleet status remains unrun while the
+browser publication worker and platform inspection/retry activity continue.
