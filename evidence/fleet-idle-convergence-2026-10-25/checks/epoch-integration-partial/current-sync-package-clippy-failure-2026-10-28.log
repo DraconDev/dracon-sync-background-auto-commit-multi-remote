@@ -1,0 +1,30 @@
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+error: for loop over a single element
+    --> dracon-sync/src/git/push.rs:1210:9
+     |
+1210 | /         for worktree in [&repo] {
+1211 | |             git_ok(worktree, &["config", "user.name", "Fence Test"]);
+1212 | |             git_ok(worktree, &["config", "user.email", "fence@example.invalid"]);
+1213 | |             git_ok(
+...    |
+1216 | |             );
+1217 | |         }
+     | |_________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#single_element_loop
+     = note: `-D clippy::single-element-loop` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::single_element_loop)]`
+help: try
+     |
+1210 ~         {
+1211 +             let worktree = &repo;
+1212 +             git_ok(worktree, &["config", "user.name", "Fence Test"]);
+1213 +             git_ok(worktree, &["config", "user.email", "fence@example.invalid"]);
+1214 +             git_ok(
+1215 +                 worktree,
+1216 +                 &["config", "core.hooksPath", quiet_hooks.to_str().unwrap()],
+1217 +             );
+1218 +         }
+     |
+
+error: could not compile `dracon-sync` (bin "dracon-sync" test) due to 1 previous error
