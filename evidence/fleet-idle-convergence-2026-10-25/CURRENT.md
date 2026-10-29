@@ -250,6 +250,14 @@ At 11:18:30, `C78xks` had passed the four ai-tts-pro gates plus clean-web typech
 
 The local YouTube package checks remain green (61 test files / 1081 tests, typecheck, lint). The earlier `saW3So`, `n3Jg5x`, and `B4CLx7` failures are on the pre-fix snapshot and the same fake-Node call-count assertion. The watcher remains stopped; the complete latest saved feed sample is batch 178 and contains only visible-grid absence observations. A fresh `dracon-sync repos` view at about 11:16 reported 36 inspected, 31 clean, 5 active, 0 blocked and 0 inspection failures; browser publication was failing/retrying, `dracon-platform` was publishing, and Polis was queued. At 11:18:30 the summary was 36 inspected, 32 clean, 2 active and 2 warnings, with no inspection failures; the table showed `dracon-platform` blocked, browser publication failing, Polis retrying, and `empire` unknown. The separate dry-run concern scan still found the unconfigured terhub upstream, with no repair applied.
 
+### Follow-up — 2026-10-29 11:34 UTC: browser gate passes on GitHub snapshot; GitLab leg remains active
+
+`C78xks` passed all 12 gates across `ai-tts-pro`, `clean-web` and `youtube-filter` on snapshot `552942c5...`; the fixed YouTube test harness is included. Direct `origin/main` now advertises that snapshot. The same-snapshot GitLab attempt `Yj8PSt` was still running at 11:33:54: all ai-tts-pro and clean-web gates passed, and YouTube typecheck/build passed, but YouTube TEST was still running. This does not qualify the newest worktree.
+
+At 11:33:54 browser local `main` was `5a841f66...`, 38 commits ahead of `origin` (`552942c5...`) and 79 ahead of `gitlab` (`fbc42b18...`); an uncommitted `ai-tts-pro/entrypoints/popup/App.svelte` edit was present. At 11:30 the fleet query succeeded with 36 inspected, 30 clean, 5 active, 1 warning, zero concerns and zero inspection failures. Browser remained in publish/failure state, junk-runner and dracon-platform were publishing, and Polis was retrying; `repair stuck-list` showed one recent browser failure. The `repair concerns` command in that same check exceeded the shell's 120-second limit with no output; no matching CLI process remained later. This is a failed check, not a clean concerns result.
+
+A later host snapshot showed load 82.24 / 48.98 / 27.22, 28 GiB RAM used with 1.5 GiB available and 30 GiB swap used, while the daemon remained active with gate/build/push work. This is contemporaneous resource evidence only; it does not establish that resource pressure caused the `repair concerns` timeout. No retry/ledger clearing or producer shutdown was performed.
+
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
 The original goal remains active and incomplete. Warden's cooperative canonical-
