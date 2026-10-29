@@ -89,9 +89,13 @@ pull_op_timeout_secs = 30
 push_op_timeout_secs = 300
 # When a repo's dangling-object garbage (interrupted-push tmp_pack_* debris,
 # visible via `git count-objects -v` as size-garbage) exceeds this many bytes,
-# the daemon runs `git gc --prune=now` automatically (v0.113.0). Default:
-# 2147483648 (2 GiB). Set to 0 to disable.
+# the daemon runs plain `git gc` with Git's normal two-week prune grace.
+# Default: 2147483648 (2 GiB). Set to 0 to disable this trigger.
 #auto_gc_garbage_threshold_bytes = 2147483648
+# Repack loose objects before their uncompressed loose copies consume local
+# disk or pushable high-water headroom. `git count-objects -v` field `size`.
+# Default: 67108864 (64 MiB); 0 disables only the loose-object trigger.
+#auto_gc_loose_threshold_bytes = 67108864
 # When true (v0.113.10, default false), a daily per-repo janitor pass reaps
 # stale DAEMON-CREATED branches (`backup/pre-sync-largeblob-fix-*`,
 # `daemon-standalone`) and orphaned remote-tracking refs
