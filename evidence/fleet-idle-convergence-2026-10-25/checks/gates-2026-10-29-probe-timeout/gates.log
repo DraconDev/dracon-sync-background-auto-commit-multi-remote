@@ -3032,4 +3032,182 @@ test tests::clean_tmp_paths_refuses_blind_cleanup_when_proc_unreadable ... ok
 test tests::clean_tmp_paths_rejects_home_search_root_before_apply ... ok
 test tests::clean_tmp_paths_reports_held_back_scratch_without_the_size_aware_floor ... ok
 test tests::clean_tmp_paths_reports_scratch_held_by_the_age_floor ... ok
-test tests::clean_tmp_paths_respects_age_dry_run_and_open_fds ... 
+test tests::clean_tmp_paths_respects_age_dry_run_and_open_fds ... ok
+test tests::clean_tmp_paths_separates_the_size_aware_share_of_the_held_back_scratch ... ok
+test tests::clean_tmp_paths_size_aware_floor_stays_off_outside_the_filling_tier ... ok
+test tests::clean_tmp_paths_skips_unreadable_root ... ok
+test tests::clean_tmp_paths_zero_min_age_disables ... ok
+test tests::cleanup_stale_cooldowns_survives_an_extreme_cooldown ... ok
+test tests::critical_tier_bypass_cleans_fresh_target ... ok
+test tests::defaults_are_expected ... ok
+test tests::disk_state_transitions_at_thresholds ... ok
+test tests::docker_prune_returns_zero_on_dry_run ... ok
+test tests::dry_run_preview_omits_user_protected_targets ... ok
+test tests::empty_trash_credential_guard_blocks_dry_run_estimate ... ok
+test tests::empty_trash_credential_guard_keeps_depth_capped_subtree ... ok
+test tests::empty_trash_credential_guard_keeps_unreadable_subtree ... ok
+test tests::empty_trash_credential_guard_skips_flagged_purges_rest ... ok
+test tests::empty_trash_min_age_keeps_recent_entries ... ok
+test tests::empty_trash_zero_age_empties_everything ... ok
+test tests::empty_trash_zero_age_with_flagged_keeps_flagged ... ok
+test tests::evaluate_link_handles_missing_and_sync_cases ... ok
+test tests::expand_tilde_resolves_to_home_dir ... ok
+test tests::expand_tilde_with_home_unset_falls_back_to_dot ... ok
+test tests::filter_selectable_cleanup_kinds_drops_git_db_and_keeps_artifact_kinds ... ok
+test tests::fixture_writing_tests_hold_the_fixture_exec_guard ... ok
+test tests::guard_clean_bare_command_selects_all_targets ... ok
+test tests::guard_clean_target_flags_remain_selective_and_all_overrides_them ... ok
+test tests::guard_log_example_path_writes_and_startup_rotates_in_isolated_home ... ok
+test tests::guard_log_path_expands_the_example_configuration ... ok
+test tests::guard_never_removes_or_overwrites_operator_freeze_marker ... ok
+test tests::guard_policy_defaults_cover_tmp_and_trash_age_fields ... ok
+test tests::guard_removes_only_its_own_freeze_marker ... ok
+test tests::guard_report_completes_for_ok_disk ... ok
+test tests::guard_runtime_state_default_cycle_zero ... ok
+test tests::guard_runtime_state_default_no_expiry_yet ... ok
+test tests::guard_safe_delete_allows_paths_under_system_protected ... ok
+test tests::guard_safe_delete_blocks_user_protected ... ok
+test tests::guard_safe_delete_rejects_exact_system_roots ... ok
+test tests::guard_safe_delete_rejects_symlink ... ok
+test tests::guard_startup_config_errors_use_non_restarting_status ... ok
+test tests::human_bytes_formats_units ... ok
+test tests::inode_parsers_accept_a_mount_path_containing_spaces ... ok
+test tests::inode_parsers_accept_a_wrapped_filesystem_column ... ok
+test tests::inode_parsers_reject_garbage_instead_of_reporting_zero ... ok
+test tests::is_protected_ancestor_descendant_match ... ok
+test tests::is_protected_ancestor_exact_match ... ok
+test tests::is_protected_ancestor_rejects_partial_prefix ... ok
+test tests::is_protected_ancestor_root_matches_exact_only ... ok
+test tests::live_unix_socket_match_is_component_wise ... ok
+test tests::maybe_expire_stash_dry_run_deletes_nothing ... ok
+test tests::maybe_expire_stash_respects_both_opt_outs ... ok
+test tests::nix_cleanup_apply_preserves_configured_profile_generations ... ok
+test tests::nix_cleanup_gen_prune_failure_still_runs_gc ... ok
+test tests::nix_delete_generations_arg_means_keep_last_n ... ok
+test tests::nix_system_profile_is_not_pruned_when_nothing_to_prune ... ok
+test tests::non_unicode_policy_override_is_authoritative ... ok
+test tests::normalize_auto_cleanup_interval_min_60 ... ok
+test tests::normalize_early_warn_clamped_to_warn ... ok
+test tests::normalize_proactive_cleanup_percent_bounded_by_action ... ok
+test tests::normalize_proactive_interval_min_1 ... ok
+test tests::normalize_rust_target_max_age_days_min_1 ... ok
+test tests::one_line_collapses_multiline_messages ... ok
+test tests::open_scan_collects_running_executable ... ok
+test tests::open_scan_skips_unreadable_fd_table_without_abandoning_pass ... ok
+test tests::package_cache_apply_refuses_all_cache_deletion ... ok
+test tests::package_cache_apply_refuses_uncoordinated_start_after_snapshot ... ok
+test tests::package_cache_empty_wrapper_requires_affirmative_zombie_state ... ok
+test tests::package_cache_process_detection_covers_direct_and_wrapped_tools ... ok
+test tests::package_cache_process_detection_fails_closed_on_missing_cmdline ... ok
+test tests::package_cache_process_detection_fails_closed_on_unreadable_cmdline ... ok
+test tests::package_cache_process_detection_rejects_malformed_ps_output ... ok
+test tests::package_cache_process_listing_failure_is_an_error ... ok
+test tests::parse_and_format_repeated_scenarios ... ok
+test tests::parse_df_details_saturates_absurd_blocks ... ok
+test tests::parse_df_use_percent_works ... ok
+test tests::parse_kinds_trims_and_dedupes ... ok
+test tests::parse_ps_output_extracts_all_fields ... ok
+test tests::parse_ps_output_works ... ok
+test tests::proactive_cleanup_defaults ... ok
+test tests::probe_path_search_finds_first_executable_only ... ok
+test tests::process_cmdline_is_bounded ... ok
+test tests::process_cmdline_is_sanitized_for_logs ... ok
+test tests::renice_process_with_bin_reports_success_and_failure ... ok
+test tests::restore_runtime_adjustments_composes_overlapping_nice_limiters ... ok
+test tests::restore_runtime_adjustments_preserves_current_pid_incarnation ... ok
+test tests::restore_runtime_adjustments_restores_renice_and_oom ... ok
+test tests::restore_runtime_adjustments_retains_failed_cpu_cap ... ok
+test tests::restore_runtime_adjustments_retains_overlapping_nice_limiters_on_failure ... ok
+test tests::rust_build_listing_failure_or_malformed_output_is_an_error ... ok
+test tests::rust_build_process_detection_covers_long_lived_tooling ... ok
+test tests::safe_tmp_root_policy_allows_tmp_descendants_and_rejects_home ... ok
+test tests::scratch_warning_threshold_is_exact_and_can_be_disabled ... ok
+test tests::settle_fixture_probes_without_side_effects_and_fails_loudly ... ok
+test tests::settled_fixture_survives_parallel_reexec ... ok
+test tests::shipped_guard_service_exposes_host_tmp_for_clean_tmp ... ok
+test tests::shipped_guard_service_restart_policy_handles_disabled_and_bad_config ... ok
+test tests::should_notify_respects_cooldown ... ok
+test tests::stale_nice_state_does_not_override_current_pid_incarnation ... ok
+test tests::stash_budget_boundary_is_exclusive ... ok
+test tests::stash_expire_interval_defaults_to_a_day ... ok
+test tests::stash_expire_interval_zero_is_never_clamped ... ok
+test tests::storage_cache_hotspots_share_package_apply_safety_gate ... ok
+test tests::storage_cleanup_activity_allows_stale_pidfile ... ok
+test tests::storage_cleanup_activity_refuses_live_pidfile ... ok
+test tests::storage_cleanup_activity_refuses_live_process_binary ... ok
+test tests::storage_cleanup_activity_refuses_live_rust_and_node_processes ... ok
+test tests::storage_cleanup_activity_refuses_live_service_socket ... ok
+test tests::storage_cleanup_activity_refuses_recent_artifacts ... ok
+test tests::storage_cleanup_apply_accepts_home_artifact_dirs_and_refuses_system_roots ... ok
+test tests::storage_cleanup_apply_refuses_git_database_dirs ... ok
+test tests::storage_cleanup_apply_refuses_git_database_subpaths ... ok
+test tests::sweep_stranded_oom_descendants_drops_a_defunct_child ... ok
+test tests::sweep_stranded_oom_descendants_restores_a_released_roots_children ... ok
+test tests::sweep_stranded_oom_descendants_restores_only_post_bias_children ... ok
+test tests::sweep_stranded_oom_descendants_uses_nearest_biased_ancestor ... ok
+test tests::sync_freeze_marker_path_expands_the_documented_tilde_form ... ok
+test tests::sync_frozen_resyncs_when_the_marker_disappears_externally ... ok
+test tests::target_dir_info_has_mtime ... ok
+test tests::test_graduated_nice_value_clamped ... ok
+test tests::test_graduated_nice_value_cpu_plus_memory ... ok
+test tests::test_graduated_nice_value_cpu_tiers ... ok
+test tests::test_graduated_nice_value_high_base_clamped ... ok
+test tests::test_graduated_nice_value_memory_boundary ... ok
+test tests::test_graduated_nice_value_memory_tiers ... ok
+test tests::test_graduated_nice_value_negative_base_clamped ... ok
+test tests::the_trend_warning_and_the_rapid_fill_alarm_quote_the_same_figure ... ok
+test tests::tmp_e2e_fast_path_bypass_takes_fresh_unheld ... ok
+test tests::tmp_e2e_fast_path_keeps_open_held_tree ... ok
+test tests::tmp_e2e_fast_path_owns_only_the_general_skipped_window ... ok
+test tests::tmp_e2e_fast_path_zero_age_disables ... ok
+test tests::tmp_e2e_match_covers_glob_shapes ... ok
+test tests::tmp_entry_must_remain_under_validated_root ... ok
+test tests::tree_has_fresh_content_fails_closed_on_walk_errors ... ok
+test tests::truncate_log_handles_missing_trailing_newline_and_blank_lines ... ok
+test tests::truncate_log_preserves_non_utf8_lines_verbatim ... ok
+test tests::truncate_log_preserves_open_writer_inode ... ok
+test zram_tests::memory_percent_default_and_bounds ... ok
+
+test result: ok. 712 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.35s
+
+     Running tests/events_cli.rs (target/debug/deps/events_cli-101d6b212a0c9cb9)
+
+running 4 tests
+test events_json_includes_rotated_segment_before_active_segment ... ok
+test events_json_with_empty_log_emits_empty_jsonl ... ok
+test events_json_with_filter_matching_nothing_emits_empty_jsonl ... ok
+test events_json_with_missing_log_emits_empty_jsonl ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/guard_service.rs (target/debug/deps/guard_service-1999b253c8c2287e)
+
+running 12 tests
+test disabled_policy_exits_cleanly_without_restart_trigger ... ok
+test malformed_policy_exits_with_config_status ... ok
+test missing_explicit_policy_exits_with_config_status ... ok
+test readme_documents_the_reload_path ... ok
+test shipped_unit_wires_execreload_to_sighup ... ok
+test status_reports_canonical_fallback_when_no_policy_exists ... ok
+test status_reports_explicit_policy_override_in_human_and_json_modes ... ok
+test status_reports_first_discovered_policy_in_human_and_json_modes ... ok
+test status_reports_missing_explicit_policy_override ... ok
+test unit_per_pass_comment_agrees_with_the_readme ... ok
+test watchdog_execstart_matches_install_destination ... ok
+test watchdog_unit_carries_baseline_sandbox ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_warden-94081e1c86c49ec3)
+
+running 248 tests
+test encryption_scope_tests::encryption_only_scope_keeps_legacy_defaults_and_rejects_plaintext_conflicts ... ok
+test encryption_scope_tests::encryption_only_scope_never_unignores_credentials ... ok
+test index_batch::tests::index_batch_abrupt_owner_fixture ... ok
+test index_batch::tests::index_batch_descendant_has_no_live_process_after_cleanup ... ok
+test index_batch::tests::index_batch_descendant_retained_stdout_is_cancelled ... ok
+test index_batch::tests::index_batch_direct_helper_sigkill_cleans_descendants_without_drop ... ok
+test index_batch::tests::index_batch_drop_reaps_direct_child_and_kills_group ... ok
+test index_batch::tests::index_batch_invalid_framing_and_exit_recover ... ok
+test index_batch::tests::index_batch_nonreading_stdin_recovers ... ok
+test index_batch::tests::index_batch_outer_owner_sigkill_cleans_isolated_helper_group ... 
