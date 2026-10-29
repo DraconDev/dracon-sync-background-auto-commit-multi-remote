@@ -4786,7 +4786,7 @@ pub(crate) async fn run_repos_report(
             (
                 "BROKEN".to_string(),
                 if history_probe_failed {
-                    "history probe failed — invalid HEAD/ref or timeout".to_string()
+                    "history probe rejected by git — invalid HEAD/ref".to_string()
                 } else {
                     format!("{} objects missing from history", missing_objects)
                 },
