@@ -3713,12 +3713,22 @@ struct CachedRepoSize {
 /// or `None` on spawn failure / non-zero exit / timeout. Without a
 /// bound, one huge repo (dracon-platform's 100k+ objects) stalls the
 /// whole `repos` render.
+/// Outcome of a bounded probe: the difference between "git said no" and "we
+/// gave up waiting" matters, because only the first is evidence about the
+/// repository.
+#[derive(Debug)]
+enum BoundedProbe {
+    Output(Vec<u8>),
+    Failed,
+    TimedOut,
+}
+
 fn run_git_bounded(
     args: &[&str],
     repo: &Path,
     stdin_data: &[u8],
     timeout: std::time::Duration,
-) -> Option<Vec<u8>> {
+) -> BoundedProbe {
     struct TmpCleanup(std::path::PathBuf);
     impl Drop for TmpCleanup {
         fn drop(&mut self) {
@@ -3738,55 +3748,75 @@ fn run_git_bounded(
     // Feed stdin from a regular file rather than a pipe. A large object list
     // can otherwise block the parent in write_all before the deadline loop
     // starts, defeating the bound and leaving the probe stuck indefinitely.
-    let mut input_file = std::fs::OpenOptions::new()
+    let mut input_file = match std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(&input_tmp)
-        .ok()?;
+    {
+        Ok(file) => file,
+        Err(_) => return BoundedProbe::Failed,
+    };
     {
         use std::io::Write;
-        input_file.write_all(stdin_data).ok()?;
+        if input_file.write_all(stdin_data).is_err() {
+            return BoundedProbe::Failed;
+        }
     }
     drop(input_file);
-    let input_file = std::fs::File::open(&input_tmp).ok()?;
+    let input_file = match std::fs::File::open(&input_tmp) {
+        Ok(file) => file,
+        Err(_) => return BoundedProbe::Failed,
+    };
 
     // Write stdout to a temp file (NOT a pipe) so a large output
     // (cat-file --batch-check on 100k+ objects, ~MBs) cannot
     // pipe-deadlock the child before the deadline.
-    let out_file = std::fs::OpenOptions::new()
+    let out_file = match std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(&tmp)
-        .ok()?;
-    let mut child = crate::policy::std_git_command()
+    {
+        Ok(file) => file,
+        Err(_) => return BoundedProbe::Failed,
+    };
+    let mut child = match crate::policy::std_git_command()
         .args(args)
         .current_dir(repo)
         .stdin(std::process::Stdio::from(input_file))
         .stdout(std::process::Stdio::from(out_file))
         .stderr(std::process::Stdio::null())
         .spawn()
-        .ok()?;
+    {
+        Ok(child) => child,
+        Err(_) => return BoundedProbe::Failed,
+    };
     let deadline = std::time::Instant::now() + timeout;
     loop {
         match child.try_wait() {
             Ok(Some(status)) => {
                 if !status.success() {
-                    return None;
+                    // git itself rejected the request: that IS evidence
+                    // about the repository (e.g. an invalid HEAD).
+                    return BoundedProbe::Failed;
                 }
-                return std::fs::read(&tmp).ok();
+                return match std::fs::read(&tmp) {
+                    Ok(bytes) => BoundedProbe::Output(bytes),
+                    Err(_) => BoundedProbe::Failed,
+                };
             }
             Ok(None) => {
                 if std::time::Instant::now() >= deadline {
                     let _ = child.kill();
                     let _ = child.wait();
-                    return None;
+                    // We gave up; git never said the history is broken.
+                    return BoundedProbe::TimedOut;
                 }
                 std::thread::sleep(std::time::Duration::from_millis(25));
             }
             Err(_) => {
                 let _ = child.kill();
                 let _ = child.wait();
-                return None;
+                return BoundedProbe::Failed;
             }
         }
     }
@@ -3795,7 +3825,16 @@ fn run_git_bounded(
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct HistoryProbe {
     pub(crate) missing_objects: u64,
+    /// git ran and REJECTED the request (e.g. invalid HEAD, or a genuinely
+    /// unreadable object store). Only this is evidence about the repository.
     pub(crate) failed: bool,
+    /// The probe hit its deadline before git produced an answer. This is NOT
+    /// evidence of damage: it says the host was too slow/busy to measure.
+    /// Kept separate so a loaded machine cannot render a healthy repository as
+    /// `PUSH 🩹 BROKEN` (observed 2026-10-29: four repos, all with `rev-list`
+    /// exiting 0 in 3.6-8.2 s, were reported BROKEN purely because the 10 s
+    /// bound expired under fleet-wide probe contention at load 30-95).
+    pub(crate) timed_out: bool,
 }
 
 /// Probe the objects reachable from HEAD. A failed probe is distinct from a
@@ -3814,15 +3853,36 @@ pub(crate) fn probe_history(repo: &Path) -> HistoryProbe {
     // (page cache warm by then) before reporting failed. Still bounded:
     // worst case 4 attempts × 10s, on the blocking pool, not workers.
     const BOUND: std::time::Duration = std::time::Duration::from_secs(10);
-    let bounded_with_retry = |args: &[&str], stdin_data: &[u8]| -> Option<Vec<u8>> {
-        run_git_bounded(args, repo, stdin_data, BOUND)
-            .or_else(|| run_git_bounded(args, repo, stdin_data, BOUND))
+    // Retry once (page cache warm by then) before drawing any conclusion.
+    // A second TIMEOUT still means "unmeasured", never "broken".
+    let bounded_with_retry = |args: &[&str], stdin_data: &[u8]| -> BoundedProbe {
+        let mut timed_out = false;
+        for _ in 0..2 {
+            match run_git_bounded(args, repo, stdin_data, BOUND) {
+                BoundedProbe::Output(bytes) => return BoundedProbe::Output(bytes),
+                BoundedProbe::Failed => return BoundedProbe::Failed,
+                BoundedProbe::TimedOut => timed_out = true,
+            }
+        }
+        let _ = timed_out;
+        BoundedProbe::TimedOut
     };
-    let Some(list) = bounded_with_retry(&["rev-list", "--objects", "HEAD"], &[]) else {
-        return HistoryProbe {
-            missing_objects: 0,
-            failed: true,
-        };
+    let list = match bounded_with_retry(&["rev-list", "--objects", "HEAD"], &[]) {
+        BoundedProbe::Output(bytes) => bytes,
+        BoundedProbe::Failed => {
+            return HistoryProbe {
+                missing_objects: 0,
+                failed: true,
+                timed_out: false,
+            }
+        }
+        BoundedProbe::TimedOut => {
+            return HistoryProbe {
+                missing_objects: 0,
+                failed: false,
+                timed_out: true,
+            }
+        }
     };
     // Strip the path annotations (`<sha> <path>` → `<sha>`) so
     // `cat-file` sees bare object names. Without this, every
@@ -3836,14 +3896,25 @@ pub(crate) fn probe_history(repo: &Path) -> HistoryProbe {
         stripped.extend_from_slice(sha);
         stripped.push(b'\n');
     }
-    let Some(out) = bounded_with_retry(
+    let out = match bounded_with_retry(
         &["cat-file", "--batch-check=%(objecttype) %(objectname)"],
         &stripped,
-    ) else {
-        return HistoryProbe {
-            missing_objects: 0,
-            failed: true,
-        };
+    ) {
+        BoundedProbe::Output(bytes) => bytes,
+        BoundedProbe::Failed => {
+            return HistoryProbe {
+                missing_objects: 0,
+                failed: true,
+                timed_out: false,
+            }
+        }
+        BoundedProbe::TimedOut => {
+            return HistoryProbe {
+                missing_objects: 0,
+                failed: false,
+                timed_out: true,
+            }
+        }
     };
     HistoryProbe {
         missing_objects: String::from_utf8_lossy(&out)
@@ -3851,6 +3922,7 @@ pub(crate) fn probe_history(repo: &Path) -> HistoryProbe {
             .filter(|l| l.ends_with(" missing"))
             .count() as u64,
         failed: false,
+        timed_out: false,
     }
 }
 
