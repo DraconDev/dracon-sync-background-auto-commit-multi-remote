@@ -117,8 +117,8 @@ on that corrected tip is available. By 09:54, the same old browser snapshot had 
 running. Browser local main was `75809018ffcc1c308923884ea01336fb34377833`,
 89 commits ahead of `gitlab`/`origin` at `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`;
 committed syntax fix `9df0bc` is included in local main, but the corrected tip
-has not yet passed a push gate. A 09:56 read-only query showed dracon-sync `main`
-`18fa97671ae620262b5a5d65e98daa7203f04bb7` advertised by all configured
+has not yet passed a push gate. A 09:58:50 read-only query showed dracon-sync `main`
+`b0879640610fd843b7daea633eb8a61488177da1` advertised by all configured
 `github`, `gitlab`, and `origin` aliases. The browser old-snapshot gate failed
 again at 09:54:47, and the daemon paused browser publication in commit-only mode
 at 09:55:51; the 09:56 scheduler had no browser in-flight entry. Local browser
@@ -126,10 +126,12 @@ main `9e5fad8b62bfb0c25ee90f7ac6e083b8beabdb37` remained 90 commits ahead of
 `gitlab`/`origin` at `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`, with one
 consecutive failure in `repair stuck-list` and no gate result on the corrected
 tip. The previously documented `youtube-filter` receipt blocker has not been
-shown cleared; the stuck ledger and pre-push gate were left untouched. The
-09:56 scheduler still showed the platform parent and `polis` retrying, with
-`deathrun` and `endless-td` pushing; no full-fleet clean-idle observation is
-established.
+shown cleared; the stuck ledger and pre-push gate were left untouched. At
+09:58:21 the daemon also reported a parent-platform `update-ref` failure on an
+existing `main.lock`; read-only checks showed the zero-byte lock was over seven
+hours old with no holder. A guarded `dracon-sync maintenance` repair removed
+only that stale lock and resumed sync; the parent retry/ref result remains
+unobserved. No full-fleet clean-idle observation is established.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
