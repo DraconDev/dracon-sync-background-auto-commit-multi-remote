@@ -228,6 +228,14 @@ At 10:48:19, browser `main` was `5ca6d68c5ef32de269d88f8d57e87fc922f86669`, 51 c
 
 The passive survey watcher remained alive. Batch 176 had five of ten rounds recorded, all absent on visible Home-feed grids; this does not show filtering. The local branch is still unpublished and continues accumulating evidence commits. The new gate is useful progress on the corrected code, but does not establish current-tip publication or fleet idleness.
 
+### Follow-up — 2026-10-29 11:07 UTC: corrected code published; test harness repaired locally
+
+Browser gates `V7InRp` and `0eJuTA` passed all eight workspace gates on `fbc42b18...`; direct `origin` and `gitlab` refs reached that snapshot. At 11:02:55 local `main` was `109a932b...`, 38 commits ahead of both refs. A later gate on snapshot `7e8eff49...` failed one test: `survey-hunt-recovery.test.ts` expected two fake-Node calls but got twelve because the test put a fake `node` on `PATH`, intercepting the watcher's real JSON helper invocations too. The test now injects a fake hunter script through `YFF_SURVEY_HUNT_SCRIPT` and uses a temporary sightings file instead. The daemon committed this test-only fix as `af5a9b1a...`; local package verification passed: 61 files / 1081 tests, typecheck, and lint (with a non-fatal Node module-type warning). At 11:06:41 the local tip was 39 commits ahead of both advertised refs at `fbc42...`; no gate yet qualifies the test fix. The old-snapshot attempts `B4CLx7` and `n3Jg5x` were still running then, and do not qualify `af5a`.
+
+The operator chose to stop the passive watcher after batch 176. The stop was not applied promptly: batches 177 and 178 also completed, then batch 179 began. The watcher was terminated at 10:58:57 after three more absent observations (video-item counts 78, 58, 77; each showed a visible Home grid). The latest complete tracked `survey-hunt.json` is batch 178: ten absent observations from 10:55:17 to 10:57:48, all grids visible, 56–74 video items. The partial batch-179 log remains at `/tmp/yff-feedback-survey-watcher/batch-179-20261029T105803Z.log`; it is not a complete receipt. The watcher is stopped; no editor, agent loop, or daemon was stopped. No fresh real-feed shelves receipt or positive removal proof was obtained.
+
+At 11:01:23, parent local `main` (`a33daf...`) was one commit ahead of directly verified `origin` and `gitlab` refs (`63d8e3...`), with no `main.lock`; the working tree still had active nested and outpost-eden changes. Polis's 10:55:30 epoch refusal (`0KLVtZ`) remained unclassified after five failures/backoff; a later filter-aware status query succeeded, but did not explain the refusing hook. Full-fleet clean-idle acceptance remains open.
+
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
 The original goal remains active and incomplete. Warden's cooperative canonical-
