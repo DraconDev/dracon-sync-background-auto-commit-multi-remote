@@ -2342,3 +2342,35 @@ Still not the goal's required all-clean-and-idle state:
 These are real in-flight publication and producer-owned edits, not unexplained
 failures. No manual push was used to reach this state, no hook was bypassed, and
 no producer was stopped.
+
+### Follow-up — 2026-10-29 22:35 UTC: BOTH remotes publish the repaired tip; 34 clean
+
+Read-only `ls-remote` on the live remotes:
+
+```
+origin  cf17489b332a
+gitlab  cf17489b332a      ← mirror independently advanced to the repaired tip
+```
+
+Both intended destinations now advertise the same commit, which carries the
+`markdown-reader` lint repair. This is the goal's "repaired repositories
+autonomously commit eligible work and publish it to every intended destination"
+requirement, satisfied for the repaired repository **without any manual push**.
+
+```
+36 inspected · 34 clean · 2 active · 0 concerns · 0 inspection failures
+```
+
+`browser-extensions-shared` now reports push `✅ OK 4m` (previously `❌ FAIL 1h`),
+still draining 118 queued local commits. `dracon-strategy` is `RETRYING` with 70
+modified files — an actively edited producer repo.
+
+Two observations worth recording plainly:
+
+- The decided-verdict rule did what it was for: the round that finally published
+  was a **fresh** round pinned to a post-repair tip, and the mirror gate ran
+  against that tip rather than re-buying a verdict on the pre-repair tree.
+- The single qualification caveat is honestly still open: the 44-workspace gate
+  is slow on this host (host load has been 30-95 all evening), so each round
+  takes tens of minutes. That is elapsed time, not a defect the daemon can fix by
+  retrying.
