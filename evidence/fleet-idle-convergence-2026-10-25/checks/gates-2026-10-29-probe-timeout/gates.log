@@ -2246,3 +2246,7 @@ test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (r
 To /tmp/.tmpTCUFZu/origin.git
  * [new branch]      master -> master
 branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) ad3a3ee] init
