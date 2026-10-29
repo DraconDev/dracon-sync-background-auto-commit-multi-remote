@@ -200,6 +200,21 @@ gates, not a completed push.
 By 09:53:53, browser local main had advanced to
 `75809018ffcc1c308923884ea01336fb34377833`, 89 commits ahead of the still
 matching `gitlab`/`origin` refs at `64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a`;
-the committed `9df0bc` syntax fix remains an ancestor of local main. The active
-old-snapshot gate has not yet qualified or published the corrected tip, and no
-full-fleet query is appropriate while it and platform work remain active.
+the committed `9df0bc` syntax fix remains an ancestor of local main. The old-snapshot gate later completed with failure at 09:54:47; it never
+qualified or published the corrected tip. No full-fleet query was appropriate
+while the gate and platform work were active.
+
+## Follow-up — old snapshot failed; browser publication paused (2026-10-29 09:56 UTC)
+
+At 09:54:47 the daemon reported the `gitlab` pre-push failure from
+`kgtpu1` (`clean-web TEST`), then marked the push failed for `gitlab` and
+`origin` and scheduled a retry. At 09:55:51 it committed another browser file
+but explicitly paused publication in commit-only mode. The 09:56:03 scheduler
+snapshot now has no browser execution/in-flight entry; direct refs show local
+main `9e5fad8b62bfb0c25ee90f7ac6e083b8beabdb37` versus `gitlab`/`origin`
+`64c46f5c9b7d0b6683eb7f13ed74271fd97bbf4a` (90 unpushed commits per the
+09:55:51 journal). `dracon-sync repair stuck-list` reports one consecutive
+failure for this repo. The current main includes `9df0bc`, but has not had a
+push gate result. The previously documented `youtube-filter` receipt blocker
+has not been shown cleared, so do not clear the stuck ledger or bypass the
+pre-push gate; wait for an authorized normal retry or a maintainer resolution.
