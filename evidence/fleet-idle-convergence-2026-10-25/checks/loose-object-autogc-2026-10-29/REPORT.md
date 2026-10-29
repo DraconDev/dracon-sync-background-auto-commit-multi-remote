@@ -149,3 +149,39 @@ Receipt: `/home/dracon/.local/state/dracon-sync/qualification/decided-verdict-lo
 
 **Not a deployed-daemon observation:** the service still runs the earlier binary
 (`4ddf44f4…`), which has no `auto_gc_loose_threshold_bytes` string at all.
+
+## Live deployed behaviour (2026-10-29 20:23–20:31 UTC)
+
+The qualified build was deployed via atomic replacement + pidfd SIGTERM (never
+`systemctl stop`), `loaded_sha256 == installed_sha256 ==
+13c7268cd3d4bc300672fb3f15de0fa35ca47d085ce4906bc549512b0304d8b3`, service
+`active`. Deployment receipt:
+`checks/gates-2026-10-29-decided-verdict/deployment.json`.
+
+The new trigger fired on the first sweep across repositories that the garbage
+trigger could never have selected:
+
+```
+🗑️ /home/dracon/.dracon                                  145.69 MiB loose (> 64.00 MiB) → gc 81.4s
+🗑️ /home/dracon/Dev/browser-extensions-shared           772.75 MiB loose (> 64.00 MiB) → gc 290.3s
+🗑️ /home/dracon/Dev/dracon-strategy/ai-auto-video        167.80 MiB loose (> 64.00 MiB) → gc 81.2s
+```
+
+Each reported `observed 0.00 MiB loose bytes after pack`, and measured
+`count-objects -v` confirms the bytes were **repacked, not discarded**:
+
+| repo | loose before | loose after | pack before | pack after |
+|---|---|---|---|---|
+| `browser-extensions-shared` | 772.8 MiB | **0.0 MiB** | 4269.9 MiB | 4946.5 MiB |
+| `.dracon` | 145.7 MiB | 4.3 MiB | ~ | 307.0 MiB |
+| `ai-auto-video` | 167.8 MiB | 0.0 MiB | ~ | — |
+
+`browser-extensions-shared` is the repository whose 740.6 MiB of reachable loose
+objects this report flagged before the repair; it is now packed, which is exactly
+the state that made polis un-pushable before its manual repack. History was not
+rewritten, no ref changed, and no worktree file was touched.
+
+Observed cost, recorded honestly: `git gc` on the 4.9 GiB pack took **290 s**
+(bounded by the existing 600 s timeout) on a host at load ~94. Probes are
+rate-limited to once per minute per repo, so this is not a per-pulse cost, and a
+repeat requires another 64 MiB of new loose bytes plus the 2-minute cooldown.
