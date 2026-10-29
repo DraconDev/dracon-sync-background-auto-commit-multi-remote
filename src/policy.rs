@@ -635,15 +635,22 @@ pub(crate) struct SyncPolicy {
     pub(crate) pull_op_timeout_secs: u64,
     #[serde(default = "default_push_op_timeout_secs")]
     pub(crate) push_op_timeout_secs: u64,
-    /// ADDED 2026-07-25 (v0.113.0): when a repo's dangling-object
-    /// garbage (`count-objects` `size-garbage`, the tmp_pack_* debris
-    /// of interrupted pushes) exceeds this many bytes, the daemon
-    /// runs `git gc --prune=now` automatically. Root-cause fix for
-    /// the recurring `.git` bloat incidents (hegemon 4.9 GiB,
-    /// dracon-platform 37 GiB) that previously needed manual gc.
-    /// Default: 2 GiB. Set to 0 to disable.
+    /// When dangling-object garbage (`count-objects` `size-garbage`,
+    /// including interrupted-push tmp_pack_* debris) exceeds this many
+    /// bytes, the daemon runs plain `git gc`, retaining Git's ordinary
+    /// two-week prune grace. This self-heals historical garbage-bloat
+    /// incidents without pruning recent unreachable objects.
+    /// Default: 2 GiB. Set to 0 to disable this garbage trigger.
     #[serde(default = "default_auto_gc_garbage_threshold_bytes")]
     pub(crate) auto_gc_garbage_threshold_bytes: u64,
+    /// Repack accumulated loose objects before they inflate a push past its
+    /// provider's high-water guard. Measured from `count-objects` `size`;
+    /// automatic GC retains the ordinary prune grace and never rewrites refs.
+    /// Trigger checks are rate-limited, and repeat GC requires new loose-byte
+    /// growth since the previous successful pack. Default: 64 MiB; 0 disables
+    /// this loose-object trigger (the garbage trigger remains independent).
+    #[serde(default = "default_auto_gc_loose_threshold_bytes")]
+    pub(crate) auto_gc_loose_threshold_bytes: u64,
     /// ADDED 2026-10-26: age before an abandoned private-epoch spool
     /// (`<gitdir>/dracon-staging-*`) may be reaped by the daemon.
     ///
@@ -1343,9 +1350,16 @@ pub(crate) fn default_push_op_timeout_secs() -> u64 {
 }
 
 pub(crate) fn default_auto_gc_garbage_threshold_bytes() -> u64 {
-    // 2 GiB — below GitHub's per-push pack limit, large enough that
-    // normal loose-object churn never triggers it.
+    // 2 GiB — large interrupted-push debris should be collected well
+    // before it exhausts local disk.
     2 * 1024 * 1024 * 1024
+}
+
+pub(crate) fn default_auto_gc_loose_threshold_bytes() -> u64 {
+    // 64 MiB: below the 100 MiB per-file staging limit, so one repeatedly
+    // rewritten-but-eligible session export is repacked before loose copies
+    // consume the bucket guard's headroom.
+    64 * 1024 * 1024
 }
 
 pub(crate) fn default_epoch_spool_max_age_secs() -> u64 {
@@ -2242,6 +2256,7 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
         pull_op_timeout_secs: 30,
         push_op_timeout_secs: 300,
         auto_gc_garbage_threshold_bytes: default_auto_gc_garbage_threshold_bytes(),
+        auto_gc_loose_threshold_bytes: default_auto_gc_loose_threshold_bytes(),
         epoch_spool_max_age_secs: default_epoch_spool_max_age_secs(),
         repo_sync_timeout_secs: 420,
         stage_op_timeout_secs: 60,
