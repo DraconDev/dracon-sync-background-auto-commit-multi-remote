@@ -5333,7 +5333,12 @@ async fn sync_repo_local_with_ownership(
     // so it must not be gated on push mode or it can never heal the exact
     // repos that need it. It remains gated on `!dry_run`.
     if !dry_run {
-        crate::git::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes).await;
+        crate::git::maybe_auto_gc(
+            repo,
+            policy.auto_gc_garbage_threshold_bytes,
+            policy.auto_gc_loose_threshold_bytes,
+        )
+        .await;
         // ADDED 2026-10-26: sweep stale `tmp_pack_*` leftovers.
         // `git gc` reports these as garbage but does NOT remove recent ones
         // (verified: a fresh 1 MB tmp_pack survived plain `git gc` and was
