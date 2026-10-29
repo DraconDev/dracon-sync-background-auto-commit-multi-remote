@@ -636,7 +636,6 @@ pub(crate) async fn push_with_retries_for_target(
                 // the arm cannot swallow a server policy rejection.
                 if is_permanent_push_rejection(&err_msg)
                     || is_pack_too_large(&err_msg)
-                    || is_local_hook_rejection(&err_msg)
                 {
                     return Err(e);
                 }
