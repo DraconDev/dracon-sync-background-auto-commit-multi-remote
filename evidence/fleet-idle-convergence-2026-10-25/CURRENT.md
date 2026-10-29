@@ -28,6 +28,13 @@ rising 64→73 while publication remained owned by another worker, a late
 `dracon-platform` sync failure without a later result in the captured interval,
 and continuing trailing-drain work. This is not a clean-idle observation; see
 `checks/status-inspection-root-cause/daemon-followup-assessment-2026-10-29.md`.
+A direct remote check also found the documented Codeberg destination absent from
+this checkout's configured remotes and 4,943 commits behind, while GitHub and
+GitLab advertise the current tip. Because the quota design records Codeberg at
+its grace limit and defers history cleanup, no reconnect or push was attempted;
+Task 5.1 is reopened pending an operator-approved, quota-safe plan. Details are
+in `checks/status-inspection-root-cause/dracon-sync-remote-scope-2026-10-29.md`
+and its JSON receipt.
 
 ## 2026-10-28 — current handoff after reviewer and evidence reconciliation
 
