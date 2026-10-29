@@ -103,3 +103,17 @@ checkout and remains the separate quota-safe operator blocker; matching
 configured refs do not satisfy that missing destination. This is evidence
 publication of the current utilities commit to configured remotes, not
 fleet-wide convergence.
+
+## Follow-up — subsequent daemon publication (2026-10-29 ~09:31 UTC)
+
+After later daemon commits, local utilities main advanced to
+`739c4492dfd9281d5c42d0dfff1380476a4768ce`; a fresh read-only `ls-remote` showed
+`github`, `gitlab`, and `origin` all advertising that same tip. The daemon had
+logged `dracon-sync` commits and a temporarily deferred publication; this later
+observation verifies the current configured refs caught up. It does not resolve
+the absent documented Codeberg destination.
+
+The 09:28 scheduler snapshot still showed a browser push and platform/polis
+retries; by 09:30:25 the browser unpushed count had risen to 110 and trailing
+drain work continued. The 09:27 resource snapshot and these active states still
+do not support a clean-idle claim. No full watched-repository query was run.
