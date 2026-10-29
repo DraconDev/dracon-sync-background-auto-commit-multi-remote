@@ -2309,3 +2309,36 @@ This is progress, not acceptance: the goal requires every watched repository
 clean and idle with zero queued/retrying/blocked/unknown/committing/publishing
 states. The remaining blockers are real publication work in flight, not
 unexplained failures.
+
+### Follow-up — 2026-10-29 22:05 UTC: repaired tip PUBLISHED to origin; fleet 32 clean
+
+The pinned round eventually passed its gates and **published**:
+`origin/main` advertised `cf17489b33` — the tip that contains the
+`markdown-reader` lint repair (verified directly with `ls-remote`, not just the
+local tracking ref). Local HEAD had advanced to `68b4493691`, so 118 further
+commits were queued behind it; they were committed locally rather than lost.
+
+`gitlab` still advertised `06fd267b6a` at that moment and a second gate round
+was already running against `cf17489b33` for it, i.e. the mirror leg advanced to
+the repaired tip rather than re-gating a pre-repair tree.
+
+Fresh full-fleet observation:
+
+```
+36 inspected · 32 clean · 4 active · 0 concerns · 0 inspection failures
+```
+
+`dracon-platform` moved from `UNKNOWN` to **CLEAN/idle**, and `polis`, `doomtap`,
+`dracon-system`, `dracon-utilities` all remain clean.
+
+Still not the goal's required all-clean-and-idle state:
+
+- `browser-extensions-shared` — `PUBLISHING`, 118 ahead of origin, gitlab gate in
+  flight. Publication is progressing autonomously on its own cadence; the
+  44-workspace gate takes 30-90 minutes per round on this loaded host.
+- `.dracon` — `UNKNOWN` with 1 modified file (an actively written operator repo).
+- `junk-runner` — `QUEUED` with 1 modified file.
+
+These are real in-flight publication and producer-owned edits, not unexplained
+failures. No manual push was used to reach this state, no hook was bypassed, and
+no producer was stopped.
