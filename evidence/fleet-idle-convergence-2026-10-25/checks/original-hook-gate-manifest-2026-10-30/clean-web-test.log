@@ -52,3 +52,9 @@ $ vitest run --passWithNoTests
 
   ─────────────────────────────────────────────────────────────────
 
+
+ Test Files  91 passed (91)
+      Tests  1494 passed (1494)
+   Start at  19:48:50
+   Duration  30.27s (transform 2.29s, setup 856ms, import 4.39s, tests 24.86s, environment 19.28s)
+
