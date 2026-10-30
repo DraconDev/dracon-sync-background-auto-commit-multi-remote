@@ -1,0 +1,34 @@
+{
+  "created": "2026-10-30",
+  "purpose": "Four workspace gates on one coherent assembly for the report-truth repair, after the auditor objected that `ok` counted DIRTY/AHEAD/PENDING rows as clean.",
+  "assembly": {
+    "dracon_sync_head": "f97c06021529ebc4384655a7b929d7e14536cd6d",
+    "src_tree_sha": "edb9db88730b55a4e618450cf420e16739e21673",
+    "cargo_toml_sha": "40e1cf72cc7c16c3f7431427a916f787c70c3b9c",
+    "cargo_lock_sha": "1f009ca9f39f3ebe7525c0838868537343353aa5",
+    "report_rs_sha": "cfe844bbeac1ddaec6f278c9ce658f1ca00b0373",
+    "binding": "Content SHAs, not a revision label captured before the run: the gates compile the working tree, which the daemon may commit while they run. src/ is byte-identical to HEAD."
+  },
+  "gates": {
+    "workspace_tests": {
+      "exit": 0,
+      "suites": 44,
+      "passed": 2923,
+      "failed": 0
+    },
+    "release_build": {
+      "exit": 0
+    },
+    "clippy_all_targets_strict": {
+      "exit": 0
+    },
+    "cargo_deny": {
+      "exit": 0
+    }
+  },
+  "regressions_in_run": [
+    "test_row_bucket_counts_never_calls_outstanding_work_clean",
+    "test_row_is_converged_rejects_dirty_and_ahead_flags_alone",
+    "test_row_buckets_partition_every_row_exactly_once"
+  ]
+}
