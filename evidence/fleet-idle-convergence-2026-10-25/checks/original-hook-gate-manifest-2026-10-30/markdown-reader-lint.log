@@ -1,0 +1,52 @@
+$ eslint . --ext .ts
+(node:608907) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/Dev/browser-extensions-shared/eslint.config.js?mtime=1792007278247 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/dracon/Dev/browser-extensions-shared/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/entrypoints/background.ts
+   20:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   68:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  126:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/entrypoints/options/main.ts
+  217:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  232:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/lib/highlight/server.ts
+  33:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/lib/markdown/plugins/abbreviations.ts
+  14:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/lib/markdown/plugins/code-blocks.ts
+  30:58  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/lib/markdown/plugins/footnotes.ts
+   21:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   95:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  101:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  113:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/lib/markdown/plugins/math.ts
+  53:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/lib/messaging.ts
+  19:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/lib/reader/fonts.ts
+  13:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/lib/settings.ts
+  114:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  144:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/scripts/verify-reader.mjs
+   384:9  warning  'footnoteJump' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  1428:9  warning  'extensionId' is assigned a value but never used   @typescript-eslint/no-unused-vars
+
+✖ 22 problems (0 errors, 22 warnings)
+

@@ -1,0 +1,7 @@
+revision b564d4f14a745713db65017cc9c6832092e0cdf8
+  markdown-reader-lint                       exit=0
+  markdown-reader-typecheck                  exit=0
+  markdown-reader-test                       exit=0
+  markdown-reader-build                      exit=0
+  youtube-filter-lint                        exit=0
+  youtube-filter-typecheck                   exit=0
