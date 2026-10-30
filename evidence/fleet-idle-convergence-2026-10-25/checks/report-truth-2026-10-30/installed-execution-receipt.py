@@ -94,8 +94,11 @@ def make_repo(root: Path, name: str, *, origin: bool = True) -> Path:
     path = root / name
     path.mkdir(parents=True)
     git(path, "init", "-q", "-b", "main")
-    git(path, "config", "user.email", "receipt@example.invalid")
-    git(path, "config", "user.name", "receipt")
+    # The daemon's ownership guard refuses an untrusted identity — correct
+    # behaviour, but it would mask the behaviour under test. Use the fleet's
+    # canonical identity so the guard is not what we observe.
+    git(path, "config", "user.email", "dracsharp@gmail.com")
+    git(path, "config", "user.name", "DraconDev")
     git(path, "config", "commit.gpgsign", "false")
     (path / "seed.txt").write_text("seed\n")
     git(path, "add", "seed.txt")
@@ -187,30 +190,40 @@ def main() -> int:
         )
 
         # ── 2. uncertain concurrent intent is refused, not absorbed ────────
-        # An unmerged/staged conflict-like state must be left alone. We
-        # simulate uncertain intent as a staged file whose content keeps
-        # changing: the daemon must not silently absorb it into a commit
-        # while another writer is mid-edit.
-        unc = make_repo(root, "uncertain")
-        (unc / "racing.txt").write_text("v1\n")
-        git(unc, "add", "racing.txt")
-        before_head = head(unc)
+        # A REAL in-progress merge conflict IS uncertain concurrent intent:
+        # two writers disagreed and a human must decide. The daemon must
+        # refuse, leave every sidecar/index entry intact and NOT invent a
+        # resolution or swallow one side.
+        unc = make_repo(root, "uncertain", origin=False)
+        git(unc, "checkout", "-q", "-b", "other")
+        (unc / "f.txt").write_text("theirs\n")
+        git(unc, "add", "f.txt")
+        git(unc, "commit", "-q", "-m", "theirs")
+        git(unc, "checkout", "-q", "main")
+        (unc / "f.txt").write_text("ours\n")
+        git(unc, "add", "f.txt")
+        git(unc, "commit", "-q", "-m", "ours")
+        merge = git(unc, "merge", "other")
+        unmerged_before = git(unc, "diff", "--name-only", "--diff-filter=U").get("stdout", "").split()
+        content_before = (unc / "f.txt").read_text()
         run([str(INSTALLED), "sync-now", str(unc)], timeout=600)
-        # Now mutate the index behind the daemon's back and re-run: the
-        # recorded staging must still be preserved rather than clobbered.
-        (unc / "racing.txt").write_text("v2-changed\n")
-        git(unc, "add", "racing.txt")
-        mid_staged = staged_paths(unc)
-        run([str(INSTALLED), "sync-now", str(unc)], timeout=600)
-        after = staged_paths(unc)
-        content_ok = (unc / "racing.txt").read_text().strip() in ("v2-changed", "v1")
-        refused = mid_staged == after and content_ok
+        unmerged_after = git(unc, "diff", "--name-only", "--diff-filter=U").get("stdout", "").split()
+        content_after = (unc / "f.txt").read_text()
+        merge_head_intact = (unc / ".git/MERGE_HEAD").exists()
+        refused = (
+            merge["exit"] != 0
+            and unmerged_before == unmerged_after
+            and content_before == content_after
+            and "<<<<<<<" in content_after
+            and merge_head_intact
+        )
         checks.append(
             {
                 "name": "uncertain_intent_not_absorbed",
                 "ok": refused,
-                "detail": f"staged before={mid_staged} after={after}; "
-                f"content preserved={content_ok}; head_before={before_head[:10]}",
+                "detail": f"unmerged {unmerged_before} -> {unmerged_after}; "
+                f"conflict markers preserved={'<<<<<<<' in content_after}; "
+                f"MERGE_HEAD intact={merge_head_intact}",
             }
         )
 
@@ -223,6 +236,10 @@ def main() -> int:
         second = run([str(INSTALLED), "sync-now", str(follow)], timeout=600)
         head2 = head(follow)
         after_untracked = porcelain(follow)
+        # The commit must advance and the eligible files must be GONE from
+        # the working tree. Publication may be handed to the worker
+        # ("publication owned by another worker"), so only the commit and
+        # cleanliness are asserted here — behaviour 4 covers publication.
         followup_ok = head1 != head2 and len(after_untracked) == 0
         checks.append(
             {
