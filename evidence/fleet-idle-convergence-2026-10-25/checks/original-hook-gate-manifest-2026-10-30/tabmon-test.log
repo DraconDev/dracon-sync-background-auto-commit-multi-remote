@@ -24,3 +24,9 @@ OK
 
 19:47:28 [vite-plugin-svelte] /home/dracon/Dev/browser-extensions-shared/packages/nightfall/src/components/Card.svelte:48:14 This reference only captures the initial value of `dense`. Did you mean to reference it inside a closure instead?
 https://svelte.dev/e/state_referenced_locally
+
+ Test Files  78 passed (78)
+      Tests  1243 passed (1243)
+   Start at  19:45:42
+   Duration  169.61s (transform 4.32s, setup 699ms, import 9.13s, tests 131.96s, environment 18.13s)
+
