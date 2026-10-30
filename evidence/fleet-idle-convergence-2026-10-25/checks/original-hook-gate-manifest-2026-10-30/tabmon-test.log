@@ -22,3 +22,5 @@ OK
 
  RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/tabmon
 
+19:47:28 [vite-plugin-svelte] /home/dracon/Dev/browser-extensions-shared/packages/nightfall/src/components/Card.svelte:48:14 This reference only captures the initial value of `dense`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally

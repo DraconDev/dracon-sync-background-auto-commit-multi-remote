@@ -106,8 +106,17 @@ def make_repo(root: Path, name: str, *, origin: bool = True) -> Path:
     if origin:
         bare = root / f"{name}.git"
         run([GIT, "init", "-q", "--bare", str(bare)])
-        git(path, "remote", "add", "origin", str(bare))
-        git(path, "push", "-q", "-u", "origin", "main")
+        add = git(path, "remote", "add", "origin", str(bare))
+        push = git(path, "push", "-q", "-u", "origin", "main")
+        # A silent failure here would make later publication assertions
+        # vacuous, so refuse to hand back a fixture without an upstream.
+        if add.get("exit") != 0 or push.get("exit") != 0:
+            raise RuntimeError(
+                f"fixture {name}: origin setup failed (add={add}, push={push})"
+            )
+        up = git(path, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+        if up.get("exit") != 0:
+            raise RuntimeError(f"fixture {name}: no upstream after push -u")
     return path
 
 

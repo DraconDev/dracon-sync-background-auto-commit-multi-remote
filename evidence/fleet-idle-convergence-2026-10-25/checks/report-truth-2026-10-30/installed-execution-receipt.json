@@ -1,6 +1,6 @@
 {
   "purpose": "installed-execution receipt bound to the loaded daemon executable",
-  "created_unix": 1793389609.9229033,
+  "created_unix": 1793389649.8371964,
   "unit": "dracon-sync-operator.service",
   "main_pid": "579784",
   "loaded_executable": {
@@ -20,7 +20,7 @@
       "detail": "staged content in commit='indexed content'; local file still on disk='unstaged content'; local content committed='unstaged content'",
       "observed": {
         "sync_exit": 0,
-        "sync_secs": 5.26
+        "sync_secs": 5.3
       }
     },
     {
@@ -31,7 +31,7 @@
     {
       "name": "same_repo_followup_commits_and_cleans",
       "ok": false,
-      "detail": "75e751ac18 -> 75e751ac18; residual entries=['?? b.txt']; exits=0,0"
+      "detail": "b7545bddf5 -> b7545bddf5; residual entries=['?? b.txt']; exits=0,0"
     },
     {
       "name": "concurrent_publication_independent",
@@ -55,17 +55,17 @@
     {
       "name": "autonomous_progress_observed",
       "ok": true,
-      "detail": "209 daemon-driven completion line(s) in the last 90 min",
+      "detail": "210 daemon-driven completion line(s) in the last 90 min",
       "sample": [
-        "Oct 30 19:46:16 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/.dracon",
         "Oct 30 19:46:25 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync",
-        "Oct 30 19:47:02 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/.dracon"
+        "Oct 30 19:47:02 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/.dracon",
+        "Oct 30 19:47:09 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync"
       ]
     },
     {
       "name": "bounded_cancellation_and_cleanup",
       "ok": true,
-      "detail": "in-flight entries=['/home/dracon/Dev/browser-extensions-shared', '/home/dracon/Dev/dracon-platform', '/home/dracon/Dev/dracon-platform/web/games/wip/polis', '/home/dracon/Dev/dracon-strategy/ai-auto-writer', '/home/dracon/Dev/dracon-utilities/dracon-sync', '/home/dracon/Dev/dracon-utilities/dracon-system'] age=0s all backed by live work=True",
+      "detail": "in-flight entries=['/home/dracon/.dracon', '/home/dracon/Dev/browser-extensions-shared', '/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls', '/home/dracon/Dev/dracon-utilities/dracon-system'] age=1s all backed by live work=True",
       "observed": {
         "inflight_file": "/home/dracon/.local/state/dracon/dracon-sync-in-flight.json",
         "holds_file": "/home/dracon/.local/state/dracon/dracon-sync-dispatch-holds.json"
