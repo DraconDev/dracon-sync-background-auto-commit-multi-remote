@@ -254,6 +254,10 @@ def main() -> int:
         # ("publication owned by another worker"), so only the commit and
         # cleanliness are asserted here — behaviour 4 covers publication.
         followup_ok = head1 != head2 and len(after_untracked) == 0
+        if not followup_ok:
+            # Record WHY, so a failure is diagnosable instead of mysterious.
+            print("DEBUG followup first:", json.dumps(first.get("stdout"), indent=1))
+            print("DEBUG followup second:", json.dumps(second.get("stdout"), indent=1))
         checks.append(
             {
                 "name": "same_repo_followup_commits_and_cleans",
