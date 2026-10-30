@@ -3306,4 +3306,79 @@ ok
 test tests::tests::harden_repos_fails_when_global_refresh_fails ... ok
 test tests::tests::hook_replacement_is_atomic_and_executable ... ok
 test tests::tests::index_batch_lock_skips_and_recovers ... ok
-test tests::tests::index_batch_respawns_after_stage ... 
+test tests::tests::index_batch_respawns_after_stage ... ok
+test tests::tests::index_batch_returns_staged_blob_not_worktree ... ok
+test tests::tests::install_hooks_for_repo_skips_shadowed_git_hooks ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_shadowed_XtoO1s/repo/.git/
+ok
+test tests::tests::is_encrypted_env_content_detects_markers ... ok
+test tests::tests::is_env_file_name_detects_common_variants ... ok
+test tests::tests::is_legacy_warden_hook_matrix ... ok
+test tests::tests::is_marker_string_detects_both_markers ... ok
+test tests::tests::is_marker_string_edge_cases ... ok
+test tests::tests::linked_worktree_gitfile_uses_real_gitdir_for_checkout_lock ... ok
+test tests::tests::marker_prefix_at_edge_cases ... ok
+test tests::tests::marker_prefix_at_finds_correct_positions ... ok
+test tests::tests::media_protected_patterns_default_off_and_parse ... ok
+test tests::tests::merge_driver_decrypt_failure_is_err_with_current_untouched ... ok
+test tests::tests::merge_driver_encrypted_roundtrip_clean_merge ... ok
+test tests::tests::merge_driver_merge_file_error_is_not_a_conflict ... ok
+test tests::tests::merge_driver_text_merge_clean_and_conflict ... ok
+test tests::tests::merge_driver_untagged_files_clean_and_conflict ... ok
+test tests::tests::newest_file_picks_newest_existing ... ok
+test tests::tests::normalize_filter_path_relativizes_inside_root_and_refuses_outside ... ok
+test tests::tests::omitted_hygiene_patterns_use_product_defaults ... ok
+test tests::tests::owner_pubkeys_in_filters_only_owner_pub ... ok
+test tests::tests::pkt_encode_panics_on_oversize_payload - should panic ... ok
+test tests::tests::plaintext_cannot_overlap_protected_or_disable_env_encryption ... ok
+test tests::tests::policy_roots_expand_tilde_before_existence_filtering ... ok
+test tests::tests::pre_commit_hook_allows_unmanaged_repo ... ok
+test tests::tests::pre_commit_hook_bare_repo_unmarked_passes ... ok
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_drift ... ok
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_only_global_filter_config ... ok
+test tests::tests::pre_commit_hook_blocks_when_merge_driver_key_missing ... ok
+test tests::tests::pre_commit_hook_blocks_when_only_commented_filters_remain ... ok
+test tests::tests::pre_commit_hook_blocks_when_required_key_false ... ok
+test tests::tests::pre_commit_hook_blocks_when_required_key_missing ... ok
+test tests::tests::pre_commit_hook_blocks_when_textconv_key_missing ... ok
+test tests::tests::pre_commit_hook_chains_to_foreign_repo_local_hook ... ok
+test tests::tests::pre_commit_hook_commented_filters_do_not_mark_managed ... ok
+test tests::tests::pre_commit_hook_does_not_recurse_into_warden_seeded_local_hook ... ok
+test tests::tests::pre_commit_hook_no_repo_context_exits_1_with_message ... ok
+test tests::tests::pre_commit_hook_propagates_foreign_hook_failure ... ok
+test tests::tests::pre_commit_hygiene_distinguishes_exact_visual_inputs_from_frame_caches ... ok
+test tests::tests::pre_commit_hygiene_does_not_grant_blanket_or_nested_machine_local_exemptions ... ok
+test tests::tests::pre_commit_hygiene_honors_scoped_sources_without_skipping_security ... ok
+test tests::tests::pre_commit_hygiene_visual_source_permission_is_exact_and_not_cache_permission ... ok
+test tests::tests::pre_commit_wrapper_skips_legacy_warden_local_hook ... ok
+test tests::tests::pre_commit_wrapper_still_chains_user_local_hook ... ok
+test tests::tests::pre_push_binary_pem_labels_are_not_private_keys_but_material_is_blocked ... ok
+test tests::tests::pre_push_diff_scan_receipt_binds_scan_and_individual_match ... ok
+test tests::tests::pre_push_hook_allows_changed_line_with_ciphertext ... ok
+test tests::tests::pre_push_hook_allows_delete_only ... ok
+test tests::tests::pre_push_hook_allows_inherited_binary_secret_shape ... ok
+test tests::tests::pre_push_hook_allows_pure_rename_of_published_secret_shape ... ok
+test tests::tests::pre_push_hook_allows_republish_of_published_blob ... ok
+test tests::tests::pre_push_hook_announces_hatched_candidates ... ok
+test tests::tests::pre_push_hook_bare_repo_unmarked_passes ... ok
+test tests::tests::pre_push_hook_blocks_added_secret ... ok
+test tests::tests::pre_push_hook_blocks_begin_private_key_branch ... ok
+test tests::tests::pre_push_hook_blocks_github_token_shape ... ok
+test tests::tests::pre_push_hook_blocks_gitlab_token_shape ... ok
+test tests::tests::pre_push_hook_blocks_password_secret_api_key_double_quoted_branches ... ok
+test tests::tests::pre_push_hook_blocks_secret_in_added_binary ... ok
+test tests::tests::pre_push_hook_blocks_secret_in_space_filename ... ok
+test tests::tests::pre_push_hook_blocks_secret_introduced_by_merge_resolution ... ok
+test tests::tests::pre_push_hook_blocks_secret_removed_or_reverted_before_tip ... rm 'new-asset'
+rm 'new-asset'
+ok
+test tests::tests::pre_push_hook_blocks_single_quoted_secret_warden_m2_idiom ... ok
+test tests::tests::pre_push_hook_blocks_stripe_live_key_shape ... ok
+test tests::tests::pre_push_hook_blocks_unquoted_padded_password ... ok
+test tests::tests::pre_push_hook_chains_and_propagates_local_hook_failure ... ok
+test tests::tests::pre_push_hook_chains_to_repo_local_hook ... ok
+test tests::tests::pre_push_hook_checks_all_refs_before_chaining_and_replays_input ... ok
+test tests::tests::pre_push_hook_ciphertext_context_keeps_exposed_and_malformed_shapes_blocked ... ok
+test tests::tests::pre_push_hook_distinguishes_interpolated_placeholder_from_literal ... ok
+test tests::tests::pre_push_hook_enumerates_remote_objects_once_per_push ... ok
+test tests::tests::pre_push_hook_hatch_found_from_subdir_cwd ... ok
+test tests::tests::pre_push_hook_ignores_unpaired_assignment_quote ... 
