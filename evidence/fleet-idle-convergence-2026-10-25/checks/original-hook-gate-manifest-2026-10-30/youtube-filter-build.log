@@ -1,1 +1,32 @@
 $ wxt build
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G✔ Built extension in 4.306 s
+  ├─ .output/chrome-mv3/manifest.json                  917 B    
+  ├─ .output/chrome-mv3/options.html                   670 B    
+  ├─ .output/chrome-mv3/welcome.html                   672 B    
+  ├─ .output/chrome-mv3/background.js                  47.62 kB 
+  ├─ .output/chrome-mv3/chunks/options-BPJho0yi.js     47.58 kB 
+  ├─ .output/chrome-mv3/chunks/theme-CY0j42zG.js       216.35 kB
+  ├─ .output/chrome-mv3/chunks/welcome-C-m044Wv.js     5.09 kB  
+  ├─ .output/chrome-mv3/content-scripts/content.js     80.98 kB 
+  ├─ .output/chrome-mv3/content-scripts/yt-relay.js    2.67 kB  
+  ├─ .output/chrome-mv3/wasm/dracon_wasm.js            13.5 kB  
+  ├─ .output/chrome-mv3/assets/options-K9-NO5CK.css    16.79 kB 
+  ├─ .output/chrome-mv3/assets/theme-q_GX_Sih.css      571 B    
+  ├─ .output/chrome-mv3/assets/welcome-BdrVPE4j.css    211 B    
+  ├─ .output/chrome-mv3/_locales/en/messages.json      270 B    
+  ├─ .output/chrome-mv3/_locales/README.md             2.71 kB  
+  ├─ .output/chrome-mv3/icon/128.png                   4.86 kB  
+  ├─ .output/chrome-mv3/icon/16.png                    602 B    
+  ├─ .output/chrome-mv3/icon/32.png                    1.28 kB  
+  ├─ .output/chrome-mv3/icon/48.png                    1.93 kB  
+  ├─ .output/chrome-mv3/icon/96.png                    3.7 kB   
+  ├─ .output/chrome-mv3/wasm/dracon_wasm_bg.wasm       126.17 kB
+  ├─ .output/chrome-mv3/wasm/dracon_wasm_bg.wasm.d.ts  1.09 kB  
+  ├─ .output/chrome-mv3/wasm/dracon_wasm.d.ts          2.54 kB  
+  └─ .output/chrome-mv3/wasm/package.json              331 B    
+Σ Total size: 579.1 kB                               
+✔ Finished in 4.981 s
