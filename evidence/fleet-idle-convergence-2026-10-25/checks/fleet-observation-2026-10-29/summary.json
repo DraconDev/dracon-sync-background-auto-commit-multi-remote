@@ -1,0 +1,29 @@
+{
+  "samples": [
+    {
+      "repos": 36,
+      "ok": 30,
+      "active": 5,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "repos": 36,
+      "ok": 29,
+      "active": 3,
+      "warn": 4,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "repos": 36,
+      "ok": 29,
+      "active": 4,
+      "warn": 3,
+      "concern": 0,
+      "failures": 0
+    }
+  ],
+  "note": "fleet oscillates under continuous production; concern=0 failures=0 in every sample"
+}
