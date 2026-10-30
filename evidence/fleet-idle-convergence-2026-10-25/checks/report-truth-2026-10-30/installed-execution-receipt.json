@@ -1,6 +1,6 @@
 {
   "purpose": "installed-execution receipt bound to the loaded daemon executable",
-  "created_unix": 1793389742.9904523,
+  "created_unix": 1793389789.5313618,
   "unit": "dracon-sync-operator.service",
   "main_pid": "579784",
   "loaded_executable": {
@@ -31,7 +31,7 @@
     {
       "name": "same_repo_followup_commits_and_cleans",
       "ok": false,
-      "detail": "6382911570 -> 6382911570; residual entries=['?? b.txt']; exits=0,0"
+      "detail": "1853e6a48f -> 1853e6a48f; residual entries=['?? b.txt']; exits=0,0"
     },
     {
       "name": "concurrent_publication_independent",
@@ -39,10 +39,10 @@
       "detail": "both repositories hold a published origin/main concurrently: browser-extensions-shared@f3b353f26249, dracon-platform@1b6fbd60aae1",
       "observed": {
         "browser-extensions-shared": {
-          "head": "b564d4f14a74",
+          "head": "204f3cdd57a2",
           "origin_main": "f3b353f26249",
           "published": false,
-          "ahead": "31"
+          "ahead": "32"
         },
         "dracon-platform": {
           "head": "1b6fbd60aae1",
@@ -55,21 +55,26 @@
     {
       "name": "autonomous_progress_observed",
       "ok": true,
-      "detail": "215 daemon-driven completion line(s) in the last 90 min",
+      "detail": "218 daemon-driven completion line(s) in the last 90 min",
       "sample": [
-        "Oct 30 19:47:50 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/Dev/dracon-utilities/dracon-system",
-        "Oct 30 19:48:56 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/Dev/dracon-utilities/dracon-system",
-        "Oct 30 19:49:09 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/.dracon"
+        "Oct 30 19:49:17 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls",
+        "Oct 30 19:49:25 nixos dracon-sync[579784]: \ud83d\udea8 ALERT: /home/dracon/Dev/browser-extensions-shared has 163 unpushed commits (threshold: 50). Something may be wrong with push.",
+        "Oct 30 19:49:46 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/.dracon"
       ]
     },
     {
       "name": "bounded_cancellation_and_cleanup",
       "ok": true,
-      "detail": "in-flight entries=['/home/dracon/Dev/browser-extensions-shared', '/home/dracon/Dev/dracon-platform', '/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls', '/home/dracon/Dev/dracon-strategy', '/home/dracon/Dev/dracon-strategy/ai-auto-writer', '/home/dracon/Dev/dracon-utilities/dracon-sync'] age=4s all backed by live work=True",
+      "detail": "in-flight entries=['/home/dracon/Dev/browser-extensions-shared', '/home/dracon/Dev/dracon-platform', '/home/dracon/Dev/dracon-strategy', '/home/dracon/Dev/dracon-strategy/ai-auto-writer', '/home/dracon/Dev/dracon-utilities/dracon-sync'] age=3s all backed by live work=True",
       "observed": {
         "inflight_file": "/home/dracon/.local/state/dracon/dracon-sync-in-flight.json",
         "holds_file": "/home/dracon/.local/state/dracon/dracon-sync-dispatch-holds.json"
       }
+    },
+    {
+      "name": "fixtures_isolated_from_live_ledger",
+      "ok": true,
+      "detail": "live push-stuck ledger entries from this run: none"
     }
   ],
   "ok": false
