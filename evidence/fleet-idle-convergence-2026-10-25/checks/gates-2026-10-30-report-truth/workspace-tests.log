@@ -2402,4 +2402,36 @@ test result: ok. 1535 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; f
 
 running 2 tests
 test late_archive_write_is_visible_in_real_json_even_with_same_size_and_restored_mtime ... ok
-test unresolved_private_recovery_is_a_machine_readable_concern_even_when_git_is_clean ... 
+test unresolved_private_recovery_is_a_machine_readable_concern_even_when_git_is_clean ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-0ecf113d48acbdd6)
+
+running 10 tests
+test test_sync_repo_basic ... ok
+test test_sync_repo_branch_operations ... ok
+test test_sync_repo_commit ... ok
+test test_sync_repo_conflict_detection ... ok
+test test_sync_repo_diff ... ok
+test test_sync_repo_merge ... ok
+test test_sync_repo_multiple_commits ... ok
+test test_sync_repo_push_to_bare ... ok
+test test_sync_repo_stash ... ok
+test test_sync_repo_tag ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+
+     Running tests/report_json_detail.rs (target/debug/deps/report_json_detail-c965d8e1a5c4db5d)
+
+running 1 test
+test named_repository_json_is_a_real_envelope_not_vertical_text ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests/storage_clean.rs (target/debug/deps/storage_clean-a2c292d71cbee268)
+
+running 17 tests
+test actual_warden_hook_blocks_invalid_storage_commit_and_keeps_user_hook ... ignored, requires DRACON_STORAGE_TEST_WARDEN pointing to the built source Warden binary
+test advance_job_copies_retained_version_without_touching_git_or_current_edits ... ok
+test busy_selected_job_fails_without_selecting_or_creating_another_version ... 
