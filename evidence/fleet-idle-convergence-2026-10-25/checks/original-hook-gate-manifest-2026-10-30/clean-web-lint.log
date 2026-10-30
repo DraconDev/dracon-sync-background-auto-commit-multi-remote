@@ -1,0 +1,85 @@
+$ eslint . --ext .ts,.tsx
+(node:774794) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/Dev/browser-extensions-shared/eslint.config.js?mtime=1792007278247 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/dracon/Dev/browser-extensions-shared/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/entrypoints/dashboard/sections/Prompts.tsx
+  117:5  warning  React Hook useCallback has a missing dependency: 'settings'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/plan/measurements/image-association-2026-10-08/forum-class-measurement.mjs
+  70:14  warning  'pm' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/audit-behavior.mjs
+  153:59  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/capture-popup-panel.mjs
+  32:7  warning  'URL_UNDER_TEST' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/failure-surface.mjs
+  150:52  warning  'pageStillWorking' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/leak-detector.d.mts
+  47:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  49:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/live-profile-retention-audit.mjs
+  40:7  warning  'PROHIBITED' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/live-profile.d.mts
+  15:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:9   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  40:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/model-double.d.mts
+  116:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/page-probe.mjs
+  11:47  warning  'passesAtNav' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/probe-originals-notice.mjs
+  49:7  warning  'NOTICE' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/probe-policy-knobs.mjs
+   30:10  warning  'installModelDouble' is defined but never used       @typescript-eslint/no-unused-vars
+  151:11  warning  'PROMPT_VERSION' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/probe-show-originals.mjs
+  96:59  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/report-tables.mjs
+  62:27  warning  'file' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/run-audit-live.mjs
+   94:109  warning  'e' is defined but never used            @typescript-eslint/no-unused-vars
+  197:100  warning  'e' is defined but never used            @typescript-eslint/no-unused-vars
+  218:139  warning  'e' is defined but never used            @typescript-eslint/no-unused-vars
+  275:59   warning  'e' is defined but never used            @typescript-eslint/no-unused-vars
+  283:10   warning  'expandState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/run.mjs
+  302:9  warning  'quiet' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/sweep-live-profile-coherent.mjs
+  37:28  warning  'join' is defined but never used           @typescript-eslint/no-unused-vars
+  43:7   warning  'HERE' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/verify-budget-migration.mjs
+   25:8   warning  'path' is defined but never used                                         @typescript-eslint/no-unused-vars
+   27:22  warning  'modelKey' is defined but never used                                     @typescript-eslint/no-unused-vars
+   75:7   warning  'flags' is assigned a value but never used                               @typescript-eslint/no-unused-vars
+  156:44  warning  'model' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  197:7   warning  'storedEnum' is assigned a value but never used                          @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/wait-for-provider-and-sweep.mjs
+  73:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/watch-progress.mjs
+  24:10  warning  'byokConfigFor' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/src/settings.ts
+  391:20  warning  '_dropDaily' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+✖ 35 problems (0 errors, 35 warnings)
+
