@@ -91,7 +91,7 @@ def git(repo, *args, **kw):
 
 def make_repo(root: Path, name: str, *, origin: bool = True) -> Path:
     """A disposable repo that looks enough like a watched repo."""
-    path = root / name
+    path = root / f"receipt-{name}-{os.getpid()}"
     path.mkdir(parents=True)
     git(path, "init", "-q", "-b", "main")
     # The daemon's ownership guard refuses an untrusted identity — correct
@@ -269,6 +269,14 @@ def main() -> int:
                 "ok": followup_ok,
                 "detail": f"{head1[:10]} -> {head2[:10]}; "
                 f"residual entries={after_untracked}; exits={first['exit']},{second['exit']}",
+                # Keep the daemon's own words so a failure is diagnosable
+                # from the receipt alone, without re-running.
+                "observed": {
+                    "first_stdout": first.get("stdout", "")[-600:],
+                    "second_stdout": second.get("stdout", "")[-600:],
+                    "first_stderr": first.get("stderr", "")[-400:],
+                    "second_stderr": second.get("stderr", "")[-400:],
+                },
             }
         )
 
