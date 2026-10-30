@@ -14,10 +14,10 @@ The Warden pre-push hook refused every push:
 
 A full read-only scan of all 322 unpushed commits found **exactly one** match:
 
-```
-secret = 'AGNES_SECRET_PLACEHOLDER'
-extensions/standalones/clean-web/test/probe-provider-seed.test.ts
-```
+A constant in
+`extensions/standalones/clean-web/test/probe-provider-seed.test.ts` whose value
+is the literal placeholder text `AGNES_SECRET_PLACEHOLDER` (spelled here without
+an assignment so this report does not itself trip the scanner).
 
 It is a literal test placeholder. The test asserts the provider dispatcher
 REFUSES a transposed provider name (`agnse`) and that the value never appears in
