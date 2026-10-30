@@ -2,3 +2,53 @@ $ vitest run --passWithNoTests
 
  RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web
 
+
+
+  ── WRONG HAPPY-DOM ───────────────────────────────────────────────
+
+  The environment loaded, but it cannot survive this suite's own DOM
+  reset (`document.documentElement.innerHTML = ''`): the <body>
+  element is dropped, so `document.body` is null and every DOM test
+  dies on "Cannot set properties of null (setting 'innerHTML')".
+
+  This is happy-dom 15.x (or older). The project resolves 20.14.6,
+  which re-creates <head></head><body></body> on that reset.
+
+  The vitest VERSION is not the problem — both runners use 4.1.9. What
+  differs is which install of it is launched, and therefore which
+  happy-dom its peer symlink names:
+
+    use    bun run test       -> node_modules/.bin/vitest -> happy-dom 20.14.6
+    avoid  npx vitest run    -> npm-exec resolves a different vitest
+                                install -> happy-dom 15.11.7
+
+  No test in this suite is compatible with the broken document. Failures
+  under it are a runner artefact — re-run with `bun run test`.
+
+  ─────────────────────────────────────────────────────────────────
+
+
+
+  ── WRONG HAPPY-DOM ───────────────────────────────────────────────
+
+  The environment loaded, but it cannot survive this suite's own DOM
+  reset (`document.documentElement.innerHTML = ''`): the <body>
+  element is dropped, so `document.body` is null and every DOM test
+  dies on "Cannot set properties of null (setting 'innerHTML')".
+
+  This is happy-dom 15.x (or older). The project resolves 20.14.6,
+  which re-creates <head></head><body></body> on that reset.
+
+  The vitest VERSION is not the problem — both runners use 4.1.9. What
+  differs is which install of it is launched, and therefore which
+  happy-dom its peer symlink names:
+
+    use    bun run test       -> node_modules/.bin/vitest -> happy-dom 20.14.6
+    avoid  npx vitest run    -> npm-exec resolves a different vitest
+                                install -> happy-dom 15.11.7
+
+  No test in this suite is compatible with the broken document. Failures
+  under it are a runner artefact — re-run with `bun run test`.
+
+  ─────────────────────────────────────────────────────────────────
+
