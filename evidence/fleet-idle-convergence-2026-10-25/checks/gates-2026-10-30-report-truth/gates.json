@@ -2,8 +2,15 @@
   "created": "2026-10-30",
   "purpose": "Auditor-required receipt: four workspace gates on ONE coherent assembly, for the report-truth repair (dirty/ahead/pending rows can no longer be counted clean).",
   "assembly": {
-    "dracon_sync": "dd88c89ff83af740d7ad6a9649e12b8274439445",
-    "parent": "f8bf156bf103d6dc77f074ef86ec867b42889642"
+    "dracon_sync_head_at_claim": "31cd179d21a8ec8bda7c9cced974db02972849c0",
+    "src_tree_sha": "edb9db88730b55a4e618450cf420e16739e21673",
+    "cargo_toml_sha": "40e1cf72cc7c16c3f7431427a916f787c70c3b9c",
+    "cargo_lock_sha": "1f009ca9f39f3ebe7525c0838868537343353aa5",
+    "report_rs_sha": "cfe844bbeac1ddaec6f278c9ce658f1ca00b0373",
+    "parent": "f8bf156bf103d6dc77f074ef86ec867b42889642",
+    "note": "The gate run executed against the WORKING TREE, which the daemon committed while the gates ran. A revision label captured at gate start (93fbb1b4 / dd88c89f) therefore does NOT describe the tree that was tested. The binding that is actually meaningful is CONTENT: these tree/blob SHAs are what the four gates compiled and tested, and they are identical to HEAD.",
+    "first_revision_carrying_this_src": "5f712eec",
+    "src_identical_from_5f712eec_to_head": true
   },
   "repair": {
     "defect": "`ok` in `dracon-sync repos` was a RESIDUAL bucket (rows - (concern+active+warn)), so DIRTY / AHEAD / PENDING rows were counted as \"clean\". The earlier fleet-acceptance evidence was accepted on that total (ok=36) while 14 of 36 rows carried outstanding work.",
