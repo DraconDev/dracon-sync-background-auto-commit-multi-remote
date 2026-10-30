@@ -3380,4 +3380,18 @@ test tests::tests::pre_push_hook_ciphertext_context_keeps_exposed_and_malformed_
 test tests::tests::pre_push_hook_distinguishes_interpolated_placeholder_from_literal ... ok
 test tests::tests::pre_push_hook_enumerates_remote_objects_once_per_push ... ok
 test tests::tests::pre_push_hook_hatch_found_from_subdir_cwd ... ok
-test tests::tests::pre_push_hook_ignores_unpaired_assignment_quote ... 
+test tests::tests::pre_push_hook_ignores_unpaired_assignment_quote ... ok
+test tests::tests::pre_push_hook_ignores_warden_ciphertext_assignment ... ok
+test tests::tests::pre_push_hook_masks_ciphertext_context_before_provider_extraction ... ok
+test tests::tests::pre_push_hook_openai_boundary_canonicalizes_inherited_binary_matches ... ok
+test tests::tests::pre_push_hook_openai_boundary_ignores_asset_names_not_credentials ... ok
+test tests::tests::pre_push_hook_openai_boundary_preserves_real_text_and_binary_detection ... ok
+test tests::tests::pre_push_hook_passes_on_clean_binary ... ok
+test tests::tests::pre_push_hook_passes_on_clean_commit ... ok
+test tests::tests::pre_push_hook_passes_trusted_author ... ok
+test tests::tests::pre_push_hook_preserves_explicit_plaintext_sibling_exception ... ok
+test tests::tests::pre_push_hook_rejects_test_identity_author ... ok
+test tests::tests::pre_push_hook_scan_survives_local_hook_stdin_consumption ... ok
+test tests::tests::pre_push_hook_secret_re_matches_token_shape_source ... ok
+test tests::tests::pre_push_hook_skips_legacy_warden_local_hook ... ok
+test tests::tests::pre_push_hook_still_blocks_secrets_around_tags ... 
