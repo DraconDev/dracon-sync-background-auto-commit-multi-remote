@@ -2,3 +2,57 @@ $ vitest run
 
  RUN  v2.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/ai-tts-pro
 
+ ✓ tests/eval-metrics.test.ts (35 tests) 13ms
+ ✓ tests/attribution.test.ts (27 tests) 12ms
+ ✓ tests/voices.test.ts (22 tests) 21ms
+ ✓ tests/manifest.test.ts (9 tests) 15ms
+ ✓ tests/playback-state.test.ts (15 tests) 14ms
+ ✓ tests/voice-picker.test.ts (23 tests) 10ms
+ ✓ tests/generation.test.ts (19 tests) 12ms
+stdout | tests/relay-routes.test.ts > offscreen readiness race > waits for the ping before relaying a synthesis request
+ai-tts-pro: service worker up
+
+ ✓ tests/player.test.ts (21 tests) 54ms
+ ✓ tests/kitten.test.ts (19 tests) 50ms
+ ✓ tests/audio.test.ts (10 tests) 29ms
+ ✓ tests/site-settings.test.ts (15 tests) 32ms
+ ✓ tests/queue.test.ts (6 tests) 13ms
+ ✓ tests/settings.test.ts (7 tests) 55ms
+stdout | tests/relay-routes.test.ts > reply routing across a worker restart > delivers a reply to the tab that asked, even after a restart
+ai-tts-pro: service worker up
+
+ ✓ tests/offscreen.test.ts (12 tests) 244ms
+stdout | tests/relay-routes.test.ts > reply routing across a worker restart > delivers a reply to the tab that asked, even after a restart
+ai-tts-pro: service worker up
+
+ ✓ tests/relay-routes.test.ts (2 tests) 265ms
+ ✓ tests/anchor.test.ts (9 tests) 8ms
+ ✓ tests/cast-store.test.ts (8 tests) 14ms
+ ✓ tests/relay.test.ts (7 tests) 11ms
+ ✓ tests/audio-dc.test.ts (9 tests) 69ms
+ ✓ tests/segment.test.ts (12 tests) 8ms
+ ✓ tests/kokoro.test.ts (1 test) 13ms
+ ✓ tests/injection.test.ts (5 tests) 7ms
+ ✓ tests/cursor.test.ts (5 tests) 4ms
+ ✓ tests/popup-report.test.ts (4 tests) 4ms
+ ✓ tests/extract-real.dom.test.ts (6 tests) 2ms
+ ✓ tests/extract-wiki.dom.test.ts (8 tests) 3ms
+ ✓ tests/reader-highlight-failed-anchor.test.ts (3 tests) 30ms
+stderr | tests/offscreen-readers.test.ts > read generations across readers > serves a new reader's first read after another reader read twice
+ai-tts-pro: offscreen document is NOT cross-origin isolated
+
+ ✓ tests/highlight-real-page.dom.test.ts (8 tests) 73ms
+ ✓ tests/extract.dom.test.ts (9 tests) 92ms
+ ✓ tests/highlight.dom.test.ts (14 tests) 114ms
+stderr | tests/offscreen-readers.test.ts > read generations across readers > still rejects a late request from a read the same reader replaced
+ai-tts-pro: offscreen document is NOT cross-origin isolated
+
+ ✓ tests/offscreen-readers.test.ts (2 tests) 359ms
+ ✓ tests/popup-reactivity.test.ts (2 tests) 149ms
+ ✓ tests/popup-hierarchy.test.ts (8 tests) 681ms
+
+ Test Files  33 passed (33)
+      Tests  362 passed (362)
+   Start at  19:49:29
+   Duration  3.35s (transform 2.62s, setup 219ms, collect 4.77s, tests 2.48s, environment 5.89s, prepare 2.67s)
+

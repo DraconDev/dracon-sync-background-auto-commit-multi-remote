@@ -1,0 +1,50 @@
+$ node scripts/fetch-models.mjs && node scripts/vendor-runtime.mjs && wxt build
+ai-tts-pro: 36 model assets → public/models/
+[1/36] kokoro config — present, hash ok
+[2/36] kokoro tokenizer — present, hash ok
+[3/36] kokoro tokenizer config — present, hash ok
+[6/36] kitten nano int8 model — present, hash ok
+[7/36] kitten voice styles — present, hash ok
+[8/36] kitten config — present, hash ok
+[9/36] voice af_alloy — present, hash ok
+[10/36] voice af_aoede — present, hash ok
+[11/36] voice af_bella — present, hash ok
+[12/36] voice af_heart — present, hash ok
+[13/36] voice af_jessica — present, hash ok
+[14/36] voice af_kore — present, hash ok
+[15/36] voice af_nicole — present, hash ok
+[16/36] voice af_nova — present, hash ok
+[17/36] voice af_river — present, hash ok
+[18/36] voice af_sarah — present, hash ok
+[19/36] voice af_sky — present, hash ok
+[20/36] voice am_adam — present, hash ok
+[21/36] voice am_echo — present, hash ok
+[22/36] voice am_eric — present, hash ok
+[23/36] voice am_fenrir — present, hash ok
+[24/36] voice am_liam — present, hash ok
+[25/36] voice am_michael — present, hash ok
+[26/36] voice am_onyx — present, hash ok
+[27/36] voice am_puck — present, hash ok
+[28/36] voice am_santa — present, hash ok
+[29/36] voice bf_alice — present, hash ok
+[30/36] voice bf_emma — present, hash ok
+[31/36] voice bf_isabella — present, hash ok
+[32/36] voice bf_lily — present, hash ok
+[33/36] voice bm_daniel — present, hash ok
+[34/36] voice bm_fable — present, hash ok
+[35/36] voice bm_george — present, hash ok
+[36/36] voice bm_lewis — present, hash ok
+[5/36] kokoro q8f16 model — present, hash ok
+[4/36] kokoro uint8 model — present, hash ok
+ai-tts-pro: all model assets verified
+ai-tts-pro: vendored 2.0 MB  public/vendor/kokoro.web.js
+ai-tts-pro: vendored 1.3 MB  public/vendor/phonemizer.js
+ai-tts-pro: vendored 27.0 MB  public/vendor/ort/ort-wasm-simd-threaded.jsep.wasm
+ai-tts-pro: vendored 0.0 MB  public/vendor/ort/ort-wasm-simd-threaded.jsep.mjs
+ai-tts-pro: vendored 13.6 MB  public/vendor/ort/ort-wasm-simd-threaded.wasm
+ai-tts-pro: vendored 0.6 MB  public/vendor/ort/ort.wasm.mjs
+ai-tts-pro: vendored 0.0 MB  public/vendor/ort/ort-wasm-simd-threaded.mjs
+ai-tts-pro: vendored 13.6 MB  public/vendor/ort/ort-wasm-simd-threaded.wasm
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
