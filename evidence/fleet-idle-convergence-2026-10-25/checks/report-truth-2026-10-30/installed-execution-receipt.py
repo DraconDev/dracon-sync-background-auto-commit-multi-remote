@@ -169,6 +169,12 @@ def main() -> int:
     receipt["binary"] = str(INSTALLED)
 
     root = Path(tempfile.mkdtemp(prefix="installed-receipt-"))
+    # Every fixture command runs against a PRIVATE state dir so disposable
+    # repositories can never enter the live push-stuck ledger (observed
+    # 2026-10-30: they did, and it then blocked their own follow-up).
+    state_dir = root / "state"
+    state_dir.mkdir()
+    fixture_env = {"DRACON_SYNC_STATE_DIR": str(state_dir)}
     try:
         # ── 1. staged/local work preservation ──────────────────────────────
         # Under commit-all the daemon is EXPECTED to commit eligible work.
@@ -182,7 +188,7 @@ def main() -> int:
         git(repo, "add", "staged.txt")                  # staged intent
         (repo / "local.txt").write_text("unstaged content\n")  # local work
         unstaged_content = (repo / "local.txt").read_text()
-        sync = run([str(INSTALLED), "sync-now", str(repo)], timeout=600)
+        sync = run([str(INSTALLED), "sync-now", str(repo)], timeout=600, env=fixture_env)
         in_head = git(repo, "show", "HEAD:staged.txt").get("stdout", "").strip()
         local_committed = git(repo, "show", "HEAD:local.txt").get("stdout", "").strip()
         local_on_disk = (repo / "local.txt").read_text()
@@ -219,7 +225,7 @@ def main() -> int:
         merge = git(unc, "merge", "other")
         unmerged_before = git(unc, "diff", "--name-only", "--diff-filter=U").get("stdout", "").split()
         content_before = (unc / "f.txt").read_text()
-        run([str(INSTALLED), "sync-now", str(unc)], timeout=600)
+        run([str(INSTALLED), "sync-now", str(unc)], timeout=600, env=fixture_env)
         unmerged_after = git(unc, "diff", "--name-only", "--diff-filter=U").get("stdout", "").split()
         content_after = (unc / "f.txt").read_text()
         merge_head_intact = (unc / ".git/MERGE_HEAD").exists()
@@ -250,10 +256,10 @@ def main() -> int:
         # still commit new eligible work in the same repository?
         follow = make_repo(root, "followup", origin=False)
         (follow / "a.txt").write_text("first\n")
-        first = run([str(INSTALLED), "sync-now", str(follow)], timeout=600)
+        first = run([str(INSTALLED), "sync-now", str(follow)], timeout=600, env=fixture_env)
         head1 = head(follow)
         (follow / "b.txt").write_text("second\n")
-        second = run([str(INSTALLED), "sync-now", str(follow)], timeout=600)
+        second = run([str(INSTALLED), "sync-now", str(follow)], timeout=600, env=fixture_env)
         head2 = head(follow)
         after_untracked = porcelain(follow)
         followup_ok = head1 != head2 and len(after_untracked) == 0
@@ -365,6 +371,23 @@ def main() -> int:
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+    # Prove the isolation held: the live ledger must not mention fixtures.
+    ledger = Path.home() / ".local/state/dracon/dracon-sync-stuck-push-repos.json"
+    leaked = []
+    if ledger.exists():
+        try:
+            for entry in json.loads(ledger.read_text()):
+                if str(entry.get("path", "")).startswith(str(root)):
+                    leaked.append(entry.get("path"))
+        except json.JSONDecodeError:
+            pass
+    checks.append(
+        {
+            "name": "fixtures_isolated_from_live_ledger",
+            "ok": not leaked,
+            "detail": f"live push-stuck ledger entries from this run: {leaked or 'none'}",
+        }
+    )
     receipt["checks"] = checks
     receipt["ok"] = all(c.get("ok") for c in checks)
     out = Path(args.out) if args.out else None
