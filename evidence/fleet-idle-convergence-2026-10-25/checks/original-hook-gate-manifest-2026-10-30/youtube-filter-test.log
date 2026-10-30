@@ -2,3 +2,9 @@ $ vitest run --passWithNoTests
 
  RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/youtube-filter
 
+
+ Test Files  64 passed (64)
+      Tests  1115 passed (1115)
+   Start at  19:44:42
+   Duration  30.33s (transform 3.08s, setup 632ms, import 4.75s, tests 22.88s, environment 21.66s)
+
