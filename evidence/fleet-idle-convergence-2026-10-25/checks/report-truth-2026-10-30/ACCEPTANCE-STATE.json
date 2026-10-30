@@ -1,0 +1,132 @@
+{
+  "created": "2026-10-30",
+  "criterion": "The original, UNAMENDED clause: a fresh full-fleet observation in which every watched repository is clean and idle, with zero queued/retrying/blocked/unknown/committing/publishing states and zero inspection failures.",
+  "satisfied": false,
+  "why_not_satisfied": "Five repositories still hold outstanding work in the latest observation. Two of them are blocked by genuine, evidenced external constraints (see blockers). This is recorded honestly rather than relabelled healthy.",
+  "validator": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/report-truth-2026-10-30/../fleet-observation-2026-10-29/verify-fleet-observation.py",
+  "validator_rule": "Convergence is re-derived from PER-ROW state; the report summary is then checked against that derivation and a mismatch is a hard failure.",
+  "samples": [
+    {
+      "file": "s1.json",
+      "repos": 36,
+      "converged_rederived": 30,
+      "claimed_ok": 30,
+      "pending": 0,
+      "active": 4,
+      "warn": 2,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s2.json",
+      "repos": 36,
+      "converged_rederived": 29,
+      "claimed_ok": 29,
+      "pending": 0,
+      "active": 6,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s3.json",
+      "repos": 36,
+      "converged_rederived": 30,
+      "claimed_ok": 30,
+      "pending": 0,
+      "active": 5,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s4.json",
+      "repos": 36,
+      "converged_rederived": 30,
+      "claimed_ok": 30,
+      "pending": 1,
+      "active": 4,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s5.json",
+      "repos": 36,
+      "converged_rederived": 30,
+      "claimed_ok": 30,
+      "pending": 0,
+      "active": 3,
+      "warn": 3,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s6.json",
+      "repos": 36,
+      "converged_rederived": 31,
+      "claimed_ok": 31,
+      "pending": 0,
+      "active": 4,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s7.json",
+      "repos": 36,
+      "converged_rederived": 29,
+      "claimed_ok": 29,
+      "pending": 1,
+      "active": 4,
+      "warn": 2,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s8.json",
+      "repos": 36,
+      "converged_rederived": 30,
+      "claimed_ok": 30,
+      "pending": 1,
+      "active": 4,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s9.json",
+      "repos": 36,
+      "converged_rederived": 29,
+      "claimed_ok": 29,
+      "pending": 1,
+      "active": 5,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0
+    }
+  ],
+  "blockers": [
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
+      "kind": "external-blocker (configured high-water guard)",
+      "evidence": "pre-commit fails closed: projectedBytes=2345216557 >= highWaterBytes=2344615936 (BUCKET_STRATEGY_HIGH_WATER, remaining=-600621). This is polis's OWN per-repo growth budget in web/games/wip/polis/web/config/bucket-strategy.json, not the platform budget. Object store is 2.77 GB.",
+      "not_resolved_by": "Bypassing or raising the guard is forbidden (AGENTS.md). The remedy is operator-approved sanctioned slimming (AGENTS.md 2026-09-26).",
+      "predates_this_pass": true
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy",
+      "kind": "external-blocker (hard size limit)",
+      "evidence": "533 untracked files totalling 7.28 GB including market-research/rising-stars/raw/channel-raw.jsonl at 158.3 MB, above max_stage_file_bytes=104857600 (100 MiB). Ordinary staging hits its bounded deadline and retains the candidate.",
+      "not_resolved_by": "Raising max_stage_file_bytes or silently gitignoring the artifact would each change operator policy. Needs an operator decision on where that artifact lives.",
+      "predates_this_pass": true
+    }
+  ],
+  "repairs_this_pass": [
+    "row_is_converged() now DEFINES clean; DIRTY/AHEAD/PENDING rows can no longer be counted as ok (was: ok = rows - (concern+active+warn))",
+    "new `pending` bucket names the class previously rounded into ok; buckets asserted to partition rows exactly once",
+    "acceptance checker re-derives convergence from per-row state and hard-fails on summary disagreement",
+    "dracon-platform unblocked from two abandoned 6.3h-old git locks (main.lock, HEAD.lock) with no live holder; then committed 56 files"
+  ],
+  "prohibited_operations_used": []
+}
