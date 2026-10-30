@@ -1996,4 +1996,27 @@ test sync::tests::test_bootstrap_empty_repo_all_oversized_returns_false ... ok
 test sync::tests::test_bootstrap_empty_repo_auto_commit_disabled ... ok
 test sync::tests::test_bootstrap_empty_repo_creates_root_commit ... ok
 test sync::tests::test_bootstrap_empty_repo_nothing_to_stage ... ok
-test sync::tests::test_bootstrap_empty_repo_respects_gitignore ... 
+test sync::tests::test_bootstrap_empty_repo_respects_gitignore ... ok
+test sync::tests::test_bootstrap_empty_repo_skips_oversized_files ... ok
+test sync::tests::test_bootstrap_empty_repo_unowned_skipped ... ok
+test sync::tests::test_bootstrap_sweep_measures_staged_blob_not_worktree ... ok
+test sync::tests::test_budget_caps_pathological_subject ... ok
+test sync::tests::test_cap_batch_union_caps_the_union_not_each_list ... ok
+test sync::tests::test_cap_batch_union_gitlink_priority ... ok
+test sync::tests::test_cap_batch_union_single_class_behavior_unchanged ... ok
+test sync::tests::test_cap_batch_union_under_limit_is_unchanged ... ok
+test sync::tests::test_check_untracked_threshold_above ... ok
+test sync::tests::test_check_untracked_threshold_below ... ok
+test sync::tests::test_check_untracked_threshold_gitignored_excluded ... ok
+test sync::tests::test_check_untracked_threshold_keeps_plain_untracked_dirs ... ok
+test sync::tests::test_check_untracked_threshold_subtracts_multiple_nested_repos ... ok
+test sync::tests::test_check_untracked_threshold_subtracts_nested_repo ... ok
+test sync::tests::test_check_untracked_threshold_zero_disables ... ok
+test sync::tests::test_classify_failing_remotes_dedupes_divergence ... ok
+test sync::tests::test_classify_failing_remotes_empty_map ... ok
+test sync::tests::test_commit_guard_allows_path_owned_untrusted_identity ... ok
+test sync::tests::test_commit_guard_allows_trusted_identity ... ok
+test sync::tests::test_commit_guard_blocks_on_unparsable_override ... ok
+test sync::tests::test_commit_guard_blocks_untrusted_without_override ... ok
+test sync::tests::test_commit_guard_honors_owned_override_with_custom_identity ... ok
+test sync::tests::test_commit_only_commits_but_never_pushes ... [master (root-commit) 153b12f] init
