@@ -104,6 +104,17 @@
       "warn": 1,
       "concern": 0,
       "failures": 0
+    },
+    {
+      "file": "s10.json",
+      "repos": 36,
+      "converged_rederived": 30,
+      "claimed_ok": 30,
+      "pending": 0,
+      "active": 5,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0
     }
   ],
   "blockers": [
@@ -128,5 +139,73 @@
     "acceptance checker re-derives convergence from per-row state and hard-fails on summary disagreement",
     "dracon-platform unblocked from two abandoned 6.3h-old git locks (main.lock, HEAD.lock) with no live holder; then committed 56 files"
   ],
-  "prohibited_operations_used": []
+  "prohibited_operations_used": [],
+  "latest": {
+    "file": "s10.json",
+    "converged": 30,
+    "repos": 36,
+    "report_and_derivation_agree": true
+  },
+  "outstanding": [
+    {
+      "repo": "dracon-platform",
+      "modified": 1,
+      "untracked": 0,
+      "staged": 0,
+      "ahead": 2,
+      "push": "PENDING",
+      "active": true,
+      "warn": false
+    },
+    {
+      "repo": ".dracon",
+      "modified": 2,
+      "untracked": 0,
+      "staged": 0,
+      "ahead": 0,
+      "push": "OK",
+      "active": true,
+      "warn": false
+    },
+    {
+      "repo": "ai-auto-writer",
+      "modified": 3,
+      "untracked": 1,
+      "staged": 0,
+      "ahead": 0,
+      "push": "OK",
+      "active": true,
+      "warn": false
+    },
+    {
+      "repo": "dracon-sync",
+      "modified": 0,
+      "untracked": 1,
+      "staged": 0,
+      "ahead": 0,
+      "push": "OK",
+      "active": false,
+      "warn": true
+    },
+    {
+      "repo": "dracon-strategy",
+      "modified": 78,
+      "untracked": 533,
+      "staged": 0,
+      "ahead": 8,
+      "push": "PENDING",
+      "active": true,
+      "warn": false
+    },
+    {
+      "repo": "polis",
+      "modified": 38,
+      "untracked": 0,
+      "staged": 2,
+      "ahead": 0,
+      "push": "OK",
+      "active": true,
+      "warn": false
+    }
+  ]
 }

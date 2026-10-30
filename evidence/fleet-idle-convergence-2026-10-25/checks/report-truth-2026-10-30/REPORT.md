@@ -152,3 +152,55 @@ used to quietly narrow the objective.
 No detector relaxed, no rule disabled, no file excluded from a gate, no warning
 suppressed, no `--no-verify`, no history rewrite, no force-push, no manual
 recovery push, no producer stopped, and no hook bypassed.
+
+## 6. Gate receipt and final state
+
+Four gates on one coherent assembly (`final-gates/gates.json`, bound by content
+SHAs because the gates compile the working tree, which the daemon may commit
+while they run):
+
+| gate | result |
+|---|---|
+| `cargo test --workspace --locked` | 44 suites, **2923 passed, 0 failed** |
+| `cargo build --release --locked` | exit 0 |
+| `cargo clippy --workspace --locked --all-targets -- -D warnings` | exit 0 |
+| `cargo deny check` | advisories/bans/licenses/sources ok |
+
+All three new regressions are present in that run.
+
+Deployed by the sanctioned shape (atomic replacement, pidfd SIGTERM,
+`Restart=always`; `systemctl stop` never used). Loaded, installed and built
+binaries are the **same** digest, and `src/` is byte-identical to HEAD.
+
+### Final observation (`observation/s10.json`)
+
+```
+36 inspected · ok=30 · pending=0 · active=5 · warn=1 · concern=0 · failures=0
+independent re-derivation: 30/36 converged — report and derivation AGREE
+```
+
+Still outstanding: `dracon-strategy` (533 untracked / 7.28 GB, 158.3 MB file
+over the 100 MiB hard limit), `polis` (at its configured high-water budget),
+plus `dracon-platform`, `.dracon`, `ai-auto-writer` and `dracon-sync` in
+transient active/dirty states.
+
+So the fleet is **not** converged, and this report does not claim it is. What
+changed is that the number now tells the truth: previously the same fleet
+reported `ok=36`.
+
+## 7. Incidental damage from my own probing (disclosed and repaired)
+
+While building the installed-execution receipt I ran `sync-now` against
+throwaway repositories under `/tmp`. Two side effects occurred, both found and
+cleaned:
+
+1. **Six private GitHub repos were auto-created** (`probe2`, `p4`–`p7`,
+   `followup`) because the daemon auto-creates remotes named after the
+   directory. All six were deleted with the operator's explicit approval.
+2. **Nine disposable `/tmp` paths entered the live push-stuck ledger**, which
+   then (correctly) blocked their own follow-up work. All nine were cleared with
+   `dracon-sync repair stuck-unstuck`.
+
+The receipt now isolates every fixture with a private `DRACON_SYNC_STATE_DIR`
+and namespaced directories, and it asserts that nothing leaked into the live
+ledger — so this cannot recur. Fixtures no longer touch production state.
