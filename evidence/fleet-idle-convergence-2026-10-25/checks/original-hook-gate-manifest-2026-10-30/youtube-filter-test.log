@@ -1,1 +1,4 @@
 $ vitest run --passWithNoTests
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/youtube-filter
+
