@@ -2027,3 +2027,21 @@ ok
 test sync::tests::test_compute_blast_radius_merge_prefix ... ok
 test sync::tests::test_compute_diff_entries_propagates_filter_diff_failure ... ok
 test sync::tests::test_concurrent_staging_defers_then_captured_and_worktree_epochs_converge ... [master (root-commit) a4c6d38] init
+ok
+test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) d8382f9] init
+ok
+test sync::tests::test_count_ahead_commits_no_origin ... ok
+test sync::tests::test_count_ahead_commits_returns_zero_when_synced ... [main (root-commit) d8382f9] init
+ok
+test sync::tests::test_count_ahead_commits_takes_max_across_tracking_refs ... [main (root-commit) 9650a89] c0
+[main b695fdf] c1
+[main 9ebdd0e] c2
+[main 14a07eb] c3
+[main 8e98093] c4
+ok
+test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [main (root-commit) 20f5afa] c1
+[main 447238b] c2
+ok
+test sync::tests::test_degraded_success_reports_paused_not_synced ... [master (root-commit) 9262f8d] init
+To /tmp/.tmpc2vtDy/mirror.git
+ * [new branch]      master -> master
