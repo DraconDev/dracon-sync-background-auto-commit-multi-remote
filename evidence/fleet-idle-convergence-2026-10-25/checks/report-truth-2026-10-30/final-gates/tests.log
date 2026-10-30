@@ -3497,4 +3497,29 @@ test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 
 running 2 tests
 test forged_repo_recipient_wrong_identity_corruption_and_budget_fail_closed ... ok
-test warden_streams_more_than_git_filter_limit_and_restores_exact_bytes ... 
+test warden_streams_more_than_git_filter_limit_and_restores_exact_bytes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 57.03s
+
+     Running tests/write_fence.rs (target/debug/deps/write_fence-a7831a78fc7e0399)
+
+running 4 tests
+test cli_fences_same_repo_but_not_unrelated_repo_and_releases_on_close ... ok
+test inherited_fence_is_reentrant_and_wrong_repository_is_refused ... ok
+test killing_wrapper_does_not_release_fence_before_actual_writer_closes ... ok
+test operation_deadline_cleans_owned_family_and_does_not_steal_next_lock ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.27s
+
+   Doc-tests dracon_security
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests dracon_sync
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
