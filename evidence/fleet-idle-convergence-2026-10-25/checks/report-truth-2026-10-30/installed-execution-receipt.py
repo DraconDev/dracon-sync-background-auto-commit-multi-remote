@@ -241,7 +241,14 @@ def main() -> int:
         )
 
         # ── 5. same-repository follow-up ───────────────────────────────────
-        follow = make_repo(root, "followup")
+        # Deliberately NO origin: a filesystem-path remote is not a trusted
+        # remote host, so its push fails and the push-stuck ledger then
+        # correctly blocks further work in that repo. That is the trust
+        # policy doing its job — and it would measure the policy rather than
+        # follow-up. Publication is covered separately by check 4 against the
+        # live fleet. This check therefore isolates: does a SECOND pass
+        # still commit new eligible work in the same repository?
+        follow = make_repo(root, "followup", origin=False)
         (follow / "a.txt").write_text("first\n")
         first = run([str(INSTALLED), "sync-now", str(follow)], timeout=600)
         head1 = head(follow)
@@ -249,15 +256,7 @@ def main() -> int:
         second = run([str(INSTALLED), "sync-now", str(follow)], timeout=600)
         head2 = head(follow)
         after_untracked = porcelain(follow)
-        # The commit must advance and the eligible files must be GONE from
-        # the working tree. Publication may be handed to the worker
-        # ("publication owned by another worker"), so only the commit and
-        # cleanliness are asserted here — behaviour 4 covers publication.
         followup_ok = head1 != head2 and len(after_untracked) == 0
-        if not followup_ok:
-            # Record WHY, so a failure is diagnosable instead of mysterious.
-            print("DEBUG followup first:", json.dumps(first.get("stdout"), indent=1))
-            print("DEBUG followup second:", json.dumps(second.get("stdout"), indent=1))
         checks.append(
             {
                 "name": "same_repo_followup_commits_and_cleans",
