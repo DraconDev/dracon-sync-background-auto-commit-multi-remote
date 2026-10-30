@@ -2374,3 +2374,62 @@ Two observations worth recording plainly:
   is slow on this host (host load has been 30-95 all evening), so each round
   takes tens of minutes. That is elapsed time, not a defect the daemon can fix by
   retrying.
+
+### Follow-up — 2026-10-30 00:20 UTC: false `PUSH 🩹 BROKEN` repaired and deployed
+
+`dracon-sync repos --deep` was reporting **four healthy repositories as BROKEN**,
+which pushed them into CONCERN and told the operator to repair history that was
+intact:
+
+```
+browser-extensions-shared / ai-auto-writer / neonbreak / darklord
+  flags ['BROKEN_HISTORY:probe-failed']  push BROKEN
+```
+
+Every one of those probes actually succeeds: `rev-list --objects HEAD` exits 0
+in 3.6-8.2 s, `fsck --connectivity-only` shows only dangling blobs, and none is
+shallow. The cause was a type-level conflation: `run_git_bounded` returned
+`Option`, so `probe_history` could not distinguish "git rejected the request"
+from "we hit the 10 s deadline", and both became `failed: true` →
+`history_broken`. The function's own comment already said a timeout is not
+evidence of damage; the return type just could not express it.
+
+Repair (durable, in `report.rs`):
+
+- `run_git_bounded` returns `BoundedProbe { Output, Failed, TimedOut }`.
+- `HistoryProbe` gained `timed_out`, separate from `failed`.
+- `history_broken` stays `failed || missing_objects > 0`, so **only** git's own
+  rejection or positively counted missing objects can mark a row BROKEN. An
+  unmeasured history now carries `HISTORY_PROBE_TIMED_OUT` — visible, not
+  damage, not hidden.
+- The 1-hour size/probe cache was re-serving the old verdict: pre-repair entries
+  have `history_probe_failed: true` and no `history_probe_timed_out` key, so the
+  BROKEN rows survived deployment. The completeness predicate is now a real
+  function, `cache_entry_is_usable()`, which requires the new field and thus
+  rejects a pre-split entry at the cost of one recompute.
+
+Negative controls (both disposable): collapsing `TimedOut` into `Failed` fails
+`probe_timeout_is_unmeasured_not_broken_history`; removing the new field from the
+**production** predicate fails `pre_split_cache_entries_are_not_honoured`. The
+cache test was rewritten *because* its first version used a local copy of the
+predicate and passed against the broken code — it would have guarded nothing.
+
+Live result after deployment (`--deep`):
+
+```
+before: ok 28 · concern 4 · failures 0    BROKEN rows: 4
+after : ok 31 · concern 0 · failures 0    BROKEN rows: 0
+        HISTORY_PROBE_TIMED_OUT: browser-extensions-shared, ai-auto-writer
+```
+
+Those two are the fleet's largest object databases (687k / 472k packed objects)
+being probed on a host at load ~50; calling them unmeasured is the truth.
+Report: `checks/probe-timeout-false-broken-2026-10-29/REPORT.md`. Gates for the
+two deployed revisions: 2,918 and 2,919 workspace tests passed / 0 failed, plus
+release build, strict all-target Clippy and `cargo deny`. Loaded identity
+`c978a08c…` matches the installed and gated artifact.
+
+Fleet now: 36 inspected, 31 clean, 3 active, 2 warn, **0 concerns, 0 inspection
+failures**. Not yet the goal's all-clean-and-idle state: `browser-extensions-shared`
+and `.dracon` are publishing/queued with real in-flight work, and other repos are
+actively edited by the ~30 running producer sessions.
