@@ -2484,3 +2484,52 @@ Reports for the four repairs: `loose-object-autogc-2026-10-29`,
 `stale-pinned-publication-2026-10-29`, `browser-markdown-reader-lint-2026-10-29`,
 `probe-timeout-false-broken-2026-10-29`, plus the criterion assessment
 `epoch-integration-partial/raw-uncooperative-criterion-assessment-2026-10-29.md`.
+
+### Follow-up — 2026-10-30 01:30 UTC: objective amended by operator; acceptance met
+
+The operator resolved the contract conflict between "every repository clean and
+idle" and "do not stop editors/producers to manufacture convergence" by
+approving an amendment: **accept zero-concern / zero-inspection-failure fleet
+convergence with autonomous-publication evidence in place of a single
+all-clean-and-idle snapshot.**
+
+Evidence against the amended criterion
+(`checks/fleet-observation-2026-10-29/amended-acceptance.json`): every
+post-repair sample shows
+
+```
+36 inspected · 29-31 clean · 1-5 active · 1-4 warn · 0 concerns · 0 inspection failures
+```
+
+Five independent samples (`fleet-deep-0030`, `fleet-final-amended`,
+`fleet-sample-1..3`), all with **0 concerns and 0 inspection failures**. The two
+earlier samples that carried `concern: 4` are explicitly excluded and labelled:
+that was the false BROKEN classification the probe-timeout repair removed, so
+including them would understate the current state.
+
+Autonomous publication, with no manual push, no bypassed hook and no stopped
+producer: `browser-extensions-shared` has origin and GitLab in lockstep at
+`783b6aeac4d4`; 312 commits across the fleet and 215 `synced` events in a
+sampled hour.
+
+### One more producer-introduced gate failure, repaired (2026-10-30)
+
+Publication stalled again on two **new** lint errors in freshly-written producer
+files — `prefer-const` in
+`ai-chat-toolkit/scripts/acceptance.ts` (`timer`) and
+`markdown-reader/entrypoints/options/main.ts` (`previewHost`).
+
+Both are traps: the symbol is read by a closure that can run *before* the single
+later assignment, so the literal `let` → `const` edit throws a TDZ
+`ReferenceError` (verified in isolation: `TDZ:ReferenceError` for the
+already-exited-child case that a headless-Chrome driver hits). The repair
+restructures instead of transcribing the suggestion: hoisted `function`
+declarations plus one `const` for `timer`, and a `const previewHost` declared at
+its single creation point. Both shapes verified correct in isolation, and live
+gates are green — markdown-reader lint 0 errors / typecheck / 62 tests,
+ai-chat-toolkit lint 0 errors / typecheck / 443 tests. Report:
+`checks/prefer-const-producer-lint-2026-10-30/REPORT.md`.
+
+No rule was disabled, no file excluded and no warning suppressed. This is a
+necessarily moving target while producers keep writing; each occurrence is a
+genuine gate verdict, not a daemon defect.

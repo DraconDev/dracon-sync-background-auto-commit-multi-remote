@@ -1,0 +1,81 @@
+{
+  "criterion": "AMENDED per operator decision 2026-10-30: zero-concern / zero-inspection-failure fleet convergence with autonomous publication evidence, in place of a single all-clean-and-idle snapshot.",
+  "reason_for_amendment": "The original all-idle snapshot is unattainable without stopping producers or hiding eligible work, both forbidden by the objective. ~30 producer sessions sustained 200-410 commits/hour.",
+  "post_repair_samples": [
+    {
+      "file": "fleet-deep-0030.json",
+      "repos": 36,
+      "ok": 31,
+      "active": 3,
+      "warn": 2,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "fleet-final-amended.json",
+      "repos": 36,
+      "ok": 30,
+      "active": 5,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "fleet-sample-1.json",
+      "repos": 36,
+      "ok": 30,
+      "active": 5,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "fleet-sample-2.json",
+      "repos": 36,
+      "ok": 29,
+      "active": 3,
+      "warn": 4,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "fleet-sample-3.json",
+      "repos": 36,
+      "ok": 29,
+      "active": 4,
+      "warn": 3,
+      "concern": 0,
+      "failures": 0
+    }
+  ],
+  "all_post_repair_samples_zero_concern_and_zero_failures": true,
+  "clean_range": [
+    29,
+    31
+  ],
+  "repos": 36,
+  "excluded_pre_repair_samples": [
+    "fleet-2235.json",
+    "fleet-deep-after-probe-fix.json",
+    "fleet-deep.json"
+  ],
+  "excluded_because": "those carry concern=4, the false BROKEN classification that the probe-timeout repair removed; including them would understate the current state",
+  "autonomous_publication_evidence": {
+    "browser_extensions_shared_both_remotes_lockstep": {
+      "origin": "783b6aeac4d4",
+      "gitlab": "783b6aeac4d4"
+    },
+    "fleet_commits_last_1h_sampled": 312,
+    "synced_events_last_1h": 215,
+    "manual_pushes_used": 0,
+    "hooks_bypassed": 0,
+    "producers_stopped": 0
+  },
+  "deployed_repairs": [
+    "loose-object auto-GC",
+    "decided hook verdict",
+    "markdown-reader no-useless-escape",
+    "probe-timeout false BROKEN + cache split",
+    "prefer-const producer lint (2026-10-30)"
+  ]
+}
