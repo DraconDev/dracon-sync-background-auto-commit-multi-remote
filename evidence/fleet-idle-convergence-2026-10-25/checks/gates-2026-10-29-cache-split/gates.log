@@ -3358,4 +3358,9 @@ test tests::tests::pre_push_hook_allows_inherited_binary_secret_shape ... ok
 test tests::tests::pre_push_hook_allows_pure_rename_of_published_secret_shape ... ok
 test tests::tests::pre_push_hook_allows_republish_of_published_blob ... ok
 test tests::tests::pre_push_hook_announces_hatched_candidates ... ok
-test tests::tests::pre_push_hook_bare_repo_unmarked_passes ... 
+test tests::tests::pre_push_hook_bare_repo_unmarked_passes ... ok
+test tests::tests::pre_push_hook_blocks_added_secret ... ok
+test tests::tests::pre_push_hook_blocks_begin_private_key_branch ... ok
+test tests::tests::pre_push_hook_blocks_github_token_shape ... ok
+test tests::tests::pre_push_hook_blocks_gitlab_token_shape ... ok
+test tests::tests::pre_push_hook_blocks_password_secret_api_key_double_quoted_branches ... 
