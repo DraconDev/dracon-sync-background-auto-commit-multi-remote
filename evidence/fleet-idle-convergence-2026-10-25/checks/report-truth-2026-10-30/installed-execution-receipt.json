@@ -1,6 +1,6 @@
 {
   "purpose": "installed-execution receipt bound to the loaded daemon executable",
-  "created_unix": 1793389789.5313618,
+  "created_unix": 1793389854.5079336,
   "unit": "dracon-sync-operator.service",
   "main_pid": "579784",
   "loaded_executable": {
@@ -20,7 +20,7 @@
       "detail": "staged content in commit='indexed content'; local file still on disk='unstaged content'; local content committed='unstaged content'",
       "observed": {
         "sync_exit": 0,
-        "sync_secs": 4.52
+        "sync_secs": 13.16
       }
     },
     {
@@ -30,8 +30,14 @@
     },
     {
       "name": "same_repo_followup_commits_and_cleans",
-      "ok": false,
-      "detail": "1853e6a48f -> 1853e6a48f; residual entries=['?? b.txt']; exits=0,0"
+      "ok": true,
+      "detail": "d93b6793e7 -> 488352e3b1; residual entries=[]; exits=0,0",
+      "observed": {
+        "first_stdout": "\u23f3 local staging remains pending for /tmp/installed-receipt-xwsxit4s/receipt-followup-861726 (follow-up required; not fully synced)\n",
+        "second_stdout": "\ud83d\udd01 synced /tmp/installed-receipt-xwsxit4s/receipt-followup-861726\n",
+        "first_stderr": "726 auto-hardened with warden before staging\n\ud83d\udcdd committed 3 file(s) in /tmp/installed-receipt-xwsxit4s/receipt-followup-861726\n\ud83d\udee1\ufe0f gitlab: protected main on DraconDev/receipt-followup-861726\n\ud83d\udcdd committed 3 file(s) in /tmp/installed-receipt-xwsxit4s/receipt-followup-861726\n\u23f3 /tmp/installed-receipt-xwsxit4s/receipt-followup-861726 committed; publication owned by another worker (this pass did not push)\n",
+        "second_stderr": "\u2139\ufe0f skip pull/merge for /tmp/installed-receipt-xwsxit4s/receipt-followup-861726 (no tracking upstream on current branch)\n\ud83d\udee1\ufe0f /tmp/installed-receipt-xwsxit4s/receipt-followup-861726 auto-hardened with warden before staging\n\ud83d\udcdd committed 1 file(s) in /tmp/installed-receipt-xwsxit4s/receipt-followup-861726\n"
+      }
     },
     {
       "name": "concurrent_publication_independent",
@@ -55,17 +61,17 @@
     {
       "name": "autonomous_progress_observed",
       "ok": true,
-      "detail": "218 daemon-driven completion line(s) in the last 90 min",
+      "detail": "216 daemon-driven completion line(s) in the last 90 min",
       "sample": [
-        "Oct 30 19:49:17 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls",
-        "Oct 30 19:49:25 nixos dracon-sync[579784]: \ud83d\udea8 ALERT: /home/dracon/Dev/browser-extensions-shared has 163 unpushed commits (threshold: 50). Something may be wrong with push.",
-        "Oct 30 19:49:46 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/.dracon"
+        "Oct 30 19:50:49 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/.dracon",
+        "Oct 30 19:51:17 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/.dracon",
+        "Oct 30 19:51:24 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync"
       ]
     },
     {
       "name": "bounded_cancellation_and_cleanup",
       "ok": true,
-      "detail": "in-flight entries=['/home/dracon/Dev/browser-extensions-shared', '/home/dracon/Dev/dracon-platform', '/home/dracon/Dev/dracon-strategy', '/home/dracon/Dev/dracon-strategy/ai-auto-writer', '/home/dracon/Dev/dracon-utilities/dracon-sync'] age=3s all backed by live work=True",
+      "detail": "in-flight entries=['/home/dracon/Dev/browser-extensions-shared', '/home/dracon/Dev/dracon-strategy/ai-auto-writer'] age=3s all backed by live work=True",
       "observed": {
         "inflight_file": "/home/dracon/.local/state/dracon/dracon-sync-in-flight.json",
         "holds_file": "/home/dracon/.local/state/dracon/dracon-sync-dispatch-holds.json"
@@ -77,5 +83,5 @@
       "detail": "live push-stuck ledger entries from this run: none"
     }
   ],
-  "ok": false
+  "ok": true
 }
