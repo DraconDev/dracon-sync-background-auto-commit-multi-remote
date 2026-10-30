@@ -3472,4 +3472,29 @@ running 21 tests
 test hook_refreshing_commands_never_touch_the_operator_home ... ok
 test resmudge_apply_fences_gitattributes_through_final_close_against_cooperative_writer ... ok
 test resmudge_apply_waits_safely_and_releases_the_fence_after_publication ... ok
-test test_filter_process_live_git_diff_and_add ... 
+test test_filter_process_live_git_diff_and_add ... ok
+test test_filter_process_oversize_binary_passthrough_survives_real_pipes ... ok
+test test_merge_internal_error_exits_two_with_current_untouched ... ok
+test test_precommit_sync_only_dracon_dir_is_not_managed ... ok
+test test_precommit_warden_keys_dir_without_config_blocks_as_drift ... ok
+test test_prepush_newline_named_file_refuses_instead_of_skipping ... ok
+test test_prepush_space_named_file_still_pushes ... ok
+test test_warden_cli_help ... ok
+test test_warden_filter_clean ... ok
+test test_warden_filter_smudge ... ok
+test test_warden_keygen ... ok
+test test_warden_once_single_repo ... ok
+test test_warden_repair_dry_run ... ok
+test test_warden_repair_rejects_tracked_symlinks_end_to_end ... ok
+test test_warden_resmudge_dry_run ... ok
+test test_warden_scrub_markers ... ok
+test test_warden_setup_hooks_local ... ok
+test test_warden_status ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 33.35s
+
+     Running tests/storage_stream.rs (target/debug/deps/storage_stream-a801567a68c2b56c)
+
+running 2 tests
+test forged_repo_recipient_wrong_identity_corruption_and_budget_fail_closed ... ok
+test warden_streams_more_than_git_filter_limit_and_restores_exact_bytes ... 
