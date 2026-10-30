@@ -1,0 +1,66 @@
+{
+  "purpose": "installed-execution receipt bound to the loaded daemon executable",
+  "created_unix": 1793389484.7589917,
+  "unit": "dracon-sync-operator.service",
+  "main_pid": "579784",
+  "loaded_executable": {
+    "path": "/proc/579784/exe",
+    "sha256": "e3fcfa84d9e1d704d8ccc8ad99a4e915ebec5ff8dbb5a06421a2a6fb9a10d8af"
+  },
+  "installed_binary": {
+    "path": "/home/dracon/.local/bin/dracon-sync",
+    "sha256": "e3fcfa84d9e1d704d8ccc8ad99a4e915ebec5ff8dbb5a06421a2a6fb9a10d8af"
+  },
+  "loaded_equals_installed": true,
+  "binary": "/home/dracon/.local/bin/dracon-sync",
+  "checks": [
+    {
+      "name": "staged_and_local_work_preserved",
+      "ok": true,
+      "detail": "staged ['staged.txt'] -> ['staged.txt']; worktree files intact: (True, True)",
+      "observed": {
+        "sync_exit": 0,
+        "sync_secs": 0.12
+      }
+    },
+    {
+      "name": "uncertain_intent_not_absorbed",
+      "ok": true,
+      "detail": "staged before=['racing.txt'] after=['racing.txt']; content preserved=True; head_before=56af6dd066"
+    },
+    {
+      "name": "same_repo_followup_commits_and_cleans",
+      "ok": false,
+      "detail": "252b594fb4 -> 252b594fb4; residual entries=['A  .github/FUNDING.yml', 'A  LICENSE', 'A  a.txt', '?? .dracon/', '?? .gitattributes', '?? .gitignore', '?? b.txt']; exits=0,0"
+    },
+    {
+      "name": "concurrent_publication_independent",
+      "ok": true,
+      "detail": "a published=True b published=True; exits=0,0",
+      "observed": {
+        "a_secs": 0.69,
+        "b_secs": 0.81
+      }
+    },
+    {
+      "name": "autonomous_progress_observed",
+      "ok": true,
+      "detail": "204 daemon-driven completion line(s) in the last 90 min",
+      "sample": [
+        "Oct 30 19:43:52 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync",
+        "Oct 30 19:44:12 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync",
+        "Oct 30 19:44:40 nixos dracon-sync[579784]: \ud83d\udd01 synced (late) /home/dracon/.dracon"
+      ]
+    },
+    {
+      "name": "bounded_cancellation_and_cleanup",
+      "ok": true,
+      "detail": "in-flight entries=['/home/dracon/Dev/browser-extensions-shared', '/home/dracon/Dev/dracon-utilities/dracon-sync'] age=2s all backed by live work=True",
+      "observed": {
+        "inflight_file": "/home/dracon/.local/state/dracon/dracon-sync-in-flight.json",
+        "holds_file": "/home/dracon/.local/state/dracon/dracon-sync-dispatch-holds.json"
+      }
+    }
+  ],
+  "ok": false
+}
