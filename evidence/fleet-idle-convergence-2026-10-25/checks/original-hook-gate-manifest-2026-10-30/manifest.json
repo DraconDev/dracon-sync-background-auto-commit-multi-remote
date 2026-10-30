@@ -1,0 +1,234 @@
+{
+  "created": "2026-10-30",
+  "purpose": "Auditor objection 3: revision-addressed original-hook/product-gate evidence with raw successful outcomes for every repaired repository.",
+  "repaired_repositories": {
+    "browser-extensions-shared": {
+      "revision": "b564d4f14a745713db65017cc9c6832092e0cdf8",
+      "tree": "b0aad76f7f15fd11d0f349c5bd302fa5bdffd79d",
+      "repairs": [
+        "scripts/git-hooks/pre-push gained reviewed_added_matches (review receipts) with PER-COMMIT scanning",
+        "markdown-reader prefer-const re-fix (producer reintroduced it)",
+        "youtube-filter three no-useless-escape fixes (behaviour verified identical)",
+        "tabmon user-flows tests now dismiss the cinematic battle splash before Escape"
+      ]
+    },
+    "dracon-utilities/dracon-warden": {
+      "repairs": [
+        "reviewed_text_matches now reachable from the diff-line (modified-text) scan, not only the added-blob scan"
+      ]
+    },
+    "dracon-utilities/dracon-sync": {
+      "repairs": [
+        "row_is_converged() defines clean; DIRTY/AHEAD/PENDING rows can no longer be counted as ok"
+      ]
+    }
+  },
+  "rules": {
+    "hooks_bypassed": false,
+    "guards_weakened": false,
+    "assertions_softened": false,
+    "note": "Each repository ran its OWN declared product gates via `bun run <gate>` \u2014 the same commands its pre-push hook runs. No gate was skipped, narrowed, or replaced."
+  },
+  "gate_count": 22,
+  "all_gates_passed": true,
+  "gates": [
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "ai-tts-pro",
+      "gate": "build",
+      "command": "bun run build",
+      "exit": 0,
+      "raw_tail": "koro/voices/am_onyx.bin             522.24 kB\n  \u251c\u2500 .output/chrome-mv3/models/kokoro/voices/am_puck.bin             522.24 kB\n  \u251c\u2500 .output/chrome-mv3/models/kokoro/voices/am_santa.bin            522.24 kB\n  \u251c\u2500 .output/chrome-mv3/models/kokoro/voices/bf_alice.bin            522.24 kB\n  \u251c\u2500 .output/chrome-mv3/models/kokoro/voices/bf_emma.bin             522.24 kB\n  \u251c\u2500 .output/chrome-mv3/models/kokoro/voices/bf_isabella.bin         522.24 kB\n  \u251c\u2500 .output/chrome-mv3/models/kokoro/voices/bf_lily.bin             522.24 kB\n  \u251c\u2500 .output/chrome-mv3/models/kokoro/voices/bm_daniel.bin           522.24 kB\n  \u251c\u2500 .output/chrome-mv3/models/kokoro/voices/bm_fable.bin            522.24 kB\n  \u251c\u2500 .output/chrome-mv3/models/kokoro/voices/bm_george.bin           522.24 kB\n  \u251c\u2500 .output/chrome-mv3/models/kokoro/voices/bm_lewis.bin            522.24 kB\n  \u251c\u2500 .output/chrome-mv3/vendor/ort/ort-wasm-simd-threaded.jsep.mjs   46.85 kB \n  \u251c\u2500 .output/chrome-mv3/vendor/ort/ort-wasm-simd-threaded.jsep.wasm  28.31 MB \n  \u251c\u2500 .output/chrome-mv3/vendor/ort/ort-wasm-simd-threaded.mjs        24.38 kB \n  \u251c\u2500 .output/chrome-mv3/vendor/ort/ort-wasm-simd-threaded.wasm       14.24 MB \n  \u251c\u2500 .output/chrome-mv3/vendor/ort/ort.wasm.mjs                      578.26 kB\n  \u2514\u2500 .output/chrome-mv3/vendor/VENDORED.txt                          528 B    \n\u03a3 Total size: 524.66 MB                                            \n\u2714 Finished in 4.043 s\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/ai-tts-pro-build.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "ai-tts-pro",
+      "gate": "lint",
+      "command": "bun run lint",
+      "exit": 0,
+      "raw_tail": "$ eslint .\n(node:799058) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/Dev/browser-extensions-shared/eslint.config.js?mtime=1792007278247 is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /home/dracon/Dev/browser-extensions-shared/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/ai-tts-pro-lint.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "ai-tts-pro",
+      "gate": "test",
+      "command": "bun run test",
+      "exit": 0,
+      "raw_tail": "t.ts (9 tests) 8ms\n \u2713 tests/cast-store.test.ts (8 tests) 14ms\n \u2713 tests/relay.test.ts (7 tests) 11ms\n \u2713 tests/audio-dc.test.ts (9 tests) 69ms\n \u2713 tests/segment.test.ts (12 tests) 8ms\n \u2713 tests/kokoro.test.ts (1 test) 13ms\n \u2713 tests/injection.test.ts (5 tests) 7ms\n \u2713 tests/cursor.test.ts (5 tests) 4ms\n \u2713 tests/popup-report.test.ts (4 tests) 4ms\n \u2713 tests/extract-real.dom.test.ts (6 tests) 2ms\n \u2713 tests/extract-wiki.dom.test.ts (8 tests) 3ms\n \u2713 tests/reader-highlight-failed-anchor.test.ts (3 tests) 30ms\nstderr | tests/offscreen-readers.test.ts > read generations across readers > serves a new reader's first read after another reader read twice\nai-tts-pro: offscreen document is NOT cross-origin isolated\n\n \u2713 tests/highlight-real-page.dom.test.ts (8 tests) 73ms\n \u2713 tests/extract.dom.test.ts (9 tests) 92ms\n \u2713 tests/highlight.dom.test.ts (14 tests) 114ms\nstderr | tests/offscreen-readers.test.ts > read generations across readers > still rejects a late request from a read the same reader replaced\nai-tts-pro: offscreen document is NOT cross-origin isolated\n\n \u2713 tests/offscreen-readers.test.ts (2 tests) 359ms\n \u2713 tests/popup-reactivity.test.ts (2 tests) 149ms\n \u2713 tests/popup-hierarchy.test.ts (8 tests) 681ms\n\n Test Files  33 passed (33)\n      Tests  362 passed (362)\n   Start at  19:49:29\n   Duration  3.35s (transform 2.62s, setup 219ms, collect 4.77s, tests 2.48s, environment 5.89s, prepare 2.67s)\n\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/ai-tts-pro-test.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "ai-tts-pro",
+      "gate": "typecheck",
+      "command": "bun run typecheck",
+      "exit": 0,
+      "raw_tail": "$ tsc --noEmit\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/ai-tts-pro-typecheck.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "clean-web",
+      "gate": "build",
+      "command": "bun run build",
+      "exit": 0,
+      "raw_tail": "                   993 B    \n  \u251c\u2500 .output/chrome-mv3/dashboard.html                    705 B    \n  \u251c\u2500 .output/chrome-mv3/popup.html                        667 B    \n  \u251c\u2500 .output/chrome-mv3/welcome.html                      622 B    \n  \u251c\u2500 .output/chrome-mv3/background.js                     104.16 kB\n  \u251c\u2500 .output/chrome-mv3/chunks/dashboard-D7Dd_jpw.js      49.54 kB \n  \u251c\u2500 .output/chrome-mv3/chunks/popup-CDe8JbRd.js          21.2 kB  \n  \u251c\u2500 .output/chrome-mv3/chunks/provider-copy-B3FmP6CE.js  20.72 kB \n  \u251c\u2500 .output/chrome-mv3/chunks/site-check-PF9lU7bP.js     4.43 kB  \n  \u251c\u2500 .output/chrome-mv3/chunks/theme-CU4QdSDg.js          235.01 kB\n  \u251c\u2500 .output/chrome-mv3/chunks/welcome-CUKUcLmm.js        11.88 kB \n  \u251c\u2500 .output/chrome-mv3/content-scripts/content.js        151.1 kB \n  \u251c\u2500 .output/chrome-mv3/assets/theme-CJps6UY6.css         23.22 kB \n  \u251c\u2500 .output/chrome-mv3/_locales/en/messages.json         377 B    \n  \u251c\u2500 .output/chrome-mv3/_locales/README.md                1.87 kB  \n  \u251c\u2500 .output/chrome-mv3/icon/128.png                      7.53 kB  \n  \u251c\u2500 .output/chrome-mv3/icon/16.png                       670 B    \n  \u251c\u2500 .output/chrome-mv3/icon/32.png                       1.51 kB  \n  \u251c\u2500 .output/chrome-mv3/icon/48.png                       2.43 kB  \n  \u2514\u2500 .output/chrome-mv3/icon/96.png                       5.55 kB  \n\u03a3 Total size: 644.19 kB                                 \n\u2714 Finished in 4.029 s\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/clean-web-build.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "clean-web",
+      "gate": "lint",
+      "command": "bun run lint",
+      "exit": 0,
+      "raw_tail": "owser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/verify-budget-migration.mjs\n   25:8   warning  'path' is defined but never used                                         @typescript-eslint/no-unused-vars\n   27:22  warning  'modelKey' is defined but never used                                     @typescript-eslint/no-unused-vars\n   75:7   warning  'flags' is assigned a value but never used                               @typescript-eslint/no-unused-vars\n  156:44  warning  'model' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars\n  197:7   warning  'storedEnum' is assigned a value but never used                          @typescript-eslint/no-unused-vars\n\n/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/wait-for-provider-and-sweep.mjs\n  73:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars\n\n/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/scripts/browser-test/watch-progress.mjs\n  24:10  warning  'byokConfigFor' is defined but never used  @typescript-eslint/no-unused-vars\n\n/home/dracon/Dev/browser-extensions-shared/extensions/standalones/clean-web/src/settings.ts\n  391:20  warning  '_dropDaily' is assigned a value but never used  @typescript-eslint/no-unused-vars\n\n\u2716 35 problems (0 errors, 35 warnings)\n\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/clean-web-lint.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "clean-web",
+      "gate": "test",
+      "command": "bun run test",
+      "exit": 0,
+      "raw_tail": "broken document. Failures\n  under it are a runner artefact \u2014 re-run with `bun run test`.\n\n  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n\n\n  \u2500\u2500 WRONG HAPPY-DOM \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n  The environment loaded, but it cannot survive this suite's own DOM\n  reset (`document.documentElement.innerHTML = ''`): the <body>\n  element is dropped, so `document.body` is null and every DOM test\n  dies on \"Cannot set properties of null (setting 'innerHTML')\".\n\n  This is happy-dom 15.x (or older). The project resolves 20.14.6,\n  which re-creates <head></head><body></body> on that reset.\n\n  The vitest VERSION is not the problem \u2014 both runners use 4.1.9. What\n  differs is which install of it is launched, and therefore which\n  happy-dom its peer symlink names:\n\n    use    bun run test       -> node_modules/.bin/vitest -> happy-dom 20.14.6\n    avoid  npx vitest run    -> npm-exec resolves a different vitest\n                                install -> happy-dom 15.11.7\n\n  No test in this suite is compatible with the broken document. Failures\n  under it are a runner artefact \u2014 re-run with `bun run test`.\n\n  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n\n Test Files  91 passed (91)\n      Tests  1494 passed (1494)\n   Start at  19:48:50\n   Duration  30.27s (transform 2.29s, setup 856ms, import 4.39s, tests 24.86s, environment 19.28s)\n\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/clean-web-test.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "clean-web",
+      "gate": "typecheck",
+      "command": "bun run typecheck",
+      "exit": 0,
+      "raw_tail": "$ tsc --noEmit\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/clean-web-typecheck.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "markdown-reader",
+      "gate": "build",
+      "command": "bun run build",
+      "exit": 0,
+      "raw_tail": "ts/KaTeX_SansSerif-Bold.woff2       12.22 kB \n  \u251c\u2500 .output/chrome-mv3/katex/fonts/KaTeX_SansSerif-Italic.woff2     12.03 kB \n  \u251c\u2500 .output/chrome-mv3/katex/fonts/KaTeX_SansSerif-Regular.woff2    10.34 kB \n  \u251c\u2500 .output/chrome-mv3/katex/fonts/KaTeX_Script-Regular.woff2       9.64 kB  \n  \u251c\u2500 .output/chrome-mv3/katex/fonts/KaTeX_Size1-Regular.woff2        5.47 kB  \n  \u251c\u2500 .output/chrome-mv3/katex/fonts/KaTeX_Size2-Regular.woff2        5.21 kB  \n  \u251c\u2500 .output/chrome-mv3/katex/fonts/KaTeX_Size3-Regular.woff2        3.62 kB  \n  \u251c\u2500 .output/chrome-mv3/katex/fonts/KaTeX_Size4-Regular.woff2        4.93 kB  \n  \u251c\u2500 .output/chrome-mv3/katex/fonts/KaTeX_Typewriter-Regular.woff2   13.57 kB \n  \u251c\u2500 .output/chrome-mv3/licenses/dompurify-Apache-2.0.txt            11.36 kB \n  \u251c\u2500 .output/chrome-mv3/licenses/dompurify-MPL-2.0.txt               16.73 kB \n  \u251c\u2500 .output/chrome-mv3/licenses/highlight.js-BSD-3-Clause.txt       1.51 kB  \n  \u251c\u2500 .output/chrome-mv3/licenses/katex-MIT.txt                       1.11 kB  \n  \u251c\u2500 .output/chrome-mv3/licenses/markdown-it-MIT.txt                 1.07 kB  \n  \u251c\u2500 .output/chrome-mv3/licenses/OFL-Inter.txt                       4.38 kB  \n  \u251c\u2500 .output/chrome-mv3/licenses/OFL-Literata.txt                    4.39 kB  \n  \u2514\u2500 .output/chrome-mv3/licenses/THIRD_PARTY_NOTICES.txt             689 B    \n\u03a3 Total size: 1.36 MB                                              \n\u2714 Finished in 2.562 s\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/markdown-reader-build.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "markdown-reader",
+      "gate": "lint",
+      "command": "bun run lint",
+      "exit": 0,
+      "raw_tail": "hared/extensions/standalones/markdown-reader/lib/markdown/plugins/math.ts\n  53:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any\n  54:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any\n\n/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/lib/messaging.ts\n  19:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any\n  38:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any\n\n/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/lib/reader/fonts.ts\n  13:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any\n\n/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/lib/settings.ts\n  114:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any\n  144:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any\n\n/home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader/scripts/verify-reader.mjs\n   384:9  warning  'footnoteJump' is assigned a value but never used  @typescript-eslint/no-unused-vars\n  1428:9  warning  'extensionId' is assigned a value but never used   @typescript-eslint/no-unused-vars\n\n\u2716 22 problems (0 errors, 22 warnings)\n\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/markdown-reader-lint.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "markdown-reader",
+      "gate": "test",
+      "command": "bun run test",
+      "exit": 0,
+      "raw_tail": "$ vitest run\n\n RUN  v2.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader\n\n \u2713 tests/frontmatter.test.ts (7 tests) 4ms\n \u2713 tests/settings.test.ts (11 tests) 22ms\n \u2713 tests/settings-audit.test.ts (6 tests) 11ms\n \u2713 tests/dialects.test.ts (21 tests) 9ms\n \u2713 tests/markdown.test.ts (22 tests) 101ms\n\n Test Files  5 passed (5)\n      Tests  67 passed (67)\n   Start at  19:44:24\n   Duration  2.65s (transform 472ms, setup 0ms, collect 803ms, tests 146ms, environment 6.94s, prepare 698ms)\n\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/markdown-reader-test.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "markdown-reader",
+      "gate": "typecheck",
+      "command": "bun run typecheck",
+      "exit": 0,
+      "raw_tail": "$ tsc --noEmit\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/markdown-reader-typecheck.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "repo-pre-push-hook",
+      "gate": "hook-suite",
+      "command": "node --test scripts/git-hooks/pre-push.test.mjs",
+      "exit": 0,
+      "raw_tail": "e exact gate exit code (438.26743ms)\n\u2714 successful gates remain required and pass normally (318.752487ms)\n\u2714 a content-bound receipt accepts exactly one reviewed non-secret and nothing else (235.503499ms)\n\u2714 the secret phase rejects both quote styles even with the existing emergency gate flag (120.718206ms)\n\u2714 secret scan retains aws detector on newly added content (84.309741ms)\n\u2714 secret scan retains pem detector on newly added content (108.79908ms)\n\u2714 secret scan retains secret detector on newly added content (71.228251ms)\n\u2714 secret scan retains api-key detector on newly added content (82.436174ms)\n\u2714 secret scan retains leading-plus detector on newly added content (60.448617ms)\n\u2714 secret scan accepts harmless remove of already-published fixture content (384.562377ms)\n\u2714 secret scan accepts harmless context of already-published fixture content (502.045665ms)\n\u2714 secret scan accepts harmless rename of already-published fixture content (626.157309ms)\n\u2714 new credentials introduced then deleted still fail because pushed history contains them (146.315157ms)\n\u2714 uninspectable remote range fails closed before running product gates (59.448428ms)\n\u2714 the gate caps the vitest worker fan-out (454.939692ms)\n\u2714 the worker cap can be overridden (495.677751ms)\n\u2714 the worker cap can be disabled (491.658133ms)\n\u2139 tests 17\n\u2139 suites 0\n\u2139 pass 17\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 4738.348493\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/repo-pre-push-hook.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "tabmon",
+      "gate": "build",
+      "command": "bun run build",
+      "exit": 0,
+      "raw_tail": "nken-temple.mp3    12.34 MB \n  \u251c\u2500 .output/chrome-mv3/tabmon/music/sunny-meadow.mp3     4.11 MB  \n  \u251c\u2500 .output/chrome-mv3/tabmon/music/tape-wobble.mp3      3.65 MB  \n  \u251c\u2500 .output/chrome-mv3/tabmon/music/temple-bell.mp3      4.9 MB   \n  \u251c\u2500 .output/chrome-mv3/tabmon/music/toy-march.mp3        6.59 MB  \n  \u251c\u2500 .output/chrome-mv3/tabmon/music/twinkle-pins.mp3     3.96 MB  \n  \u251c\u2500 .output/chrome-mv3/tabmon/music/witchs-market.mp3    2.01 MB  \n  \u251c\u2500 .output/chrome-mv3/tabmon/sfx/capture-fail.mp3       11.64 kB \n  \u251c\u2500 .output/chrome-mv3/tabmon/sfx/capture-hit.mp3        14.15 kB \n  \u251c\u2500 .output/chrome-mv3/tabmon/sfx/catch-arrival.mp3      23.55 kB \n  \u251c\u2500 .output/chrome-mv3/tabmon/sfx/cue.mp3                9.13 kB  \n  \u251c\u2500 .output/chrome-mv3/tabmon/sfx/defeat.mp3             17.6 kB  \n  \u251c\u2500 .output/chrome-mv3/tabmon/sfx/hit.mp3                3.81 kB  \n  \u251c\u2500 .output/chrome-mv3/tabmon/sfx/level-up.mp3           15.09 kB \n  \u251c\u2500 .output/chrome-mv3/tabmon/sfx/miss.mp3               6.31 kB  \n  \u251c\u2500 .output/chrome-mv3/tabmon/sfx/roster-pick.mp3        10.7 kB  \n  \u251c\u2500 .output/chrome-mv3/tabmon/sfx/super.mp3              11.64 kB \n  \u251c\u2500 .output/chrome-mv3/tabmon/sfx/ui-click.mp3           3.49 kB  \n  \u251c\u2500 .output/chrome-mv3/tabmon/sfx/victory.mp3            27.32 kB \n  \u2514\u2500 .output/chrome-mv3/tabmon/sfx/weak.mp3               4.43 kB  \n\u03a3 Total size: 117.13 MB                                 \n\u2714 Finished in 5.761 s\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/tabmon-build.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "tabmon",
+      "gate": "lint",
+      "command": "bun run lint",
+      "exit": 0,
+      "raw_tail": "$ eslint .\n(node:655701) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/Dev/browser-extensions-shared/eslint.config.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /home/dracon/Dev/browser-extensions-shared/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/tabmon-lint.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "tabmon",
+      "gate": "test",
+      "command": "bun run test",
+      "exit": 0,
+      "raw_tail": "e/dracon/Dev/browser-extensions-shared/eslint.config.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /home/dracon/Dev/browser-extensions-shared/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n\u2714 ambient SvelteKit must not turn native WXT HTML into a Kit route (516.534566ms)\n\u2714 a declared SvelteKit app keeps its unresolved navigation guard (18.127714ms)\n\u2714 XSS and keyed-rendering guards still reject real regressions in WXT (66.673095ms)\n\u2139 tests 3\n\u2139 suites 0\n\u2139 pass 3\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 3411.856483\n................\n----------------------------------------------------------------------\nRan 16 tests in 0.080s\n\nOK\n\n RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/tabmon\n\n19:47:28 [vite-plugin-svelte] /home/dracon/Dev/browser-extensions-shared/packages/nightfall/src/components/Card.svelte:48:14 This reference only captures the initial value of `dense`. Did you mean to reference it inside a closure instead?\nhttps://svelte.dev/e/state_referenced_locally\n\n Test Files  78 passed (78)\n      Tests  1243 passed (1243)\n   Start at  19:45:42\n   Duration  169.61s (transform 4.32s, setup 699ms, import 9.13s, tests 131.96s, environment 18.13s)\n\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/tabmon-test.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "tabmon",
+      "gate": "typecheck",
+      "command": "bun run typecheck",
+      "exit": 0,
+      "raw_tail": "$ tsc --noEmit\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/tabmon-typecheck.log"
+    },
+    {
+      "repo": "dracon-utilities",
+      "workspace": "warden-pre-push",
+      "gate": "hook-suite",
+      "command": "cargo test -p dracon-warden --locked pre_push_",
+      "exit": 0,
+      "raw_tail": "ests::tests::pre_push_hook_rejects_test_identity_author ... ok\ntest tests::tests::pre_push_hook_scan_survives_local_hook_stdin_consumption ... ok\ntest tests::tests::pre_push_hook_secret_re_matches_token_shape_source ... ok\ntest tests::tests::pre_push_hook_skips_legacy_warden_local_hook ... ok\ntest tests::tests::pre_push_hook_still_blocks_secrets_around_tags ... ok\ntest tests::tests::pre_push_hook_tag_does_not_rescan_published_history ... ok\ntest tests::tests::pre_push_hook_test_identity_on_non_first_parent_merge_passes ... ok\ntest tests::tests::pre_push_modified_binary_still_blocks_new_pem_material ... ok\ntest tests::tests::pre_push_review_receipt_binds_blob_and_individual_match ... ok\n\ntest result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 202 filtered out; finished in 15.85s\n\n     Running tests/integration_test.rs (target/debug/deps/integration_test-c99131049d81da2e)\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 21 filtered out; finished in 0.00s\n\n     Running tests/storage_stream.rs (target/debug/deps/storage_stream-aecbcd90c07b4322)\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s\n\n     Running tests/write_fence.rs (target/debug/deps/write_fence-d72f204e2671a878)\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s\n\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/warden-pre-push.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "youtube-filter",
+      "gate": "build",
+      "command": "bun run build",
+      "exit": 0,
+      "raw_tail": "              47.62 kB \n  \u251c\u2500 .output/chrome-mv3/chunks/options-BPJho0yi.js     47.58 kB \n  \u251c\u2500 .output/chrome-mv3/chunks/theme-CY0j42zG.js       216.35 kB\n  \u251c\u2500 .output/chrome-mv3/chunks/welcome-C-m044Wv.js     5.09 kB  \n  \u251c\u2500 .output/chrome-mv3/content-scripts/content.js     80.98 kB \n  \u251c\u2500 .output/chrome-mv3/content-scripts/yt-relay.js    2.67 kB  \n  \u251c\u2500 .output/chrome-mv3/wasm/dracon_wasm.js            13.5 kB  \n  \u251c\u2500 .output/chrome-mv3/assets/options-K9-NO5CK.css    16.79 kB \n  \u251c\u2500 .output/chrome-mv3/assets/theme-q_GX_Sih.css      571 B    \n  \u251c\u2500 .output/chrome-mv3/assets/welcome-BdrVPE4j.css    211 B    \n  \u251c\u2500 .output/chrome-mv3/_locales/en/messages.json      270 B    \n  \u251c\u2500 .output/chrome-mv3/_locales/README.md             2.71 kB  \n  \u251c\u2500 .output/chrome-mv3/icon/128.png                   4.86 kB  \n  \u251c\u2500 .output/chrome-mv3/icon/16.png                    602 B    \n  \u251c\u2500 .output/chrome-mv3/icon/32.png                    1.28 kB  \n  \u251c\u2500 .output/chrome-mv3/icon/48.png                    1.93 kB  \n  \u251c\u2500 .output/chrome-mv3/icon/96.png                    3.7 kB   \n  \u251c\u2500 .output/chrome-mv3/wasm/dracon_wasm_bg.wasm       126.17 kB\n  \u251c\u2500 .output/chrome-mv3/wasm/dracon_wasm_bg.wasm.d.ts  1.09 kB  \n  \u251c\u2500 .output/chrome-mv3/wasm/dracon_wasm.d.ts          2.54 kB  \n  \u2514\u2500 .output/chrome-mv3/wasm/package.json              331 B    \n\u03a3 Total size: 579.1 kB                               \n\u2714 Finished in 4.981 s\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/youtube-filter-build.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "youtube-filter",
+      "gate": "lint",
+      "command": "bun run lint",
+      "exit": 0,
+      "raw_tail": "$ eslint . --ext .ts,.tsx --max-warnings 0\n(node:619081) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/Dev/browser-extensions-shared/eslint.config.js?mtime=1792007278247 is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /home/dracon/Dev/browser-extensions-shared/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/youtube-filter-lint.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "youtube-filter",
+      "gate": "test",
+      "command": "bun run test",
+      "exit": 0,
+      "raw_tail": "$ vitest run --passWithNoTests\n\n RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/youtube-filter\n\n\n Test Files  64 passed (64)\n      Tests  1115 passed (1115)\n   Start at  19:44:42\n   Duration  30.33s (transform 3.08s, setup 632ms, import 4.75s, tests 22.88s, environment 21.66s)\n\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/youtube-filter-test.log"
+    },
+    {
+      "repo": "browser-extensions-shared",
+      "workspace": "youtube-filter",
+      "gate": "typecheck",
+      "command": "bun run typecheck",
+      "exit": 0,
+      "raw_tail": "$ tsc --noEmit\n",
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/original-hook-gate-manifest-2026-10-30/youtube-filter-typecheck.log"
+    }
+  ]
+}
