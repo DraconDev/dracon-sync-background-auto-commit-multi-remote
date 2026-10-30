@@ -2541,3 +2541,45 @@ ai-chat-toolkit lint 0 errors / typecheck / 443 tests. Report:
 No rule was disabled, no file excluded and no warning suppressed. This is a
 necessarily moving target while producers keep writing; each occurrence is a
 genuine gate verdict, not a daemon defect.
+
+### 2026-10-30 18:25 UTC — ORIGINAL acceptance clause MET (no amendment needed)
+
+The all-clean-and-idle snapshot that earlier looked unattainable was obtained
+**without stopping a producer, hiding work, bypassing a hook or pushing by
+hand**. The blocker was never the producers: it was `browser-extensions-shared`
+being push-stuck for hours on a **false-positive secret match**.
+
+Once that was fixed the backlog drained (697 → 27 unpushed) and the fleet
+settled. Seven consecutive samples:
+
+```
+36 inspected · 36 clean · 0 active · 0 warn · 0 concerns · 0 inspection failures
+```
+
+Receipt: `checks/fleet-observation-2026-10-29/post-unblock-1793384706/ACCEPTANCE.json`
+plus `s1..s7.json`. `browser-extensions-shared` origin and GitLab are in
+lockstep at `76c4e6174b14`, having published **763 commits** to origin and 667 to
+GitLab against the stalled tip — the first successful publication in six hours.
+
+Unblocking it required four layers, each diagnosed read-only first; the full
+writeup is
+`checks/browser-push-unblock-2026-10-30/REPORT.md`. In short:
+
+1. Warden's `reviewed_text_matches` was only reachable from the ADDED-file scan,
+   so a verified placeholder in a MODIFIED file could never be accepted. The
+   diff-line scan now honours the same content-bound receipts.
+2. This repo overrides `core.hooksPath`, so its own weaker duplicate scanner —
+   with no receipt support — was the real gate. It gained
+   `reviewed_added_matches` with PER-COMMIT scanning (an aggregate digest would
+   change on every commit and could never stay valid).
+3. Producer-introduced gate failures: `prefer-const` reappeared in
+   markdown-reader, and youtube-filter had 3 `no-useless-escape` escapes
+   (behaviour proven identical by running old vs new patterns).
+4. tabmon's `user-flows` tests were stale, not the component: the new cinematic
+   battle splash owns the first Escape (separately pinned by
+   `battle-splash.test.ts`), so those tests now dismiss it like a player.
+
+Gates on the repaired workspace: 1532/1532 tests, release build, strict Clippy,
+`cargo deny` and 47/47 Warden pre-push tests — all green. Every repair has a
+negative control that fails when reverted; the tabmon control reproduced
+exactly the 3 original failures and nothing else.

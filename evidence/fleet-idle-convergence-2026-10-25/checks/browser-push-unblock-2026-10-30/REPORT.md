@@ -117,3 +117,22 @@ No detector was relaxed, no rule disabled, no file excluded from a gate, no
 warning suppressed, no `--no-verify`, no history rewrite, no force-push and no
 hook bypass. The Warden fix adds a receipt path to a scan that already had one
 elsewhere; it does not weaken any pattern.
+
+## Workspace gates (after the repairs)
+
+```
+cargo test --workspace --locked     1532 passed / 0 failed   (dracon-sync bin)
+cargo build --release --locked      Finished, exit 0
+cargo clippy --workspace --locked --all-targets -- -D warnings   exit 0
+cargo deny check                    advisories/bans/licenses/sources ok
+dracon-warden pre_push_             47 passed / 0 failed
+```
+
+One earlier full-workspace run reported a single failure in a mirror-push
+fixture while the browser 4-gate was concurrently running; the re-run passed
+1532/1532 with the gate unchanged. That is the documented load-induced flake
+class (AGENTS.md "Releasing one crate while a sibling crate is mid-rewrite"),
+so it was retried rather than treated as a gate change.
+
+`rustfmt` was applied to the new Warden test region only; the remaining
+pre-existing format diffs elsewhere in `tests.rs` were left untouched.

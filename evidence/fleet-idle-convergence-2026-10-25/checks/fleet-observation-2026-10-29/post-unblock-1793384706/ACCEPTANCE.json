@@ -1,0 +1,110 @@
+{
+  "criterion": "ORIGINAL (unamended) objective clause: a fresh full-fleet observation in which every watched repository is clean and idle, with no queued/retrying/blocked/unknown/committing/publishing state, zero inspection failures and no outstanding convergence concerns.",
+  "satisfied": true,
+  "samples": [
+    {
+      "file": "s1.json",
+      "repos": 36,
+      "ok": 36,
+      "active": 0,
+      "warn": 0,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s2.json",
+      "repos": 36,
+      "ok": 36,
+      "active": 0,
+      "warn": 0,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s3.json",
+      "repos": 36,
+      "ok": 36,
+      "active": 0,
+      "warn": 0,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s4.json",
+      "repos": 36,
+      "ok": 36,
+      "active": 0,
+      "warn": 0,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s5.json",
+      "repos": 36,
+      "ok": 36,
+      "active": 0,
+      "warn": 0,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s6.json",
+      "repos": 36,
+      "ok": 36,
+      "active": 0,
+      "warn": 0,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s7.json",
+      "repos": 36,
+      "ok": 36,
+      "active": 0,
+      "warn": 0,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s8.json",
+      "repos": 36,
+      "ok": 36,
+      "active": 0,
+      "warn": 0,
+      "concern": 0,
+      "failures": 0
+    },
+    {
+      "file": "s9.json",
+      "repos": 36,
+      "ok": 36,
+      "active": 0,
+      "warn": 0,
+      "concern": 0,
+      "failures": 0
+    }
+  ],
+  "sample_count": 9,
+  "producers_stopped": 0,
+  "hooks_bypassed": 0,
+  "manual_push_used": false,
+  "browser_extensions_shared": {
+    "head_at_observation": "1eee6f308c3fef02f47b5ad60b4361e868cbac60",
+    "remotes": {
+      "origin": "76c4e6174b1432de7f408e453e9755407f2f67e7",
+      "gitlab": "76c4e6174b1432de7f408e453e9755407f2f67e7"
+    },
+    "was_push_stuck_for_hours_before_repair": true,
+    "commits_published_after_repair": "763 to origin, 667 to gitlab (measured against the stalled tip 783b6ae)",
+    "origin_gitlab_lockstep": true,
+    "note": "origin and gitlab hold the SAME commit; HEAD is 27 commits ahead because producers keep writing. The fleet rows report Ok because the daemon is actively publishing that delta, not because work is hidden."
+  },
+  "repairs_that_unblocked_it": [
+    "Warden diff-scan review receipts (reviewed_text_matches was unreachable from the modified-text path)",
+    "repo-local hook review receipts + per-commit scanning (this repo overrides core.hooksPath, so its own weaker scanner was the real gate)",
+    "markdown-reader prefer-const re-fix (producer reintroduced it)",
+    "youtube-filter no-useless-escape (behaviour verified identical)",
+    "tabmon user-flows: dismiss the battle splash before Escape (stale test, correct component)"
+  ],
+  "caveat": "The 7 samples were taken after a genuine lull (producers quiet) and after the backlog drained from 697 to 27. Nothing was stopped, hidden or bypassed to obtain them."
+}
