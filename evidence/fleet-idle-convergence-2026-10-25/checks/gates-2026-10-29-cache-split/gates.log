@@ -3398,4 +3398,78 @@ test tests::tests::pre_push_hook_still_blocks_secrets_around_tags ... ok
 test tests::tests::pre_push_hook_tag_does_not_rescan_published_history ... ok
 test tests::tests::pre_push_hook_test_identity_on_non_first_parent_merge_passes ... ok
 test tests::tests::pre_push_modified_binary_still_blocks_new_pem_material ... ok
-test tests::tests::pre_push_review_receipt_binds_blob_and_individual_match ... 
+test tests::tests::pre_push_review_receipt_binds_blob_and_individual_match ... ok
+test tests::tests::pre_rebase_hook_allows_unpublished_commits ... ok
+test tests::tests::pre_rebase_hook_blocks_published_boundary_commit ... ok
+test tests::tests::pre_rebase_hook_blocks_published_commit_deeper_than_100 ... ok
+test tests::tests::pre_rebase_hook_chains_and_propagates_local_hook_failure ... ok
+test tests::tests::pre_rebase_hook_chains_to_repo_local_hook ... ok
+test tests::tests::pre_rebase_hook_stays_silent_after_fresh_fetch ... ok
+test tests::tests::pre_rebase_hook_stays_silent_without_remote ... ok
+test tests::tests::pre_rebase_hook_two_arg_form_checks_branch_tip ... ok
+test tests::tests::pre_rebase_hook_warns_on_stale_refs_without_blocking ... ok
+test tests::tests::publish_repo_pubkey_no_churn_different_valid_key ... ok
+test tests::tests::publish_repo_pubkey_rejects_non_owner_or_secret_key_material ... ok
+test tests::tests::publish_repo_pubkey_rejects_symlink_target_without_modifying_external ... ok
+test tests::tests::publish_repo_pubkey_rejects_symlinked_target_directory ... ok
+test tests::tests::publish_repo_pubkey_writes_and_is_idempotent ... ok
+test tests::tests::refresh_never_downgrades_a_newer_hook_generation ... ok
+test tests::tests::refresh_warden_hook_if_stale_matrix ... ok
+test tests::tests::rendered_hooks_carry_the_current_generation_marker ... ok
+test tests::tests::repeated_local_hook_install_keeps_collision_suffixed_foreign_hook ... ok
+test tests::tests::repeated_replace_block_scenarios_are_stable ... ok
+test tests::tests::replace_managed_block_appends_when_missing ... ok
+test tests::tests::replace_managed_block_empty_current_string ... ok
+test tests::tests::replace_managed_block_multiple_blocks_replaces_all ... ok
+test tests::tests::replace_managed_block_preserves_leading_whitespace ... ok
+test tests::tests::replace_managed_block_preserves_tail_after_malformed_marker ... ok
+test tests::tests::replace_managed_block_replaces_existing_and_keeps_tail ... ok
+test tests::tests::resmudge_apply_waits_at_metadata_fence_before_reading_canonical_file ... ok
+test tests::tests::resmudge_metadata_write_fence_is_bounded_and_scoped_to_apply_targets ... ok
+test tests::tests::resmudge_rejects_tracked_symlink_without_modifying_target ... ok
+test tests::tests::resolve_policy_path_local_falls_back_to_default_locations ... ok
+test tests::tests::resolve_policy_path_local_finds_temp_config ... ok
+test tests::tests::run_keygen_generates_keypair_successfully ... ok
+test tests::tests::run_keygen_refuses_to_overwrite_existing_pubkey ... ok
+test tests::tests::run_keygen_refuses_to_overwrite_existing_secret_key ... ok
+test tests::tests::run_keygen_refuses_when_dedicated_master_private_exists ... ok
+test tests::tests::run_keygen_refuses_when_dedicated_master_pub_exists ... ok
+test tests::tests::salvage_invalid_json_handles_nested_markers ... ok
+test tests::tests::salvage_invalid_json_marker_at_end_of_string ... ok
+test tests::tests::salvage_invalid_json_markers_multiple_in_sequence ... ok
+test tests::tests::salvage_invalid_json_no_marker_returns_none ... ok
+test tests::tests::salvage_invalid_json_preserves_unicode_before_marker ... ok
+test tests::tests::salvage_invalid_json_replaces_marker_tokens_and_parses ... ok
+test tests::tests::setup_hooks_local_resolves_linked_gitdir_and_chains_common_hook ... ok
+test tests::tests::setup_hooks_local_resolves_submodule_gitdir_and_preserves_hooks ... ok
+test tests::tests::setup_hooks_local_sets_core_hooks_path ... ok
+test tests::tests::smart_clean_with_path_hatch_resolves_against_files_repo_not_cwd ... ok
+test tests::tests::storage_pre_commit_quotes_pinned_executable_chains_and_propagates_failure ... ok
+test tests::tests::storage_pre_commit_requires_valid_explicit_guard_binding ... ok
+test tests::tests::test_deprecation_warning_for_watch_roots ... ok
+test tests::tests::test_no_deprecation_when_only_repo_roots_set ... ok
+test tests::tests::test_repo_roots_takes_precedence ... ok
+test tests::tests::tracked_repair_writer_refuses_hardlink_alias_before_truncation ... ok
+test tests::tests::warden_cli_runtime_has_a_bounded_async_worker_pool ... ok
+test tests::tests::warden_policy_allow_v1_fallback_wires_the_gate ... ok
+test tests::tests::warden_policy_validate_accepts_allowlisted_plaintext ... ok
+test tests::tests::warden_policy_validate_accepts_valid_policy ... ok
+test tests::tests::warden_policy_validate_rejects_non_allowlisted_plaintext ... ok
+test tests::tests::warden_policy_validate_rejects_overlapping_patterns ... ok
+test tests::tests::warden_policy_validate_rejects_secretish_plaintext ... ok
+test tests::tests::wire_managed_patterns_from_policy_loads_protected_patterns ... ok
+test tests::tests::zeroize_file_best_effort_wipes_full_length ... ok
+test write_fence::tests::git_pointer_and_symlink_alias_resolve_the_same_fence ... ok
+test write_fence::tests::replaced_namespace_and_expired_deadline_refuse ... ok
+test write_fence::tests::same_repository_wait_is_bounded_and_drop_recovers_without_unlink ... ok
+test write_fence::tests::unrelated_repositories_do_not_share_a_fence ... ok
+test write_fence::tests::unsafe_lock_files_are_not_followed_truncated_or_stolen ... ok
+
+test result: ok. 248 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 104.98s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-77fae268741cc814)
+
+running 21 tests
+test hook_refreshing_commands_never_touch_the_operator_home ... ok
+test resmudge_apply_fences_gitattributes_through_final_close_against_cooperative_writer ... ok
+test resmudge_apply_waits_safely_and_releases_the_fence_after_publication ... 
