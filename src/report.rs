@@ -1717,10 +1717,19 @@ pub(crate) struct RepoReportJson {
     policy: String,
     filter: String,
     repos: usize,
+    /// Rows that are fully converged: no eligible local work, nothing
+    /// unpushed, `push_status == "OK"`, and no concern/warn/active flag.
+    /// CHANGED 2026-10-30: this used to be `rows - (concern+active+warn)`,
+    /// which counted DIRTY/AHEAD/PENDING rows as clean. See
+    /// [`row_is_converged`].
     ok: usize,
     active: usize,
     warn: usize,
     concern: usize,
+    /// Rows holding eligible local or unpushed work that are NOT a
+    /// failure and NOT converged. ADDED 2026-10-30 so the outstanding
+    /// class has an honest bucket instead of being rounded into `ok`.
+    pending: usize,
     failures: usize,
     rows: Vec<RepoReportRow>,
 }
@@ -4055,17 +4064,78 @@ fn gitdir_signature(repo: &Path) -> u64 {
         .unwrap_or(0)
 }
 
-/// Bucket rows into (ok, active, warn, concern) summary counts.
-/// Precedence is concern > active > warn > ok: a warn&&concern row
-/// counts ONLY as concern (FIXED 2026-10-03, audit R3-L09 — the old
+/// Whether a row shows a repository that is fully CONVERGED: no
+/// eligible work, nothing waiting to push, and no inspection gap.
+///
+/// ADDED 2026-10-30 (audit: the fleet `clean` total counted dirty rows
+/// as clean). `ok` used to be a pure RESIDUAL — `rows - (concern +
+/// active + warn)` — so any row that carried local work or unpushed
+/// commits but happened not to be flagged `active`/`warn` was silently
+/// promoted into the `✅ clean` bucket. A dirty working tree and an
+/// unpushed commit are both outstanding work by definition, so no
+/// summary may call such a row converged.
+///
+/// Deliberately strict, and deliberately independent of
+/// `active`/`warn`: this predicate is the DEFINITION of converged and
+/// the buckets are derived FROM it. That direction matters — deriving
+/// "clean" from a residual lets any future classification change leak
+/// outstanding work back into the healthy total.
+///
+/// Note the counts are the daemon's EFFECTIVE counts (see
+/// `classify_dirty_entries`): dirt the daemon intentionally will not
+/// commit is already subtracted before this point, so an
+/// intentionally-excluded file does not make a repo look unconverged.
+pub(crate) fn row_is_converged(row: &RepoReportRow) -> bool {
+    row.modified == 0
+        && row.staged == 0
+        && row.untracked == 0
+        && row.ahead == 0
+        && row.excluded_dirty == 0
+        && row.push_status == "OK"
+        && !row.concern
+        && !row.warn
+        && !row.active
+        && !row
+            .state_flags
+            .iter()
+            .any(|f| matches!(f.as_str(), "DIRTY") || f.starts_with("AHEAD:"))
+}
+
+/// A row with eligible local/unpushed work but no failure.
+///
+/// This is the class the old residual `ok` bucket silently absorbed.
+/// It is NOT a failure (the daemon is expected to publish it), and it
+/// is NOT converged either, so it gets its own bucket instead of being
+/// rounded into either one.
+fn row_is_pending_work(row: &RepoReportRow) -> bool {
+    !row_is_converged(row) && !row.active && !warn_filter_retains(row) && !row.concern
+}
+
+/// Bucket rows into (ok, active, warn, concern, pending) summary counts.
+/// Precedence is concern > active > warn > pending > ok: a warn&&concern
+/// row counts ONLY as concern (FIXED 2026-10-03, audit R3-L09 — the old
 /// inline filters excluded active from warn but not concern, so the
 /// `--json` summary integers summed past `repos`).
-fn row_bucket_counts(rows: &[RepoReportRow]) -> (usize, usize, usize, usize) {
+///
+/// CHANGED 2026-10-30: `ok` now counts only `row_is_converged` rows and
+/// the leftover local/unpushed rows are counted as `pending`. The five
+/// buckets still sum to `rows.len()` exactly.
+fn row_bucket_counts(rows: &[RepoReportRow]) -> (usize, usize, usize, usize, usize) {
     let concern = rows.iter().filter(|r| r.concern).count();
     let active = rows.iter().filter(|r| r.active && !r.concern).count();
     let warn = rows.iter().filter(|r| warn_filter_retains(r)).count();
-    let ok = rows.len().saturating_sub(concern + active + warn);
-    (ok, active, warn, concern)
+    let ok = rows.iter().filter(|r| row_is_converged(r)).count();
+    let pending = rows.iter().filter(|r| row_is_pending_work(r)).count();
+    // Every row must land in exactly one bucket. This is a hard assertion,
+    // not a comment: the original defect was invisible precisely because
+    // no test ever said the buckets had to be both exhaustive AND
+    // mutually exclusive.
+    debug_assert_eq!(
+        ok + active + warn + concern + pending,
+        rows.len(),
+        "buckets must partition the rows exactly once"
+    );
+    (ok, active, warn, concern, pending)
 }
 
 /// Row predicate for `RepoFilter::Warn` (EXTRACTED 2026-10-03, audit
@@ -5115,8 +5185,13 @@ pub(crate) async fn run_repos_report(
         _ => rows.sort_by_key(|a| std::cmp::Reverse(a.last_unix)),
     }
 
-    let (ok_count_all, active_count_all, warn_count_all, concern_count_all) =
-        row_bucket_counts(&rows);
+    let (
+        ok_count_all,
+        active_count_all,
+        warn_count_all,
+        concern_count_all,
+        pending_count_all,
+    ) = row_bucket_counts(&rows);
     match filter {
         RepoFilter::All => {}
         RepoFilter::Concern => rows.retain(|r| r.concern),
@@ -5183,7 +5258,8 @@ pub(crate) async fn run_repos_report(
         }
     }
 
-    let (ok_count, active_count, warn_count, concern_count) = row_bucket_counts(&rows);
+    let (ok_count, active_count, warn_count, concern_count, pending_count) =
+        row_bucket_counts(&rows);
     let filter_text = match filter {
         RepoFilter::All => "all",
         RepoFilter::Concern => "only_concern",
@@ -5199,6 +5275,7 @@ pub(crate) async fn run_repos_report(
             active: active_count,
             warn: warn_count,
             concern: concern_count,
+            pending: pending_count,
             failures: init_or_status_failures,
             rows,
         };
@@ -5242,20 +5319,25 @@ pub(crate) async fn run_repos_report(
     // the single banner line): one styled rule in the legend-rule
     // language, counts inline, padded with ─ to the table width.
     let banner_plain = format!(
-        "── dracon-sync repos ── 📦 {total} inspected · ✅ {ok_count} clean · 🔄 {active_count} active · 🟡 {warn_count} · ❌ {concern_count} concerns · ⛔ {init_or_status_failures} inspection failures{filter_note_plain}",
+        "── dracon-sync repos ── 📦 {total} inspected · ✅ {ok_count} clean · 🟣 {pending_count} pending · 🔄 {active_count} active · 🟡 {warn_count} · ❌ {concern_count} concerns · ⛔ {init_or_status_failures} inspection failures{filter_note_plain}",
         total = rows.len(),
         filter_note_plain = match filter {
             RepoFilter::All => String::new(),
             RepoFilter::Concern | RepoFilter::Warn => format!(
-                " · (all: {} ok {} active {} warn {} concern)",
-                ok_count_all, active_count_all, warn_count_all, concern_count_all
+                " · (all: {} ok {} pending {} active {} warn {} concern)",
+                ok_count_all,
+                pending_count_all,
+                active_count_all,
+                warn_count_all,
+                concern_count_all
             ),
         },
     );
     let banner_colored = format!(
-        "── dracon-sync repos ── 📦 {} inspected · {} clean · {} active · {} · {} concerns · ⛔ {} inspection failures{}",
+        "── dracon-sync repos ── 📦 {} inspected · {} clean · {} pending · {} active · {} · {} concerns · ⛔ {} inspection failures{}",
         rows.len(),
         ansi("32", &format!("✅ {ok_count}")),
+        ansi("35", &format!("🟣 {pending_count}")),
         ansi("36", &format!("🔄 {active_count}")),
         ansi("33", &format!("🟡 {warn_count}")),
         ansi("31", &format!("❌ {concern_count}")),
@@ -12180,9 +12262,10 @@ mod tests {
             },
             full_row_for_json_test(),
         ];
-        let (ok, active, warn, concern) = row_bucket_counts(&rows);
+        let (ok, active, warn, concern, pending) = row_bucket_counts(&rows);
         assert_eq!((ok, active, warn, concern), (1, 1, 1, 1));
-        assert_eq!(ok + active + warn + concern, rows.len());
+        assert_eq!(pending, 0, "these rows all carry a flag; none is 'pending'");
+        assert_eq!(ok + active + warn + concern + pending, rows.len());
     }
 
     #[test]
@@ -12220,12 +12303,171 @@ mod tests {
                 ..full_row_for_json_test()
             })
             .collect();
-        let (ok, active, warn, concern) = row_bucket_counts(&owned);
+        let (ok, active, warn, concern, pending) = row_bucket_counts(&owned);
         assert_eq!(
-            (ok, active, warn, concern),
-            (0, 0, 1, 0),
+            (ok, active, warn, concern, pending),
+            (0, 0, 1, 0, 0),
             "retained rows must bucket 100% as warn"
         );
+    }
+
+    /// REGRESSION (2026-10-30 audit, HIGH): a row that carries eligible
+    /// local work, unpushed commits or a pending push must NEVER be
+    /// counted as `ok`. The old `ok` was a residual
+    /// (`rows - (concern+active+warn)`), so such a row was silently
+    /// promoted into the `✅ clean` bucket as soon as it was not
+    /// simultaneously flagged active or warn — which is exactly how a
+    /// fleet report could claim `ok=36` while 14 rows held dirty trees
+    /// and unpushed commits.
+    ///
+    /// The distinguishing property here is that every row below is
+    /// otherwise the CONVERGED fixture: only the one field under test
+    /// differs. If `ok` were still a residual, every one of these would
+    /// come back as `ok == 1` and the test fails.
+    #[test]
+    fn test_row_bucket_counts_never_calls_outstanding_work_clean() {
+        let converged = full_row_for_json_test();
+        assert!(
+            row_is_converged(&converged),
+            "the base fixture must be genuinely converged, otherwise this test proves nothing"
+        );
+
+        // Each entry is one way a repo can hold outstanding work.
+        let outstanding: Vec<(&str, RepoReportRow)> = vec![
+            (
+                "modified working tree",
+                RepoReportRow {
+                    modified: 3,
+                    state_flags: vec!["DIRTY".to_string()],
+                    ..full_row_for_json_test()
+                },
+            ),
+            (
+                "staged index",
+                RepoReportRow {
+                    staged: 1,
+                    state_flags: vec!["DIRTY".to_string()],
+                    ..full_row_for_json_test()
+                },
+            ),
+            (
+                "untracked eligible file",
+                RepoReportRow {
+                    untracked: 1,
+                    state_flags: vec!["DIRTY".to_string()],
+                    ..full_row_for_json_test()
+                },
+            ),
+            (
+                "intentionally-excluded dirt still on disk",
+                RepoReportRow {
+                    excluded_dirty: 2,
+                    ..full_row_for_json_test()
+                },
+            ),
+            (
+                "unpushed commits",
+                RepoReportRow {
+                    ahead: 7,
+                    state_flags: vec!["AHEAD:7".to_string()],
+                    ..full_row_for_json_test()
+                },
+            ),
+            (
+                "pending push",
+                RepoReportRow {
+                    push_status: "PENDING".to_string(),
+                    ..full_row_for_json_test()
+                },
+            ),
+            (
+                "blocked push",
+                RepoReportRow {
+                    push_status: "BLOCKED".to_string(),
+                    ..full_row_for_json_test()
+                },
+            ),
+        ];
+
+        for (what, row) in outstanding {
+            assert!(
+                !row_is_converged(&row),
+                "{what}: must not satisfy the converged predicate"
+            );
+            let (ok, active, warn, concern, pending) = row_bucket_counts(&[row]);
+            assert_eq!(
+                (ok, active, warn, concern, pending),
+                (0, 0, 0, 0, 1),
+                "{what}: must land in `pending`, never in `ok`"
+            );
+        }
+    }
+
+    /// The `DIRTY` / `AHEAD:` FLAG alone must also disqualify a row, even
+    /// if the numeric counters were somehow zeroed. Flags are what the
+    /// operator reads, and a report must not disagree with its own row.
+    #[test]
+    fn test_row_is_converged_rejects_dirty_and_ahead_flags_alone() {
+        for flag in ["DIRTY", "AHEAD:1", "AHEAD:412"] {
+            let row = RepoReportRow {
+                state_flags: vec![flag.to_string()],
+                ..full_row_for_json_test()
+            };
+            assert!(
+                !row_is_converged(&row),
+                "flag {flag} alone must disqualify a row from `clean`"
+            );
+        }
+        // A converging-but-not-yet-flagged repo is still converged.
+        let plain = RepoReportRow {
+            state_flags: vec!["OK".to_string()],
+            ..full_row_for_json_test()
+        };
+        assert!(row_is_converged(&plain));
+    }
+
+    /// Buckets must PARTITION the rows: no row counted twice, none
+    /// dropped. The original defect survived because nothing asserted
+    /// exhaustiveness against an explicit predicate.
+    #[test]
+    fn test_row_buckets_partition_every_row_exactly_once() {
+        let rows = vec![
+            full_row_for_json_test(),
+            RepoReportRow {
+                modified: 1,
+                state_flags: vec!["DIRTY".to_string()],
+                ..full_row_for_json_test()
+            },
+            RepoReportRow {
+                active: true,
+                ..full_row_for_json_test()
+            },
+            RepoReportRow {
+                warn: true,
+                ..full_row_for_json_test()
+            },
+            RepoReportRow {
+                concern: true,
+                ..full_row_for_json_test()
+            },
+            RepoReportRow {
+                ahead: 2,
+                active: true,
+                ..full_row_for_json_test()
+            },
+            RepoReportRow {
+                warn: true,
+                concern: true,
+                ..full_row_for_json_test()
+            },
+        ];
+        let (ok, active, warn, concern, pending) = row_bucket_counts(&rows);
+        assert_eq!(ok + active + warn + concern + pending, rows.len());
+        assert_eq!(ok, 1, "only the truly converged row is clean");
+        assert_eq!(pending, 1, "the dirty row is pending");
+        assert_eq!(concern, 2);
+        assert_eq!(active, 2, "one plain active + one ahead&&active");
+        assert_eq!(warn, 1);
     }
 
     fn full_row_for_json_test() -> RepoReportRow {
@@ -12293,6 +12535,7 @@ mod tests {
             active: 0,
             warn: 0,
             concern: 0,
+            pending: 0,
             failures: 0,
             rows: vec![full_row_for_json_test()],
         };
@@ -13387,6 +13630,7 @@ mod tests {
             active: 0,
             warn: 0,
             concern: 0,
+            pending: 0,
             failures: 0,
             rows: vec![],
         };
