@@ -1,0 +1,46 @@
+{
+  "scope": "coherent committed workspace; cache-split half of the probe-timeout repair",
+  "assembly": {
+    "dracon_sync": "01a7e25eb70c9670f3f447d08eb7f6c44d4f89a9",
+    "parent": "f8bf156bf103d6dc77f074ef86ec867b42889642"
+  },
+  "gates": {
+    "workspace_tests": {
+      "exit": 0,
+      "suites": 44,
+      "passed": 2919,
+      "failed": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/gates-2026-10-29-cache-split/gates.log"
+    },
+    "release_build": {
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/gates-2026-10-29-cache-split/gates.log"
+    },
+    "clippy_all_targets_strict": {
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/gates-2026-10-29-cache-split/gates.log"
+    },
+    "cargo_deny": {
+      "exit": 0,
+      "log": "dracon-sync/evidence/fleet-idle-convergence-2026-10-25/checks/gates-2026-10-29-cache-split/gates.log",
+      "summary": "advisories ok, bans ok, licenses ok, sources ok"
+    }
+  },
+  "repair": {
+    "name": "stale pre-split cache entries must not be reused",
+    "why": "After the probe-timeout fix was deployed, four healthy repos still rendered PUSH BROKEN because the 1-hour cache held pre-repair entries whose history_probe_failed encoded a DEADLINE, and the freshness check did not require the new history_probe_timed_out field.",
+    "files": [
+      "dracon-sync/src/report.rs"
+    ],
+    "productionPredicate": "cache_entry_is_usable() extracted so the test exercises the real path",
+    "tests": [
+      "report::tests::pre_split_cache_entries_are_not_honoured",
+      "report::tests::probe_timeout_is_unmeasured_not_broken_history"
+    ],
+    "negativeControl": "removed `&& c.history_probe_timed_out.is_some()` from the PRODUCTION predicate -> pre_split_cache_entries_are_not_honoured FAILED (the earlier local-closure version passed and was replaced for exactly this reason)"
+  },
+  "notEstablished": [
+    "deployment of this revision",
+    "clean-idle full-fleet observation"
+  ]
+}
