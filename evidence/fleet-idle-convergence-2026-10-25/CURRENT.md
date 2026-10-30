@@ -2542,7 +2542,24 @@ No rule was disabled, no file excluded and no warning suppressed. This is a
 necessarily moving target while producers keep writing; each occurrence is a
 genuine gate verdict, not a daemon defect.
 
-### 2026-10-30 18:25 UTC — ORIGINAL acceptance clause MET (no amendment needed)
+### 2026-10-30 — ⚠️ WITHDRAWN: the claim below was WRONG
+
+**The "clause MET" claim immediately below is withdrawn.** It was validated
+against the report's own `ok` total, and `ok` was a RESIDUAL bucket
+(`rows - (concern + active + warn)`), so DIRTY / AHEAD / PENDING rows were
+counted as "clean". Re-deriving from per-row state shows **14 of 36 rows held
+outstanding work while the file recorded ok=36**. The `ok` computation is now
+an explicit `row_is_converged()` predicate with a separate `pending` bucket,
+and the acceptance checker refuses to trust any summary.
+
+Current honest state: `checks/report-truth-2026-10-30/ACCEPTANCE-STATE.json`
+(`satisfied: false`) — five repositories still hold outstanding work, two of
+them behind genuine external blockers (polis at its configured high-water
+budget; dracon-strategy carrying a 158.3 MB file over the 100 MiB hard limit).
+
+<details><summary>superseded claim (kept for the record)</summary>
+
+### 2026-10-30 18:25 UTC — claim (WITHDRAWN): acceptance clause met
 
 The all-clean-and-idle snapshot that earlier looked unattainable was obtained
 **without stopping a producer, hiding work, bypassing a hook or pushing by
@@ -2583,3 +2600,5 @@ Gates on the repaired workspace: 1532/1532 tests, release build, strict Clippy,
 `cargo deny` and 47/47 Warden pre-push tests — all green. Every repair has a
 negative control that fails when reverted; the tabmon control reproduced
 exactly the 3 original failures and nothing else.
+
+</details>

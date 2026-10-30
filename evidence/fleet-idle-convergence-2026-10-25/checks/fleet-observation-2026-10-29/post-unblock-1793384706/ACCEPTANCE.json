@@ -1,6 +1,6 @@
 {
   "criterion": "ORIGINAL (unamended) objective clause: a fresh full-fleet observation in which every watched repository is clean and idle, with no queued/retrying/blocked/unknown/committing/publishing state, zero inspection failures and no outstanding convergence concerns.",
-  "satisfied": true,
+  "satisfied": false,
   "samples": [
     {
       "file": "s1.json",
@@ -106,5 +106,7 @@
     "youtube-filter no-useless-escape (behaviour verified identical)",
     "tabmon user-flows: dismiss the battle splash before Escape (stale test, correct component)"
   ],
-  "caveat": "The 7 samples were taken after a genuine lull (producers quiet) and after the backlog drained from 697 to 27. Nothing was stopped, hidden or bypassed to obtain them."
+  "caveat": "The 7 samples were taken after a genuine lull (producers quiet) and after the backlog drained from 697 to 27. Nothing was stopped, hidden or bypassed to obtain them.",
+  "SUPERSEDED": "2026-10-30. This receipt validated convergence against the report's own `ok` total, which was a RESIDUAL bucket (rows - (concern+active+warn)) and therefore counted DIRTY / AHEAD / PENDING rows as clean. Re-deriving from per-row state shows 14 of 36 rows held outstanding work while the file recorded ok=36. The claim is WITHDRAWN. Current honest state: checks/report-truth-2026-10-30/ACCEPTANCE-STATE.json (satisfied=false).",
+  "withdrawn_reason": "Validator now derives convergence from per-row state; it fails this file."
 }
