@@ -3381,4 +3381,9 @@ test tests::tests::pre_push_hook_ciphertext_context_keeps_exposed_and_malformed_
 test tests::tests::pre_push_hook_distinguishes_interpolated_placeholder_from_literal ... ok
 test tests::tests::pre_push_hook_enumerates_remote_objects_once_per_push ... ok
 test tests::tests::pre_push_hook_hatch_found_from_subdir_cwd ... ok
-test tests::tests::pre_push_hook_ignores_unpaired_assignment_quote ... 
+test tests::tests::pre_push_hook_ignores_unpaired_assignment_quote ... ok
+test tests::tests::pre_push_hook_ignores_warden_ciphertext_assignment ... ok
+test tests::tests::pre_push_hook_masks_ciphertext_context_before_provider_extraction ... ok
+test tests::tests::pre_push_hook_openai_boundary_canonicalizes_inherited_binary_matches ... ok
+test tests::tests::pre_push_hook_openai_boundary_ignores_asset_names_not_credentials ... ok
+test tests::tests::pre_push_hook_openai_boundary_preserves_real_text_and_binary_detection ... 
