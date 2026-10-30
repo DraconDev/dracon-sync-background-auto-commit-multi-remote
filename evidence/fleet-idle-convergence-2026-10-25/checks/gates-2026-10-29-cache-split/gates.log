@@ -3378,4 +3378,6 @@ test tests::tests::pre_push_hook_chains_to_repo_local_hook ... ok
 test tests::tests::pre_push_hook_checks_all_refs_before_chaining_and_replays_input ... ok
 test tests::tests::pre_push_hook_ciphertext_context_keeps_exposed_and_malformed_shapes_blocked ... ok
 test tests::tests::pre_push_hook_distinguishes_interpolated_placeholder_from_literal ... ok
-test tests::tests::pre_push_hook_enumerates_remote_objects_once_per_push ... 
+test tests::tests::pre_push_hook_enumerates_remote_objects_once_per_push ... ok
+test tests::tests::pre_push_hook_hatch_found_from_subdir_cwd ... ok
+test tests::tests::pre_push_hook_ignores_unpaired_assignment_quote ... 
