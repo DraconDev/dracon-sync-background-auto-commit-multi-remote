@@ -2433,3 +2433,54 @@ Fleet now: 36 inspected, 31 clean, 3 active, 2 warn, **0 concerns, 0 inspection
 failures**. Not yet the goal's all-clean-and-idle state: `browser-extensions-shared`
 and `.dracon` are publishing/queued with real in-flight work, and other repos are
 actively edited by the ~30 running producer sessions.
+
+### Follow-up — 2026-10-30 00:45 UTC: autonomous publication sustained; fleet never idles
+
+Publication is demonstrably working autonomously and independently per remote:
+
+```
+browser-extensions-shared  HEAD 21593a9351
+  origin  783b6aeac4d4      gitlab  783b6aeac4d4     ← in lockstep, same commit
+  ahead of origin: 186      (the repo is being written faster than it drains)
+```
+
+Fleet activity over the trailing hour: **330 commits across 15 repositories**,
+with 410 `synced`/push journal events. `.dracon` alone has committed thousands of
+times today (`commits_24h: 2434`). Nothing in that flow is manual: no
+operator/agent push, no hook bypass, no producer stopped.
+
+This is the honest reason the goal's final acceptance criterion is still open.
+The criterion requires **every** watched repository clean and idle with zero
+queued/retrying/blocked/unknown/committing/publishing states. With ~30 producer
+sessions continuously editing watched repositories, the fleet has no idle
+window: sampled across the evening it oscillated 27-34 clean, and the moment one
+repo drains another commits. Observed:
+
+```
+20:42  36 inspected · 31 clean · 4 active · 1 unknown · 0 concerns
+21:40  36 inspected · 33 clean · 3 active · 0 concerns
+22:35  36 inspected · 34 clean · 2 active · 0 concerns
+00:30  36 inspected · 31 clean · 3 active · 2 warn · 0 concerns   (--deep, BROKEN fixed)
+00:45  36 inspected · 31 clean · 5 active · 0 concerns
+```
+
+Two things are worth separating:
+
+- **Convergence health is good and improving**: 0 concerns and 0 inspection
+  failures in every recent observation, and the CONCERN count fell 4 → 0 once the
+  false-BROKEN defect was fixed. `polis`, `doomtap`, `dracon-system`,
+  `dracon-platform`, `dracon-utilities` and 26+ others are consistently CLEAN.
+- **A single all-clean-and-idle instant is not reachable by the daemon alone**
+  while producers keep writing. Forcing it (stopping editors, excluding dirty
+  files, or pushing manually) is explicitly forbidden by the objective, and
+  clearing state instead of fixing causes is what the objective calls out.
+
+So the remaining gap is a *measurement-window* problem under continuous
+production load, not an unrepaired failure class. Every repair in this session
+is deployed, gated and exercised against the real binary; the fleet reports zero
+concerns and zero inspection failures.
+
+Reports for the four repairs: `loose-object-autogc-2026-10-29`,
+`stale-pinned-publication-2026-10-29`, `browser-markdown-reader-lint-2026-10-29`,
+`probe-timeout-false-broken-2026-10-29`, plus the criterion assessment
+`epoch-integration-partial/raw-uncooperative-criterion-assessment-2026-10-29.md`.
