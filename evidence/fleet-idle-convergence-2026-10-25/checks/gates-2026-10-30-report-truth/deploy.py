@@ -66,8 +66,10 @@ assert target.is_file() and not target.is_symlink()
 
 # The two repairs must actually be present in the artifact being shipped.
 strings = subprocess.check_output(['strings', str(candidate)], text=True)
-for marker in ('row_is_converged',
-               'buckets must partition the rows exactly once'):
+# These two are the repair's compiled fingerprints: the converged
+# predicate itself, and the serde field list for RepoReportJson which now
+# includes `pending`. (The debug_assert message is stripped in release.)
+for marker in ('row_is_converged', 'reposokpending'):
     assert marker in strings, f'candidate lacks repaired marker {marker!r}'
 
 # ── backup ──────────────────────────────────────────────────────────────────

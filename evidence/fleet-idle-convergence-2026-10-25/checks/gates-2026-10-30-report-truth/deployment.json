@@ -1,0 +1,16 @@
+{
+  "started_unix": 1793389396.3120468,
+  "old_pid": 2809033,
+  "old_loaded_sha256": "c978a08c3e890e1fc58362bff77d02244cdd2d978cb8af5b9c7e00229aae9244",
+  "expected_sha256": "e3fcfa84d9e1d704d8ccc8ad99a4e915ebec5ff8dbb5a06421a2a6fb9a10d8af",
+  "gated_revision": "dd88c89ff83af740d7ad6a9649e12b8274439445",
+  "deployed_from_revision": "b6465727339a76504b440b5c08fc968b3fca7f34",
+  "backup": "/home/dracon/.local/state/dracon/deployments/20261030T194316Z-report-truth",
+  "service_stop_used": false,
+  "method": "atomic binary replacement; pidfd SIGTERM; Restart=always",
+  "new_pid": 579784,
+  "loaded_sha256": "e3fcfa84d9e1d704d8ccc8ad99a4e915ebec5ff8dbb5a06421a2a6fb9a10d8af",
+  "installed_sha256": "e3fcfa84d9e1d704d8ccc8ad99a4e915ebec5ff8dbb5a06421a2a6fb9a10d8af",
+  "verified_unix": 1793389404.237598,
+  "ok": true
+}
