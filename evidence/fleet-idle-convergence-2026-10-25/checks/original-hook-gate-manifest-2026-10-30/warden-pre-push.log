@@ -1,0 +1,6 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.91s
+     Running unittests src/main.rs (target/debug/deps/dracon_warden-291a47b04dc5f753)
+
+running 47 tests
+test tests::tests::pre_push_binary_pem_labels_are_not_private_keys_but_material_is_blocked ... ok
+test tests::tests::pre_push_diff_scan_receipt_binds_scan_and_individual_match ... 

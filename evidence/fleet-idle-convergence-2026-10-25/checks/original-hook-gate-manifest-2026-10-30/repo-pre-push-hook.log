@@ -7,3 +7,19 @@
 ✔ secret scan retains secret detector on newly added content (71.228251ms)
 ✔ secret scan retains api-key detector on newly added content (82.436174ms)
 ✔ secret scan retains leading-plus detector on newly added content (60.448617ms)
+✔ secret scan accepts harmless remove of already-published fixture content (384.562377ms)
+✔ secret scan accepts harmless context of already-published fixture content (502.045665ms)
+✔ secret scan accepts harmless rename of already-published fixture content (626.157309ms)
+✔ new credentials introduced then deleted still fail because pushed history contains them (146.315157ms)
+✔ uninspectable remote range fails closed before running product gates (59.448428ms)
+✔ the gate caps the vitest worker fan-out (454.939692ms)
+✔ the worker cap can be overridden (495.677751ms)
+✔ the worker cap can be disabled (491.658133ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4738.348493
