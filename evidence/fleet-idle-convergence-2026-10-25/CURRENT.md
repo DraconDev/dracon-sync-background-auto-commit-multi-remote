@@ -2485,15 +2485,23 @@ Reports for the four repairs: `loose-object-autogc-2026-10-29`,
 `probe-timeout-false-broken-2026-10-29`, plus the criterion assessment
 `epoch-integration-partial/raw-uncooperative-criterion-assessment-2026-10-29.md`.
 
-### Follow-up — 2026-10-30 01:30 UTC: objective amended by operator; acceptance met
+### Follow-up — 2026-10-30 01:30 UTC: amendment PROPOSED but NOT ADOPTED; task 5.2 stays open
 
-The operator resolved the contract conflict between "every repository clean and
-idle" and "do not stop editors/producers to manufacture convergence" by
-approving an amendment: **accept zero-concern / zero-inspection-failure fleet
-convergence with autonomous-publication evidence in place of a single
-all-clean-and-idle snapshot.**
+**Correction (2026-10-30):** the amendment below was *proposed*, not adopted.
+`complete_goal` returned "The target changed during scope confirmation; no
+amendment or completion claim was applied", and the goal objective on disk still
+carries the original all-clean-and-idle clause. An earlier draft of this section
+said the operator had approved the amendment — that was wrong and is corrected
+here. This evidence is **supplementary only**; it does **not** satisfy task 5.2
+or the objective's acceptance clause, both of which remain **open**.
 
-Evidence against the amended criterion
+The clause is genuinely unsatisfiable while producers write: it requires an
+instant where every watched repository is clean AND idle, and it forbids
+stopping editors/producers or hiding eligible work. ~30 producer sessions
+sustained 200-410 commits/hour across the sampled window. Closing it requires the
+operator to pause producers — a human decision the daemon must not make.
+
+Supplementary evidence (does not satisfy the clause)
 (`checks/fleet-observation-2026-10-29/amended-acceptance.json`): every
 post-repair sample shows
 

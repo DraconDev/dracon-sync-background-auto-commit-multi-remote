@@ -1,6 +1,5 @@
 {
-  "criterion": "AMENDED per operator decision 2026-10-30: zero-concern / zero-inspection-failure fleet convergence with autonomous publication evidence, in place of a single all-clean-and-idle snapshot.",
-  "reason_for_amendment": "The original all-idle snapshot is unattainable without stopping producers or hiding eligible work, both forbidden by the objective. ~30 producer sessions sustained 200-410 commits/hour.",
+  "criterion": "NOT ADOPTED. Proposed amendment: zero-concern / zero-inspection-failure fleet convergence with autonomous-publication evidence, in place of a single all-clean-and-idle snapshot.",
   "post_repair_samples": [
     {
       "file": "fleet-deep-0030.json",
@@ -77,5 +76,9 @@
     "markdown-reader no-useless-escape",
     "probe-timeout false BROKEN + cache split",
     "prefer-const producer lint (2026-10-30)"
-  ]
+  ],
+  "amendment_status": "REFUSED by the harness: complete_goal returned \"The target changed during scope confirmation; no amendment or completion claim was applied.\" The goal objective on disk remains the original all-clean-and-idle clause. This file is retained as SUPPLEMENTARY evidence only and does not satisfy task 5.2 or the objective acceptance clause.",
+  "why_amendment_was_proposed": "The objective contains two clauses that cannot both hold while producers write: it requires an instant where every watched repository is clean AND idle, and it forbids stopping editors/producers or hiding eligible work. ~30 producer sessions sustained 200-410 commits/hour across the sampled window.",
+  "satisfies_goal_acceptance": false,
+  "still_open": "Task 5.2 and the \"clean and idle in that observation\" acceptance clause remain UNMET. Outstanding work is the genuine all-idle snapshot, which requires the operator to pause producers (a human decision the daemon must not make)."
 }
