@@ -25,6 +25,14 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def digest_or_none(path):
+    """Digest that treats unreadable /proc entries as 'not yet ready'."""
+    try:
+        return digest(path)
+    except (FileNotFoundError, PermissionError, ProcessLookupError):
+        return None
+
+
 def git(*args):
     return subprocess.check_output([GIT, *args], text=True).strip()
 
@@ -113,7 +121,7 @@ try:
         new_pid = pid()
         if new_pid > 0 and new_pid != old_pid:
             try:
-                if digest(f'/proc/{new_pid}/exe') == expected:
+                if digest_or_none(f'/proc/{new_pid}/exe') == expected:
                     result.update({
                         'new_pid': new_pid,
                         'loaded_sha256': expected,
