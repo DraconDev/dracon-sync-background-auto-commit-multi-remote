@@ -7,6 +7,11 @@ use tokio::time::Instant;
 #[path = "unmerged_epoch.rs"]
 mod unmerged;
 
+/// Bounded wall clock for the duplication proof on the release path. Verifying a
+/// multi-gigabyte pack means reading its index and hashing members, so this is
+/// generous but finite; a timeout preserves the spool rather than guessing.
+const SPOOL_RELEASE_TIMEOUT_SECS: u64 = 180;
+
 pub(super) async fn reconcile_unmerged(
     repo: &Path,
     enabled: bool,
@@ -693,11 +698,41 @@ impl Epoch {
                     );
                     Ok(true)
                 } else {
+                    // A deadline is not a refusal: nothing was rejected, and the
+                    // next epoch re-stages the same worktree from the same files.
+                    // Holding a multi-gigabyte spool "for diagnosis" is what let
+                    // the spools reach ~15 GiB. Release only when the contents are
+                    // provably preserved elsewhere (already in the object database,
+                    // or rescued into a verified pack); otherwise keep it.
+                    self.release_spool_if_lossless(repo).await;
                     Err(error)
                         .context("staged epoch deadline expired; ref outcome may require inspection")
                 }
             }
         }
+    }
+
+    /// Drop the retained spool if, and only if, nothing it holds can be lost.
+    ///
+    /// Delegates to the same predicate the daemon sweep uses, so the deadline
+    /// path cannot invent a second, weaker definition of "safe to delete".
+    async fn release_spool_if_lossless(&mut self, repo: &Path) {
+        // Conflict recovery retains original stages which need not be in the
+        // selected commit. Never discard that evidence on this path either.
+        if self
+            .retained
+            .as_ref()
+            .is_some_and(|path| path.join("original-index").exists() || path.join("preserve-rejected").exists())
+        {
+            return;
+        }
+        let Some(path) = self.retained.clone() else { return };
+        if !crate::git::reclaim_spool_if_lossless(repo, &path, SPOOL_RELEASE_TIMEOUT_SECS).await {
+            return;
+        }
+        // The directory is already gone; drop the references without re-removing.
+        self.retained = None;
+        self.spool_lease = crate::git::SpoolLease::new(None);
     }
 }
 

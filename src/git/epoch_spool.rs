@@ -88,39 +88,70 @@ pub(crate) async fn reap_abandoned_spools(
     let timeout = op_timeout_secs.clamp(30, 600);
     let mut reaped = 0;
     for spool in candidates.into_iter().take(MAX_SPOOLS_PER_PASS) {
-        // A refusal or conflict payload is deliberate diagnostic evidence. Both
-        // markers exist for exactly this purpose and no proof overrides them.
-        if spool.join("preserve-rejected").exists() || spool.join("original-index").exists() {
-            continue;
-        }
-        match classify_spool(repo, &spool, timeout).await {
-            Verdict::Duplicate => {
-                let before = directory_bytes(&spool);
-                if std::fs::remove_dir_all(&spool).is_ok() {
-                    reaped += 1;
-                    eprintln!(
-                        "♻️  {}: reaped duplicate epoch spool {} ({})",
-                        repo.display(),
-                        spool.display(),
-                        human_bytes(before)
-                    );
-                }
-            }
-            Verdict::Unique(unique) => {
-                if rescue_and_remove(repo, &gitdir, &spool, &unique, timeout).await {
-                    reaped += 1;
-                }
-            }
-            Verdict::Unreadable => {
-                eprintln!(
-                    "⚠️  {}: epoch spool {} could not be verified; preserved",
-                    repo.display(),
-                    spool.display()
-                );
-            }
+        if reclaim_spool_if_lossless(repo, &spool, timeout).await {
+            reaped += 1;
         }
     }
     reaped
+}
+
+/// Reclaim one spool when, and only when, nothing it holds can be lost.
+///
+/// Shared by the daemon sweep and by the settled-unpublished release path, so
+/// there is exactly one place where "safe to delete" is decided.
+///
+/// Returns true only when the spool directory is gone.
+pub(crate) async fn reclaim_spool_if_lossless(repo: &Path, spool: &Path, timeout: u64) -> bool {
+    // A refusal or conflict payload is deliberate diagnostic evidence. Both
+    // markers exist for exactly this purpose and no proof overrides them.
+    if spool.join("preserve-rejected").exists() || spool.join("original-index").exists() {
+        return false;
+    }
+    // Never trust the spool's own index: it is a derived artifact and a stale or
+    // truncated one must not make a spool look smaller than it is. Copy the packs
+    // out and rebuild each index from the pack bytes first.
+    let Some(source) = prepare_object_dir(spool, timeout).await else {
+        eprintln!(
+            "⚠️  {}: epoch spool {} could not be read; preserved",
+            repo.display(),
+            spool.display()
+        );
+        return false;
+    };
+    let verdict = classify_spool(repo, &source, timeout).await;
+    let reclaimed = match verdict {
+        Verdict::Duplicate => {
+            let before = directory_bytes(spool);
+            if std::fs::remove_dir_all(spool).is_ok() {
+                eprintln!(
+                    "♻️  {}: reaped duplicate epoch spool {} ({})",
+                    repo.display(),
+                    spool.display(),
+                    human_bytes(before)
+                );
+                true
+            } else {
+                false
+            }
+        }
+        Verdict::Unique(unique) => {
+            let gitdir = spool.parent().map(|parent| parent.to_path_buf());
+            match gitdir {
+                Some(gitdir) => rescue_and_remove(repo, &gitdir, spool, &unique, &source, timeout).await,
+                None => false,
+            }
+        }
+        Verdict::Unreadable => {
+            eprintln!(
+                "⚠️  {}: epoch spool {} could not be verified; preserved",
+                repo.display(),
+                spool.display()
+            );
+            false
+        }
+    };
+    let _ = std::fs::remove_dir_all(&source);
+    reclaimed
 }
 
 /// Report retained directories. `apply` deliberately refuses destructive
@@ -181,15 +212,15 @@ fn spool_candidates(gitdir: &Path, floor: std::time::Duration) -> Vec<PathBuf> {
 }
 
 /// Compare a spool's packs against the repository object database.
-async fn classify_spool(repo: &Path, spool: &Path, timeout: u64) -> Verdict {
-    let packs = retained_packs(spool);
+async fn classify_spool(repo: &Path, source: &Path, timeout: u64) -> Verdict {
+    let packs = rebuilt_packs(source);
     if packs.is_empty() {
         // No pack means the spool never wrote objects of its own: everything it
         // references lives in the main object database by construction, so there
         // is nothing here that only exists here.
         return Verdict::Duplicate;
     }
-    let Some(objects) = pack_objects(repo, &packs, timeout).await else {
+    let Some(objects) = pack_objects(source, &packs, timeout).await else {
         return Verdict::Unreadable;
     };
     // The pack header states how many objects the file contains. If enumeration
@@ -250,13 +281,14 @@ async fn rescue_and_remove(
     gitdir: &Path,
     spool: &Path,
     unique: &[(String, u64)],
+    source: &Path,
     timeout: u64,
 ) -> bool {
     let rescue_dir = gitdir.join(RESCUE_DIR);
     if std::fs::create_dir_all(&rescue_dir).is_err() {
         return false;
     }
-    let Some(alternates) = alternates_for(spool) else { return false };
+    let alternates = source.to_path_buf();
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -283,7 +315,6 @@ async fn rescue_and_remove(
     else {
         return false;
     };
-    eprintln!("DEBUG rescue: unique={} input_lines={} stdout_bytes={} status={}", unique.len(), input.lines().count(), output.stdout.len(), output.status);
     if !output.status.success() || output.stdout.is_empty() {
         return false;
     }
@@ -409,36 +440,63 @@ async fn verify_rescue(
     all_ok
 }
 
-/// A temporary object directory exposing the spool's own packs to git.
-fn alternates_for(spool: &Path) -> Option<PathBuf> {
+/// Copy the spool's packs into a scratch object directory and REBUILD each
+/// index from the pack bytes.
+///
+/// The spool ships its own `.idx`, and that index is a derived artifact: a stale
+/// or truncated one can make a pack appear to hold fewer objects than it does,
+/// which would turn "everything is already published" into a false proof and
+/// delete the only copy of whatever the index forgot. Rebuilding from the bytes
+/// removes the trust. The caller removes the directory afterwards.
+async fn prepare_object_dir(spool: &Path, timeout: u64) -> Option<PathBuf> {
     let packs = retained_packs(spool);
     if packs.is_empty() {
         return None;
     }
     let root = std::env::temp_dir().join(format!(
-        "dracon-spool-alt-{}-{}",
+        "dracon-spool-src-{}-{}",
         std::process::id(),
         spool.file_name().and_then(|n| n.to_str()).unwrap_or("spool")
     ));
     let pack_dir = root.join("pack");
     std::fs::create_dir_all(&pack_dir).ok()?;
-    for pack in packs {
-        let name = pack.file_name()?.to_str()?.to_string();
-        std::fs::copy(&pack, pack_dir.join(&name)).ok()?;
-        let idx = pack.with_extension("idx");
-        if idx.exists() {
-            let idx_name = idx.file_name()?.to_str()?.to_string();
-            std::fs::copy(&idx, pack_dir.join(idx_name)).ok()?;
+    for (position, pack) in packs.iter().enumerate() {
+        let target = pack_dir.join(format!("pack-{position}.pack"));
+        std::fs::copy(pack, &target).ok()?;
+        let mut index = clean_git_command();
+        index.args(["index-pack"]).arg(&target).current_dir(&pack_dir);
+        let indexed = crate::git::run_command_captured_output(
+            index.into_tokio(),
+            timeout,
+            "spool index rebuild",
+            None,
+        )
+        .await
+        .ok()?;
+        if !indexed.status.success() {
+            let _ = std::fs::remove_dir_all(&root);
+            return None;
         }
+        // index-pack names its output after the pack checksum; normalise so the
+        // object directory scan finds `pack-*.pack` with a matching `.idx`.
+        let checksum = String::from_utf8_lossy(&indexed.stdout).trim().to_string();
+        if checksum.len() != 40 || !checksum.bytes().all(|b| b.is_ascii_hexdigit()) {
+            let _ = std::fs::remove_dir_all(&root);
+            return None;
+        }
+        let canonical = pack_dir.join(format!("pack-{checksum}.pack"));
+        std::fs::rename(&target, &canonical).ok()?;
+        std::fs::rename(target.with_extension("idx"), canonical.with_extension("idx")).ok()?;
     }
     Some(root)
 }
 
 /// Object count from a pack's own header (bytes 8..12, big-endian).
 ///
-/// Read from the file rather than the index on purpose: the index is a derived
-/// artifact, and a stale or truncated one must not be able to make a spool look
-/// smaller than it is.
+/// Read from the file rather than from any index on purpose: the index is a
+/// derived artifact, and a listing that disagrees with the pack's own header is
+/// incomplete. An incomplete listing must never authorize deletion, because the
+/// unlisted object could be the only surviving copy.
 fn declared_objects(pack: &Path) -> Option<u64> {
     use std::io::Read;
     let mut header = [0u8; 12];
@@ -447,6 +505,19 @@ fn declared_objects(pack: &Path) -> Option<u64> {
         return None;
     }
     Some(u32::from_be_bytes([header[8], header[9], header[10], header[11]]) as u64)
+}
+
+/// The rebuilt packs inside a prepared object directory.
+fn rebuilt_packs(source: &Path) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(source.join("pack")) else { return Vec::new() };
+    entries
+        .flatten()
+        .filter_map(|entry| {
+            let path = entry.path();
+            let name = path.file_name()?.to_str()?;
+            (name.starts_with("pack-") && name.ends_with(".pack")).then_some(path)
+        })
+        .collect()
 }
 
 fn retained_packs(spool: &Path) -> Vec<PathBuf> {
@@ -475,7 +546,10 @@ async fn pack_objects(repo: &Path, packs: &[PathBuf], timeout: u64) -> Option<BT
     let text = std::str::from_utf8(&output.stdout).ok()?;
     let mut objects = BTreeMap::new();
     for line in text.lines() {
-        let mut fields = line.split(' ');
+        // verify-pack aligns its columns with runs of spaces, so a single-space
+        // split silently drops every padded row — exactly the kind of partial
+        // listing that must never authorize deletion.
+        let mut fields = line.split_whitespace();
         let (Some(oid), Some(_kind), Some(size)) = (fields.next(), fields.next(), fields.next()) else {
             continue;
         };
@@ -702,22 +776,6 @@ mod tests {
 
         let spool = spool_with_pack(&gitdir, "dracon-staging-uniq", &pack);
         backdate(&spool);
-        {
-            let orig = run_git(&repo, &["verify-pack", "-v", pack.to_str().unwrap()]);
-            let sp = spool.join("retained-uniq.pack");
-            let spooled = run_git(&repo, &["verify-pack", "-v", sp.to_str().unwrap()]);
-            let sizes: Vec<String> = std::fs::read_dir(&spool).unwrap().flatten()
-                .map(|e| format!("{}={}", e.file_name().to_string_lossy(), e.metadata().map(|m| m.len()).unwrap_or(0)))
-                .collect();
-            panic!("DEBUG unique={:?}\n orig_bytes={} orig={}\n spool_bytes={} spool={}\n files={:?}",
-                unique,
-                std::fs::metadata(&pack).map(|m| m.len()).unwrap_or(0),
-                String::from_utf8_lossy(&orig.stdout),
-                std::fs::metadata(&sp).map(|m| m.len()).unwrap_or(0),
-                String::from_utf8_lossy(&spooled.stdout),
-                sizes);
-        }
-
         assert_eq!(reap_abandoned_spools(&repo, 1, 60).await, 1);
         assert!(!spool.exists(), "rescued spool must be reclaimed after the rescue verifies");
 
