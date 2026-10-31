@@ -96,6 +96,19 @@ push_op_timeout_secs = 300
 # disk or pushable high-water headroom. `git count-objects -v` field `size`.
 # Default: 67108864 (64 MiB); 0 disables only the loose-object trigger.
 #auto_gc_loose_threshold_bytes = 67108864
+# Repack when PACKED storage (`git count-objects -v` field `size-pack`) has
+# grown past the size recorded after the last successful gc by this many
+# bytes. This is the only trigger that can see UNREACHABLE OBJECTS HELD
+# INSIDE A PACK: `size-garbage` counts only loose unreachable objects and
+# `size` counts loose objects at all, so that class reports garbage=0 and
+# loose=0 and trips neither trigger above. Observed 2026-10-31:
+# dracon-platform carried 6.53 GiB of unreachable pre-slim content inside
+# its packs with both counters at zero, and had not been gc-ed in 7 days.
+# Runs plain `git gc`, so Git's two-week prune grace is retained and no
+# recoverable work is lost. No baseline (fresh daemon start) leaves the
+# trigger DISARMED rather than comparing against a pre-gc figure.
+# Default: 1073741824 (1 GiB); 0 disables only this trigger.
+#auto_gc_pack_growth_bytes = 1073741824
 # When true (v0.113.10, default false), a daily per-repo janitor pass reaps
 # stale DAEMON-CREATED branches (`backup/pre-sync-largeblob-fix-*`,
 # `daemon-standalone`) and orphaned remote-tracking refs
