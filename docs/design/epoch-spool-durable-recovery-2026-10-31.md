@@ -42,6 +42,18 @@ Use stable source snapshots only to build the recovery transaction. Persist a co
 
 `cargo test --locked -p dracon-sync --bin dracon-sync epoch_spool::ownership` passed five tests after extracting the ownership protocol into `src/git/epoch_spool_ownership.rs`. These demonstrate missing legacy metadata refusal, a real child holding ownership despite old mtime, lock release on child exit, explicit settled-owner handoff and competing-reclaimer exclusion, and replaced-lock/symlink/outside-gitdir rejection. They qualify only that boundary, not destructive reclamation. Descendant lifetime during process death/cancellation remains unresolved: CLOEXEC means a child does not automatically hold its producer's lock.
 
+## Recovery-engine checkpoint
+
+`epoch_spool_recovery.rs` now builds independent template-free bare recovery records, preserving exact supported index/metadata bytes and complete pack/index closure for SHA-1 and SHA-256. It refuses unsupported index dependencies. The disconnected engine returns a receipt and never removes its source. Current records each contain a complete closure pack; sharing to avoid repeated bulk is not yet implemented, and no net-savings claim is justified.
+
+Independent source review found an unjoined-child cleanup race and missing prepublication fault coverage. Follow-up changes give preparation its own owned task, join killed Git plumbing before releasing temporary storage, bound captured output, and impose a caller-side transaction deadline. Cancellation may leave preparation running or a retained record, but cannot authorize source deletion. These controlled bare Git plumbing commands are not general hook/filter execution; the separate producer lifecycle still needs containment.
+
+`cargo test --locked -p dracon-sync --bin dracon-sync epoch_spool::recovery` passed nine tests after these corrections, including real child cancellation retaining temporary storage, post-write corruption before verification, failure before receipt publication, index reconstruction without the original store, overlapping packs and tag/commit closure, SHA-1/SHA-256, and ordinary GC survival. Output: `docs/evidence/epoch-spool-reclaim-2026-10-31/recovery-review-fixes.txt`. This is component evidence, not full workspace, integrated deletion or crash/power-loss qualification.
+
+## Producer-settlement decision
+
+A kernel lock released by a cancelled producer is not a descendant-completion proof. The inspected cancellation helpers currently signal groups without joining a whole family. A disposable host probe confirmed that a transient user service with `ExitType=cgroup` remains populated after its leader exits while a `setsid` descendant with closed stdio is alive. Select narrow epoch-only containment, tracked outside request cancellation, plus verified cgroup emptiness before a durable identity-bound settled marker. This is an ordinary descendant-lifetime boundary, not protection against deliberately hostile same-UID cgroup escape. Pending starts, environment fidelity, manager collection races and cancellation settlement still require implementation and fixtures. No daemon stop/pause or configuration change is authorized by this decision.
+
 ## Required qualification
 
 Real-process fixtures must demonstrate old-but-live owner exclusion, owner death and safe release, settled-owner reclaim without self-lock, concurrent reapers, and legacy refusal. Real Git fixtures must demonstrate index/metadata reconstruction, mixed rescue, corruption after pack write preserving the original, unsupported index preservation, ordinary GC survival and failure at each durable-install boundary.
