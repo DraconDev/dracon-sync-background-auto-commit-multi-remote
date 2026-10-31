@@ -841,4 +841,14 @@ test git::auto_gc_tests::count_objects_sizes_are_parsed_as_bytes ... ok
 test git::auto_gc_tests::garbage_trigger_keeps_its_one_hour_cooldown ... ok
 test git::auto_gc_tests::loose_gc_requires_threshold_growth_and_cooldown ... ok
 test git::auto_gc_tests::loose_threshold_runs_gc_and_packs_reachable_objects ... ok
-test git::auto_gc_tests::test_maybe_auto_gc_disabled_and_below_threshold ... 
+test git::auto_gc_tests::test_maybe_auto_gc_disabled_and_below_threshold ... ok
+test git::auto_gc_tests::test_pack_growth_does_not_displace_garbage_or_loose_triggers ... ok
+test git::auto_gc_tests::test_pack_growth_trigger_fires_only_on_real_growth ... ok
+test git::auto_gc_tests::test_parse_count_objects_pack_bytes ... ok
+test git::branch::tests::fenced_checkout_keeps_metadata_writer_out_until_git_hook_closes ... ok
+test git::branch::tests::missing_remote_branch_deletion_is_idempotent ... ok
+test git::branch::tests::test_current_branch_rejects_git_cli_head_string ... ok
+test git::branch::tests::test_old_tracking_from_status_line_handles_missing_marker ... ok
+test git::branch::tests::test_old_tracking_from_status_line_parses_real_ref ... ok
+test git::branch::tests::test_old_tracking_from_status_line_rejects_empty_ref ... ok
+test git::branch::tests::test_repair_broken_tracking_repairs_checked_out_branch ... 
