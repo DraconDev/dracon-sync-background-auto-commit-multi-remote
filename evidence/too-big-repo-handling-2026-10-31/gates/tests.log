@@ -961,4 +961,5 @@ test git::multi_remote::tests::test_push_to_all_remotes_empty_list_returns_empty
 test git::multi_remote::tests::test_push_to_all_remotes_respects_priority_order ... ok
 test git::multi_remote::tests::test_remote_repo_exists_checks_remote_head ... ok
 test git::ops::sigterm_grace_tests::grace_is_long_enough_for_hook_cleanup ... ok
-test git::ops::sigterm_grace_tests::term_ignoring_child_is_still_killed_after_the_grace ... 
+test git::ops::sigterm_grace_tests::term_ignoring_child_is_still_killed_after_the_grace ... ok
+test git::ops::sigterm_grace_tests::trapping_child_gets_the_documented_grace_before_sigkill ... 
