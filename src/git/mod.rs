@@ -4957,6 +4957,16 @@ fn auto_gc_trigger(
     }
 }
 
+fn attempts_for(
+    repo: &std::path::Path,
+) -> std::sync::MutexGuard<'static, std::collections::HashMap<std::path::PathBuf, AutoGcState>> {
+    let _ = repo;
+    AUTO_GC_ATTEMPTS
+        .get_or_init(|| std::sync::Mutex::new(Default::default()))
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+}
+
 static AUTO_GC_ATTEMPTS: std::sync::OnceLock<
     std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, AutoGcState>>,
 > = std::sync::OnceLock::new();
@@ -5126,6 +5136,41 @@ pub(crate) async fn maybe_auto_gc(
     let garbage = parse_count_objects_garbage_bytes(&text);
     let loose = parse_count_objects_loose_bytes(&text);
     let pack = parse_count_objects_pack_bytes(&text);
+    // ARM THE PACK-GROWTH TRIGGER on first observation.
+    //
+    // Without this, a repository that never trips the garbage or loose
+    // triggers would have no post-gc baseline forever, so the growth
+    // trigger could never fire — exactly the case this trigger exists to
+    // catch (a quiet repo accumulating dead objects inside its packs).
+    // Recording the current figure as the baseline costs nothing and does
+    // NOT run a gc: it only makes future growth measurable. No baseline is
+    // ever fabricated from a pre-gc reading.
+    let mut last = last;
+    if pack_growth_threshold_bytes > 0
+        && last.as_ref().and_then(|state| state.pack_bytes_after_gc).is_none()
+    {
+        let armed = match last {
+            Some(state) => AutoGcState {
+                pack_bytes_after_gc: Some(pack),
+                ..state
+            },
+            None => AutoGcState {
+                attempted_at: now,
+                loose_bytes_after_gc: loose,
+                pack_bytes_after_gc: Some(pack),
+                succeeded: true,
+            },
+        };
+        attempts_for(repo).insert(repo.to_path_buf(), armed);
+        if crate::policy::debug_enabled() {
+            eprintln!(
+                "scheduler: auto-gc pack-growth baseline armed repo={} size-pack={} bytes",
+                repo.display(),
+                pack
+            );
+        }
+        last = Some(armed);
+    }
     let trigger = auto_gc_trigger(
         garbage,
         loose,
