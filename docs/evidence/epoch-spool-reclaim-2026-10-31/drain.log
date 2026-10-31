@@ -706,3 +706,5 @@ exit=0
 ♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-HtY84o (0.00 MiB) — it held only an index copy
 {"applied":true,"max_age_secs":3600,"dirs":1134,"bytes":1098965758,"reclaimed":301,"repos":[{"repo":"/home/dracon/.dracon","dirs":2,"bytes":68036},{"repo":"/home/dracon/Dev/dracon-strategy","dirs":82,"bytes":163917881},{"repo":"/home/dracon/Dev/browser-extensions-shared","dirs":12,"bytes":16893672},{"repo":"/home/dracon/Dev/dracon-platform","dirs":382,"bytes":498664597},{"repo":"/home/dracon/Dev/dracon-platform/web/games/wip/deathrun","dirs":2,"bytes":656814},{"repo":"/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner","dirs":29,"bytes":403553},{"repo":"/home/dracon/Dev/dracon-platform/web/games/wip/polis","dirs":382,"bytes":414302215},{"repo":"/home/dracon/Dev/dracon-platform/web/games/wip/doomtap","dirs":243,"bytes":4058990}]}
 exit=0
+
+# Pass 3 — drain the per-pass backlog bound, 2026-10-31T21:18:27+00:00
