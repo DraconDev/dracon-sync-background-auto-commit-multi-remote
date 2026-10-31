@@ -1,3 +1,4 @@
 # Verified drain: applies the duplication/rescue proof fleet-wide
 # started 2026-10-31T20:59:34+00:00
 ⚠️  /home/dracon/.dracon: epoch spool /home/dracon/.dracon/.git/dracon-epoch-message-CsQWf0 could not be read; preserved
+♻️  /home/dracon/.dracon: reaped duplicate epoch spool /home/dracon/.dracon/.git/dracon-staging-7unMBu (0.55 MiB)
