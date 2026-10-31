@@ -12188,6 +12188,22 @@ auto_bump_versions = false
         // pushes the backlog first (mirroring the early filter-only
         // site fix, junk-runner 2026-07-26) while keeping this
         // branch's NothingToDo outcome contract.
+        //
+        // ISOLATED 2026-10-30: this helper drives a REAL push failure, so
+        // without a private state dir it wrote StuckRepoEntry records for
+        // its throwaway `/tmp` repos into the LIVE
+        // `~/.local/state/dracon/dracon-sync-stuck-push-repos.json` ledger.
+        // Observed directly: `dracon-sync repair stuck-list` showed three
+        // `/tmp/.tmp*/filter-only-push-ahead` entries after a test run,
+        // which then poison the operator's real stuck-push view and would
+        // (correctly) block follow-up work in any repo whose path matched.
+        // Same guard as the other push-failure test at the top of this
+        // module; a test must never mutate production state.
+        let state_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
         let tmp = tempfile::tempdir().unwrap();
         let origin_bare = tmp.path().join("origin.git");
         crate::git::git_cmd()
