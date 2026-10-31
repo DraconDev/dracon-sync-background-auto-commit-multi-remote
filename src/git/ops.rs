@@ -1354,7 +1354,7 @@ mod tests {
 #[cfg(test)]
 mod sigterm_grace_tests {
     use super::{run_child_with_progress, SIGTERM_GRACE};
-    use std::time::{Duration, Instant};
+    use std::time::Duration;
 
     fn is_progress(_: &str) -> bool {
         false
@@ -1369,9 +1369,11 @@ mod sigterm_grace_tests {
     async fn trapping_child_gets_the_documented_grace_before_sigkill() {
         let dir = tempfile::tempdir().unwrap();
         let marker = dir.path().join("cleaned");
-        // Trap TERM, spend most of the grace cleaning up, then exit 0.
+        // Cleanup costs 5s: longer than the 2s grace that caused the leak, well
+        // inside the current grace. This is what makes the test discriminate —
+        // at 2s the SIGKILL lands mid-cleanup and the marker is never written.
         let script = format!(
-            "trap 'sleep 1; : > {}; exit 0' TERM; while :; do sleep 0.05; done",
+            "trap 'sleep 5; : > {}; exit 0' TERM; while :; do sleep 0.05; done",
             marker.display()
         );
         let mut cmd = tokio::process::Command::new("sh");
@@ -1379,16 +1381,13 @@ mod sigterm_grace_tests {
         cmd.process_group(0);
         cmd.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
         let child = cmd.spawn().unwrap();
-        let started = Instant::now();
         // 1s idle timeout: the child is killed by kill_process_group, which must
         // then wait SIGTERM_GRACE before escalating.
         let result = run_child_with_progress(child, dir.path(), 1, "grace-test", is_progress).await;
-        let elapsed = started.elapsed();
         assert!(result.is_err(), "a timed-out child reports an error");
-        assert!(
-            elapsed >= SIGTERM_GRACE,
-            "escalated to SIGKILL after {elapsed:?}, before the {SIGTERM_GRACE:?} grace"
-        );
+        // The marker is the discriminator: kill_process_group always sleeps the
+        // full grace before SIGKILL, so a wall-clock assertion proves nothing.
+        // Only a cleanup that outlives a too-short grace reveals the defect.
         assert!(
             marker.exists(),
             "the trap handler never ran, so cleanup was pre-empted by SIGKILL"
