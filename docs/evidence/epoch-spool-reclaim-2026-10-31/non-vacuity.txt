@@ -1,0 +1,6 @@
+# Non-vacuity proof: break the duplicate predicate, show the test notices
+# 2026-10-31T20:50:47+00:00
+
+Baseline sha256 of src/git/epoch_spool.rs: 12f0742aa39581b239ea5e27f850a62f3e2054e0730088f2827e04bfa0611080
+
+## 1. Baseline: the targeted tests pass unmodified
