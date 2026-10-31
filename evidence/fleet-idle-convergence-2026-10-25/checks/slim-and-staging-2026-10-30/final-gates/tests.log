@@ -1163,4 +1163,26 @@ test git::tests::test_diagnose_divergence_remote_purely_behind ... [master (root
  1 file changed, 1 insertion(+)
  create mode 100644 file.txt
 ok
-test git::tests::test_ensure_remote_adds_new ... 
+test git::tests::test_ensure_remote_adds_new ... ok
+test git::tests::test_ensure_remote_idempotent ... ok
+test git::tests::test_ensure_remote_updates_url ... ok
+test git::tests::test_fallback_status_rank_ordering ... ok
+test git::tests::test_fix_orphan_origin_updates_remote_url ... [main (root-commit) ca4eddd] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_fix_orphan_origin_updates_upstream_tracking ... [main (root-commit) 46a354c] init
+ 6 files changed, 165 insertions(+)
+ create mode 100644 bare.git/HEAD
+ create mode 100644 bare.git/config
+ create mode 100755 bare.git/hooks/pre-commit
+ create mode 100755 bare.git/hooks/pre-push
+ create mode 100755 bare.git/hooks/pre-rebase
+ create mode 100644 file.txt
+To /tmp/.tmpfvemcq/bare.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+ok
+test git::tests::test_get_remote_url_nonexistent_remote ... ok
+test git::tests::test_gh_cmd_disables_prompts_without_token ... ok
+test git::tests::test_gh_cmd_uses_configured_pat_and_disables_prompts ... 
