@@ -696,4 +696,13 @@ test daemon::tests::shutdown_drain_settles_when_owned_workers_have_stopped ... o
 test daemon::tests::slow_status_within_execution_budget_can_make_progress ... ok
 test daemon::tests::stalled_worker_retains_exclusive_dispatch_ownership_across_cycles ... ok
 test daemon::tests::test_apply_outcome_push_paused_retains_without_cooldown ... ok
-test daemon::tests::test_apply_outcome_wedge_abort_retains_pause_memory ... 
+test daemon::tests::test_apply_outcome_wedge_abort_retains_pause_memory ... ok
+test daemon::tests::test_classification_backoff_secs_matrix ... ok
+test daemon::tests::test_classification_pending_watchdog_due ... ok
+test daemon::tests::test_classification_result_expired_matrix ... ok
+test daemon::tests::test_commit_only_idle_skip_matrix ... ok
+test daemon::tests::test_configure_publish_upstream_if_missing_adds_github_upstream ... [main (root-commit) c0eb850] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_configure_publish_upstream_if_missing_preserves_existing_upstream ... 
