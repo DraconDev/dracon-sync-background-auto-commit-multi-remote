@@ -308,4 +308,9 @@ test test_generate_master_identity_refuses_dedicated_master_private ... ok
 test test_generate_master_identity_refuses_dedicated_master_public ... ok
 test test_generate_master_identity_refuses_existing_identity ... ignored
 test test_generate_master_identity_refuses_legacy_identity ... ignored
-test test_list_authorized_recipients_rejects_symlink_aliases ... 
+test test_list_authorized_recipients_rejects_symlink_aliases ... ok
+test test_load_repo_key_empty_keys_directory ... ok
+test test_load_repo_key_ignores_arbitrary_master_encrypted_age_blob ... ok
+test test_load_repo_key_machine_key_env_var ... ignored
+test test_load_repo_key_master_identity_success ... ok
+test test_load_repo_key_no_keys_directory ... 
