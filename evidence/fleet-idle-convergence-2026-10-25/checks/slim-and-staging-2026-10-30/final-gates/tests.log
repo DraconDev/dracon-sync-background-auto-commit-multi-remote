@@ -1263,4 +1263,249 @@ test git::tests::test_push_to_named_remote_ssh_fails_https_fallback ... ok
 test git::tests::test_push_to_named_remote_ssh_success ... ok
 test git::tests::test_push_to_named_remote_unsafe_branch_skips_https_fallback ... ok
 test git::tests::test_push_with_retries_both_fail ... ok
-test git::tests::test_push_with_retries_exhausts_retries_and_fails ... 
+test git::tests::test_push_with_retries_exhausts_retries_and_fails ... ok
+test git::tests::test_push_with_retries_includes_stderr_on_failure ... ok
+test git::tests::test_push_with_retries_retries_then_succeeds ... ok
+test git::tests::test_push_with_retries_returns_immediately_on_permanent_rejection ... ok
+test git::tests::test_push_with_retries_skips_fallback_on_permanent_rejection ... ok
+test git::tests::test_push_with_retries_ssh_fails_https_fallback_succeeds ... ok
+test git::tests::test_push_with_retries_ssh_succeeds_no_fallback ... ok
+test git::tests::test_push_with_retries_succeeds_first_attempt ... ok
+test git::tests::test_redact_credentials_for_log ... ok
+test git::tests::test_remove_stale_remotes_idempotent_when_empty ... ok
+test git::tests::test_remove_stale_remotes_preserves_operator_remotes ... ok
+test git::tests::test_remove_stale_remotes_preserves_origin ... ok
+test git::tests::test_remove_stale_remotes_removes_marker_stamped_remote ... ok
+test git::tests::test_remove_stale_remotes_removes_nonkept ... ok
+test git::tests::test_rename_master_to_main_renames_and_deletes_remote_master ... [master (root-commit) 6174f51] init
+ 6 files changed, 165 insertions(+)
+ create mode 100644 bare.git/HEAD
+ create mode 100644 bare.git/config
+ create mode 100755 bare.git/hooks/pre-commit
+ create mode 100755 bare.git/hooks/pre-push
+ create mode 100755 bare.git/hooks/pre-rebase
+ create mode 100644 file.txt
+To /tmp/.tmpNxSIJS/bare.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+ok
+test git::tests::test_restore_paths_reverts_modified_file ... [master (root-commit) 1c1017d] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_run_child_includes_stderr_on_failure ... ok
+test git::tests::test_run_git_with_timeout_env_injects_env_vars ... [master (root-commit) 7d5d7cd] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_run_git_with_timeout_succeeds ... [master (root-commit) 7d5d7cd] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_strip_url_credentials_git_url ... ok
+test git::tests::test_strip_url_credentials_https_with_creds ... ok
+test git::tests::test_strip_url_credentials_https_without_creds ... ok
+test git::tests::test_strip_url_credentials_keeps_at_in_path ... ok
+test git::tests::test_strip_url_credentials_no_credentials ... ok
+test git::tests::test_strip_url_credentials_with_at_sign ... ok
+test git::tests::test_top_level_dir_empty ... ok
+test git::tests::test_top_level_dir_path_with_multiple_slashes ... ok
+test git::tests::test_top_level_dir_simple ... ok
+test git::tests::test_top_level_dir_single_component ... ok
+test git::tests::test_transport_fallback_chains_original_ssh_error ... ok
+test git::tests::test_valid_object_id_accepts_sha1_and_sha256_only ... ok
+test git::tmp_pack_sweep_tests::aged_tmp_pack_is_preserved_without_producer_ownership_proof ... ok
+test git::tmp_pack_sweep_tests::fresh_tmp_pack_survives_because_it_may_still_be_writing ... ok
+test git::tmp_pack_sweep_tests::non_repo_path_is_a_silent_no_op ... ok
+test git::tmp_pack_sweep_tests::real_packs_and_other_object_files_are_never_touched ... ok
+test git::urls::tests::canonical_repository_url_accepts_any_scp_username ... ok
+test git::urls::tests::canonical_repository_url_keeps_distinct_repositories_distinct ... ok
+test git::urls::tests::canonical_repository_url_normalizes_transport_and_suffix ... ok
+test git::urls::tests::canonical_repository_url_parses_scp_style_ipv6_literal ... ok
+test git::write_fence::tests::actual_helper_holds_fence_after_parent_handle_drops_until_final_close ... ok
+test git::write_fence::tests::cancelled_waiter_does_not_survive_or_later_take_the_fence ... ok
+test git::write_fence::tests::deadline_refuses_then_drop_recovers_without_lock_stealing ... ok
+test git::write_fence::tests::inherited_ofd_is_held_but_parent_descriptor_remains_cloexec ... ok
+test git::write_fence::tests::unsafe_or_replaced_namespace_is_refused ... ok
+test nix::tests::test_flake_has_hardcoded_version_false ... ok
+test nix::tests::test_flake_has_hardcoded_version_true ... ok
+test nix::tests::test_has_flake_nix_false_for_no_file ... ok
+test nix::tests::test_has_flake_nix_true_for_file ... ok
+test nix::tests::test_update_flake_version_disk_round_trip ... ok
+test nix::tests::test_update_flake_version_no_change_when_already_current ... ok
+test nix::tests::test_update_version_in_flake_nix_basic ... ok
+test nix::tests::test_update_version_in_flake_nix_multiple_packages ... ok
+test nix::tests::test_update_version_in_flake_nix_no_package_section ... ok
+test nix::tests::test_update_version_in_flake_nix_skips_version_in_comment ... ok
+test nix::tests::test_update_version_in_flake_nix_tiles_style ... ok
+test nix::tests::test_update_version_merged_src_closing_detection ... ok
+test nix::tests::test_update_version_merged_src_style ... ok
+test nix::tests::test_update_version_no_extra_newline ... ok
+test nix::tests::test_update_version_preserves_semicolon ... ok
+test ownership::tests::test_classify_f44_asymmetric_trust_flags_unowned ... ok
+test ownership::tests::test_classify_path_owned_false_override_remains_hard_opt_out ... ok
+test ownership::tests::test_classify_path_owned_untrusted_identity_is_warning_only ... ok
+test ownership::tests::test_classify_per_repo_override_owned ... ok
+test ownership::tests::test_classify_per_repo_override_unowned ... ok
+test ownership::tests::test_classify_trusted_email_matches ... ok
+test ownership::tests::test_classify_trusted_origin_only ... ok
+test ownership::tests::test_classify_unknown_no_signals ... ok
+test ownership::tests::test_classify_unowned_head_author ... ok
+test ownership::tests::test_classify_unowned_origin_url ... ok
+test ownership::tests::test_classify_unowned_user_email ... ok
+test ownership::tests::test_is_trusted_origin_empty_hosts ... ok
+test ownership::tests::test_is_trusted_origin_ssh_schemes ... ok
+test ownership::tests::test_is_trusted_origin_substring ... ok
+test ownership::tests::test_is_trusted_origin_unparseable ... ok
+test ownership::tests::test_label_format ... ok
+test ownership::tests::test_parse_origin_direct ... ok
+test ownership::tests::test_redact_origin_credentials ... ok
+test ownership::tests::test_redact_url_credentials_in_text ... ok
+test ownership::tests::test_signal_read_kills_wedged_git_on_timeout ... ok
+test ownership::tests::test_signal_reads_honor_git_bin_override ... ok
+test policy::override_coverage_dump::dump_field_sets ... ok
+test policy::tests::test_apply_deadline_derived_from_pulse_interval ... ok
+test policy::tests::test_auto_gc_loose_threshold_defaults_and_can_be_disabled ... ok
+test policy::tests::test_auto_harden_with_warden_defaults_true ... ok
+test policy::tests::test_batch_limit_defaults_unlimited_and_positive_values_remain_opt_in ... ok
+test policy::tests::test_build_artifact_cleanup_default_true_and_opt_out ... ok
+test policy::tests::test_debug_enabled ... ok
+test policy::tests::test_debug_enabled_accepts_1 ... ok
+test policy::tests::test_debug_enabled_rejects_empty ... ok
+test policy::tests::test_default_codeberg_public_only_is_true ... ok
+test policy::tests::test_default_exclude_dir_names ... ok
+test policy::tests::test_default_exclude_file_patterns ... ok
+test policy::tests::test_default_inactivity_push_delay_secs ... ok
+test policy::tests::test_default_incident_ledger_max_age_days ... ok
+test policy::tests::test_default_incident_ledger_max_lines ... ok
+test policy::tests::test_default_max_push_blob_bytes ... ok
+test policy::tests::test_default_max_stage_file_bytes ... ok
+test policy::tests::test_default_min_commit_interval_secs_is_5 ... ok
+test policy::tests::test_default_policy_does_not_force_funding_yml ... ok
+test policy::tests::test_default_pull_op_timeout_secs ... ok
+test policy::tests::test_default_pulse_interval ... ok
+test policy::tests::test_default_push_op_timeout_secs ... ok
+test policy::tests::test_default_push_retries ... ok
+test policy::tests::test_default_repair_cooldown_secs ... ok
+test policy::tests::test_default_repo_sync_timeout_secs ... ok
+test policy::tests::test_default_sem_max_concurrent_sync_is_four ... ok
+test policy::tests::test_default_stage_cooldown_secs ... ok
+test policy::tests::test_default_stage_op_timeout_secs ... ok
+test policy::tests::test_default_true ... ok
+test policy::tests::test_default_trusted_authors ... ok
+test policy::tests::test_default_trusted_emails ... ok
+test policy::tests::test_default_trusted_remote_hosts_includes_three_platforms ... ok
+test policy::tests::test_default_untracked_exclude_patterns_is_commit_all_unless_scratch ... ok
+test policy::tests::test_default_untracked_exclude_patterns_preserves_intentional_content ... ok
+test policy::tests::test_env_freeze_enabled_accepts_on ... ok
+test policy::tests::test_env_freeze_enabled_accepts_yes ... ok
+test policy::tests::test_env_freeze_enabled_ignores_case ... ok
+test policy::tests::test_env_freeze_enabled_rejects_empty ... ok
+test policy::tests::test_env_freeze_enabled_rejects_false ... ok
+test policy::tests::test_example_toml_matches_policy_defaults ... ok
+test policy::tests::test_expand_tilde_resolves_under_home ... ok
+test policy::tests::test_freeze_marker_paths ... ok
+test policy::tests::test_freeze_marker_paths_includes_dracondir ... ok
+test policy::tests::test_freeze_reason_env_takes_precedence ... ok
+test policy::tests::test_freeze_reason_none_when_not_frozen ... ok
+test policy::tests::test_freeze_state_env_case_has_zero_age ... ok
+test policy::tests::test_freeze_state_reads_pause_provenance ... ok
+test policy::tests::test_freeze_state_reports_marker_age ... ok
+test policy::tests::test_git_commands_born_non_interactive ... ok
+test policy::tests::test_git_host_blob_limit ... ok
+test policy::tests::test_license_only_policy_does_not_force_funding_yml ... ok
+test policy::tests::test_load_repo_override_codeberg_public_only_default_none ... ok
+test policy::tests::test_load_repo_override_codeberg_public_only_some_false ... ok
+test policy::tests::test_load_repo_override_codeberg_public_only_some_true ... ok
+test policy::tests::test_load_repo_override_exclude_remotes ... ok
+test policy::tests::test_load_repo_override_exclude_remotes_default_empty ... ok
+test policy::tests::test_load_repo_override_flags_parse_error ... ok
+test policy::tests::test_load_repo_override_intentional_no_upstream ... ok
+test policy::tests::test_load_repo_override_intentional_no_upstream_default_false ... ok
+test policy::tests::test_load_repo_override_nonexistent ... ok
+test policy::tests::test_removed_settling_knobs_are_ignored_by_parser ... ok
+test policy::tests::test_repo_auto_repair_disabled_on_parse_error ... ok
+test policy::tests::test_repo_auto_repair_enabled_merge ... ok
+test policy::tests::test_repo_override_auto_repair_concerns_round_trip ... ok
+test policy::tests::test_repo_override_build_artifact_cleanup_round_trip ... ok
+test policy::tests::test_repo_override_consumed_in_production_tripwire ... ok
+test policy::tests::test_repo_override_field_coverage_tripwire ... ok
+test policy::tests::test_repo_override_missing_new_fields_defaults_none ... ok
+test policy::tests::test_repo_override_parses_new_fields ... ok
+test policy::tests::test_repo_policy_override_default ... ok
+test policy::tests::test_resolve_policy_path_env_override ... ok
+test policy::tests::test_resolve_push_url_account_only ... ok
+test policy::tests::test_resolve_push_url_no_template ... ok
+test policy::tests::test_resolve_push_url_template_substitution ... ok
+test policy::tests::test_resolve_push_url_with_name_mapping ... ok
+test policy::tests::test_resolve_repo_name_with_mapping ... ok
+test policy::tests::test_resolve_repo_name_without_mapping ... ok
+test policy::tests::test_standard_files_auto_default_true ... ok
+test policy::tests::test_standard_files_auto_explicit_true ... ok
+test policy::tests::test_standard_files_default_empty ... ok
+test policy::tests::test_standard_files_empty ... ok
+test policy::tests::test_standard_files_funding_yml_github_subdir_long_form ... ok
+test policy::tests::test_standard_files_long_form ... ok
+test policy::tests::test_standard_files_mixed_form ... ok
+test policy::tests::test_standard_files_short_form ... ok
+test policy::tests::test_standard_files_short_form_funding_yml ... ok
+test policy::tests::test_sync_policy_codeberg_public_only_explicit_false ... ok
+test policy::tests::test_sync_policy_codeberg_public_only_field_default_true ... ok
+test policy::tests::test_sync_policy_defaults_produce_valid_values ... ok
+test policy::tests::test_sync_policy_watch_roots_filters_nonexistent ... ok
+test policy::tests::test_test_sync_policy_has_new_fields ... ok
+test policy::tests::test_timestamp_secs_returns_increasing_values ... ok
+test policy::tests::test_timestamp_secs_returns_reasonable_value ... ok
+test policy::tests::test_validate_config_empty_auto_create_account_is_silent ... ok
+test policy::tests::test_validate_config_empty_remote_push_url ... ok
+test policy::tests::test_validate_config_invalid_webhook_url ... ok
+test policy::tests::test_validate_config_missing_watch_root ... ok
+test policy::tests::test_validate_config_no_watch_roots_error ... ok
+test policy::tests::test_validate_config_rejects_absolute_source_in_standard_files ... ok
+test policy::tests::test_validate_config_rejects_parent_dir_source_in_standard_files ... ok
+test policy::tests::test_validate_config_rejects_path_traversal_in_standard_files ... ok
+test policy::tests::test_validate_config_rejects_root_equivalent_standard_file_targets ... ok
+test policy::tests::test_validate_config_valid_policy ... ok
+test policy::tests::test_validate_config_warns_on_no_remotes ... ok
+test policy::tests::test_validate_config_warns_on_short_stage_cooldown_and_timeouts ... ok
+test policy::tests::test_validate_toml_field_ordering_ok_with_all_fields_before_sections ... ok
+test policy::tests::test_validate_toml_field_ordering_warns_on_post_section_fields ... ok
+test print::tests::format_bytes_gib ... ok
+test print::tests::format_bytes_kib ... ok
+test print::tests::format_bytes_mib ... ok
+test print::tests::format_bytes_under_kib ... ok
+test print::tests::format_bytes_zero ... ok
+test print::tests::format_secs_units ... ok
+test print::tests::no_color_disables ... ok
+test release::pypi_version_parser_tests::pep621_project_version_is_read ... ok
+test release::pypi_version_parser_tests::poetry_tool_table_version_is_read ... ok
+test release::pypi_version_parser_tests::single_quoted_and_bare_values_are_rejected ... ok
+test release::pypi_version_parser_tests::trailing_inline_comment_is_stripped ... ok
+test release::pypi_version_parser_tests::version_file_key_is_not_mistaken_for_version ... ok
+test release::pypi_version_parser_tests::version_inside_a_multiline_string_is_ignored ... ok
+test release::pypi_version_parser_tests::version_outside_a_legal_table_is_ignored ... ok
+test release::tests::test_create_github_release_uses_configured_pat_without_prompt ... ok
+test release::tests::test_detect_project_version_cargo_takes_priority_over_version_txt ... ok
+test release::tests::test_detect_project_version_pubspec_yaml ... ok
+test release::tests::test_detect_project_version_rust ... ok
+test release::tests::test_detect_project_version_unknown ... ok
+test release::tests::test_detect_project_version_version_file ... ok
+test release::tests::test_detect_project_version_version_txt ... ok
+test release::tests::test_extract_package_name_cargo ... ok
+test release::tests::test_extract_package_name_npm ... ok
+test release::tests::test_extract_package_name_pypi ... ok
+test release::tests::test_extract_repo_name_from_https_url ... ok
+test release::tests::test_extract_repo_name_from_ssh_url ... ok
+test release::tests::test_extract_repo_name_from_ssh_url_with_port ... ok
+test release::tests::test_publish_registry_as_str ... ok
+test release::tests::test_publish_registry_default ... ok
+test release::tests::test_read_cargo_version ... ok
+test release::tests::test_read_npm_version ... ok
+test release::tests::test_release_pipeline_no_release_on_minor_even_if_auto_release_true ... ok
+test release::tests::test_release_pipeline_no_tag_when_auto_tag_false ... ok
+test release::tests::test_release_pipeline_release_on_major_when_auto_release_true ... ok
+test release::tests::test_release_pipeline_tag_only_when_auto_tag_true ... ok
+test release::tests::test_release_step_skipped_display ... ok
+test report::codeberg_public_only_tests::effective_does_not_exclude_codeberg_when_public ... ok
+test report::codeberg_public_only_tests::effective_excludes_codeberg_when_private ... ok
+test report::codeberg_public_only_tests::effective_excludes_codeberg_when_visibility_unknown_safe_default ... 
