@@ -871,6 +871,35 @@ mod tests {
         }
     }
 
+    /// A spool that never wrote a pack holds only an index copy, so it can be
+    /// reaped — but only while it really has no subdirectory that could keep
+    /// loose objects.
+    #[tokio::test]
+    async fn packless_spool_is_reaped_unless_it_has_a_subdirectory() {
+        let root = tempfile::tempdir().unwrap();
+        let repo = repo_with_commit(root.path());
+        let gitdir = absolute_git_dir(&repo).await.unwrap();
+
+        let plain = gitdir.join("dracon-staging-packless");
+        std::fs::create_dir_all(&plain).unwrap();
+        std::fs::write(plain.join("index"), b"only an index copy").unwrap();
+        backdate(&plain);
+
+        let guarded = gitdir.join("dracon-staging-hassubdir");
+        std::fs::create_dir_all(guarded.join("ab")).unwrap();
+        std::fs::write(guarded.join("index"), b"index plus something").unwrap();
+        std::fs::write(guarded.join("ab").join("cdef"), b"a loose object?").unwrap();
+        backdate(&guarded);
+
+        // Only the plain one may go; a subdirectory means objects might live here.
+        assert_eq!(reap_abandoned_spools(&repo, 1, 60).await, 1);
+        assert!(!plain.exists(), "a packless spool with no subdirectory must be reaped");
+        assert!(
+            guarded.exists(),
+            "a spool with a subdirectory must not be reaped as packless"
+        );
+    }
+
     /// The age floor still protects an in-flight spool.
     #[tokio::test]
     async fn fresh_spool_is_protected_by_the_age_floor() {
