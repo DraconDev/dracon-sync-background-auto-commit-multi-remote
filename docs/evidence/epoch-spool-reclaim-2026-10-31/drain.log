@@ -708,3 +708,414 @@ exit=0
 exit=0
 
 # Pass 3 — drain the per-pass backlog bound, 2026-10-31T21:18:27+00:00
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-pdtnwo (1.99 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-qNXRO3 (2.01 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-qt4TJR (2.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-rukJv0 (2.01 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-sbinud (2.01 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-syovkp (2.01 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped duplicate epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-uZIV3K (2.01 MiB)
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-vgrAqC (2.01 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-vzrI84 (2.01 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-w0Yz4s (2.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-wRh9lc (1.99 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-wzcmh3 (2.01 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-x8tdnn (2.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-xhrdWA (2.01 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-xx3qDN (1.99 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-yYCzF6 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-zAbqbx (2.01 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-strategy: reaped packless epoch spool /home/dracon/Dev/dracon-strategy/.git/dracon-staging-ztSbhi (2.01 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/browser-extensions-shared: reaped duplicate epoch spool /home/dracon/Dev/browser-extensions-shared/.git/dracon-staging-QAequz (1.68 MiB)
+♻️  /home/dracon/Dev/browser-extensions-shared: reaped duplicate epoch spool /home/dracon/Dev/browser-extensions-shared/.git/dracon-staging-gBfStA (1.75 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-Wox5g5 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-X2WfHW (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-YxfGe0 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-ZUKg5u (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-bGptpl (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-bQV957 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-bph3X8 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-cSGFYV (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-cXw41Y (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-d3dKBc (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-eNmaEv (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-fAKF43 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-fCQg8Z (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-fLR87S (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-fMSSxm (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-gGDTmD (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-hOrb6e (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-hpKNSn (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-jhOUC4 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-ktYvpW (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-ku8soN (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-ky0wGD (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-l5mNx8 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-nFCBn2 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-nocPP7 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-pZwuCh (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-pjRT1P (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-qcIgR9 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-qmD7Kx (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-r7W9eI (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-rNDxQ6 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-stVGoV (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-tXgVev (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-uUICgE (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-v3DSc4 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-v5BdUR (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-vLAdbE (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-vX0J0P (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-wdyyQJ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-xAiiEq (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-xIEm8w (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-xR6c5r (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-yAH1fo (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-yssQhw (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-epoch-message-zKhQbS (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-0HNFed (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-0RrxTs (1.75 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-0VNke6 (1.79 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-1N3nQk (1.68 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-1PzUsh (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-1hiYZx (1.73 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-2Xy8YC (1.76 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-2aXSsO (1.69 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-2nKwFw (1.69 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-38lS5d (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-3FXPt2 (1.76 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-3dJ2TH (1.99 MiB)
+♻️  /home/dracon/Dev/dracon-platform: rescued 4 unique object(s) from epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-3fUQ46 (1.77 MiB) into /home/dracon/Dev/dracon-platform/.git/dracon-rescue/pack-71370494e07faaed0d241ad0ee6b1bdfd74d20b5.pack (0.01 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-4qLygF (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-5Z3Qfm (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-67ZdQR (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-6QRrIR (1.67 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-6eE3ol (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-6mmU8Z (1.69 MiB)
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-AHTngR (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-ASeM34 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-BZBqyB (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Bfcj0Y (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-BhtZfE (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-BjKTbF (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Bv85rJ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-BxA28M (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-C4z7ZV (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-CCHx41 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-CUadrp (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-CXHsCu (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Ch3GBr (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Chiiv4 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-CoY7Xs (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-D2xop7 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-DFMeCG (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-DFmpDW (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-DGEr26 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-DMup2H (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-DRXgXF (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-DcfxGb (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-E8JSHV (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-EfQtqY (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-F80j44 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-FCs6ol (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-FUrsOo (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-G4acWq (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-G8unzv (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-GM8uAv (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-H4YI2W (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-HJ6ZKx (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-HhscRT (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-HkOkzw (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-HnjTnu (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-I88zFQ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-IF0k7G (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-IIBgxY (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-ITvA6r (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-IZOsFL (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-IlkbNf (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-IniYGS (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-IpO9lP (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-IpUGFW (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-IqZL1K (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-IqcZqL (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-IuwjHC (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-JBJiJg (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-JJCXQb (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Jejff8 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-K2mYTO (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-K4syS7 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-KEOKGi (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-KL2ffL (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-KNP8e9 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-KRkm10 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-KiFV8K (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-KndbvA (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-L1GjFX (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-L55zsV (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-LBj837 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-LE2sdO (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Lj2FZp (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-MDalGZ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-IFTKnQ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-IUQ3nJ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-Ix7G8k (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-J1m4jf (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-J6cbK7 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-JM5xZJ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-JTTOZe (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-JjmyxB (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-Joe2yb (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-KBMTue (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-LrMnWv (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-MAugnt (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-MklIlZ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-NPuEUL (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-NpeMdy (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-NsQkVt (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-O3DscJ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-OURuQx (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-Per7By (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-R33rVK (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-R90ua5 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-REJkIv (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-RPGo4y (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-RSDyxk (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-RoVQKP (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-RsYqLs (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-RuaFVe (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-S43xsx (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-Sj7OeT (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-TGm80o (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-TV9kRX (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-TbkYyN (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-TpKNqB (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-TukxfY (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-U7Qyz7 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-UTrSUa (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-UZDV81 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-UaEikF (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-UkGYmc (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-Ume6rT (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-V6tIBf (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-VD6Vt3 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-VF1l90 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-VTTkhI (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-VYJt9a (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-VjlyZx (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-Vka7wl (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-VqGwdo (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-Vqko8B (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-WZ2QFY (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-X84lPa (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-XDPc7x (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-XFkxWz (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-XLtbpK (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-XRin0w (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-Xj67SN (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-YNXSny (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-YUuRam (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-ZMl88w (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-ZfuQpc (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-a3lxOx (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-aXhpEg (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-aa6YFB (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-aaCMpL (0.00 MiB) — it held only an index copy
+{"applied":true,"max_age_secs":3600,"dirs":835,"bytes":956301706,"reclaimed":212,"repos":[{"repo":"/home/dracon/Dev/dracon-strategy","dirs":18,"bytes":35700201},{"repo":"/home/dracon/Dev/browser-extensions-shared","dirs":2,"bytes":3602710},{"repo":"/home/dracon/Dev/dracon-platform","dirs":318,"bytes":498651828},{"repo":"/home/dracon/Dev/dracon-platform/web/games/wip/polis","dirs":318,"bytes":414293829},{"repo":"/home/dracon/Dev/dracon-platform/web/games/wip/doomtap","dirs":179,"bytes":4053138}]}
+
+# Pass 4 — drain the per-pass backlog bound, 2026-10-31T21:18:46+00:00
+♻️  /home/dracon/Dev/browser-extensions-shared: reaped duplicate epoch spool /home/dracon/Dev/browser-extensions-shared/.git/dracon-staging-jQdtpO (1.67 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-6o8rmZ (1.70 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-6sEMZF (1.71 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-6uQJXz (1.84 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-70Ir00 (1.74 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-7EA8SW (1.73 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-7QyzkZ (1.70 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-7STGHK (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-7sO5fv (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-8EUx8y (1.74 MiB)
+♻️  /home/dracon/Dev/dracon-platform: rescued 9 unique object(s) from epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-8GqRw3 (1.82 MiB) into /home/dracon/Dev/dracon-platform/.git/dracon-rescue/pack-f185e44e2106e96cca271686018fb17f25fdee5f.pack (0.01 MiB)
+♻️  /home/dracon/Dev/dracon-platform: rescued 7 unique object(s) from epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-8dRMQb (1.76 MiB) into /home/dracon/Dev/dracon-platform/.git/dracon-rescue/pack-88a608665eff11792babf176a5501dc9baab4a15.pack (0.03 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-8lXH3Q (1.69 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-8sqFds (1.70 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-9Fismm (1.67 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-9He4Kw (1.67 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-9Qz56P (1.76 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-9ZLTi0 (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-9anASq (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: rescued 4 unique object(s) from epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-9qi5ee (1.67 MiB) into /home/dracon/Dev/dracon-platform/.git/dracon-rescue/pack-4277a59de9318de203563a018ecdb58352c7c4b2.pack (0.01 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-9ysaX0 (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-ABIcGW (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-AFPV6m (1.69 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-AJFzsl (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-Ae5Mo8 (1.69 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-Ao0viz (1.73 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-AwUdOO (1.79 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-B2MV97 (1.69 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-B9p7yX (1.69 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-BbCnhx (1.69 MiB)
+♻️  /home/dracon/Dev/dracon-platform: rescued 6 unique object(s) from epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-BqNi6C (1.68 MiB) into /home/dracon/Dev/dracon-platform/.git/dracon-rescue/pack-e9f2a839240aeb2ed847f50f96b65ced0a2fdfc7.pack (0.01 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-Bwp0XQ (1.71 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-CJgTQb (1.82 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-CTYMls (1.68 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-CzRe47 (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-E2h3cl (1.88 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-EELmSN (1.68 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-ESuepO (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-EYzy8m (1.71 MiB)
+♻️  /home/dracon/Dev/dracon-platform: rescued 8 unique object(s) from epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-Eg63cI (1.69 MiB) into /home/dracon/Dev/dracon-platform/.git/dracon-rescue/pack-75367fff433efe75fd75d88823431d1dbbd24b2d.pack (0.01 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-F3upEW (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-H2iMx4 (1.71 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-HHswoY (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-HPZpza (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-HQmzCv (1.70 MiB)
+♻️  /home/dracon/Dev/dracon-platform: rescued 7 unique object(s) from epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-HRIeHF (1.80 MiB) into /home/dracon/Dev/dracon-platform/.git/dracon-rescue/pack-16e23623beb0d3bc20cd36b0efda478f9ea0200b.pack (0.06 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-HemrjO (1.75 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-IF29s6 (1.73 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-IS1zdj (1.71 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-IWrXAp (1.75 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-J1C6IX (1.83 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-JFbVtY (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-JPKycS (1.71 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-Jw5wxi (1.69 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-K3hux8 (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: rescued 2 unique object(s) from epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-K48rZY (1.68 MiB) into /home/dracon/Dev/dracon-platform/.git/dracon-rescue/pack-d8a156f3352652bce2be309bc9abba406a912902.pack (0.01 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-K7lvb0 (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-K9ylyq (1.73 MiB)
+♻️  /home/dracon/Dev/dracon-platform: rescued 9 unique object(s) from epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-KKGY9q (1.87 MiB) into /home/dracon/Dev/dracon-platform/.git/dracon-rescue/pack-17de0964426b0bad814537926b37aec39e75f1fc.pack (0.01 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-Khf6PK (1.79 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-Kp5LC8 (1.76 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-L6cIKp (1.72 MiB)
+♻️  /home/dracon/Dev/dracon-platform: reaped duplicate epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-LI378j (1.70 MiB)
+♻️  /home/dracon/Dev/dracon-platform: rescued 1 unique object(s) from epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-LPL7a6 (1.67 MiB) into /home/dracon/Dev/dracon-platform/.git/dracon-rescue/pack-b8510d52916fb04cbe118288fbeb1a634b935b68.pack (0.00 MiB)
+♻️  /home/dracon/Dev/dracon-platform: rescued 7 unique object(s) from epoch spool /home/dracon/Dev/dracon-platform/.git/dracon-staging-LROA8e (1.76 MiB) into /home/dracon/Dev/dracon-platform/.git/dracon-rescue/pack-88a608665eff11792babf176a5501dc9baab4a15.pack (0.03 MiB)
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-MIAHML (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-MYn3EU (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-MbAoTO (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-MegmlN (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Mf3yvN (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-MgEZIv (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Mi4yCP (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-NGriUD (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-NZ7Xbc (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-NglbfR (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-OESp8b (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-OLK9fv (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-OVEtt7 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Ohdz6p (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Oz0NAx (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-P5ygNd (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-P8I6Jp (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-PPhZom (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-PXIL6n (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-PbquJT (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-PwOfOk (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-QL9WUs (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Qd3Mt4 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-QmTFdC (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-RJbeUo (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-ROM9Tt (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-RSjHyk (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-RYkSgN (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Rlwxwp (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-RwGGOp (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-SUmwlM (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-SV8zas (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-SklDSF (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-SqBcRa (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Su0FAR (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-SvtWoF (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-TIXAc3 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-TQZ8uT (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-TiAVHJ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-TlYSPj (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-TmPiVC (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-TyPVQY (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-U5lLIj (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-UC5qiL (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-UEAn2B (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-UEZmbv (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-UFtm5z (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-UJv2pf (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-UMkkUU (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-UPK62L (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-USz8SA (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-UYw5Hu (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-VN5cPx (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-VRgbxl (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-VU4xGp (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-VmHAP9 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-VvjTcy (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-W1F9yo (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-W2UNHS (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-WP7fe1 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-WPsg77 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-WhAdpt (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-Wxrj25 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/polis: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/dracon-epoch-message-XDkKWg (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-abMIMA (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-abauf5 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-anoqdX (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-b2k20e (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-bJN5n6 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-bRWWrV (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-blWDbv (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-cSUF9n (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-cVqtLo (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-chgDMJ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-ciP8Dz (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-cri6cn (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-d2EwgL (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-dNHeCH (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-dZDCJA (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-dkL2B6 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-dnsTkH (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-eBbwTf (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-eZGpqA (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-eakkJi (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-ebFpXs (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-emvivt (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-f1DUbh (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-gbNQnE (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-gcssgS (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-gfXKoi (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-gv9CJ2 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-gvrNWe (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-h0Jcq3 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-h0R7Wd (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-h2mzYV (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-hLM54B (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-hcTRfG (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-i6g7ke (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-iEU1wJ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-iX3dgQ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-iXEJhy (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-ipFFXj (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-ipoYzz (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-jBcMkM (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-jKP1oL (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-jQEzyB (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-jgovRE (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-jnmraR (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-kYVLTF (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-kenvX3 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-kjvYUk (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-ko5OAk (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-kp4DzI (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-lHo3nE (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-lSKub2 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-lSf7RG (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-lib6sg (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-llU9fa (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-m8yjzQ (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-mdbCq5 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-nHzu5S (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-nm9lKp (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-nvSOJk (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-oFWp4r (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-oGRyxX (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-oqU5E4 (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-pVOrNx (0.00 MiB) — it held only an index copy
+♻️  /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: reaped packless epoch spool /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/dracon-epoch-message-pqKxzN (0.00 MiB) — it held only an index copy
+{"applied":true,"max_age_secs":3600,"dirs":624,"bytes":884092860,"reclaimed":193,"repos":[{"repo":"/home/dracon/Dev/browser-extensions-shared","dirs":1,"bytes":1747086},{"repo":"/home/dracon/Dev/dracon-platform","dirs":254,"bytes":464012469},{"repo":"/home/dracon/Dev/dracon-platform/web/games/wip/polis","dirs":254,"bytes":414286220},{"repo":"/home/dracon/Dev/dracon-platform/web/games/wip/doomtap","dirs":115,"bytes":4047085}]}
+
+# Pass 5 — drain the per-pass backlog bound, 2026-10-31T21:18:58+00:00
