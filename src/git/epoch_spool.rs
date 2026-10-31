@@ -192,6 +192,15 @@ async fn classify_spool(repo: &Path, spool: &Path, timeout: u64) -> Verdict {
     let Some(objects) = pack_objects(repo, &packs, timeout).await else {
         return Verdict::Unreadable;
     };
+    {
+        let mut dbg = clean_git_command();
+        dbg.arg("verify-pack").arg("-v").args(&packs).current_dir(repo);
+        let o = crate::git::run_command_captured_output(dbg.into_tokio(), timeout, "dbg", None).await;
+        if let Ok(o) = o {
+            eprintln!("DEBUG classify packs={:?} parsed={} stdout={} stderr={}",
+                packs, objects.len(), String::from_utf8_lossy(&o.stdout), String::from_utf8_lossy(&o.stderr));
+        }
+    }
     if objects.is_empty() {
         return Verdict::Duplicate;
     }
