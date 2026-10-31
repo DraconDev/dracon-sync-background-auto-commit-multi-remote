@@ -51,6 +51,21 @@ async fn capture<R: tokio::io::AsyncRead + Unpin>(pipe: Option<R>) -> Result<Vec
     Ok(bytes)
 }
 
+async fn join_child(child: &mut tokio::process::Child) -> std::process::ExitStatus {
+    loop {
+        match child.wait().await {
+            Ok(status) => return status,
+            Err(error) => {
+                // No completion proof: keep preparation storage, even if the
+                // caller has already timed out. Never guess that a failed wait
+                // means a process can no longer use its files.
+                eprintln!("recovery child settlement uncertain: {error}");
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+        }
+    }
+}
+
 async fn run(mut c: Command, seconds: u64) -> Result<Vec<u8>> {
     // Keep file-backed stdout intact. Each command here is audited Git plumbing
     // in a template-free bare builder (or read-only rev-parse), not hook/filter
@@ -61,17 +76,19 @@ async fn run(mut c: Command, seconds: u64) -> Result<Vec<u8>> {
     let stderr = tokio::spawn(capture(child.stderr.take()));
     let waited = tokio::time::timeout(
         std::time::Duration::from_secs(seconds),
-        child.wait(),
+        join_child(&mut child),
     ).await;
     let timed_out = waited.is_err();
     let status = match waited {
-        Ok(result) => result?,
+        Ok(status) => status,
         Err(_) => {
             // A pending uninterruptible process retains the preparation task and
             // its temporary storage. The caller's whole-transaction deadline
             // still returns without granting any removal authority.
-            child.start_kill()?;
-            child.wait().await?
+            if let Err(error) = child.start_kill() {
+                eprintln!("recovery child kill request failed; retaining storage until joined: {error}");
+            }
+            join_child(&mut child).await
         }
     };
     let out = stdout.await??;
