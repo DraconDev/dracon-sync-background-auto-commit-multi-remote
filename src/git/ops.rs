@@ -1350,3 +1350,84 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod sigterm_grace_tests {
+    use super::{run_child_with_progress, SIGTERM_GRACE};
+    use std::time::{Duration, Instant};
+
+    fn is_progress(_: &str) -> bool {
+        false
+    }
+
+    /// A child that traps SIGTERM and needs real time to finish cleanup must be
+    /// allowed to complete it. Before 2026-10-31 the grace was 2s and a pre-push
+    /// hook blocked in a synchronous exec was SIGKILLed mid-cleanup, leaving its
+    /// multi-gigabyte snapshot behind.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn trapping_child_gets_the_documented_grace_before_sigkill() {
+        let dir = tempfile::tempdir().unwrap();
+        let marker = dir.path().join("cleaned");
+        // Trap TERM, spend most of the grace cleaning up, then exit 0.
+        let script = format!(
+            "trap 'sleep 1; : > {}; exit 0' TERM; while :; do sleep 0.05; done",
+            marker.display()
+        );
+        let mut cmd = tokio::process::Command::new("sh");
+        cmd.args(["-c", &script]);
+        cmd.process_group(0);
+        cmd.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+        let child = cmd.spawn().unwrap();
+        let started = Instant::now();
+        // 1s idle timeout: the child is killed by kill_process_group, which must
+        // then wait SIGTERM_GRACE before escalating.
+        let result = run_child_with_progress(child, dir.path(), 1, "grace-test", is_progress).await;
+        let elapsed = started.elapsed();
+        assert!(result.is_err(), "a timed-out child reports an error");
+        assert!(
+            elapsed >= SIGTERM_GRACE,
+            "escalated to SIGKILL after {elapsed:?}, before the {SIGTERM_GRACE:?} grace"
+        );
+        assert!(
+            marker.exists(),
+            "the trap handler never ran, so cleanup was pre-empted by SIGKILL"
+        );
+    }
+
+    /// Escalation must still happen: a child that ignores SIGTERM is killed
+    /// rather than leaking forever.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn term_ignoring_child_is_still_killed_after_the_grace() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut cmd = tokio::process::Command::new("sh");
+        cmd.args(["-c", "trap '' TERM; while :; do sleep 0.05; done"]);
+        cmd.process_group(0);
+        cmd.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+        let child = cmd.spawn().unwrap();
+        let pid = child.id();
+        let result = run_child_with_progress(child, dir.path(), 1, "grace-test", is_progress).await;
+        assert!(result.is_err());
+        if let Some(pid) = pid {
+            // The process group must be gone: ESRCH, not a live zombie leader.
+            let alive = std::process::Command::new("kill")
+                .args(["-0", &format!("-{pid}")])
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false);
+            assert!(!alive, "process group {pid} survived SIGKILL escalation");
+        }
+    }
+
+    /// Guard against a future edit that shortens the grace back to a value too
+    /// small for a real hook cleanup.
+    #[test]
+    fn grace_is_long_enough_for_hook_cleanup() {
+        assert!(
+            SIGTERM_GRACE >= Duration::from_secs(10),
+            "SIGTERM grace {SIGTERM_GRACE:?} is too short for a pre-push hook to remove its \
+             multi-gigabyte snapshot; the 2026-10-31 leak happened at 2s"
+        );
+    }
+}
