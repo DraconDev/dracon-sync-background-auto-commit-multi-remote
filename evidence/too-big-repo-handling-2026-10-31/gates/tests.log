@@ -519,4 +519,12 @@ test storage_core::transfer::tests::required_copies_use_retained_bytes_and_resta
 test storage_core::transfer::tests::selected_input_requires_exact_eof_even_for_empty_payloads ... ok
 test storage_core::transfer::tests::transient_readback_failure_retains_exact_payload_and_obeys_backoff ... ok
 test storage_core::worker::tests::captured_version_is_prepared_copied_and_retry_keeps_identity ... ok
-test storage_core::worker::tests::encrypted_preparation_copies_only_approved_representation ... 
+test storage_core::worker::tests::encrypted_preparation_copies_only_approved_representation ... ok
+test storage_core::worker::tests::missing_warden_and_forbidden_class_do_not_prepare_or_upload ... ok
+
+test result: ok. 144 passed; 0 failed; 13 ignored; 0 measured; 0 filtered out; finished in 144.04s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-78eb849c93424a02)
+
+running 1544 tests
+test bucket_assets::tests::daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure ... 
