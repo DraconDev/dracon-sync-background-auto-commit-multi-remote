@@ -136,3 +136,41 @@ never commit at all and `browser-extensions-shared` was six hours behind.
 
 Gates on the final assembly: 44 suites, **2923 passed / 0 failed**, release
 build exit 0, strict Clippy exit 0, `cargo deny` all-ok.
+
+## (e) A test that wrote to production state (found while cleaning up)
+
+Clearing the fleet I found `/tmp/.tmp*/filter-only-push-ahead` entries in the
+**live** push-stuck ledger. They came from
+`sync::tests::assert_index_deferral_publishes_backlog_without_bypassing_hook`,
+which drives a real push failure but did not isolate its state directory, so it
+wrote `StuckRepoEntry` records for its throwaway `/tmp` repos into
+`~/.local/state/dracon/dracon-sync-stuck-push-repos.json`.
+
+That is not cosmetic: a stuck-ledger entry **pauses auto-push for that path**,
+and it pollutes the operator's real `repair stuck-list` view. A test must never
+mutate production state.
+
+Fixed with the same `EnvRestorer` + private `DRACON_SYNC_STATE_DIR` guard the
+other push-failure test in that module already uses.
+
+**Negative control** (disposable, then restored): with the guard removed, running
+the two callers added an entry to the live ledger —
+
+```
+before: []
+after:  1 entries: /tmp/.tmpKAiSTF/filter-only-push-ahead
+```
+
+With the guard restored the same two tests pass and the ledger stays `[]`,
+including after a **full 2923-test workspace run**.
+
+## (f) Gate receipt (final assembly, after the isolation fix)
+
+| gate | result |
+|---|---|
+| `cargo test --workspace --locked` | 44 suites, **2923 passed, 0 failed** |
+| `cargo build --release --locked` | exit 0 |
+| `cargo clippy --workspace --locked --all-targets -- -D warnings` | exit 0 |
+| `cargo deny check` | advisories/bans/licenses/sources ok |
+
+Live stuck ledger after that full run: `[]`.
