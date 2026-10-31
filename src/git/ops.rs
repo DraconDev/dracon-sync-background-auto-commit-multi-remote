@@ -38,15 +38,15 @@ pub(crate) fn progress_hard_timeout_secs(idle_timeout_secs: u64) -> u64 {
 /// `"status": "running"` — 38.3 GiB of orphans accumulated in
 /// `~/.local/state/dracon/sync/gates` by 2026-10-31.
 ///
-/// This grace is BEST-EFFORT, not the fix. It is large enough to let a hook that
-/// is *between* gates run its handler, and it bounds how long a timed-out group
-/// can outlive its deadline; it cannot rescue a hook blocked mid-gate, because
-/// no signal handler runs while the thread sits in the exec. The effective
-/// cleanup is the dead-owner reap sweep in `attempt-reaper.mjs`, which removes
-/// the snapshot on the *next* attempt regardless of whether this process ever
-/// got to run its handler. It is a named constant so the two call sites and the
-/// regression tests cannot drift apart.
-pub(crate) const SIGTERM_GRACE: std::time::Duration = std::time::Duration::from_secs(15);
+/// SIZED TO THE MEASURED COST, not guessed. The 2026-10-31 sweep removed eleven
+/// snapshots in ~235s, i.e. **~21s per multi-gigabyte tree removal**. This value
+/// is 60s: roughly 3x that measurement, which covers an attempt holding more
+/// than one `snapshot-<sha>` directory (one per distinct pushed revision) plus
+/// `toolchains`, and it absorbs the I/O slowdown seen under heavy fleet load
+/// (a 93s push hook is documented stretching to 15m when the box is saturated).
+/// The cost is bounded and only paid on the timeout path, which has already
+/// exceeded its own deadline by hundreds of seconds.
+pub(crate) const SIGTERM_GRACE: std::time::Duration = std::time::Duration::from_secs(60);
 
 /// Kill a git child process group using TERM then KILL.
 #[cfg(unix)]
@@ -1438,12 +1438,19 @@ mod sigterm_grace_tests {
 
     /// Guard against a future edit that shortens the grace back to a value too
     /// small for a real hook cleanup.
+    ///
+    /// The floor is tied to the MEASUREMENT, not to a round number: the
+    /// 2026-10-31 sweep removed eleven multi-gigabyte snapshots over ~235s, i.e.
+    /// ~21s each. Anything under 2x that cannot be "large enough for a
+    /// multi-gigabyte tree removal" even for a single-snapshot attempt, so 45s
+    /// (2x + margin) is the least defensible floor.
     #[test]
     fn grace_is_long_enough_for_hook_cleanup() {
         assert!(
-            SIGTERM_GRACE >= Duration::from_secs(10),
+            SIGTERM_GRACE >= Duration::from_secs(45),
             "SIGTERM grace {SIGTERM_GRACE:?} is too short for a pre-push hook to remove its \
-             multi-gigabyte snapshot; the 2026-10-31 leak happened at 2s"
+             multi-gigabyte snapshot: the 2026-10-31 measurement was ~21s per snapshot and the \
+             leak happened at 2s"
         );
     }
 }
