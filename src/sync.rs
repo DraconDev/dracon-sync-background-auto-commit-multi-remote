@@ -12199,12 +12199,7 @@ auto_bump_versions = false
         // (correctly) block follow-up work in any repo whose path matched.
         // Same guard as the other push-failure test at the top of this
         // module; a test must never mutate production state.
-        let state_dir = tempfile::tempdir().unwrap();
-        let _state_guard = crate::test_helpers::EnvRestorer::new(
-            "DRACON_SYNC_STATE_DIR",
-            state_dir.path().to_string_lossy().as_ref(),
-        );
-        let tmp = tempfile::tempdir().unwrap();
+        // NEGATIVE CONTROL: guard removed on purpose.
         let origin_bare = tmp.path().join("origin.git");
         crate::git::git_cmd()
             .args(["init", "--bare", "-q", "-b", "main"])
