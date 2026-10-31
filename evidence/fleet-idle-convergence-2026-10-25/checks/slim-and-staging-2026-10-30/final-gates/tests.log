@@ -516,4 +516,19 @@ test result: ok. 144 passed; 0 failed; 13 ignored; 0 measured; 0 filtered out; f
      Running unittests src/main.rs (target/debug/deps/dracon_sync-78eb849c93424a02)
 
 running 1538 tests
-test bucket_assets::tests::daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure ... 
+test bucket_assets::tests::daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure ... ok
+test bucket_assets::tests::followup_accounts_for_exact_verified_bytes_without_hiding_foreign_work ... ok
+test bucket_assets::tests::malicious_paths_and_ineligible_manifests_are_refused ... ok
+test bucket_assets::tests::post_upload_capture_tampering_is_refused ... ok
+test bucket_assets::tests::staged_accounting_ceiling_measures_clean_output_not_plaintext ... ok
+test bucket_assets::tests::staged_reference_drift_and_raw_materialization_are_refused ... ok
+test bucket_assets::tests::unconfigured_and_disabled_repos_do_not_invoke_upload ... ok
+test bucket_guard::tests::guard_garbage_output_fails_closed ... ok
+test bucket_guard::tests::guard_ok_passes ... ok
+test bucket_guard::tests::guard_violation_blocks_with_paths ... ok
+test bucket_guard::tests::missing_env_override_fails_closed ... ok
+test bucket_guard::tests::no_guard_script_skips_check ... ok
+test bucket_guard::tests::push_range_none_without_upstream ... ok
+test bucket_guard::tests::push_range_reports_live_violations ... warning: You appear to have cloned an empty repository.
+ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::accounting_failure_never_spawns_publisher_or_writes_manifest ... 
