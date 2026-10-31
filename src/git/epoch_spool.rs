@@ -254,7 +254,6 @@ async fn rescue_and_remove(
         .and_then(|name| name.to_str())
         .unwrap_or("spool")
         .to_string();
-    let pack_path = rescue_dir.join(format!("{label}-{stamp}.pack"));
 
     let mut input = String::new();
     for (oid, _) in unique {
@@ -275,24 +274,40 @@ async fn rescue_and_remove(
     if !output.status.success() || output.stdout.is_empty() {
         return false;
     }
-    if std::fs::write(&pack_path, &output.stdout).is_err() {
+    // Index the incoming bytes, then rename to git's own `pack-<checksum>` form.
+    // An object directory only scans `pack-*.pack`, so a friendlier name would be
+    // silently invisible to every later read.
+    let incoming = rescue_dir.join(format!(".incoming-{label}-{stamp}.pack"));
+    if std::fs::write(&incoming, &output.stdout).is_err() {
         return false;
     }
-    // Index it so the pack is readable on its own, then verify from that pack
-    // alone. The rescued objects are absent from the repository by definition,
-    // so a successful read cannot be satisfied by the main object database.
-    // Path form on purpose: `index-pack --stdin` would write a hash-named pack
-    // elsewhere instead of indexing the file just written.
     let mut index = clean_git_command();
-    index.args(["index-pack"]).arg(&pack_path).current_dir(&rescue_dir);
+    index.args(["index-pack"]).arg(&incoming).current_dir(&rescue_dir);
     let Ok(indexed) =
         crate::git::run_command_captured_output(index.into_tokio(), timeout, "spool rescue index", None).await
     else {
-        let _ = std::fs::remove_file(&pack_path);
+        let _ = std::fs::remove_file(&incoming);
         return false;
     };
     if !indexed.status.success() {
+        let _ = std::fs::remove_file(&incoming);
+        return false;
+    }
+    let checksum = String::from_utf8_lossy(&indexed.stdout).trim().to_string();
+    if checksum.len() != 40 || !checksum.bytes().all(|b| b.is_ascii_hexdigit()) {
+        let _ = std::fs::remove_file(&incoming);
+        let _ = std::fs::remove_file(incoming.with_extension("idx"));
+        return false;
+    }
+    let pack_path = rescue_dir.join(format!("pack-{checksum}.pack"));
+    let idx_path = rescue_dir.join(format!("pack-{checksum}.idx"));
+    if std::fs::rename(&incoming, &pack_path).is_err()
+        || std::fs::rename(incoming.with_extension("idx"), &idx_path).is_err()
+    {
+        let _ = std::fs::remove_file(&incoming);
+        let _ = std::fs::remove_file(incoming.with_extension("idx"));
         let _ = std::fs::remove_file(&pack_path);
+        let _ = std::fs::remove_file(&idx_path);
         return false;
     }
     if !verify_rescue(repo, &rescue_dir, &pack_path, unique, timeout).await {
@@ -302,6 +317,7 @@ async fn rescue_and_remove(
             spool.display()
         );
         let _ = std::fs::remove_file(&pack_path);
+        let _ = std::fs::remove_file(&idx_path);
         return false;
     }
 
