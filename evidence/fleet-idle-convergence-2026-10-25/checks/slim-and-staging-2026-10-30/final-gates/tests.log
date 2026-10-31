@@ -914,4 +914,25 @@ test git::inspection::tests::head_presence_survives_owned_inspection_for_report_
 test git::inspection::tests::hung_filter_is_killed_and_next_inspection_recovers ... ok
 test git::inspection::tests::identity_accepts_linked_worktree_and_non_utf8_newline_roots ... ok
 test git::inspection::tests::inspects_real_repository_and_counts_nested_untracked_files ... ok
-test git::inspection::tests::owner_abort_kills_filter_and_next_inspection_recovers ... 
+test git::inspection::tests::owner_abort_kills_filter_and_next_inspection_recovers ... ok
+test git::inspection::tests::parses_branch_counts_renames_conflicts_and_non_utf8_paths ... ok
+test git::inspection::tests::rejects_copied_gitdir_alias_but_accepts_symlink_to_same_worktree ... ok
+test git::inspection::tests::shared_budget_accepts_slow_successful_filter ... ok
+test git::janitor_tests::aborts_when_bundle_fails ... ok
+test git::janitor_tests::disabled_is_noop ... ok
+test git::janitor_tests::prunes_daemon_branches_with_bundle_and_remote_delete ... ok
+test git::janitor_tests::prunes_orphaned_tracking_refs ... ok
+test git::janitor_tests::skips_remote_delete_when_tracking_tip_differs ... ok
+test git::multi_remote::tests::cancelled_mirror_parent_terminates_push_process_group ... ok
+test git::multi_remote::tests::concurrent_forge_confirmations_preserve_every_pair ... ok
+test git::multi_remote::tests::test_codeberg_excluded_no_codeberg_remote_in_policy ... ok
+test git::multi_remote::tests::test_codeberg_excluded_via_push_url_autodetect ... ok
+test git::multi_remote::tests::test_codeberg_excluded_when_auto_create_off_and_no_tracking_ref ... ok
+test git::multi_remote::tests::test_codeberg_kept_when_global_auto_create_on ... ok
+test git::multi_remote::tests::test_codeberg_kept_when_opted_in ... ok
+test git::multi_remote::tests::test_codeberg_kept_when_tracking_ref_exists ... ok
+test git::multi_remote::tests::test_configure_all_remotes_bootstraps_origin_when_missing ... ok
+test git::multi_remote::tests::test_configure_all_remotes_does_not_overwrite_existing_origin ... ok
+test git::multi_remote::tests::test_configure_all_remotes_no_origin_when_no_github_in_policy ... ok
+test git::multi_remote::tests::test_ensure_origin_reports_nonzero_branch_config ... ok
+test git::multi_remote::tests::test_ensure_origin_reports_nonzero_remote_add ... 
