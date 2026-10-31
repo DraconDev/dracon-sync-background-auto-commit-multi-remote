@@ -1956,4 +1956,16 @@ test sync::staged_epoch::tests::empty_candidate_does_not_install_or_require_fore
 test sync::staged_epoch::tests::installed_epoch_keeps_proven_identity_and_rejects_late_replacement ... ok
 test sync::staged_epoch::tests::lock_contention_is_deferred_but_filesystem_failure_is_not ... ok
 test sync::staged_epoch::tests::only_typed_intent_conflicts_are_nonfailure_deferrals ... ok
-test sync::staged_epoch::tests::ordinary_size_rejection_prunes_only_private_delta_but_refuses_captured_intent ... 
+test sync::staged_epoch::tests::ordinary_size_rejection_prunes_only_private_delta_but_refuses_captured_intent ... ok
+test sync::staged_epoch::tests::private_staging_foreign_child_is_not_a_prefix_waiver ... ok
+test sync::staged_epoch::tests::private_staging_same_path_conflict_retains_both_payloads ... ok
+test sync::staged_epoch::tests::published_epoch_deadline_is_pending_not_a_failed_commit ... ok
+test sync::staged_epoch::tests::published_epoch_releases_its_spool_and_unpublished_one_keeps_it ... ok
+test sync::staged_epoch::tests::retention_pack_excludes_unchanged_parent_tree_but_keeps_new_payload ... ok
+test sync::staged_epoch::tests::settled_epoch_preserves_original_conflicts_and_rejected_bytes ... ok
+test sync::staged_epoch::tests::zero_batch_limit_accepts_all_captured_files_without_relaxing_positive_limit ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_concurrent_index_ref_and_deadline_refuse_without_losing_data ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_foreign_lock_disabled_policy_and_active_merge_preserve_exact_index ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_never_relocates_an_active_worktree_writer ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_preserves_prior_partial_staging_and_rejects_late_cached_replacement ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_commits_only_verified_entry_staging_and_preserves_worktree ... 
