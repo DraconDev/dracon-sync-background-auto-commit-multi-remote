@@ -1825,51 +1825,6 @@ mod tests {
             marked.display()
         );
 
-        // --- unpublished path, provably preserved: release is allowed, and it
-        // must not cost the staged content. The blob was written into the object
-        // database by `git add`, so dropping the spool's duplicate copy of it
-        // loses nothing.
-        std::fs::write(repo.join("file"), b"released but preserved\n").unwrap();
-        let baseline = Epoch::capture(repo, 60).await.unwrap();
-        let staging = Staging::new(repo, baseline).await.unwrap();
-        let released = staging.directory.clone();
-        run_index_git(
-            repo,
-            &["add", "--", "file"],
-            60,
-            "fixture provable add",
-            Some(staging.index()),
-        )
-        .await
-        .unwrap();
-        let staged_blob = git(repo, &["hash-object", "--", "file"], None)
-            .await
-            .unwrap()
-            .stdout;
-        let staged_blob = String::from_utf8_lossy(&staged_blob).trim().to_string();
-        let mut expired = staging
-            .finish(repo, &policy, &BTreeSet::new(), false, false)
-            .await
-            .unwrap();
-        expired.deadline = tokio::time::Instant::now();
-        let result = expired
-            .commit(repo, "must not publish either", &policy, &BTreeSet::new(), None)
-            .await;
-        assert!(result.is_err(), "an expired deadline cannot publish");
-        assert!(
-            !released.exists(),
-            "an UNPUBLISHED epoch whose contents are provably in the object database must \
-             release its spool: {} still exists",
-            released.display()
-        );
-        assert!(
-            git(repo, &["cat-file", "-e", &staged_blob], None)
-                .await
-                .unwrap()
-                .status
-                .success(),
-            "releasing the spool must not cost the staged content: {staged_blob} is gone"
-        );
     }
 
     #[tokio::test]
@@ -1927,4 +1882,59 @@ mod tests {
             b"late child\n"
         );
     }
-}
+}    #[tokio::test]
+    async fn unpublished_epoch_releases_its_spool_when_contents_are_provably_stored() {
+        // A deadline is not a refusal: nothing was rejected, and the next epoch
+        // re-stages the same worktree. Retention "for diagnosis" is what let the
+        // spools reach ~15 GiB, so an unpublished epoch releases its spool once
+        // the contents are provably still in the object database — and doing so
+        // must not cost the staged content.
+        let (root, mut policy) = fixture().await;
+        let repo = root.path();
+        policy.auto_commit = true;
+        policy.watch_roots = vec![repo.to_string_lossy().into_owned()];
+
+        std::fs::write(repo.join("file"), b"released but preserved\n").unwrap();
+        let baseline = Epoch::capture(repo, 60).await.unwrap();
+        let staging = Staging::new(repo, baseline).await.unwrap();
+        let released = staging.directory.clone();
+        run_index_git(
+            repo,
+            &["add", "--", "file"],
+            60,
+            "fixture provable add",
+            Some(staging.index()),
+        )
+        .await
+        .unwrap();
+        let staged_blob = git(repo, &["hash-object", "--", "file"], None)
+            .await
+            .unwrap()
+            .stdout;
+        let staged_blob = String::from_utf8_lossy(&staged_blob).trim().to_string();
+        let mut expired = staging
+            .finish(repo, &policy, &BTreeSet::new(), false, false)
+            .await
+            .unwrap();
+        expired.deadline = tokio::time::Instant::now();
+        let result = expired
+            .commit(repo, "must not publish", &policy, &BTreeSet::new(), None)
+            .await;
+        assert!(result.is_err(), "an expired deadline cannot publish");
+        assert!(
+            !released.exists(),
+            "an UNPUBLISHED epoch whose contents are provably in the object database must \
+             release its spool: {} still exists",
+            released.display()
+        );
+        assert!(
+            git(repo, &["cat-file", "-e", &staged_blob], None)
+                .await
+                .unwrap()
+                .status
+                .success(),
+            "releasing the spool must not cost the staged content: {staged_blob} is gone"
+        );
+    }
+
+
