@@ -8,3 +8,6 @@ test git::epoch_spool::tests::duplicate_spool_is_reaped ... ok
 test git::epoch_spool::tests::spool_with_unique_objects_is_rescued_then_reaped ... ok
 test git::epoch_spool::tests::unverifiable_rescue_preserves_spool ... ok
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1549 filtered out; finished in 14.65s
+
+## 2. Predicate deliberately broken (duplicate no longer recognised)
+Changed: `if unique.is_empty() { Verdict::Duplicate }` -> `Verdict::Unreadable`
