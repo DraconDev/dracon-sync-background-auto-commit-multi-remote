@@ -872,6 +872,7 @@ pub(super) struct Staging {
     directory: PathBuf,
     index: PathBuf,
     admitted_large: Vec<PathBuf>,
+    spool_lease: crate::git::SpoolLease,
 }
 impl Staging {
     pub(super) async fn new(repo: &Path, baseline: Epoch) -> Result<Self> {
@@ -890,12 +891,14 @@ impl Staging {
             builder.permissions(std::fs::Permissions::from_mode(0o700));
         }
         let directory = builder.tempdir_in(directory)?.keep();
+        let spool_lease = crate::git::SpoolLease::acquire(&directory)?;
         let index = directory.join("index");
         let staging = Self {
             baseline,
             directory,
             index,
             admitted_large: Vec::new(),
+            spool_lease,
         };
         let deadline = staging.baseline.deadline;
         tokio::time::timeout_at(deadline, async {
@@ -1062,7 +1065,7 @@ impl Staging {
                 reference: self.baseline.reference.clone(),
                 deadline,
                 retained: Some(self.directory.clone()),
-                spool_lease: crate::git::SpoolLease::new(Some(self.directory.clone())),
+                spool_lease: self.spool_lease,
                 deletions: plan
                     .as_ref()
                     .map(|plan| plan.deleted.clone())

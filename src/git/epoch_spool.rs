@@ -48,10 +48,26 @@ const MAX_SPOOLS_PER_PASS: usize = 64;
 
 pub(crate) struct SpoolLease {
     path: Option<PathBuf>,
+    // Kernel ownership, held from creation through staging and epoch settlement.
+    // Unlike directory age this remains authoritative for a stalled process.
+    _owner: Option<std::fs::File>,
 }
 impl SpoolLease {
     pub(crate) fn new(path: Option<PathBuf>) -> Self {
-        Self { path }
+        Self { path, _owner: None }
+    }
+    pub(crate) fn acquire(path: &Path) -> anyhow::Result<Self> {
+        use std::fs::OpenOptions;
+        let mut options = OpenOptions::new();
+        options.read(true).write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600).custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC);
+        }
+        let owner = options.open(path.join("reclaim-owner.lock"))?;
+        owner.try_lock()?;
+        Ok(Self { path: Some(path.to_path_buf()), _owner: Some(owner) })
     }
     pub(crate) fn named(&self) -> Option<&Path> {
         self.path.as_deref()
@@ -102,6 +118,22 @@ pub(crate) async fn reap_abandoned_spools(
 ///
 /// Returns true only when the spool directory is gone.
 pub(crate) async fn reclaim_spool_if_lossless(repo: &Path, spool: &Path, timeout: u64) -> bool {
+    // Only spools created by the ownership-aware lifecycle can be reclaimed.
+    // Legacy spools have no shared ownership proof: age is not a substitute.
+    // Never create this file here, as that would manufacture evidence for an
+    // old spool potentially still owned by another daemon version.
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true).write(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC);
+    }
+    let Ok(owner) = options.open(spool.join("reclaim-owner.lock")) else { return false };
+    if owner.try_lock().is_err() {
+        return false;
+    }
+    let _owner_guard = owner;
     // A refusal or conflict payload is deliberate diagnostic evidence. Both
     // markers exist for exactly this purpose and no proof overrides them.
     if spool.join("preserve-rejected").exists() || spool.join("original-index").exists() {
