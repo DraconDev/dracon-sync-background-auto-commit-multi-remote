@@ -104,3 +104,35 @@ unsafe" failure the code warns about. Recorded here as a real disk cost with a
 real reason, not as something fixed. The repo itself converged normally
 (`dirty 0`, `ahead 0`) once its commit went through, so the spools do not block
 convergence — they cost space.
+
+## (d) Final state — converged except under continuous production
+
+After both repairs, twelve samples spanning ~35 minutes:
+
+| sample | converged | warn | concern | failures |
+|---|---|---|---|---|
+| s1 | 29/36 | 3 | 0 | 0 |
+| s4 | 28/36 | 4 | 0 | 0 |
+| s6 | 31/36 | 0 | 0 | 0 |
+| s10 | 31/36 | 2 | 0 | 0 |
+| s12 | 30/36 | 3 | 0 | 0 |
+
+`concern=0` and `failures=0` in every sample, and the report's own `ok`
+now equals the independent per-row derivation in all twelve.
+
+The remaining rows are not stuck. Direct observation:
+`browser-extensions-shared` fell from **75 → 15** unpushed commits (publication
+draining), its `run-push-gates.mjs` and the per-workspace
+youtube-filter LINT/TEST logs were actively being written, and producers commit
+every few seconds (`25b877a94d` was 3 seconds old when sampled). The gate cycle
+takes ~30 minutes per push, which is slower than production in that repo, so
+that row oscillates rather than settling. `open push` holding at 15 while HEAD
+keeps moving is the expected shape of that.
+
+So: the fleet is converged except where it is actively producing, and no
+repository is structurally unable to converge any more. That is materially
+different from the starting state, where `polis` and `dracon-strategy` could
+never commit at all and `browser-extensions-shared` was six hours behind.
+
+Gates on the final assembly: 44 suites, **2923 passed / 0 failed**, release
+build exit 0, strict Clippy exit 0, `cargo deny` all-ok.
