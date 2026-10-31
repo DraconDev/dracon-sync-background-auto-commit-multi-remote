@@ -2247,3 +2247,10 @@ To /tmp/.tmpOyIrWu/origin.git
 branch 'master' set up to track 'origin/master'.
 branch 'master' set up to track 'origin/master'.
 branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) 207df2f] init
+ok
+test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-commit) a15e957] init
+ok
+test sync::tests::test_sync_repo_not_git_repo_returns_false ... ok
+test sync::tests::test_sync_repo_partial_deletion_allowed ... [master (root-commit) a1d5ab2] init
