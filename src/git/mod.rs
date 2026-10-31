@@ -5632,15 +5632,16 @@ mod auto_gc_tests {
         let last = super::AutoGcState {
             attempted_at: now - Duration::from_secs(super::AUTO_GC_LOOSE_COOLDOWN_SECS),
             loose_bytes_after_gc: threshold,
+            pack_bytes_after_gc: None,
             succeeded: true,
         };
         assert_eq!(
-            super::auto_gc_trigger(0, threshold + threshold - 1, 0, threshold, Some(&last), now,),
+            super::auto_gc_trigger(0, threshold + threshold - 1, 0, 0, threshold, 0, Some(&last), now,),
             None,
             "less than one threshold of new loose data must not repack repeatedly"
         );
         assert_eq!(
-            super::auto_gc_trigger(0, threshold * 2, 0, threshold, Some(&last), now,),
+            super::auto_gc_trigger(0, threshold * 2, 0, 0, threshold, 0, Some(&last), now,),
             Some(super::AutoGcTrigger::LooseObjects)
         );
         let recent = super::AutoGcState {
@@ -5648,7 +5649,7 @@ mod auto_gc_tests {
             ..last
         };
         assert_eq!(
-            super::auto_gc_trigger(0, threshold * 3, 0, threshold, Some(&recent), now,),
+            super::auto_gc_trigger(0, threshold * 3, 0, 0, threshold, 0, Some(&recent), now,),
             None,
             "the loose-object cooldown prevents a high-frequency gc loop"
         );
@@ -5661,10 +5662,11 @@ mod auto_gc_tests {
         let last = super::AutoGcState {
             attempted_at: now - Duration::from_secs(super::AUTO_GC_GARBAGE_COOLDOWN_SECS - 1),
             loose_bytes_after_gc: 0,
+            pack_bytes_after_gc: None,
             succeeded: true,
         };
         assert_eq!(
-            super::auto_gc_trigger(threshold, 0, threshold, 0, Some(&last), now,),
+            super::auto_gc_trigger(threshold, 0, 0, threshold, 0, 0, Some(&last), now,),
             None
         );
         let old = super::AutoGcState {
@@ -5672,7 +5674,7 @@ mod auto_gc_tests {
             ..last
         };
         assert_eq!(
-            super::auto_gc_trigger(threshold, 0, threshold, 0, Some(&old), now,),
+            super::auto_gc_trigger(threshold, 0, 0, threshold, 0, 0, Some(&old), now,),
             Some(super::AutoGcTrigger::Garbage)
         );
     }
