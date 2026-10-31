@@ -11,3 +11,19 @@ test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1549 filtered out; f
 
 ## 2. Predicate deliberately broken (duplicate no longer recognised)
 Changed: `if unique.is_empty() { Verdict::Duplicate }` -> `Verdict::Unreadable`
+test git::epoch_spool::tests::duplicate_spool_is_reaped ... FAILED
+test git::epoch_spool::tests::spool_with_unique_objects_is_rescued_then_reaped ... ok
+test git::epoch_spool::tests::unverifiable_rescue_preserves_spool ... ok
+
+--
+thread 'git::epoch_spool::tests::duplicate_spool_is_reaped' (2349151) panicked at dracon-sync/src/git/epoch_spool.rs:739:9:
+assertion `left == right` failed
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+--
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 1549 filtered out; finished in 0.78s
+
+
+## 3. Restored, and the same tests pass again
+Restored sha256: 12f0742aa39581b239ea5e27f850a62f3e2054e0730088f2827e04bfa0611080

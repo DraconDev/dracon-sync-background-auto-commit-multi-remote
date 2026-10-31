@@ -266,9 +266,7 @@ async fn classify_spool(repo: &Path, source: &Path, timeout: u64) -> Verdict {
         .map(|(oid, size)| (oid.clone(), *size))
         .collect();
     if unique.is_empty() {
-        // DELIBERATE BREAK (non-vacuity proof): refuse to recognise a pure
-        // duplicate, so nothing can ever be reaped on duplication grounds.
-        Verdict::Unreadable
+        Verdict::Duplicate
     } else {
         Verdict::Unique(unique)
     }
