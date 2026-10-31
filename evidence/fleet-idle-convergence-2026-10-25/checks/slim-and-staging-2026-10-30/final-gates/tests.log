@@ -404,4 +404,5 @@ test storage_core::index::tests::lossless_non_utf8_paths_are_staged_as_exact_ind
 test storage_core::index::tests::manual_index_changes_and_foreign_locks_are_preserved ... ok
 test storage_core::index::tests::manual_managed_deletion_is_preserved_but_explicit_tombstone_stages ... ok
 test storage_core::index::tests::matched_index_pair_preserves_unrelated_staging_and_source ... ok
-test storage_core::index::tests::matched_pair_recovers_before_and_after_atomic_publication ... 
+test storage_core::index::tests::matched_pair_recovers_before_and_after_atomic_publication ... ok
+test storage_core::index::tests::oversized_physical_index_is_rejected_before_libgit2_decode ... 
