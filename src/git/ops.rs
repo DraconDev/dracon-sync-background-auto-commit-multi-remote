@@ -30,14 +30,22 @@ pub(crate) fn progress_hard_timeout_secs(idle_timeout_secs: u64) -> u64 {
 /// unpacking, etc.). The wait is asynchronous so a timed-out Git operation does
 /// not block a Tokio worker thread while its process group exits.
 ///
-/// CHANGED 2026-10-31: the grace was 2s, which is shorter than the time a
-/// pre-push hook needs to remove its multi-gigabyte source snapshot. A hook
-/// blocked in a synchronous exec cannot run its SIGTERM handler inside 2s, so
-/// the KILL landed first and the snapshot leaked while `manifest.json` still
-/// said `"status": "running"` — 38.3 GiB of orphans accumulated in
-/// `~/.local/state/dracon/sync/gates` by 2026-10-31. The grace is now long
-/// enough for a real cleanup and is a named constant so the two call sites and
-/// the regression tests cannot drift apart.
+/// CHANGED 2026-10-31: the grace was 2s, which is far shorter than the time a
+/// pre-push hook needs to remove its multi-gigabyte source snapshot (the live
+/// sweep measured ~21s per snapshot). A hook blocked in a synchronous exec
+/// cannot run its SIGTERM handler at all until the gate returns, so the KILL
+/// landed first and the snapshot leaked while `manifest.json` still said
+/// `"status": "running"` — 38.3 GiB of orphans accumulated in
+/// `~/.local/state/dracon/sync/gates` by 2026-10-31.
+///
+/// This grace is BEST-EFFORT, not the fix. It is large enough to let a hook that
+/// is *between* gates run its handler, and it bounds how long a timed-out group
+/// can outlive its deadline; it cannot rescue a hook blocked mid-gate, because
+/// no signal handler runs while the thread sits in the exec. The effective
+/// cleanup is the dead-owner reap sweep in `attempt-reaper.mjs`, which removes
+/// the snapshot on the *next* attempt regardless of whether this process ever
+/// got to run its handler. It is a named constant so the two call sites and the
+/// regression tests cannot drift apart.
 pub(crate) const SIGTERM_GRACE: std::time::Duration = std::time::Duration::from_secs(15);
 
 /// Kill a git child process group using TERM then KILL.
