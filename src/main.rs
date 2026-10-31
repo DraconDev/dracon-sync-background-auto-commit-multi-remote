@@ -1445,16 +1445,33 @@ async fn run_cli(cli: Cli) -> Result<()> {
                 // Dry-run reports; --apply reclaims. Either way the walk is
                 // READ-ONLY until a directory is both aged and unleased, so a
                 // dry-run can never race a live epoch.
+                //
+                // CHANGED 2026-10-31: `--apply` no longer means "delete by age".
+                // Age is not evidence — that is what made the 2026-10-26 sweep
+                // unsafe. It now runs the duplication-proof reaper, which deletes
+                // only what it can prove is preserved elsewhere and rescues any
+                // unique objects into a verified pack first. `sweep_epoch_spools`
+                // still refuses an age-only apply, so the old semantics are gone
+                // rather than re-enabled.
                 let mut total_dirs = 0usize;
                 let mut total_bytes = 0u64;
                 let mut per_repo: Vec<(PathBuf, usize, u64)> = Vec::new();
+                let mut reclaimed_total = 0usize;
                 for repo in repos {
                     let (dirs, bytes) =
-                        git::sweep_epoch_spools(&repo, max_age, apply).await;
+                        git::sweep_epoch_spools(&repo, max_age, false).await;
                     if dirs > 0 {
                         per_repo.push((repo.clone(), dirs, bytes));
                         total_dirs += dirs;
                         total_bytes += bytes;
+                    }
+                    if apply {
+                        reclaimed_total += git::reap_abandoned_spools(
+                            &repo,
+                            policy.epoch_spool_max_age_secs,
+                            policy.stage_op_timeout_secs,
+                        )
+                        .await;
                     }
                 }
                 if json {

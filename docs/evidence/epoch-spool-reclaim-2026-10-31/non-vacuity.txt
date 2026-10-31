@@ -27,3 +27,7 @@ test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 1549 filtered ou
 
 ## 3. Restored, and the same tests pass again
 Restored sha256: 12f0742aa39581b239ea5e27f850a62f3e2054e0730088f2827e04bfa0611080
+test git::epoch_spool::tests::duplicate_spool_is_reaped ... ok
+test git::epoch_spool::tests::spool_with_unique_objects_is_rescued_then_reaped ... ok
+test git::epoch_spool::tests::unverifiable_rescue_preserves_spool ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1549 filtered out; finished in 3.11s
