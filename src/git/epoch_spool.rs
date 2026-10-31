@@ -192,7 +192,6 @@ async fn classify_spool(repo: &Path, spool: &Path, timeout: u64) -> Verdict {
     let Some(objects) = pack_objects(repo, &packs, timeout).await else {
         return Verdict::Unreadable;
     };
-    }
     if objects.is_empty() {
         return Verdict::Duplicate;
     }
