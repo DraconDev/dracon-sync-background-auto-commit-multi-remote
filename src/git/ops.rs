@@ -1381,16 +1381,23 @@ mod sigterm_grace_tests {
     /// allowed to complete it. Before 2026-10-31 the grace was 2s and a pre-push
     /// hook blocked in a synchronous exec was SIGKILLed mid-cleanup, leaving its
     /// multi-gigabyte snapshot behind.
+    ///
+    /// The cleanup duration is set to the MEASURED cost of a real removal (~21s,
+    /// from the 2026-10-31 sweep of eleven snapshots over ~235s), not a token
+    /// value: a grace that cannot outlast one real snapshot removal does not meet
+    /// the requirement, so the fixture demands it.
     #[cfg(unix)]
     #[tokio::test]
     async fn trapping_child_gets_the_documented_grace_before_sigkill() {
         let dir = tempfile::tempdir().unwrap();
         let marker = dir.path().join("cleaned");
-        // Cleanup costs 5s: longer than the 2s grace that caused the leak, well
-        // inside the current grace. This is what makes the test discriminate —
-        // at 2s the SIGKILL lands mid-cleanup and the marker is never written.
+        // Cleanup costs 22s — slightly MORE than the ~21s measured for one real
+        // multi-gigabyte snapshot removal. This is what makes the test
+        // discriminate in both directions: at the old 2s grace the SIGKILL lands
+        // mid-cleanup and the marker is never written, and a future edit that
+        // shrinks the grace back below the measured cost fails here too.
         let script = format!(
-            "trap 'sleep 5; : > {}; exit 0' TERM; while :; do sleep 0.05; done",
+            "trap 'sleep 22; : > {}; exit 0' TERM; while :; do sleep 0.05; done",
             marker.display()
         );
         let mut cmd = tokio::process::Command::new("sh");
