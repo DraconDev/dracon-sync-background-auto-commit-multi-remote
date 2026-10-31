@@ -1968,4 +1968,9 @@ test sync::staged_epoch::unmerged::tests::unmerged_entry_concurrent_index_ref_an
 test sync::staged_epoch::unmerged::tests::unmerged_entry_foreign_lock_disabled_policy_and_active_merge_preserve_exact_index ... ok
 test sync::staged_epoch::unmerged::tests::unmerged_entry_never_relocates_an_active_worktree_writer ... ok
 test sync::staged_epoch::unmerged::tests::unmerged_entry_preserves_prior_partial_staging_and_rejects_late_cached_replacement ... ok
-test sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_commits_only_verified_entry_staging_and_preserves_worktree ... 
+test sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_commits_only_verified_entry_staging_and_preserves_worktree ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_production_sync_resolves_stale_slots_without_manufacturing_a_commit ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_resolves_exact_names_and_retains_all_stage_payloads_independently ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_retention_budget_uses_actual_blob_sizes_and_preserves_index_on_refusal ... ok
+test sync::staged_epoch::unmerged::tests::unmerged_entry_unknown_worktree_and_nonzero_other_index_flags_refuse_intact ... ok
+test sync::tests::bootstrap_absolute_staging_deadline_cancels_hardener_descendants ... 
