@@ -30,12 +30,16 @@ fn git(repo: &Path) -> Command {
         .env("GIT_NO_REPLACE_OBJECTS", "1")
         .env("GIT_NO_LAZY_FETCH", "1")
         .env("GIT_TERMINAL_PROMPT", "0")
-        .arg("--no-replace-objects").current_dir(repo).kill_on_drop(true);
+        .arg("--no-replace-objects").current_dir(repo).kill_on_drop(true)
+        .stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
     c
 }
 
 async fn run(mut c: Command, seconds: u64) -> Result<Vec<u8>> {
-    let output = tokio::time::timeout(std::time::Duration::from_secs(seconds), c.output())
+    // Command::output would override file stdout with a pipe, defeating the
+    // file-backed pack enumeration and potentially capturing binary data.
+    let child = c.spawn()?;
+    let output = tokio::time::timeout(std::time::Duration::from_secs(seconds), child.wait_with_output())
         .await.context("recovery Git timeout")??;
     ensure!(output.status.success(), "recovery Git failed: {}", String::from_utf8_lossy(&output.stderr));
     Ok(output.stdout)
@@ -135,7 +139,7 @@ fn listed_objects(path: &Path, width: usize, expected: usize) -> Result<BTreeSet
             ensure!(line.ends_with(": ok") || line.starts_with("non delta: ") || line.starts_with("chain length = "), "unknown verify-pack output");
         }
     }
-    ensure!(objects.len() == expected, "pack header/enumeration mismatch");
+    ensure!(objects.len() == expected, "pack header/enumeration mismatch: {} listed, {expected} declared", objects.len());
     Ok(objects)
 }
 
@@ -380,6 +384,13 @@ mod tests {
             .find(|p| p.extension().is_some_and(|e| e == "pack")).unwrap();
         let mut bytes = fs::read(&pack).unwrap();
         bytes[15] ^= 0x55;
+        let mut permissions = fs::metadata(&pack).unwrap().permissions();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            permissions.set_mode(0o600);
+        }
+        fs::set_permissions(&pack, permissions).unwrap();
         fs::write(pack, bytes).unwrap();
         assert!(verify(&store, &receipt.record.join("roots"), 10).await.is_err());
         assert_eq!(fs::read(spool.join("index")).unwrap(), source);
