@@ -548,7 +548,7 @@ mod tests {
         let input = spool.join(format!("{label}-roots"));
         fs::write(&input, roots.join("\n") + "\n").unwrap();
         let mut c = git(repo);
-        c.args(["pack-objects", "--revs"])
+        c.arg("pack-objects")
             .arg(spool.join(label))
             .stdin(File::open(&input).unwrap());
         run(c, 10).await.unwrap();
@@ -600,10 +600,26 @@ mod tests {
             let unique = text(&repo, &["hash-object", "-w", "dangling"], 10)
                 .await
                 .unwrap();
+            let tree = text(&repo, &["write-tree"], 10).await.unwrap();
+            let commit_data = format!("tree {tree}\nauthor Fixture <fixture@example.invalid> 1 +0000\ncommitter Fixture <fixture@example.invalid> 1 +0000\n\nrecovery commit\n");
+            fs::write(repo.join("commit-data"), &commit_data).unwrap();
+            let commit = text(
+                &repo,
+                &["hash-object", "-t", "commit", "-w", "commit-data"],
+                10,
+            )
+            .await
+            .unwrap();
+            fs::write(repo.join("tag-data"), format!("object {commit}\ntype commit\ntag recovery\ntagger Fixture <fixture@example.invalid> 1 +0000\n\nrecovery tag\n")).unwrap();
+            let tag = text(&repo, &["hash-object", "-t", "tag", "-w", "tag-data"], 10)
+                .await
+                .unwrap();
+            // Retain the tag only, not its commit/tree: the engine must supply
+            // that closure from the temporary main alternate and retain it.
             pack(
                 &repo,
                 &spool,
-                &[blob.clone(), unique.clone()],
+                &[blob.clone(), unique.clone(), tag.clone()],
                 "retained-one",
             )
             .await;
@@ -617,6 +633,18 @@ mod tests {
                     .await
                     .unwrap(),
                 "unique dangling object"
+            );
+            assert_eq!(
+                text(&store, &["cat-file", "commit", &commit], 10)
+                    .await
+                    .unwrap(),
+                commit_data.trim_end()
+            );
+            assert_eq!(
+                text(&store, &["rev-parse", &format!("{tag}^{{tree}}")], 10)
+                    .await
+                    .unwrap(),
+                tree
             );
             verify(&store, &receipt.record.join("roots"), 10)
                 .await
