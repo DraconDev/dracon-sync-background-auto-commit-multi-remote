@@ -488,4 +488,11 @@ test storage_core::s3::tests::existing_corrupt_object_is_never_overwritten_or_ac
 test storage_core::s3::tests::failed_readback_and_write_conflicts_cannot_issue_receipts ... ok
 test storage_core::s3::tests::interrupted_provider_body_and_destination_errors_fail_verification ... ok
 test storage_core::s3::tests::interrupted_source_cannot_contact_provider ... ok
-test storage_core::s3::tests::streaming_payload_above_git_limit_uses_bounded_reads ... 
+test storage_core::s3::tests::streaming_payload_above_git_limit_uses_bounded_reads ... ok
+test storage_core::security::tests::approval_and_publication_survive_process_death_without_reencrypting ... ok
+test storage_core::security::tests::bad_recovery_representation_records_failure_on_the_latest_revision ... ok
+test storage_core::security::tests::completed_unapproved_output_after_crash_is_not_adopted ... ok
+test storage_core::security::tests::deadline_kills_child_and_retry_respects_backoff ... ok
+test storage_core::security::tests::failed_exit_and_plaintext_stdout_cannot_approve_a_payload ... ok
+test storage_core::security::tests::foreign_repo_binding_cannot_encrypt_or_adopt_a_prepared_job ... ok
+test storage_core::security::tests::oversized_stdout_and_unapproved_orphan_do_not_escape_capacity ... 
