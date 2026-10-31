@@ -2885,11 +2885,16 @@ pub(crate) fn push_stuck_hint(repo: &Path, failures: u32, redacted_error: &str) 
 }
 
 fn current_blocker_hint(current: current_health::Current, hint: &str) -> String {
-    if current == current_health::Current::Unknown
-        && (hint.starts_with("daemon will push after changes settle")
-            || hint.starts_with("daemon handles after changes settle"))
-    {
-        return "current scheduler evidence unavailable — inspect repo details and daemon journal; convergence is not established".to_string();
+    if current == current_health::Current::Unknown {
+        // Unknown is an evidence gap, not proof of healthy progress or a
+        // reason to prescribe a push/history rewrite. Keep diagnostic
+        // qualifications (pack/history checks), but replace the action.
+        let diagnostics: String = hint
+            .split(';')
+            .skip(1)
+            .map(|part| format!(";{part}"))
+            .collect();
+        return format!("current scheduler evidence unavailable — inspect repo details and daemon journal; convergence is not established{diagnostics}");
     }
     // Classification runs after generic ahead/dirty hints. Do not promise
     // convergence or suggest forcing sync when the daemon has reported a
