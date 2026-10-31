@@ -1,0 +1,27 @@
+{
+  "created": "2026-10-30",
+  "purpose": "Four gates for the two structural-unblock fixes (polis slimming, staging deadline).",
+  "assembly": {
+    "dracon_sync_head": "671592cd670a92975f1c5a67fd9cd154afae2531",
+    "src_tree_sha": "edb9db88730b55a4e618450cf420e16739e21673",
+    "cargo_lock_sha": "1f009ca9f39f3ebe7525c0838868537343353aa5",
+    "binding": "content SHAs; src/ byte-identical to HEAD"
+  },
+  "gates": {
+    "workspace_tests": {
+      "exit": 0,
+      "suites": 44,
+      "passed": 2923,
+      "failed": 0
+    },
+    "release_build": {
+      "exit": 0
+    },
+    "clippy_all_targets_strict": {
+      "exit": 0
+    },
+    "cargo_deny": {
+      "exit": 0
+    }
+  }
+}
