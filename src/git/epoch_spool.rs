@@ -712,7 +712,12 @@ mod tests {
                 .env("GIT_ALTERNATE_OBJECT_DIRECTORIES", &scratch)
                 .output()
                 .unwrap();
-            assert!(out.status.success(), "rescued object {oid} must read back from the rescue pack");
+            assert!(
+                out.status.success(),
+                "rescued object {oid} must read back from the rescue pack: {}{}",
+                String::from_utf8_lossy(&out.stderr),
+                format!(" [rescue_dir={:?}]", std::fs::read_dir(&rescue_dir).map(|d| d.flatten().map(|e| e.file_name()).collect::<Vec<_>>()))
+            );
         }
         let _ = std::fs::remove_dir_all(&scratch);
     }
