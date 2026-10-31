@@ -1908,4 +1908,16 @@ test sync::excluded_revert::recovery_tests::excluded_recovery_partial_transactio
 test sync::excluded_revert::recovery_tests::excluded_recovery_preexisting_pending_seal_survives_retry_without_overwrite ... ok
 test sync::excluded_revert::recovery_tests::excluded_recovery_uncertain_displaced_bytes_block_a_raw_clean_repo_even_without_optin ... ok
 test sync::excluded_revert_pipeline_tests::excluded_restore_empty_candidate_publishes_backlog_but_preserves_later_push_hook_work ... ok
-test sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes ... 
+test sync::excluded_revert_pipeline_tests::excluded_restore_never_resets_later_pre_commit_producer_bytes ... ok
+test sync::excluded_revert_pipeline_tests::excluded_restore_only_excluded_work_needs_no_commit_and_dry_run_preserves_bytes ... ok
+test sync::excluded_revert_tests::excluded_restore_deadline_kills_required_filter_descendants_without_mutation ... ok
+test sync::excluded_revert_tests::excluded_restore_defers_active_writer_without_relocating_its_future_bytes ... ok
+test sync::excluded_revert_tests::excluded_restore_foreign_lock_is_not_removed_or_used_as_hygiene_ownership ... ok
+test sync::excluded_revert_tests::excluded_restore_keeps_binary_recovery_and_does_not_touch_index_or_untracked ... ok
+test sync::excluded_revert_tests::excluded_restore_preserves_foreign_staged_intent_exactly ... ok
+test sync::excluded_revert_tests::excluded_restore_required_smudge_refusal_and_later_writer_are_not_overwritten ... ok
+test sync::hygiene::tests::artifact_component_classifies_build_output_names_for_production_hygiene ... ok
+test sync::hygiene::tests::hygiene_durable_malformed_record_is_inspection_failure_not_idle_or_permission_to_write ... ok
+test sync::hygiene::tests::hygiene_durable_policy_optout_and_symlink_registry_refuse_without_mutation ... ok
+test sync::hygiene::tests::hygiene_durable_retry_survives_production_commit_and_process_exit_with_writer_refusal ... ok
+test sync::hygiene::tests::hygiene_durable_uncommitted_candidate_recovers_only_exact_owned_tree_after_restart ... 
