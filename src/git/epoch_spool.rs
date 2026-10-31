@@ -463,7 +463,7 @@ async fn absolute_git_dir(repo: &Path) -> Option<PathBuf> {
 
 /// A git command with the caller's `GIT_*` environment removed, so an inherited
 /// index or object directory cannot redirect what this module inspects.
-fn clean_git_command() -> crate::policy::GitCommand {
+fn clean_git_command() -> crate::policy::TokioGitCommand {
     let mut command = crate::policy::tokio_git_command();
     for (key, _) in std::env::vars_os() {
         if key.to_string_lossy().starts_with("GIT_") {
