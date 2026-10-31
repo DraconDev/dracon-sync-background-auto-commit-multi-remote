@@ -2358,4 +2358,81 @@ test visibility::tests::test_parse_visibility_cache_new_format_private ... ok
 test visibility::tests::test_parse_visibility_cache_new_format_public ... ok
 test visibility::tests::test_parse_visibility_cache_rejects_legacy_timestamp_only ... ok
 test visibility::tests::test_parse_visibility_cache_rejects_malformed ... ok
-test visibility::tests::test_refresh_falls_back_to_unknown_when_gh_unavailable ... 
+test visibility::tests::test_refresh_falls_back_to_unknown_when_gh_unavailable ... ok
+test visibility::tests::test_refresh_handles_legacy_file_correctly_via_ssh_url ... ok
+test visibility::tests::test_refresh_idempotent ... ok
+test visibility::tests::test_refresh_preserves_new_format ... ok
+test visibility::tests::test_refresh_upgrades_legacy_to_new_format ... ok
+test visibility::tests::test_repo_metadata_default ... ok
+test visibility::tests::test_resolve_account_explicit_overrides ... ok
+test visibility::tests::test_resolve_account_from_https_url ... ok
+test visibility::tests::test_resolve_account_from_ssh_url ... ok
+test visibility::tests::test_same_host_project_divergence_detects_splits ... ok
+test visibility::tests::test_select_github_remote_falls_back_to_origin ... ok
+test visibility::tests::test_select_github_remote_prefers_github_over_origin ... ok
+test visibility::tests::test_select_github_remote_returns_none_when_nothing ... ok
+test visibility::tests::test_select_github_remote_skips_empty_github_uses_origin ... ok
+test visibility::tests::test_set_codeberg_metadata_does_not_panic ... ok
+test visibility::tests::test_set_codeberg_visibility_builds_correct_request ... ok
+test visibility::tests::test_set_gitlab_metadata_does_not_panic ... ok
+test visibility::tests::test_set_gitlab_visibility_builds_correct_request ... ok
+test visibility::tests::test_strip_ansi_passthrough_plain_text ... ok
+test visibility::tests::test_strip_ansi_removes_color_codes ... ok
+test visibility::tests::test_sync_metadata_defaults_in_policy ... ok
+test visibility::tests::test_sync_metadata_parses_true ... ok
+test visibility::tests::test_sync_metadata_with_missing_tokens ... ok
+test visibility::tests::test_sync_mirror_metadata_does_not_panic ... ok
+test visibility::tests::test_sync_mirror_metadata_handles_unparseable_origin ... ok
+test visibility::tests::test_sync_mirror_visibility_does_not_panic_on_all_failures ... ok
+test visibility::tests::test_sync_mirror_visibility_handles_unparseable_origin ... ok
+test visibility::tests::test_sync_mirror_visibility_skips_when_cache_fresh ... ok
+test visibility::tests::test_sync_visibility_defaults_in_policy ... ok
+test visibility::tests::test_sync_visibility_parses_true ... ok
+test visibility::tests::test_visibility_cache_corrupt_file ... ok
+test visibility::tests::test_visibility_cache_fresh_when_recent ... ok
+test visibility::tests::test_visibility_cache_freshness_works_for_both_formats ... ok
+test visibility::tests::test_visibility_cache_in_the_future_is_not_fresh ... ok
+test visibility::tests::test_visibility_cache_not_fresh_when_missing ... ok
+test visibility::tests::test_visibility_cache_stale_when_old ... ok
+test visibility::tests::test_visibility_cache_updates_timestamp ... ok
+
+test result: ok. 1535 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 308.90s
+
+     Running tests/excluded_recovery_report.rs (target/debug/deps/excluded_recovery_report-3808eca31b356ffb)
+
+running 2 tests
+test late_archive_write_is_visible_in_real_json_even_with_same_size_and_restored_mtime ... ok
+test unresolved_private_recovery_is_a_machine_readable_concern_even_when_git_is_clean ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-0ecf113d48acbdd6)
+
+running 10 tests
+test test_sync_repo_basic ... ok
+test test_sync_repo_branch_operations ... ok
+test test_sync_repo_commit ... ok
+test test_sync_repo_conflict_detection ... ok
+test test_sync_repo_diff ... ok
+test test_sync_repo_merge ... ok
+test test_sync_repo_multiple_commits ... ok
+test test_sync_repo_push_to_bare ... ok
+test test_sync_repo_stash ... ok
+test test_sync_repo_tag ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests/report_json_detail.rs (target/debug/deps/report_json_detail-c965d8e1a5c4db5d)
+
+running 1 test
+test named_repository_json_is_a_real_envelope_not_vertical_text ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests/storage_clean.rs (target/debug/deps/storage_clean-a2c292d71cbee268)
+
+running 17 tests
+test actual_warden_hook_blocks_invalid_storage_commit_and_keeps_user_hook ... ignored, requires DRACON_STORAGE_TEST_WARDEN pointing to the built source Warden binary
+test advance_job_copies_retained_version_without_touching_git_or_current_edits ... ok
+test busy_selected_job_fails_without_selecting_or_creating_another_version ... ok
+test cold_clone_imports_only_committed_manifest_without_original_cache ... 
