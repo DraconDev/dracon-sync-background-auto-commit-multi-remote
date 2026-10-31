@@ -4852,6 +4852,17 @@ pub(crate) fn parse_count_objects_loose_bytes(stdout: &str) -> u64 {
     parse_count_objects_kib_field_bytes(stdout, "size:")
 }
 
+/// Parse packed-object storage (`size-pack`, in KiB) from `git count-objects -v`.
+///
+/// ADDED 2026-10-31: `size-pack` is the only field that reveals
+/// unreachable-objects-inside-packs bloat. `size-garbage` counts only
+/// LOOSE unreachable objects, so a repository carrying hundreds of MiB
+/// of dead objects inside a pack reports `garbage: 0` and never trips
+/// either pre-existing trigger.
+pub(crate) fn parse_count_objects_pack_bytes(stdout: &str) -> u64 {
+    parse_count_objects_kib_field_bytes(stdout, "size-pack:")
+}
+
 fn parse_count_objects_kib_field_bytes(stdout: &str, field: &str) -> u64 {
     stdout
         .lines()
@@ -4865,6 +4876,12 @@ fn parse_count_objects_kib_field_bytes(stdout: &str, field: &str) -> u64 {
 struct AutoGcState {
     attempted_at: std::time::Instant,
     loose_bytes_after_gc: u64,
+    /// `size-pack` observed immediately after a SUCCESSFUL gc. `None`
+    /// means no post-gc baseline exists yet, so the growth trigger must
+    /// stay disarmed rather than compare against a pre-gc figure (which
+    /// would make every repo look like it had grown by its whole pack).
+    /// ADDED 2026-10-31.
+    pack_bytes_after_gc: Option<u64>,
     succeeded: bool,
 }
 
@@ -4872,7 +4889,17 @@ struct AutoGcState {
 enum AutoGcTrigger {
     Garbage,
     LooseObjects,
+    /// Packed storage has grown past the baseline by the configured
+    /// threshold. Catches unreachable-in-pack bloat that neither of the
+    /// other two triggers can see. ADDED 2026-10-31.
+    PackGrowth,
 }
+
+/// `git gc` keeps unreachable objects for two weeks before pruning, so this
+/// trigger never loses recoverable work — it only stops dead weight from
+/// accumulating indefinitely. Long cooldown because a repack of a multi-GiB
+/// repository is expensive and there is nothing urgent about the excess.
+const AUTO_GC_PACK_GROWTH_COOLDOWN_SECS: u64 = 86_400;
 
 const AUTO_GC_GARBAGE_COOLDOWN_SECS: u64 = 3600;
 const AUTO_GC_LOOSE_COOLDOWN_SECS: u64 = 120;
@@ -4882,8 +4909,10 @@ const AUTO_GC_LOOSE_PROBE_INTERVAL_SECS: u64 = 60;
 fn auto_gc_trigger(
     garbage_bytes: u64,
     loose_bytes: u64,
+    pack_bytes: u64,
     garbage_threshold_bytes: u64,
     loose_threshold_bytes: u64,
+    pack_growth_threshold_bytes: u64,
     last: Option<&AutoGcState>,
     now: std::time::Instant,
 ) -> Option<AutoGcTrigger> {
@@ -4906,10 +4935,23 @@ fn auto_gc_trigger(
             Some(_) => elapsed.as_secs() >= AUTO_GC_LOOSE_FAILURE_COOLDOWN_SECS,
         }
     };
+    // Pack growth: NO baseline means disarmed. Comparing an absent baseline
+    // against the current pack would report "grew by the entire repository"
+    // on the very first observation after a daemon restart, repacking every
+    // large repo immediately.
+    let pack_due = pack_growth_threshold_bytes > 0
+        && last
+            .and_then(|state| state.pack_bytes_after_gc)
+            .is_some_and(|baseline| {
+                pack_bytes.saturating_sub(baseline) >= pack_growth_threshold_bytes
+                    && elapsed.as_secs() >= AUTO_GC_PACK_GROWTH_COOLDOWN_SECS
+            });
     if garbage_due {
         Some(AutoGcTrigger::Garbage)
     } else if loose_due {
         Some(AutoGcTrigger::LooseObjects)
+    } else if pack_due {
+        Some(AutoGcTrigger::PackGrowth)
     } else {
         None
     }
@@ -5038,8 +5080,10 @@ pub(crate) async fn maybe_auto_gc(
     repo: &std::path::Path,
     garbage_threshold_bytes: u64,
     loose_threshold_bytes: u64,
+    pack_growth_threshold_bytes: u64,
 ) -> Option<u64> {
-    if garbage_threshold_bytes == 0 && loose_threshold_bytes == 0 {
+    if garbage_threshold_bytes == 0 && loose_threshold_bytes == 0 && pack_growth_threshold_bytes == 0
+    {
         return None;
     }
     let now = std::time::Instant::now();
@@ -5081,17 +5125,21 @@ pub(crate) async fn maybe_auto_gc(
     let text = String::from_utf8_lossy(&out.stdout);
     let garbage = parse_count_objects_garbage_bytes(&text);
     let loose = parse_count_objects_loose_bytes(&text);
+    let pack = parse_count_objects_pack_bytes(&text);
     let trigger = auto_gc_trigger(
         garbage,
         loose,
+        pack,
         garbage_threshold_bytes,
         loose_threshold_bytes,
+        pack_growth_threshold_bytes,
         last.as_ref(),
         now,
     )?;
     let trigger_bytes = match trigger {
         AutoGcTrigger::Garbage => garbage,
         AutoGcTrigger::LooseObjects => loose,
+        AutoGcTrigger::PackGrowth => pack,
     };
     match trigger {
         AutoGcTrigger::Garbage => eprintln!(
@@ -5106,6 +5154,20 @@ pub(crate) async fn maybe_auto_gc(
             loose as f64 / 1048576.0,
             loose_threshold_bytes as f64 / 1048576.0,
         ),
+        AutoGcTrigger::PackGrowth => eprintln!(
+            "🗑️ {} packed storage grew to {:.2} GiB ({:.2} GiB past the post-gc baseline, \
+             threshold {:.2} GiB) — running git gc (2-week grace: unreachable objects \
+             younger than that are retained)",
+            repo.display(),
+            pack as f64 / 1073741824.0,
+            pack.saturating_sub(
+                last.as_ref()
+                    .and_then(|state| state.pack_bytes_after_gc)
+                    .unwrap_or(pack)
+            ) as f64
+                / 1073741824.0,
+            pack_growth_threshold_bytes as f64 / 1073741824.0,
+        ),
     }
     let attempts = AUTO_GC_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
     attempts.lock().unwrap_or_else(|p| p.into_inner()).insert(
@@ -5113,6 +5175,10 @@ pub(crate) async fn maybe_auto_gc(
         AutoGcState {
             attempted_at: now,
             loose_bytes_after_gc: loose.saturating_sub(loose_threshold_bytes),
+            // No baseline yet: the pre-gc figure is not a post-gc figure.
+            // Cleared here so a failed gc cannot leave a stale baseline
+            // that suppresses the next growth trigger.
+            pack_bytes_after_gc: last.as_ref().and_then(|state| state.pack_bytes_after_gc),
             succeeded: false,
         },
     );
@@ -5120,15 +5186,20 @@ pub(crate) async fn maybe_auto_gc(
     let started = std::time::Instant::now();
     match run_git_with_timeout(repo, &["gc", "--quiet"], 600, "gc (auto)").await {
         Ok(()) => {
-            let loose_after = crate::policy::std_git_command()
+            let after = crate::policy::std_git_command()
                 .args(["count-objects", "-v"])
                 .current_dir(repo)
                 .output()
                 .ok()
                 .filter(|output| output.status.success())
-                .map(|output| {
-                    parse_count_objects_loose_bytes(&String::from_utf8_lossy(&output.stdout))
-                });
+                .map(|output| String::from_utf8_lossy(&output.stdout).into_owned());
+            let loose_after = after
+                .as_deref()
+                .map(parse_count_objects_loose_bytes);
+            let pack_after = after
+                .as_deref()
+                .map(parse_count_objects_pack_bytes)
+                .filter(|bytes| *bytes > 0);
             let baseline_known = loose_after.is_some();
             let loose_after =
                 loose_after.unwrap_or_else(|| loose.saturating_sub(loose_threshold_bytes));
@@ -5137,6 +5208,7 @@ pub(crate) async fn maybe_auto_gc(
                 AutoGcState {
                     attempted_at: now,
                     loose_bytes_after_gc: loose_after,
+                    pack_bytes_after_gc: pack_after,
                     succeeded: baseline_known,
                 },
             );
