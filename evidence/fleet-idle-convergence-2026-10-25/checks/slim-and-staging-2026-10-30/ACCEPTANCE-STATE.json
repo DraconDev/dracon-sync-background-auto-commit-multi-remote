@@ -1,17 +1,47 @@
 {
   "created": "2026-10-30",
-  "criterion": "Original clause: every watched repository clean and idle, zero queued/retrying/blocked/unknown/committing/publishing, zero inspection failures.",
+  "last_updated": "2026-10-31",
+  "criterion": "Original clause (unamended): fresh full-fleet observation, every watched repository clean and idle, zero queued/retrying/blocked/unknown/committing/publishing, zero inspection failures.",
   "satisfied": false,
-  "why_not_satisfied": "Best samples reach 32/36 converged with warn=0, concern=0, failures=0. The remaining rows are actively producing AND their gates are running, which is throughput under continuous production, not a stuck state.",
-  "structural_blockers_removed": [
-    "polis: was permanently unable to commit (own bucket budget, over by 600,621 B). Slimmed under the sanctioned procedure: reachable pack 2,184,647,774 -> 876,021,960 B, tip tree SHA unchanged, all 6939 non-bloat paths preserved. Now commits and publishes.",
-    "dracon-strategy: shared staging deadline (60s default) was consumed by the Warden diff phase (66-129s) before staging (~86-96s) began, so every cycle aborted. Sized to 300s from measurement; it then committed 611 files and reached dirty 0 / ahead 0 / untracked 0."
+  "best_sample": {
+    "file": "s19.json",
+    "repos": 36,
+    "converged": 33,
+    "claimed_ok": 33,
+    "pending": 0,
+    "active": 2,
+    "warn": 1,
+    "concern": 0,
+    "failures": 0,
+    "report_agrees_with_rows": true
+  },
+  "sample_count": 30,
+  "report_agrees_with_per_row_derivation_in_all_samples": true,
+  "concern_zero_in_all_samples": true,
+  "failures_zero_in_all_samples": true,
+  "structural_blockers_removed_this_pass": [
+    {
+      "repo": "polis",
+      "before": "permanently unable to commit: own bucket budget exceeded by 600,621 B, guard failed closed every cycle",
+      "fix": "sanctioned slimming (operator-authorized): reachable pack 2,184,647,774 -> 876,021,960 B; tip tree SHA unchanged (cbab7de0...); all 6,939 non-bloat paths preserved; verified bundle at ~/dracon/backups/polis-pre-slim-20261030.bundle containing the exact cutover old tip",
+      "after": "commits and publishes normally (dirty 0, ahead 0 reached repeatedly)"
+    },
+    {
+      "repo": "dracon-strategy",
+      "before": "every cycle aborted \"ordinary staging absolute deadline expired\": the shared 60s stage_op budget was consumed by the Warden diff phase (66-129s) before staging (~86-96s) began",
+      "fix": "stage_op_timeout_secs raised 60 -> 300 in the operator config, sized from the measured phase breakdown and documented inline; Warden filter untouched",
+      "after": "committed 611 files, then reached dirty 0 / ahead 0 / untracked 0, published"
+    },
+    {
+      "repo": "dracon-sync (test hygiene)",
+      "before": "a test wrote /tmp fixture paths into the LIVE push-stuck ledger, pausing auto-push for those paths and polluting repair stuck-list",
+      "fix": "EnvRestorer + private DRACON_SYNC_STATE_DIR in assert_index_deferral_publishes_backlog_without_bypassing_hook; negative control showed the entry appears without the guard and the ledger stays [] with it, including after a full 2923-test run",
+      "after": "live ledger stays [] through full suite runs"
+    }
   ],
-  "not_a_blocker_corrected": "My earlier claim that a 158.3 MB file exceeded max_stage_file_bytes was WRONG: that file is already gitignored and the staging surface was 533 files / 84.2 MB.",
-  "recorded_disk_cost_not_deleted": ".git/dracon-staging-* in ai-auto-writer: 41 dirs / 5.04 GB. One retained pack holds 87,402 blobs of which 87,400 are already in the main object store (99.998% redundant) but 2 are spool-only, which is exactly why reap_abandoned_spools fails closed. Left in place deliberately.",
-  "prohibited_operations_used": [
-    "history rewrite: ONLY the operator-authorized polis slimming under the documented procedure"
-  ],
+  "earlier_claim_corrected": "I previously reported dracon-strategy was blocked by a 158.3 MB file over max_stage_file_bytes. That was WRONG: the file is already gitignored and the real staging surface was 533 files / 84.2 MB. The genuine cause was the shared staging deadline.",
+  "recorded_disk_cost_not_deleted": ".git/dracon-staging-* in ai-auto-writer: 41 dirs / 5.04 GB, one retained pack holding 87,402 blobs of which 87,400 are already in the main object store but 2 are spool-only, which is why reap_abandoned_spools fails closed. Left in place deliberately; removing it on an age/redundancy heuristic is the unsafe deletion the code warns against.",
+  "remaining_non_convergence": "Every remaining non-converged row is actively producing AND publishing (cause=working/pushing/dirty with live gate processes). browser-extensions-shared's gate cycle is about 30 min per push while its producers commit every few seconds, so that row oscillates rather than settling. No repository is structurally unable to converge.",
   "samples": [
     {
       "file": "s1.json",
@@ -22,7 +52,8 @@
       "active": 4,
       "warn": 3,
       "concern": 0,
-      "failures": 0
+      "failures": 0,
+      "report_agrees_with_rows": true
     },
     {
       "file": "s2.json",
@@ -33,7 +64,8 @@
       "active": 5,
       "warn": 2,
       "concern": 0,
-      "failures": 0
+      "failures": 0,
+      "report_agrees_with_rows": true
     },
     {
       "file": "s3.json",
@@ -44,7 +76,8 @@
       "active": 3,
       "warn": 3,
       "concern": 0,
-      "failures": 0
+      "failures": 0,
+      "report_agrees_with_rows": true
     },
     {
       "file": "s4.json",
@@ -55,7 +88,8 @@
       "active": 4,
       "warn": 4,
       "concern": 0,
-      "failures": 0
+      "failures": 0,
+      "report_agrees_with_rows": true
     },
     {
       "file": "s5.json",
@@ -66,7 +100,8 @@
       "active": 4,
       "warn": 1,
       "concern": 0,
-      "failures": 0
+      "failures": 0,
+      "report_agrees_with_rows": true
     },
     {
       "file": "s6.json",
@@ -77,7 +112,8 @@
       "active": 5,
       "warn": 0,
       "concern": 0,
-      "failures": 0
+      "failures": 0,
+      "report_agrees_with_rows": true
     },
     {
       "file": "s7.json",
@@ -88,7 +124,284 @@
       "active": 4,
       "warn": 1,
       "concern": 0,
-      "failures": 0
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s8.json",
+      "repos": 36,
+      "converged": 31,
+      "claimed_ok": 31,
+      "pending": 0,
+      "active": 3,
+      "warn": 2,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s9.json",
+      "repos": 36,
+      "converged": 30,
+      "claimed_ok": 30,
+      "pending": 0,
+      "active": 5,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s10.json",
+      "repos": 36,
+      "converged": 31,
+      "claimed_ok": 31,
+      "pending": 0,
+      "active": 3,
+      "warn": 2,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s11.json",
+      "repos": 36,
+      "converged": 31,
+      "claimed_ok": 31,
+      "pending": 0,
+      "active": 3,
+      "warn": 2,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s12.json",
+      "repos": 36,
+      "converged": 30,
+      "claimed_ok": 30,
+      "pending": 0,
+      "active": 3,
+      "warn": 3,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s13.json",
+      "repos": 36,
+      "converged": 32,
+      "claimed_ok": 32,
+      "pending": 0,
+      "active": 4,
+      "warn": 0,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s14.json",
+      "repos": 36,
+      "converged": 30,
+      "claimed_ok": 30,
+      "pending": 1,
+      "active": 3,
+      "warn": 2,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s15.json",
+      "repos": 36,
+      "converged": 31,
+      "claimed_ok": 31,
+      "pending": 0,
+      "active": 4,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s16.json",
+      "repos": 36,
+      "converged": 30,
+      "claimed_ok": 30,
+      "pending": 0,
+      "active": 5,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s17.json",
+      "repos": 36,
+      "converged": 29,
+      "claimed_ok": 29,
+      "pending": 0,
+      "active": 6,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s18.json",
+      "repos": 36,
+      "converged": 31,
+      "claimed_ok": 31,
+      "pending": 0,
+      "active": 5,
+      "warn": 0,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s19.json",
+      "repos": 36,
+      "converged": 33,
+      "claimed_ok": 33,
+      "pending": 0,
+      "active": 2,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s20.json",
+      "repos": 36,
+      "converged": 33,
+      "claimed_ok": 33,
+      "pending": 0,
+      "active": 3,
+      "warn": 0,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s21.json",
+      "repos": 36,
+      "converged": 31,
+      "claimed_ok": 31,
+      "pending": 1,
+      "active": 2,
+      "warn": 2,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s22.json",
+      "repos": 36,
+      "converged": 29,
+      "claimed_ok": 29,
+      "pending": 1,
+      "active": 5,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s23.json",
+      "repos": 36,
+      "converged": 29,
+      "claimed_ok": 29,
+      "pending": 0,
+      "active": 5,
+      "warn": 2,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s24.json",
+      "repos": 36,
+      "converged": 30,
+      "claimed_ok": 30,
+      "pending": 0,
+      "active": 5,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s25.json",
+      "repos": 36,
+      "converged": 31,
+      "claimed_ok": 31,
+      "pending": 0,
+      "active": 2,
+      "warn": 3,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s26.json",
+      "repos": 36,
+      "converged": 29,
+      "claimed_ok": 29,
+      "pending": 1,
+      "active": 4,
+      "warn": 2,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s27.json",
+      "repos": 36,
+      "converged": 31,
+      "claimed_ok": 31,
+      "pending": 0,
+      "active": 2,
+      "warn": 3,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s28.json",
+      "repos": 36,
+      "converged": 30,
+      "claimed_ok": 30,
+      "pending": 0,
+      "active": 3,
+      "warn": 3,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s29.json",
+      "repos": 36,
+      "converged": 31,
+      "claimed_ok": 31,
+      "pending": 0,
+      "active": 4,
+      "warn": 1,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
+    },
+    {
+      "file": "s30.json",
+      "repos": 36,
+      "converged": 32,
+      "claimed_ok": 32,
+      "pending": 0,
+      "active": 2,
+      "warn": 2,
+      "concern": 0,
+      "failures": 0,
+      "report_agrees_with_rows": true
     }
   ]
 }
