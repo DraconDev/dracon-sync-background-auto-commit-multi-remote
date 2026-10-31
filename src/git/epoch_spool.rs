@@ -192,14 +192,6 @@ async fn classify_spool(repo: &Path, spool: &Path, timeout: u64) -> Verdict {
     let Some(objects) = pack_objects(repo, &packs, timeout).await else {
         return Verdict::Unreadable;
     };
-    {
-        let mut dbg = clean_git_command();
-        dbg.arg("verify-pack").arg("-v").args(&packs).current_dir(repo);
-        let o = crate::git::run_command_captured_output(dbg.into_tokio(), timeout, "dbg", None).await;
-        if let Ok(o) = o {
-            eprintln!("DEBUG classify packs={:?} parsed={} stdout={} stderr={}",
-                packs, objects.len(), String::from_utf8_lossy(&o.stdout), String::from_utf8_lossy(&o.stderr));
-        }
     }
     if objects.is_empty() {
         return Verdict::Duplicate;
@@ -684,6 +676,21 @@ mod tests {
 
         let spool = spool_with_pack(&gitdir, "dracon-staging-uniq", &pack);
         backdate(&spool);
+        {
+            let orig = run_git(&repo, &["verify-pack", "-v", pack.to_str().unwrap()]);
+            let sp = spool.join("retained-uniq.pack");
+            let spooled = run_git(&repo, &["verify-pack", "-v", sp.to_str().unwrap()]);
+            let sizes: Vec<String> = std::fs::read_dir(&spool).unwrap().flatten()
+                .map(|e| format!("{}={}", e.file_name().to_string_lossy(), e.metadata().map(|m| m.len()).unwrap_or(0)))
+                .collect();
+            panic!("DEBUG unique={:?}\n orig_bytes={} orig={}\n spool_bytes={} spool={}\n files={:?}",
+                unique,
+                std::fs::metadata(&pack).map(|m| m.len()).unwrap_or(0),
+                String::from_utf8_lossy(&orig.stdout),
+                std::fs::metadata(&sp).map(|m| m.len()).unwrap_or(0),
+                String::from_utf8_lossy(&spooled.stdout),
+                sizes);
+        }
 
         assert_eq!(reap_abandoned_spools(&repo, 1, 60).await, 1);
         assert!(!spool.exists(), "rescued spool must be reclaimed after the rescue verifies");
