@@ -5736,6 +5736,128 @@ mod auto_gc_tests {
         let map = attempts.lock().unwrap_or_else(|p| p.into_inner());
         assert!(!map.contains_key(&repo));
     }
+
+    /// REGRESSION (2026-10-31): packed-storage growth must be able to
+    /// trigger a gc.
+    ///
+    /// WHY: `size-garbage` counts only LOOSE unreachable objects and
+    /// `size` counts loose objects at all, so unreachable objects held
+    /// INSIDE a pack are invisible to both pre-existing triggers. Live
+    /// evidence: `dracon-platform` carried 6.53 GiB of unreachable
+    /// pre-slim book covers inside its packs with `garbage: 0` and
+    /// `loose: 0`, and had never been gc-ed in seven days. Without this
+    /// trigger that bloat is only ever removed by an operator running
+    /// `gc --prune=now` by hand.
+    fn pack_growth_state(pack_after: Option<u64>, succeeded: bool, secs_ago: u64) -> super::AutoGcState {
+        super::AutoGcState {
+            attempted_at: std::time::Instant::now()
+                .checked_sub(std::time::Duration::from_secs(secs_ago))
+                .unwrap_or_else(std::time::Instant::now),
+            loose_bytes_after_gc: 0,
+            pack_bytes_after_gc: pack_after,
+            succeeded,
+        }
+    }
+
+    const GIB: u64 = 1024 * 1024 * 1024;
+
+    #[test]
+    fn test_pack_growth_trigger_fires_only_on_real_growth() {
+        let now = std::time::Instant::now();
+        let baseline = Some(2 * GIB);
+
+        // No baseline -> DISARMED. Comparing an absent baseline against the
+        // current pack would report "grew by the whole repository" on the
+        // first observation after every daemon restart.
+        for last in [None, Some(pack_growth_state(None, false, 0))] {
+            assert_eq!(
+                super::auto_gc_trigger(0, 0, 9 * GIB, 0, 0, GIB, last.as_ref(), now),
+                None,
+                "pack growth must stay disarmed without a post-gc baseline"
+            );
+        }
+
+        // Below threshold -> no trigger.
+        assert_eq!(
+            super::auto_gc_trigger(
+                0, 0, 2 * GIB + 512 * 1024 * 1024, 0, 0, GIB,
+                Some(pack_growth_state(baseline, true, 2 * 86_400)).as_ref(), now,
+            ),
+            None
+        );
+
+        // Past the cooldown with real growth -> trigger.
+        assert_eq!(
+            super::auto_gc_trigger(
+                0, 0, 9 * GIB, 0, 0, GIB,
+                Some(pack_growth_state(baseline, true, 2 * 86_400)).as_ref(), now,
+            ),
+            Some(super::AutoGcTrigger::PackGrowth)
+        );
+
+        // Growth but still inside the cooldown -> no trigger (repacking a
+        // multi-GiB repo is expensive; the excess is not urgent).
+        assert_eq!(
+            super::auto_gc_trigger(
+                0, 0, 9 * GIB, 0, 0, GIB,
+                Some(pack_growth_state(baseline, true, 60)).as_ref(), now,
+            ),
+            None
+        );
+
+        // Shrunk pack (operator gc ran) -> no trigger.
+        assert_eq!(
+            super::auto_gc_trigger(
+                0, 0, GIB, 0, 0, GIB,
+                Some(pack_growth_state(baseline, true, 2 * 86_400)).as_ref(), now,
+            ),
+            None
+        );
+
+        // Threshold 0 disables it entirely.
+        assert_eq!(
+            super::auto_gc_trigger(
+                0, 0, 99 * GIB, 0, 0, 0,
+                Some(pack_growth_state(baseline, true, 2 * 86_400)).as_ref(), now,
+            ),
+            None
+        );
+    }
+
+    /// The pre-existing triggers must keep their own precedence and must not
+    /// be displaced by the new one.
+    #[test]
+    fn test_pack_growth_does_not_displace_garbage_or_loose_triggers() {
+        let now = std::time::Instant::now();
+        let stale = pack_growth_state(Some(GIB), true, 2 * 86_400);
+        // Garbage wins over pack growth.
+        assert_eq!(
+            super::auto_gc_trigger(
+                3 * GIB, 0, 9 * GIB, 2 * GIB, 0, GIB, Some(&stale), now
+            ),
+            Some(super::AutoGcTrigger::Garbage)
+        );
+        // Loose wins over pack growth.
+        assert_eq!(
+            super::auto_gc_trigger(
+                0, 512 * 1024 * 1024, 9 * GIB, 0, 64 * 1024 * 1024, GIB, Some(&stale), now
+            ),
+            Some(super::AutoGcTrigger::LooseObjects)
+        );
+    }
+
+    /// `size-pack` parsing: it is the field the trigger depends on, and it
+    /// is reported in KiB like the other size fields.
+    #[test]
+    fn test_parse_count_objects_pack_bytes() {
+        let sample = "count: 9\nin-pack: 365533\nsize: 36\nsize-pack: 1441205\ngarbage: 0\nsize-garbage: 0\n";
+        assert_eq!(
+            super::parse_count_objects_pack_bytes(sample),
+            1_441_205 * 1024
+        );
+        assert_eq!(super::parse_count_objects_pack_bytes(""), 0);
+        assert_eq!(super::parse_count_objects_pack_bytes("size-pack: notanumber"), 0);
+    }
 }
 
 #[cfg(test)]
