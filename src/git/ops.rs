@@ -46,7 +46,7 @@ pub(crate) fn progress_hard_timeout_secs(idle_timeout_secs: u64) -> u64 {
 /// (a 93s push hook is documented stretching to 15m when the box is saturated).
 /// The cost is bounded and only paid on the timeout path, which has already
 /// exceeded its own deadline by hundreds of seconds.
-pub(crate) const SIGTERM_GRACE: std::time::Duration = std::time::Duration::from_secs(60);
+pub(crate) const SIGTERM_GRACE: std::time::Duration = std::time::Duration::from_secs(15);
 
 /// Kill a git child process group using TERM then KILL.
 #[cfg(unix)]
