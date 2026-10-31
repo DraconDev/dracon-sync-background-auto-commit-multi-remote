@@ -1485,7 +1485,7 @@ async fn run_cli(cli: Cli) -> Result<()> {
                         })
                         .collect();
                     println!(
-                        "{{\"applied\":{apply},\"max_age_secs\":{max_age},\"dirs\":{total_dirs},\"bytes\":{total_bytes},\"repos\":[{}]}}",
+                        "{{\"applied\":{apply},\"max_age_secs\":{max_age},\"dirs\":{total_dirs},\"bytes\":{total_bytes},\"reclaimed\":{reclaimed_total},\"repos\":[{}]}}",
                         rows.join(",")
                     );
                 } else {
