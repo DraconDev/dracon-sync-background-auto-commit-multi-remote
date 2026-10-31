@@ -1,0 +1,17 @@
+# epoch-spool baseline BEFORE the verified drain
+captured_at=2026-10-31T20:57:27+00:00
+
+repo                                       spools          bytes
+./empire                                        2         349873
+./dracon-strategy                              87      178905605
+./dracon-strategy/ai-auto-writer                1       13899178
+./pi-plugins                                    1          30226
+./pi-plugins/pi-goal-list-loop-audit            1         407855
+./dracon-utilities/dracon-sync                  1         450084
+./dracon-utilities/dracon-system                2         294224
+./browser-extensions-shared                   125     3972163036
+./dracon-platform                             274      500528568
+
+TOTAL_SPOOLS=494
+TOTAL_BYTES=4667028649
+free_bytes=147348193280
