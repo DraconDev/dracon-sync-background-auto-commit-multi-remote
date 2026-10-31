@@ -1882,7 +1882,8 @@ mod tests {
             b"late child\n"
         );
     }
-}    #[tokio::test]
+
+    #[tokio::test]
     async fn unpublished_epoch_releases_its_spool_when_contents_are_provably_stored() {
         // A deadline is not a refusal: nothing was rejected, and the next epoch
         // re-stages the same worktree. Retention "for diagnosis" is what let the
@@ -1936,5 +1937,6 @@ mod tests {
             "releasing the spool must not cost the staged content: {staged_blob} is gone"
         );
     }
+}
 
 
