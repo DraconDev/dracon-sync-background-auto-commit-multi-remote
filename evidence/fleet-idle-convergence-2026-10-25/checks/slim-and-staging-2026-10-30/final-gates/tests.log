@@ -731,4 +731,52 @@ To /tmp/.tmpjZbcPG/remote.git
  * [new branch]      main -> main
 branch 'main' set up to track 'github/main'.
 ok
-test daemon::tests::test_refresh_publish_upstream_skips_origin_when_ssh_mirrors_exist ... 
+test daemon::tests::test_refresh_publish_upstream_skips_origin_when_ssh_mirrors_exist ... [main (root-commit) 539455c] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_stage_cooldown_remaining_missing_is_none ... ok
+test daemon::tests::test_stage_cooldown_remaining_removes_expired_and_keeps_active ... ok
+test daemon::tests::test_stale_result_refresh_only_when_dirty_and_expired ... ok
+test daemon::tests::test_startup_lock_cleanup_resolves_linked_worktree_gitdir ... ok
+test daemon::tests::test_startup_lock_cleanup_resolves_nested_submodule_gitdir ... ok
+test daemon::tests::test_status_inspection_wedged_bound ... ok
+test daemon::tests::test_status_pipeline_collects_ready_while_slow_pending ... ok
+test daemon::tests::test_status_pipeline_result_carries_spawn_instant ... ok
+test daemon::tests::test_stuck_ledger_concurrent_increments_lose_no_updates ... ok
+test daemon::tests::test_stuck_repo_entry_clone ... ok
+test daemon::tests::test_stuck_repo_entry_debug ... ok
+test daemon::tests::test_stuck_repo_entry_deserialization ... ok
+test daemon::tests::test_stuck_repo_entry_equality ... ok
+test daemon::tests::test_stuck_repo_entry_path_stored_correctly ... ok
+test daemon::tests::test_stuck_repo_entry_serialization ... ok
+test daemon::tests::test_stuck_repo_entry_timestamp_ordering ... ok
+test daemon::tests::test_stuck_repo_expiry_constant ... ok
+test daemon::tests::test_stuck_repo_expiry_not_zero ... ok
+test daemon::tests::test_stuck_repo_expiry_one_day ... ok
+test daemon::tests::test_transient_forge_outage_does_not_burn_stuck_budget ... ok
+test daemon::tests::test_unavailable_fuser_cannot_remove_index_lock ... ok
+test daemon::tests::test_warn_aging_hold_throttles_per_episode ... ok
+test daemon::tests::v011389_inflight_caps_are_pinned_and_ordered ... ok
+test daemon::tests::wedge_cancellation_waits_for_worker_teardown_before_redispatch ... ok
+test daemon::tests::wedged_status_task_aborted_and_slot_freed ... ok
+test exclude::hygiene::tests::hygiene_leading_whitespace_is_significant_and_literal_rules_survive_warden_trimming ... ok
+test exclude::hygiene::tests::hygiene_legacy_wrapper_refuses_invalid_source_bytes_without_overwriting ... ok
+test exclude::hygiene::tests::hygiene_literal_patterns_refuse_unrepresentable_names_not_lossy_wildcards ... ok
+test exclude::hygiene::tests::hygiene_native_git_keeps_protection_and_does_not_ignore_glob_siblings ... ok
+test exclude::hygiene::tests::hygiene_render_preserves_outside_bytes_and_protected_negation_precedence ... ok
+test exclude::hygiene::tests::hygiene_render_rejects_ambiguous_blocks_and_multiline_rules_without_rewriting ... ok
+test exclude::m28_tests::test_basename_patterns_still_work ... ok
+test exclude::m28_tests::test_glob_dir_prefix_forms ... ok
+test exclude::m28_tests::test_single_slash_relative_patterns_no_longer_dead ... ok
+test exclude::m28_tests::test_trailing_starstar_name_forms ... ok
+test exclude::tests::test_append_to_gitignore_creates_new_file ... ok
+test exclude::tests::test_append_to_gitignore_deduplicates ... ok
+test exclude::tests::test_append_to_gitignore_empty_patterns ... ok
+test exclude::tests::test_can_restore_entry_added ... ok
+test exclude::tests::test_can_restore_entry_deleted ... ok
+test exclude::tests::test_can_restore_entry_modified ... ok
+test exclude::tests::test_has_sync_relevant_dirty_entries_empty ... ok
+test exclude::tests::test_has_sync_relevant_dirty_entries_excluded_dir_ignored ... ok
+test exclude::tests::test_has_sync_relevant_dirty_entries_excluded_modified_ignored ... ok
+test exclude::tests::test_has_sync_relevant_dirty_entries_modified ... 
