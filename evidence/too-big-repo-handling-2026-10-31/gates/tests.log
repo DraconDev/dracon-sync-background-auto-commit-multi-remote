@@ -705,4 +705,53 @@ test daemon::tests::test_configure_publish_upstream_if_missing_adds_github_upstr
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
 ok
-test daemon::tests::test_configure_publish_upstream_if_missing_preserves_existing_upstream ... 
+test daemon::tests::test_configure_publish_upstream_if_missing_preserves_existing_upstream ... ok
+test daemon::tests::test_configure_publish_upstream_reports_nonzero_merge_config ... [main (root-commit) 2a35164] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_configure_publish_upstream_reports_nonzero_remote_config ... [main (root-commit) 2a35164] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_configure_standard_remotes_if_missing_adds_remotes ... ok
+test daemon::tests::test_configure_standard_remotes_if_missing_preserves_existing_remote ... ok
+test daemon::tests::test_count_unpushed_vs_configured_remotes_detects_new_remote_head ... ok
+test daemon::tests::test_cyclic_lock_sweep_retains_fresh_lock ... ok
+test daemon::tests::test_cyclic_lock_sweep_retains_in_use_lock ... ok
+test daemon::tests::test_cyclic_lock_sweep_retains_on_fuser_error ... ok
+test daemon::tests::test_cyclic_lock_sweep_skips_fuser_when_no_lock ... ok
+test daemon::tests::test_dispatch_starved_boot_grace ... ok
+test daemon::tests::test_dispatch_starved_needs_dirty_and_no_dispatch ... ok
+test daemon::tests::test_fuser_failure_is_not_treated_as_unused ... ok
+test daemon::tests::test_hold_warn_due_gates_on_sixty_seconds ... ok
+test daemon::tests::test_m4_helper_structurally_unified ... ok
+test daemon::tests::test_mirror_push_paused_skips_sick_reprobes_stale ... ok
+test daemon::tests::test_pile_alert_due_matrix ... ok
+test daemon::tests::test_pile_watch_sample_accumulates_arrival_and_drain ... ok
+test daemon::tests::test_prune_expired_cooldowns_keeps_owed_backoff ... ok
+test daemon::tests::test_prune_repo_liveness_drops_dead_repos ... ok
+test daemon::tests::test_record_push_failure_increments_counter ... ok
+test daemon::tests::test_record_push_failure_redacts_url_credentials ... ok
+test daemon::tests::test_record_push_failure_returns_repo_state ... ok
+test daemon::tests::test_record_push_success_clears_entry ... ok
+test daemon::tests::test_refresh_publish_upstream_fetches_primary_remote_ref ... [main (root-commit) 637320a] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+To /tmp/.tmpsAKSpg/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'github/main'.
+ok
+test daemon::tests::test_refresh_publish_upstream_skips_origin_when_ssh_mirrors_exist ... [main (root-commit) 637320a] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_stage_cooldown_remaining_missing_is_none ... ok
+test daemon::tests::test_stage_cooldown_remaining_removes_expired_and_keeps_active ... ok
+test daemon::tests::test_stale_result_refresh_only_when_dirty_and_expired ... ok
+test daemon::tests::test_startup_lock_cleanup_resolves_linked_worktree_gitdir ... ok
+test daemon::tests::test_startup_lock_cleanup_resolves_nested_submodule_gitdir ... ok
+test daemon::tests::test_status_inspection_wedged_bound ... ok
+test daemon::tests::test_status_pipeline_collects_ready_while_slow_pending ... ok
+test daemon::tests::test_status_pipeline_result_carries_spawn_instant ... ok
+test daemon::tests::test_stuck_ledger_concurrent_increments_lose_no_updates ... 
