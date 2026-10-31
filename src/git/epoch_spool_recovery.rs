@@ -24,14 +24,19 @@ fn git(repo: &Path) -> Command {
     // In particular, do not inherit alternates, replacement refs, index paths,
     // config injection, or lazy-fetch credentials from the daemon environment.
     let path = std::env::var_os("PATH").unwrap_or_default();
-    c.env_clear().env("PATH", path)
+    c.env_clear()
+        .env("PATH", path)
         .env("GIT_CONFIG_NOSYSTEM", "1")
         .env("GIT_CONFIG_GLOBAL", "/dev/null")
         .env("GIT_NO_REPLACE_OBJECTS", "1")
         .env("GIT_NO_LAZY_FETCH", "1")
         .env("GIT_TERMINAL_PROMPT", "0")
-        .arg("--no-replace-objects").current_dir(repo).kill_on_drop(true)
-        .stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
+        .arg("--no-replace-objects")
+        .current_dir(repo)
+        .kill_on_drop(true)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
     c
 }
 
@@ -39,20 +44,34 @@ async fn run(mut c: Command, seconds: u64) -> Result<Vec<u8>> {
     // Command::output would override file stdout with a pipe, defeating the
     // file-backed pack enumeration and potentially capturing binary data.
     let child = c.spawn()?;
-    let output = tokio::time::timeout(std::time::Duration::from_secs(seconds), child.wait_with_output())
-        .await.context("recovery Git timeout")??;
-    ensure!(output.status.success(), "recovery Git failed: {}", String::from_utf8_lossy(&output.stderr));
+    let output = tokio::time::timeout(
+        std::time::Duration::from_secs(seconds),
+        child.wait_with_output(),
+    )
+    .await
+    .context("recovery Git timeout")??;
+    ensure!(
+        output.status.success(),
+        "recovery Git failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     Ok(output.stdout)
 }
 
 async fn text(repo: &Path, args: &[&str], timeout: u64) -> Result<String> {
     let mut c = git(repo);
     c.args(args);
-    Ok(String::from_utf8(run(c, timeout).await?)?.trim_end_matches('\n').to_owned())
+    Ok(String::from_utf8(run(c, timeout).await?)?
+        .trim_end_matches('\n')
+        .to_owned())
 }
 
 fn regular(path: &Path) -> Result<File> {
-    ensure!(fs::symlink_metadata(path)?.is_file(), "not a regular file: {}", path.display());
+    ensure!(
+        fs::symlink_metadata(path)?.is_file(),
+        "not a regular file: {}",
+        path.display()
+    );
     let mut options = OpenOptions::new();
     options.read(true);
     #[cfg(unix)]
@@ -73,16 +92,26 @@ fn copy_regular(from: &Path, to: &Path) -> Result<()> {
 }
 
 fn oid(s: &str, width: usize) -> bool {
-    s.len() == width && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    s.len() == width
+        && s.bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
 /// Reject dependencies that copying a single index cannot preserve. Parsing the
 /// extension boundary ourselves prevents Git silently resolving a split index.
 fn supported_index(path: &Path, width: usize) -> Result<()> {
     let bytes = fs::read(path)?;
-    ensure!(bytes.len() >= 12 + width / 2 && &bytes[..4] == b"DIRC", "invalid index");
+    ensure!(
+        bytes.len() >= 12 + width / 2 && &bytes[..4] == b"DIRC",
+        "invalid index"
+    );
     let number = |at: usize| -> Result<u32> {
-        Ok(u32::from_be_bytes(bytes.get(at..at + 4).context("truncated index")?.try_into()?))
+        Ok(u32::from_be_bytes(
+            bytes
+                .get(at..at + 4)
+                .context("truncated index")?
+                .try_into()?,
+        ))
     };
     let version = number(4)?;
     ensure!(version == 2 || version == 3, "only index v2/v3 supported");
@@ -91,19 +120,31 @@ fn supported_index(path: &Path, width: usize) -> Result<()> {
     for _ in 0..number(8)? {
         let start = at;
         let flags_at = at + 40 + width / 2;
-        let flags = u16::from_be_bytes(bytes.get(flags_at..flags_at + 2).context("truncated flags")?.try_into()?);
+        let flags = u16::from_be_bytes(
+            bytes
+                .get(flags_at..flags_at + 2)
+                .context("truncated flags")?
+                .try_into()?,
+        );
         ensure!(flags & 0x3000 == 0, "unmerged index unsupported");
         ensure!(flags & 0x4000 == 0, "extended index flags unsupported");
         at = flags_at + 2;
-        while at < end && bytes[at] != 0 { at += 1; }
+        while at < end && bytes[at] != 0 {
+            at += 1;
+        }
         ensure!(at < end, "unterminated index path");
         at = start + (at + 1 - start).div_ceil(8) * 8;
         ensure!(at <= end, "truncated index padding");
     }
     while at < end {
         let signature = bytes.get(at..at + 4).context("truncated extension")?;
-        ensure!(signature == b"TREE", "unsupported index extension (including split index)");
-        at = at.checked_add(8 + number(at + 4)? as usize).context("index extension overflow")?;
+        ensure!(
+            signature == b"TREE",
+            "unsupported index extension (including split index)"
+        );
+        at = at
+            .checked_add(8 + number(at + 4)? as usize)
+            .context("index extension overflow")?;
         ensure!(at <= end, "truncated extension data");
     }
     ensure!(at == end, "invalid index boundary");
@@ -125,27 +166,58 @@ fn listed_objects(path: &Path, width: usize, expected: usize) -> Result<BTreeSet
         let line = line?;
         let fields: Vec<_> = line.split_whitespace().collect();
         if fields.first().is_some_and(|s| oid(s, width)) {
-            ensure!(fields.len() == 5 || fields.len() == 7, "invalid verify-pack object row");
-            ensure!(["blob", "tree", "commit", "tag"].contains(&fields[1]), "unknown object type");
-            for field in &fields[2..5] { field.parse::<u64>()?; }
+            ensure!(
+                fields.len() == 5 || fields.len() == 7,
+                "invalid verify-pack object row"
+            );
+            ensure!(
+                ["blob", "tree", "commit", "tag"].contains(&fields[1]),
+                "unknown object type"
+            );
+            for field in &fields[2..5] {
+                field.parse::<u64>()?;
+            }
             if fields.len() == 7 {
                 fields[5].parse::<u64>()?;
                 ensure!(oid(fields[6], width), "invalid delta base");
             }
-            ensure!(objects.insert(fields[0].to_owned()), "duplicate OID within pack");
+            ensure!(
+                objects.insert(fields[0].to_owned()),
+                "duplicate OID within pack"
+            );
         } else {
             // Summary lines are not object rows; malformed rows are never
             // silently accepted because the per-pack header count must agree.
-            ensure!(line.ends_with(": ok") || line.starts_with("non delta: ") || line.starts_with("chain length = "), "unknown verify-pack output");
+            ensure!(
+                line.ends_with(": ok")
+                    || line.starts_with("non delta: ")
+                    || line.starts_with("chain length = "),
+                "unknown verify-pack output"
+            );
         }
     }
-    ensure!(objects.len() == expected, "pack header/enumeration mismatch: {} listed, {expected} declared", objects.len());
+    ensure!(
+        objects.len() == expected,
+        "pack header/enumeration mismatch: {} listed, {expected} declared",
+        objects.len()
+    );
     Ok(objects)
 }
 
 async fn init(path: &Path, format: &str, timeout: u64) -> Result<()> {
     fs::create_dir(path)?;
-    text(path, &["init", "--bare", "--template=", &format!("--object-format={format}"), "."], timeout).await?;
+    text(
+        path,
+        &[
+            "init",
+            "--bare",
+            "--template=",
+            &format!("--object-format={format}"),
+            ".",
+        ],
+        timeout,
+    )
+    .await?;
     Ok(())
 }
 
@@ -153,22 +225,44 @@ async fn init(path: &Path, format: &str, timeout: u64) -> Result<()> {
 /// object's contents and validates closure (gitlinks deliberately have no local
 /// commit obligation). Batch reads additionally prove every required root exists.
 async fn verify(store: &Path, roots: &Path, timeout: u64) -> Result<()> {
-    ensure!(!store.join("objects/info/alternates").exists(), "published alternates forbidden");
-    ensure!(!store.join("shallow").exists(), "shallow recovery forbidden");
+    ensure!(
+        !store.join("objects/info/alternates").exists(),
+        "published alternates forbidden"
+    );
+    ensure!(
+        !store.join("shallow").exists(),
+        "shallow recovery forbidden"
+    );
     let mut c = git(store);
-    c.args(["cat-file", "--batch"]).stdin(File::open(roots)?).stdout(Stdio::null());
+    c.args(["cat-file", "--batch"])
+        .stdin(File::open(roots)?)
+        .stdout(Stdio::null());
     run(c, timeout).await?;
     let mut c = git(store);
-    c.args(["cat-file", "--batch-check=%(objectname) %(objecttype)"]).stdin(File::open(roots)?);
+    c.args(["cat-file", "--batch-check=%(objectname) %(objecttype)"])
+        .stdin(File::open(roots)?);
     let result = String::from_utf8(run(c, timeout).await?)?;
     let requested = fs::read_to_string(roots)?;
     let lines: Vec<_> = result.lines().collect();
-    ensure!(lines.len() == requested.lines().count(), "missing batch results");
+    ensure!(
+        lines.len() == requested.lines().count(),
+        "missing batch results"
+    );
     for (root, line) in requested.lines().zip(lines) {
         let fields: Vec<_> = line.split_whitespace().collect();
-        ensure!(fields.len() == 2 && fields[0] == root && ["blob", "tree", "commit", "tag"].contains(&fields[1]), "missing recovery root");
+        ensure!(
+            fields.len() == 2
+                && fields[0] == root
+                && ["blob", "tree", "commit", "tag"].contains(&fields[1]),
+            "missing recovery root"
+        );
     }
-    text(store, &["fsck", "--full", "--strict", "--no-reflogs"], timeout).await?;
+    text(
+        store,
+        &["fsck", "--full", "--strict", "--no-reflogs"],
+        timeout,
+    )
+    .await?;
     Ok(())
 }
 
@@ -185,12 +279,18 @@ fn sync_tree(path: &Path, base: &Path, manifest: &mut String) -> Result<()> {
             let mut buf = [0; 65536];
             loop {
                 let n = file.read(&mut buf)?;
-                if n == 0 { break; }
+                if n == 0 {
+                    break;
+                }
                 hash.update(&buf[..n]);
             }
             file.sync_all()?;
             // JSON escaping makes arbitrary metadata names unambiguous.
-            manifest.push_str(&format!("{:x} {}\n", hash.finalize(), serde_json::to_string(&path.strip_prefix(base)?.as_os_str().as_encoded_bytes())?));
+            manifest.push_str(&format!(
+                "{:x} {}\n",
+                hash.finalize(),
+                serde_json::to_string(&path.strip_prefix(base)?.as_os_str().as_encoded_bytes())?
+            ));
         }
     }
     File::open(path)?.sync_all()?;
@@ -201,32 +301,98 @@ fn sync_tree(path: &Path, base: &Path, manifest: &mut String) -> Result<()> {
 /// itself: caller must recheck identities and preservation markers. All Git
 /// timeouts are per subprocess, not a whole-transaction deadline.
 #[allow(dead_code)] // Deliberately not connected to destructive reclamation.
-pub(super) async fn prepare_record(repo: &Path, spool: &Path, timeout: u64) -> Result<DurableReceipt> {
+pub(super) async fn prepare_record(
+    repo: &Path,
+    spool: &Path,
+    timeout: u64,
+) -> Result<DurableReceipt> {
     let gitdir = PathBuf::from(text(repo, &["rev-parse", "--absolute-git-dir"], timeout).await?);
-    ensure!(fs::symlink_metadata(spool)?.is_dir(), "spool must be a real directory");
-    ensure!(spool.parent().context("spool has no parent")?.canonicalize()? == gitdir.canonicalize()?, "spool outside originating gitdir");
-    ensure!(!spool.join("preserve-rejected").exists() && !spool.join("original-index").exists(), "preservation marker");
+    ensure!(
+        fs::symlink_metadata(spool)?.is_dir(),
+        "spool must be a real directory"
+    );
+    ensure!(
+        spool
+            .parent()
+            .context("spool has no parent")?
+            .canonicalize()?
+            == gitdir.canonicalize()?,
+        "spool outside originating gitdir"
+    );
+    ensure!(
+        !spool.join("preserve-rejected").exists() && !spool.join("original-index").exists(),
+        "preservation marker"
+    );
     let format = text(repo, &["rev-parse", "--show-object-format"], timeout).await?;
-    let width = match format.as_str() { "sha1" => 40, "sha256" => 64, _ => bail!("unknown object format") };
-    let objects = PathBuf::from(text(repo, &["rev-parse", "--path-format=absolute", "--git-path", "objects"], timeout).await?);
+    let width = match format.as_str() {
+        "sha1" => 40,
+        "sha256" => 64,
+        _ => bail!("unknown object format"),
+    };
+    let objects = PathBuf::from(
+        text(
+            repo,
+            &[
+                "rev-parse",
+                "--path-format=absolute",
+                "--git-path",
+                "objects",
+            ],
+            timeout,
+        )
+        .await?,
+    );
     // Unusual alternate-path syntax is refused instead of incorrectly quoting it.
-    ensure!(!objects.as_os_str().as_encoded_bytes().iter().any(|b| [b':', b'\n', b'"'].contains(b)), "unsupported object directory path");
+    ensure!(
+        !objects
+            .as_os_str()
+            .as_encoded_bytes()
+            .iter()
+            .any(|b| [b':', b'\n', b'"'].contains(b)),
+        "unsupported object directory path"
+    );
     let rescue = gitdir.join("dracon-rescue");
-    match fs::create_dir(&rescue) { Ok(()) => (), Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => (), Err(e) => return Err(e.into()) }
-    ensure!(fs::symlink_metadata(&rescue)?.is_dir(), "recovery area is not a real directory");
+    match fs::create_dir(&rescue) {
+        Ok(()) => (),
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => (),
+        Err(e) => return Err(e.into()),
+    }
+    ensure!(
+        fs::symlink_metadata(&rescue)?.is_dir(),
+        "recovery area is not a real directory"
+    );
     File::open(&gitdir)?.sync_all()?;
-    let work = tempfile::Builder::new().prefix(".prepare-").tempdir_in(&rescue)?;
-    let record = tempfile::Builder::new().prefix("record-").tempdir_in(&rescue)?;
+    let work = tempfile::Builder::new()
+        .prefix(".prepare-")
+        .tempdir_in(&rescue)?;
+    let record = tempfile::Builder::new()
+        .prefix("record-")
+        .tempdir_in(&rescue)?;
     let metadata = record.path().join("metadata");
     fs::create_dir(&metadata)?;
+    fs::write(
+        record.path().join("source.json"),
+        serde_json::to_vec(&serde_json::json!({
+            "version": 1,
+            "originating_gitdir_bytes": gitdir.as_os_str().as_encoded_bytes(),
+            "spool_path_bytes": spool.as_os_str().as_encoded_bytes(),
+            "object_format": format,
+        }))?,
+    )?;
     let inputs = work.path().join("inputs");
     fs::create_dir(&inputs)?;
     let mut packs = Vec::new();
     for entry in fs::read_dir(spool)? {
         let entry = entry?;
-        ensure!(entry.file_type()?.is_file(), "unknown directory or symlink in spool");
+        ensure!(
+            entry.file_type()?.is_file(),
+            "unknown directory or symlink in spool"
+        );
         let name = entry.file_name();
-        ensure!(!name.as_encoded_bytes().starts_with(b"sharedindex."), "split index dependency unsupported");
+        ensure!(
+            !name.as_encoded_bytes().starts_with(b"sharedindex."),
+            "split index dependency unsupported"
+        );
         if entry.path().extension().is_some_and(|e| e == "pack") {
             copy_regular(&entry.path(), &inputs.join(&name))?;
             packs.push(name);
@@ -250,7 +416,10 @@ pub(super) async fn prepare_record(repo: &Path, spool: &Path, timeout: u64) -> R
         run(c, timeout).await?;
         let listing = work.path().join(format!("listing-{i}"));
         let mut c = git(&build);
-        c.arg("verify-pack").arg("-v").arg(pack.with_extension("idx")).stdout(File::create(&listing)?);
+        c.arg("verify-pack")
+            .arg("-v")
+            .arg(pack.with_extension("idx"))
+            .stdout(File::create(&listing)?);
         run(c, timeout).await?;
         roots.extend(listed_objects(&listing, width, count)?);
     }
@@ -258,48 +427,87 @@ pub(super) async fn prepare_record(repo: &Path, spool: &Path, timeout: u64) -> R
     // object storage never contain that dependency.
     let index = work.path().join("index");
     let mut c = git(&build);
-    c.args(["ls-files", "--stage", "-z"]).env("GIT_INDEX_FILE", &index).env("GIT_ALTERNATE_OBJECT_DIRECTORIES", &objects);
+    c.args(["ls-files", "--stage", "-z"])
+        .env("GIT_INDEX_FILE", &index)
+        .env("GIT_ALTERNATE_OBJECT_DIRECTORIES", &objects);
     let entries = run(c, timeout).await?;
     for entry in entries.split(|b| *b == 0).filter(|e| !e.is_empty()) {
-        let header = entry.split(|b| *b == b'\t').next().context("missing index header")?;
+        let header = entry
+            .split(|b| *b == b'\t')
+            .next()
+            .context("missing index header")?;
         let fields: Vec<_> = std::str::from_utf8(header)?.split_whitespace().collect();
-        ensure!(fields.len() == 3 && fields[2] == "0" && oid(fields[1], width), "unsupported index entry");
-        ensure!(fields[1].bytes().any(|b| b != b'0'), "intent-to-add unsupported");
-        if fields[0] != "160000" { roots.insert(fields[1].to_owned()); }
+        ensure!(
+            fields.len() == 3 && fields[2] == "0" && oid(fields[1], width),
+            "unsupported index entry"
+        );
+        ensure!(
+            fields[1].bytes().any(|b| b != b'0'),
+            "intent-to-add unsupported"
+        );
+        if fields[0] != "160000" {
+            roots.insert(fields[1].to_owned());
+        }
     }
     let mut c = git(&build);
-    c.arg("write-tree").env("GIT_INDEX_FILE", &index).env("GIT_ALTERNATE_OBJECT_DIRECTORIES", &objects);
+    c.arg("write-tree")
+        .env("GIT_INDEX_FILE", &index)
+        .env("GIT_ALTERNATE_OBJECT_DIRECTORIES", &objects);
     let tree = String::from_utf8(run(c, timeout).await?)?.trim().to_owned();
     ensure!(oid(&tree, width), "invalid index tree");
     roots.insert(tree);
     let roots_path = record.path().join("roots");
-    fs::write(&roots_path, roots.into_iter().map(|s| s + "\n").collect::<String>())?;
+    fs::write(
+        &roots_path,
+        roots.into_iter().map(|s| s + "\n").collect::<String>(),
+    )?;
     let store = record.path().join("store.git");
     init(&store, &format, timeout).await?;
     let prefix = store.join("objects/pack/pack");
     let mut c = git(&build);
-    c.args(["pack-objects", "--revs", "--no-reuse-object", "--no-reuse-delta"])
-        .arg(&prefix).env("GIT_ALTERNATE_OBJECT_DIRECTORIES", &objects).stdin(File::open(&roots_path)?);
+    c.args([
+        "pack-objects",
+        "--revs",
+        "--no-reuse-object",
+        "--no-reuse-delta",
+    ])
+    .arg(&prefix)
+    .env("GIT_ALTERNATE_OBJECT_DIRECTORIES", &objects)
+    .stdin(File::open(&roots_path)?);
     let hash = String::from_utf8(run(c, timeout).await?)?.trim().to_owned();
     ensure!(oid(&hash, width), "invalid output pack identity");
-    fs::write(store.join(format!("objects/pack/pack-{hash}.keep")), b"Independent epoch recovery; do not prune\n")?;
+    fs::write(
+        store.join(format!("objects/pack/pack-{hash}.keep")),
+        b"Independent epoch recovery; do not prune\n",
+    )?;
     verify(&store, &roots_path, timeout).await?;
     let mut manifest = String::from("dracon-epoch-recovery-v1\n");
     sync_tree(record.path(), record.path(), &mut manifest)?;
     let manifest_sha256 = format!("{:x}", Sha256::digest(manifest.as_bytes()));
-    let mut file = OpenOptions::new().create_new(true).write(true).open(record.path().join("manifest.sha256"))?;
+    let mut file = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(record.path().join("manifest.sha256"))?;
     file.write_all(manifest.as_bytes())?;
     file.sync_all()?;
-    let mut receipt = OpenOptions::new().create_new(true).write(true).open(record.path().join("receipt.pending"))?;
+    let mut receipt = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(record.path().join("receipt.pending"))?;
     writeln!(receipt, "dracon-epoch-recovery-v1 {manifest_sha256}")?;
     receipt.sync_all()?;
-    // Hard-link publication is create-only and exposes only complete bytes.
-    fs::hard_link(record.path().join("receipt.pending"), record.path().join("receipt"))?;
     File::open(record.path())?.sync_all()?;
-    // From here on even a directory-sync error must not remove the record.
+    // Retain before publication: no later error may remove a published receipt.
+    // An interrupted publication can leave a prepared directory without one.
     let record = record.keep();
     File::open(&rescue)?.sync_all()?;
-    Ok(DurableReceipt { record, manifest_sha256 })
+    // Hard-link publication is create-only and exposes only complete bytes.
+    fs::hard_link(record.join("receipt.pending"), record.join("receipt"))?;
+    File::open(&record)?.sync_all()?;
+    Ok(DurableReceipt {
+        record,
+        manifest_sha256,
+    })
 }
 
 #[cfg(test)]
@@ -310,10 +518,24 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let repo = root.path().join("main");
         fs::create_dir(&repo).unwrap();
-        text(&repo, &["init", "--template=", &format!("--object-format={format}")], 10).await.unwrap();
-        fs::write(repo.join("file with spaces"), b"original recovery payload\n").unwrap();
-        text(&repo, &["add", "--", "file with spaces"], 10).await.unwrap();
-        let blob = text(&repo, &["rev-parse", ":file with spaces"], 10).await.unwrap();
+        text(
+            &repo,
+            &["init", "--template=", &format!("--object-format={format}")],
+            10,
+        )
+        .await
+        .unwrap();
+        fs::write(
+            repo.join("file with spaces"),
+            b"original recovery payload\n",
+        )
+        .unwrap();
+        text(&repo, &["add", "--", "file with spaces"], 10)
+            .await
+            .unwrap();
+        let blob = text(&repo, &["rev-parse", ":file with spaces"], 10)
+            .await
+            .unwrap();
         let spool = repo.join(".git/dracon-staging-test");
         fs::create_dir(&spool).unwrap();
         fs::copy(repo.join(".git/index"), spool.join("index")).unwrap();
@@ -326,7 +548,9 @@ mod tests {
         let input = spool.join(format!("{label}-roots"));
         fs::write(&input, roots.join("\n") + "\n").unwrap();
         let mut c = git(repo);
-        c.args(["pack-objects", "--revs"]).arg(spool.join(label)).stdin(File::open(&input).unwrap());
+        c.args(["pack-objects", "--revs"])
+            .arg(spool.join(label))
+            .stdin(File::open(&input).unwrap());
         run(c, 10).await.unwrap();
     }
 
@@ -336,7 +560,8 @@ mod tests {
             let (root, repo, spool, blob) = fixture(format).await;
             let original = fs::read(spool.join("index")).unwrap();
             let mut c = git(&repo);
-            c.args(["ls-files", "--stage", "-z"]).env("GIT_INDEX_FILE", spool.join("index"));
+            c.args(["ls-files", "--stage", "-z"])
+                .env("GIT_INDEX_FILE", spool.join("index"));
             let mapping = run(c, 10).await.unwrap();
             let receipt = prepare_record(&repo, &spool, 10).await.unwrap();
             assert_eq!(receipt.manifest_sha256.len(), 64);
@@ -346,12 +571,21 @@ mod tests {
             fs::rename(&repo, root.path().join("unavailable-main")).unwrap();
             assert!(!repo.exists() && !spool.exists());
             assert_eq!(fs::read(saved.join("metadata/index")).unwrap(), original);
-            assert_eq!(fs::read(saved.join("metadata/notes")).unwrap(), b"exact metadata\0\xff");
+            assert_eq!(
+                fs::read(saved.join("metadata/notes")).unwrap(),
+                b"exact metadata\0\xff"
+            );
             let store = saved.join("store.git");
             let mut c = git(&store);
-            c.args(["ls-files", "--stage", "-z"]).env("GIT_INDEX_FILE", saved.join("metadata/index"));
+            c.args(["ls-files", "--stage", "-z"])
+                .env("GIT_INDEX_FILE", saved.join("metadata/index"));
             assert_eq!(run(c, 10).await.unwrap(), mapping);
-            assert_eq!(text(&store, &["cat-file", "blob", &blob], 10).await.unwrap(), "original recovery payload");
+            assert_eq!(
+                text(&store, &["cat-file", "blob", &blob], 10)
+                    .await
+                    .unwrap(),
+                "original recovery payload"
+            );
             verify(&store, &saved.join("roots"), 10).await.unwrap();
             assert!(!store.join("objects/info/alternates").exists());
             assert_eq!(text(&store, &["remote"], 10).await.unwrap(), "");
@@ -360,18 +594,35 @@ mod tests {
 
     #[tokio::test]
     async fn mixed_overlapping_packs_keep_dangling_objects_after_main_gc() {
-        let (_root, repo, spool, blob) = fixture("sha1").await;
-        fs::write(repo.join("dangling"), b"unique dangling object").unwrap();
-        let unique = text(&repo, &["hash-object", "-w", "dangling"], 10).await.unwrap();
-        pack(&repo, &spool, &[blob.clone(), unique.clone()], "retained-one").await;
-        pack(&repo, &spool, std::slice::from_ref(&blob), "retained-two").await;
-        let receipt = prepare_record(&repo, &spool, 10).await.unwrap();
-        text(&repo, &["gc", "--prune=now"], 10).await.unwrap();
-        let store = receipt.record.join("store.git");
-        text(&store, &["gc", "--prune=now"], 10).await.unwrap();
-        assert_eq!(text(&store, &["cat-file", "blob", &unique], 10).await.unwrap(), "unique dangling object");
-        verify(&store, &receipt.record.join("roots"), 10).await.unwrap();
-        assert!(spool.join("index").exists());
+        for format in ["sha1", "sha256"] {
+            let (_root, repo, spool, blob) = fixture(format).await;
+            fs::write(repo.join("dangling"), b"unique dangling object").unwrap();
+            let unique = text(&repo, &["hash-object", "-w", "dangling"], 10)
+                .await
+                .unwrap();
+            pack(
+                &repo,
+                &spool,
+                &[blob.clone(), unique.clone()],
+                "retained-one",
+            )
+            .await;
+            pack(&repo, &spool, std::slice::from_ref(&blob), "retained-two").await;
+            let receipt = prepare_record(&repo, &spool, 10).await.unwrap();
+            text(&repo, &["gc", "--prune=now"], 10).await.unwrap();
+            let store = receipt.record.join("store.git");
+            text(&store, &["gc", "--prune=now"], 10).await.unwrap();
+            assert_eq!(
+                text(&store, &["cat-file", "blob", &unique], 10)
+                    .await
+                    .unwrap(),
+                "unique dangling object"
+            );
+            verify(&store, &receipt.record.join("roots"), 10)
+                .await
+                .unwrap();
+            assert!(spool.join("index").exists());
+        }
     }
 
     #[tokio::test]
@@ -380,8 +631,11 @@ mod tests {
         let source = fs::read(spool.join("index")).unwrap();
         let receipt = prepare_record(&repo, &spool, 10).await.unwrap();
         let store = receipt.record.join("store.git");
-        let pack = fs::read_dir(store.join("objects/pack")).unwrap().map(|e| e.unwrap().path())
-            .find(|p| p.extension().is_some_and(|e| e == "pack")).unwrap();
+        let pack = fs::read_dir(store.join("objects/pack"))
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .find(|p| p.extension().is_some_and(|e| e == "pack"))
+            .unwrap();
         let mut bytes = fs::read(&pack).unwrap();
         bytes[15] ^= 0x55;
         let mut permissions = fs::metadata(&pack).unwrap().permissions();
@@ -392,19 +646,62 @@ mod tests {
         }
         fs::set_permissions(&pack, permissions).unwrap();
         fs::write(pack, bytes).unwrap();
-        assert!(verify(&store, &receipt.record.join("roots"), 10).await.is_err());
+        assert!(verify(&store, &receipt.record.join("roots"), 10)
+            .await
+            .is_err());
         assert_eq!(fs::read(spool.join("index")).unwrap(), source);
     }
 
     #[tokio::test]
     async fn corrupt_input_and_unknown_directories_refuse_without_receipt() {
         let (_root, repo, spool, _) = fixture("sha1").await;
-        fs::write(spool.join("retained-bad.pack"), b"PACK\0\0\0\x02\0\0\0\x01broken").unwrap();
+        fs::write(
+            spool.join("retained-bad.pack"),
+            b"PACK\0\0\0\x02\0\0\0\x01broken",
+        )
+        .unwrap();
         assert!(prepare_record(&repo, &spool, 10).await.is_err());
-        assert_eq!(fs::read(spool.join("retained-bad.pack")).unwrap(), b"PACK\0\0\0\x02\0\0\0\x01broken");
+        assert_eq!(
+            fs::read(spool.join("retained-bad.pack")).unwrap(),
+            b"PACK\0\0\0\x02\0\0\0\x01broken"
+        );
         fs::create_dir(spool.join("unknown")).unwrap();
         assert!(prepare_record(&repo, &spool, 10).await.is_err());
         assert!(spool.join("index").exists());
-        assert!(fs::read_dir(repo.join(".git/dracon-rescue")).unwrap().next().is_none());
+        assert!(fs::read_dir(repo.join(".git/dracon-rescue"))
+            .unwrap()
+            .next()
+            .is_none());
+    }
+
+    #[tokio::test]
+    async fn split_index_and_missing_index_object_refuse_preserving_sources() {
+        let (_root, repo, spool, blob) = fixture("sha1").await;
+        let loose = repo.join(".git/objects").join(&blob[..2]).join(&blob[2..]);
+        let moved = loose.with_extension("unavailable");
+        fs::rename(&loose, &moved).unwrap();
+        let original = fs::read(spool.join("index")).unwrap();
+        assert!(prepare_record(&repo, &spool, 10).await.is_err());
+        assert_eq!(fs::read(spool.join("index")).unwrap(), original);
+        fs::rename(&moved, &loose).unwrap();
+        text(&repo, &["update-index", "--split-index"], 10)
+            .await
+            .unwrap();
+        fs::copy(repo.join(".git/index"), spool.join("index")).unwrap();
+        let split = fs::read(spool.join("index")).unwrap();
+        assert!(prepare_record(&repo, &spool, 10).await.is_err());
+        assert_eq!(fs::read(spool.join("index")).unwrap(), split);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn symlink_metadata_is_refused_without_following_it() {
+        let (_root, repo, spool, _) = fixture("sha1").await;
+        std::os::unix::fs::symlink(repo.join("file with spaces"), spool.join("alias")).unwrap();
+        assert!(prepare_record(&repo, &spool, 10).await.is_err());
+        assert!(fs::symlink_metadata(spool.join("alias"))
+            .unwrap()
+            .file_type()
+            .is_symlink());
     }
 }
