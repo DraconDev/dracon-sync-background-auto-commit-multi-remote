@@ -297,3 +297,103 @@ pub(super) async fn prepare_record(repo: &Path, spool: &Path, timeout: u64) -> R
     File::open(&rescue)?.sync_all()?;
     Ok(DurableReceipt { record, manifest_sha256 })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn fixture(format: &str) -> (tempfile::TempDir, PathBuf, PathBuf, String) {
+        let root = tempfile::tempdir().unwrap();
+        let repo = root.path().join("main");
+        fs::create_dir(&repo).unwrap();
+        text(&repo, &["init", "--template=", &format!("--object-format={format}")], 10).await.unwrap();
+        fs::write(repo.join("file with spaces"), b"original recovery payload\n").unwrap();
+        text(&repo, &["add", "--", "file with spaces"], 10).await.unwrap();
+        let blob = text(&repo, &["rev-parse", ":file with spaces"], 10).await.unwrap();
+        let spool = repo.join(".git/dracon-staging-test");
+        fs::create_dir(&spool).unwrap();
+        fs::copy(repo.join(".git/index"), spool.join("index")).unwrap();
+        fs::write(spool.join("reclaim-owner.lock"), b"").unwrap();
+        fs::write(spool.join("notes"), b"exact metadata\0\xff").unwrap();
+        (root, repo, spool, blob)
+    }
+
+    async fn pack(repo: &Path, spool: &Path, roots: &[String], label: &str) {
+        let input = spool.join(format!("{label}-roots"));
+        fs::write(&input, roots.join("\n") + "\n").unwrap();
+        let mut c = git(repo);
+        c.args(["pack-objects", "--revs"]).arg(spool.join(label)).stdin(File::open(&input).unwrap());
+        run(c, 10).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn index_only_reconstructs_exact_bytes_and_paths_without_main_or_spool() {
+        for format in ["sha1", "sha256"] {
+            let (root, repo, spool, blob) = fixture(format).await;
+            let original = fs::read(spool.join("index")).unwrap();
+            let mut c = git(&repo);
+            c.args(["ls-files", "--stage", "-z"]).env("GIT_INDEX_FILE", spool.join("index"));
+            let mapping = run(c, 10).await.unwrap();
+            let receipt = prepare_record(&repo, &spool, 10).await.unwrap();
+            assert_eq!(receipt.manifest_sha256.len(), 64);
+            assert!(spool.exists(), "engine never removes its source");
+            let saved = root.path().join("saved-record");
+            fs::rename(&receipt.record, &saved).unwrap();
+            fs::rename(&repo, root.path().join("unavailable-main")).unwrap();
+            assert!(!repo.exists() && !spool.exists());
+            assert_eq!(fs::read(saved.join("metadata/index")).unwrap(), original);
+            assert_eq!(fs::read(saved.join("metadata/notes")).unwrap(), b"exact metadata\0\xff");
+            let store = saved.join("store.git");
+            let mut c = git(&store);
+            c.args(["ls-files", "--stage", "-z"]).env("GIT_INDEX_FILE", saved.join("metadata/index"));
+            assert_eq!(run(c, 10).await.unwrap(), mapping);
+            assert_eq!(text(&store, &["cat-file", "blob", &blob], 10).await.unwrap(), "original recovery payload");
+            verify(&store, &saved.join("roots"), 10).await.unwrap();
+            assert!(!store.join("objects/info/alternates").exists());
+            assert_eq!(text(&store, &["remote"], 10).await.unwrap(), "");
+        }
+    }
+
+    #[tokio::test]
+    async fn mixed_overlapping_packs_keep_dangling_objects_after_main_gc() {
+        let (_root, repo, spool, blob) = fixture("sha1").await;
+        fs::write(repo.join("dangling"), b"unique dangling object").unwrap();
+        let unique = text(&repo, &["hash-object", "-w", "dangling"], 10).await.unwrap();
+        pack(&repo, &spool, &[blob.clone(), unique.clone()], "retained-one").await;
+        pack(&repo, &spool, std::slice::from_ref(&blob), "retained-two").await;
+        let receipt = prepare_record(&repo, &spool, 10).await.unwrap();
+        text(&repo, &["gc", "--prune=now"], 10).await.unwrap();
+        let store = receipt.record.join("store.git");
+        text(&store, &["gc", "--prune=now"], 10).await.unwrap();
+        assert_eq!(text(&store, &["cat-file", "blob", &unique], 10).await.unwrap(), "unique dangling object");
+        verify(&store, &receipt.record.join("roots"), 10).await.unwrap();
+        assert!(spool.join("index").exists());
+    }
+
+    #[tokio::test]
+    async fn isolated_verification_rejects_corrupt_pack_with_source_intact() {
+        let (_root, repo, spool, _) = fixture("sha1").await;
+        let source = fs::read(spool.join("index")).unwrap();
+        let receipt = prepare_record(&repo, &spool, 10).await.unwrap();
+        let store = receipt.record.join("store.git");
+        let pack = fs::read_dir(store.join("objects/pack")).unwrap().map(|e| e.unwrap().path())
+            .find(|p| p.extension().is_some_and(|e| e == "pack")).unwrap();
+        let mut bytes = fs::read(&pack).unwrap();
+        bytes[15] ^= 0x55;
+        fs::write(pack, bytes).unwrap();
+        assert!(verify(&store, &receipt.record.join("roots"), 10).await.is_err());
+        assert_eq!(fs::read(spool.join("index")).unwrap(), source);
+    }
+
+    #[tokio::test]
+    async fn corrupt_input_and_unknown_directories_refuse_without_receipt() {
+        let (_root, repo, spool, _) = fixture("sha1").await;
+        fs::write(spool.join("retained-bad.pack"), b"PACK\0\0\0\x02\0\0\0\x01broken").unwrap();
+        assert!(prepare_record(&repo, &spool, 10).await.is_err());
+        assert_eq!(fs::read(spool.join("retained-bad.pack")).unwrap(), b"PACK\0\0\0\x02\0\0\0\x01broken");
+        fs::create_dir(spool.join("unknown")).unwrap();
+        assert!(prepare_record(&repo, &spool, 10).await.is_err());
+        assert!(spool.join("index").exists());
+        assert!(fs::read_dir(repo.join(".git/dracon-rescue")).unwrap().next().is_none());
+    }
+}
