@@ -281,15 +281,12 @@ async fn rescue_and_remove(
     // Index it so the pack is readable on its own, then verify from that pack
     // alone. The rescued objects are absent from the repository by definition,
     // so a successful read cannot be satisfied by the main object database.
+    // Path form on purpose: `index-pack --stdin` would write a hash-named pack
+    // elsewhere instead of indexing the file just written.
     let mut index = clean_git_command();
-    index.args(["index-pack", "--stdin"]).current_dir(&rescue_dir);
-    let Ok(indexed) = crate::git::run_command_captured_output(
-        index.into_tokio(),
-        timeout,
-        "spool rescue index",
-        Some(&output.stdout),
-    )
-    .await
+    index.args(["index-pack"]).arg(&pack_path).current_dir(&rescue_dir);
+    let Ok(indexed) =
+        crate::git::run_command_captured_output(index.into_tokio(), timeout, "spool rescue index", None).await
     else {
         let _ = std::fs::remove_file(&pack_path);
         return false;
