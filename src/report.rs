@@ -2885,7 +2885,12 @@ pub(crate) fn push_stuck_hint(repo: &Path, failures: u32, redacted_error: &str) 
 }
 
 fn current_blocker_hint(current: current_health::Current, hint: &str) -> String {
-    if current == current_health::Current::Unknown {
+    if current == current_health::Current::Unknown
+        && (hint.starts_with("healthy")
+            || hint.starts_with("daemon will push after changes settle")
+            || hint.starts_with("daemon handles after changes settle")
+            || hint.starts_with("run dracon-sync repair concerns --apply"))
+    {
         // Unknown is an evidence gap, not proof of healthy progress or a
         // reason to prescribe a push/history rewrite. Keep diagnostic
         // qualifications (pack/history checks), but replace the action.
@@ -17066,6 +17071,22 @@ mod v011321_tests {
         assert!(!unknown.contains("will push"));
         let concrete = "push-stuck: hook refused";
         assert_eq!(current_blocker_hint(Current::Unknown, concrete), concrete);
+    }
+
+    #[test]
+    fn unknown_hints_reject_healthy_and_speculative_rewrite_advice() {
+        use super::current_health::Current;
+        for action in ["healthy", "run dracon-sync repair concerns --apply (push or rewrite)"] {
+            let hint = format!("{action}; GitHub pack guard clear; deep checks deferred");
+            let unknown = current_blocker_hint(Current::Unknown, &hint);
+            assert!(unknown.contains("evidence unavailable"), "{unknown}");
+            assert!(!unknown.starts_with(action), "{unknown}");
+            assert!(!unknown.contains("push or rewrite"), "{unknown}");
+            assert!(unknown.contains("GitHub pack guard clear"));
+            assert!(unknown.contains("deep checks deferred"));
+            // A known state must retain its original advice.
+            assert_eq!(current_blocker_hint(Current::Working, &hint), hint);
+        }
     }
 
     #[test]
