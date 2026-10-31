@@ -758,6 +758,7 @@ fn handle_visibility_flip(
 }
 
 fn main() -> Result<()> {
+    git::epoch_producer_trampoline()?;
     #[cfg(target_os = "linux")]
     {
         let args: Vec<_> = std::env::args_os().collect();

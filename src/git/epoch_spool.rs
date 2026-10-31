@@ -43,6 +43,10 @@ const LOSSLESS_RECLAIM_QUALIFIED: bool = false;
 mod ownership;
 #[path = "epoch_spool_recovery.rs"]
 mod recovery;
+#[path = "epoch_spool_producer.rs"]
+mod producer;
+#[allow(unused_imports)] // Producer integration is intentionally a separate review.
+pub(crate) use producer::{epoch_producer_trampoline, producer_environment, EpochProducerCommand, EpochProducerScope, ProducerExit, SettledProducer};
 pub(crate) use ownership::SpoolLease;
 
 /// Verdict for one spool after comparing its pack against the object database.
