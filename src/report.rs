@@ -11984,6 +11984,7 @@ mod tests {
             auto_gc_garbage_threshold_bytes: crate::policy::default_auto_gc_garbage_threshold_bytes(
             ),
             auto_gc_loose_threshold_bytes: crate::policy::default_auto_gc_loose_threshold_bytes(),
+            auto_gc_pack_growth_bytes: crate::policy::default_auto_gc_pack_growth_bytes(),
             epoch_spool_max_age_secs: crate::policy::default_epoch_spool_max_age_secs(),
             auto_prune_stale_backup_branches: false,
             repo_sync_timeout_secs: 420,
