@@ -1,20 +1,17 @@
 {
   "created": "2026-10-31",
-  "purpose": "Four gates for the auto_gc pack-growth trigger (unreachable-in-pack bloat).",
+  "purpose": "Four gates for the auto_gc pack-growth trigger incl. first-observation arming.",
   "assembly": {
-    "dracon_sync_head": "5103b2b25999ae942eb82c2ec3b61e0ea2bc58a3",
-    "src_tree_sha": "0cba2257eb72790b677774e043aa5df6db34d1e1",
-    "cargo_lock_sha": "1f009ca9f39f3ebe7525c0838868537343353aa5",
-    "binding": "content SHAs; src/ byte-identical to HEAD"
+    "dracon_sync_head": "0a2b4c3db1a6a1d50bbd013fb08616fe4b815ce2",
+    "src_tree_sha": "9ed02a9a90b7a4551b76c2985c73732aa01934a5",
+    "cargo_lock_sha": "1f009ca9f39f3ebe7525c0838868537343353aa5"
   },
   "gates": {
     "workspace_tests": {
       "exit": 0,
       "suites": 44,
-      "passed": 2929,
-      "failed": 0,
-      "log": "dracon-sync/evidence/too-big-repo-handling-2026-10-31/gates/tests-rerun.log",
-      "note": "first run had 1 failure (integrated_failure_recovery_harness) under full-suite load; it passes in isolation and the unchanged re-run is 0 failed"
+      "passed": 2930,
+      "failed": 0
     },
     "release_build": {
       "exit": 0
@@ -25,5 +22,9 @@
     "cargo_deny": {
       "exit": 0
     }
-  }
+  },
+  "negative_controls": [
+    "neutralising the pack-growth predicate made test_pack_growth_trigger_fires_only_on_real_growth FAIL (left: None, right: Some(PackGrowth))",
+    "disabling the arming block made test_maybe_auto_gc_arms_pack_growth_baseline_without_gcing FAIL"
+  ]
 }
