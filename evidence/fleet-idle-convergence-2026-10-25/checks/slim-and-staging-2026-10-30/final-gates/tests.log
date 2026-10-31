@@ -2020,3 +2020,5 @@ test sync::tests::test_commit_guard_blocks_on_unparsable_override ... ok
 test sync::tests::test_commit_guard_blocks_untrusted_without_override ... ok
 test sync::tests::test_commit_guard_honors_owned_override_with_custom_identity ... ok
 test sync::tests::test_commit_only_commits_but_never_pushes ... [master (root-commit) 0a6e578] init
+ok
+test sync::tests::test_commit_only_control_pushes_and_fails ... [master (root-commit) 65cd799] init
