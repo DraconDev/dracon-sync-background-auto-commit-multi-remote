@@ -2022,3 +2022,63 @@ test sync::tests::test_commit_guard_honors_owned_override_with_custom_identity .
 test sync::tests::test_commit_only_commits_but_never_pushes ... [master (root-commit) 0a6e578] init
 ok
 test sync::tests::test_commit_only_control_pushes_and_fails ... [master (root-commit) 65cd799] init
+ok
+test sync::tests::test_compute_blast_radius_merge_prefix ... ok
+test sync::tests::test_compute_diff_entries_propagates_filter_diff_failure ... ok
+test sync::tests::test_concurrent_staging_defers_then_captured_and_worktree_epochs_converge ... [master (root-commit) aee0320] init
+ok
+test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) e565082] init
+ok
+test sync::tests::test_count_ahead_commits_no_origin ... ok
+test sync::tests::test_count_ahead_commits_returns_zero_when_synced ... [main (root-commit) e565082] init
+ok
+test sync::tests::test_count_ahead_commits_takes_max_across_tracking_refs ... [main (root-commit) dc95803] c0
+[main 71726dd] c1
+[main bf4926b] c2
+[main 3cf836c] c3
+[main 82f767a] c4
+ok
+test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [main (root-commit) 4d45916] c1
+[main f072f67] c2
+ok
+test sync::tests::test_degraded_success_reports_paused_not_synced ... [master (root-commit) 3c8ee4c] init
+To /tmp/.tmpAmurHQ/mirror.git
+ * [new branch]      master -> master
+ok
+test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) 56f7cd0] init
+ok
+test sync::tests::test_doc_lock_predicates ... ok
+test sync::tests::test_docsonly_mirror_and_negative ... ok
+test sync::tests::test_excluded_tracked_file_edits_preserved_by_default ... ok
+test sync::tests::test_excluded_tracked_file_reverted_when_opted_in ... ok
+test sync::tests::test_ext_excludes_gitlink_paths ... warning: adding embedded git repository: sub.mod
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sub.mod
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sub.mod
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_extension_histogram_top3_order ... ok
+test sync::tests::test_failing_remote_names_formats_sorted ... ok
+test sync::tests::test_file_extension_cases ... ok
+test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) b7152a2] init
+ok
+test sync::tests::test_filter_only_skip_still_pushes_ahead ... ok
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) 5f6df3e] init
+ok
+test sync::tests::test_forge_incident_declares_and_shields ... [master (root-commit) 5f6df3e] init
+[master (root-commit) 5f6df3e] init
+ok
+test sync::tests::test_goal_metrics_multibyte_utf8_no_panic ... ok
+test sync::tests::test_index_lock_contention_preserves_work_and_recovers ... [master (root-commit) 7b4c5ef] init
+ok
+test sync::tests::test_index_lock_contention_retries_then_succeeds ... [master (root-commit) 0bed3f4] init
