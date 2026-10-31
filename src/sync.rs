@@ -12200,6 +12200,7 @@ auto_bump_versions = false
         // Same guard as the other push-failure test at the top of this
         // module; a test must never mutate production state.
         // NEGATIVE CONTROL: guard removed on purpose.
+        let tmp = tempfile::tempdir().unwrap();
         let origin_bare = tmp.path().join("origin.git");
         crate::git::git_cmd()
             .args(["init", "--bare", "-q", "-b", "main"])
