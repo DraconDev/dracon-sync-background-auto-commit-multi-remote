@@ -46,7 +46,10 @@ async fn capture<R: tokio::io::AsyncRead + Unpin>(pipe: Option<R>) -> Result<Vec
     let mut bytes = Vec::new();
     if let Some(pipe) = pipe {
         pipe.take(LIMIT + 1).read_to_end(&mut bytes).await?;
-        ensure!(bytes.len() as u64 <= LIMIT, "recovery Git output limit exceeded");
+        ensure!(
+            bytes.len() as u64 <= LIMIT,
+            "recovery Git output limit exceeded"
+        );
     }
     Ok(bytes)
 }
@@ -77,7 +80,8 @@ async fn run(mut c: Command, seconds: u64) -> Result<Vec<u8>> {
     let waited = tokio::time::timeout(
         std::time::Duration::from_secs(seconds),
         join_child(&mut child),
-    ).await;
+    )
+    .await;
     let timed_out = waited.is_err();
     let status = match waited {
         Ok(status) => status,
@@ -86,15 +90,24 @@ async fn run(mut c: Command, seconds: u64) -> Result<Vec<u8>> {
             // its temporary storage. The caller's whole-transaction deadline
             // still returns without granting any removal authority.
             if let Err(error) = child.start_kill() {
-                eprintln!("recovery child kill request failed; retaining storage until joined: {error}");
+                eprintln!(
+                    "recovery child kill request failed; retaining storage until joined: {error}"
+                );
             }
             join_child(&mut child).await
         }
     };
     let out = stdout.await??;
     let err = stderr.await??;
-    ensure!(!timed_out, "recovery Git timeout; process termination joined");
-    ensure!(status.success(), "recovery Git failed: {}", String::from_utf8_lossy(&err));
+    ensure!(
+        !timed_out,
+        "recovery Git timeout; process termination joined"
+    );
+    ensure!(
+        status.success(),
+        "recovery Git failed: {}",
+        String::from_utf8_lossy(&err)
+    );
     Ok(out)
 }
 
@@ -360,19 +373,31 @@ enum Fault {
     BeforeReceipt,
     #[cfg(test)]
     AfterRetain,
+    #[cfg(test)]
+    SlowBeforeVerify,
 }
 
-async fn prepare_with_fault(repo: &Path, spool: &Path, seconds: u64, fault: Fault) -> Result<DurableReceipt> {
+async fn prepare_with_fault(
+    repo: &Path,
+    spool: &Path,
+    seconds: u64,
+    fault: Fault,
+) -> Result<DurableReceipt> {
     let (repo, spool) = (repo.to_path_buf(), spool.to_path_buf());
-    let preparation = tokio::spawn(async move {
-        prepare_inner(&repo, &spool, seconds, fault).await
-    });
+    let preparation =
+        tokio::spawn(async move { prepare_inner(&repo, &spool, seconds, fault).await });
     tokio::time::timeout(std::time::Duration::from_secs(seconds), preparation)
-        .await.context("recovery transaction deadline; source preserved")?
+        .await
+        .context("recovery transaction deadline; source preserved")?
         .context("recovery preparation task failed")?
 }
 
-async fn prepare_inner(repo: &Path, spool: &Path, timeout: u64, _fault: Fault) -> Result<DurableReceipt> {
+async fn prepare_inner(
+    repo: &Path,
+    spool: &Path,
+    timeout: u64,
+    _fault: Fault,
+) -> Result<DurableReceipt> {
     let gitdir = PathBuf::from(text(repo, &["rev-parse", "--absolute-git-dir"], timeout).await?);
     ensure!(
         fs::symlink_metadata(spool)?.is_dir(),
@@ -547,6 +572,19 @@ async fn prepare_inner(repo: &Path, spool: &Path, timeout: u64, _fault: Fault) -
         store.join(format!("objects/pack/pack-{hash}.keep")),
         b"Independent epoch recovery; do not prune\n",
     )?;
+    #[cfg(test)]
+    if matches!(_fault, Fault::SlowBeforeVerify) {
+        let mut probe = Command::new(std::env::current_exe()?);
+        probe
+            .args([
+                "--exact",
+                "git::epoch_spool::recovery::tests::recovery_writer_probe",
+            ])
+            .env("DRACON_RECOVERY_WRITER_PROBE", record.path())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        run(probe, timeout).await?;
+    }
     #[cfg(test)]
     if matches!(_fault, Fault::CorruptBeforeVerify) {
         let pack = store.join(format!("objects/pack/pack-{hash}.pack"));
@@ -736,17 +774,85 @@ mod tests {
         }
     }
 
+    #[test]
+    fn recovery_writer_probe() {
+        let Some(path) = std::env::var_os("DRACON_RECOVERY_WRITER_PROBE") else {
+            return;
+        };
+        let path = PathBuf::from(path);
+        fs::write(path.join("probe-ready"), std::process::id().to_string()).unwrap();
+        std::thread::sleep(std::time::Duration::from_secs(5));
+        fs::write(path.join("late-write"), b"still using preparation storage").unwrap();
+    }
+
+    // Protect cancellation ownership: dropping the requester must not destroy
+    // storage while its already-launched writer is still alive.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn cancelled_request_retains_storage_until_writer_is_joined() {
+        let (_root, repo, spool, _) = fixture("sha1").await;
+        let original = fs::read(spool.join("index")).unwrap();
+        let (r, s) = (repo.clone(), spool.clone());
+        let request =
+            tokio::spawn(
+                async move { prepare_with_fault(&r, &s, 20, Fault::SlowBeforeVerify).await },
+            );
+        let rescue = repo.join(".git/dracon-rescue");
+        let record = tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            loop {
+                if let Ok(entries) = fs::read_dir(&rescue) {
+                    for entry in entries.flatten() {
+                        if entry.path().join("probe-ready").exists() {
+                            return entry.path();
+                        }
+                    }
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
+        let pid: i32 = fs::read_to_string(record.join("probe-ready"))
+            .unwrap()
+            .parse()
+            .unwrap();
+        request.abort();
+        assert!(request.await.unwrap_err().is_cancelled());
+        assert!(
+            record.exists(),
+            "cancelled requester must not clean beneath its writer"
+        );
+        assert!(!record.join("receipt").exists());
+        // This PID came from this fixture's single writer, not a live daemon.
+        assert_eq!(unsafe { libc::kill(pid, libc::SIGKILL) }, 0);
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            while record.exists() {
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
+        assert_eq!(fs::read(spool.join("index")).unwrap(), original);
+    }
+
     // Protect the actual prepublication gate: corruption must fail preparation,
     // not merely be detectable by a verifier invoked after a successful receipt.
     #[tokio::test]
     async fn post_write_corruption_and_publication_faults_preserve_source() {
-        for fault in [Fault::CorruptBeforeVerify, Fault::BeforeReceipt, Fault::AfterRetain] {
+        for fault in [
+            Fault::CorruptBeforeVerify,
+            Fault::BeforeReceipt,
+            Fault::AfterRetain,
+        ] {
             let (_root, repo, spool, _) = fixture("sha1").await;
             let original = fs::read(spool.join("index")).unwrap();
             assert!(prepare_with_fault(&repo, &spool, 20, fault).await.is_err());
             assert_eq!(fs::read(spool.join("index")).unwrap(), original);
             for record in fs::read_dir(repo.join(".git/dracon-rescue")).unwrap() {
-                assert!(!record.unwrap().path().join("receipt").exists(), "failed preparation must not authorize removal");
+                assert!(
+                    !record.unwrap().path().join("receipt").exists(),
+                    "failed preparation must not authorize removal"
+                );
             }
         }
     }
