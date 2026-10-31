@@ -793,6 +793,26 @@ mod tests {
         assert_eq!(std::fs::read(spool.join("retained.pack")).unwrap(), b"only surviving candidate");
     }
 
+    /// The safety hold must protect a valid, old, ownership-aware spool too,
+    /// not merely skip invalid repositories or busy owners.
+    #[tokio::test]
+    async fn safety_interlock_preserves_valid_recovery_spool() {
+        let root = tempfile::tempdir().unwrap();
+        let repo = repo_with_commit(root.path());
+        let gitdir = absolute_git_dir(&repo).await.unwrap();
+        let pack = root.path().join("held.pack");
+        make_pack(&repo, &pack);
+        let spool = spool_with_pack(&gitdir, "dracon-staging-held", &pack);
+        let owner = SpoolLease::acquire(&spool).unwrap();
+        drop(owner);
+        backdate(&spool);
+        let before = std::fs::read(spool.join("index")).unwrap();
+        assert!(!reclaim_spool_if_lossless(&repo, &spool, 60).await);
+        assert_eq!(reap_abandoned_spools(&repo, 1, 60).await, 0);
+        assert_eq!(std::fs::read(spool.join("index")).unwrap(), before);
+        assert!(spool.join("retained-held.pack").exists());
+    }
+
     /// A spool whose every object already exists in the repository is a pure
     /// copy: removing it cannot lose anything.
     #[tokio::test]
