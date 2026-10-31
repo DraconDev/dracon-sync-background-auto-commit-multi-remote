@@ -35,24 +35,40 @@ pub(crate) fn producer_environment(
 ) -> Result<BTreeMap<String, String>> {
     let mut result = BTreeMap::new();
     for (key, value) in std::env::vars_os() {
-        result.insert(key.into_string().map_err(|_| anyhow::anyhow!("non-UTF8 environment name"))?,
-            value.into_string().map_err(|_| anyhow::anyhow!("non-UTF8 environment value"))?);
+        result.insert(
+            key.into_string()
+                .map_err(|_| anyhow::anyhow!("non-UTF8 environment name"))?,
+            value
+                .into_string()
+                .map_err(|_| anyhow::anyhow!("non-UTF8 environment value"))?,
+        );
     }
     apply_changes(&mut result, changes);
     validate_environment(&result)?;
     Ok(result)
 }
 
-fn apply_changes(env: &mut BTreeMap<String, String>, changes: impl IntoIterator<Item = (String, Option<String>)>) {
+fn apply_changes(
+    env: &mut BTreeMap<String, String>,
+    changes: impl IntoIterator<Item = (String, Option<String>)>,
+) {
     for (key, value) in changes {
-        if let Some(value) = value { env.insert(key, value); } else { env.remove(&key); }
+        if let Some(value) = value {
+            env.insert(key, value);
+        } else {
+            env.remove(&key);
+        }
     }
 }
 
 fn validate_environment(env: &BTreeMap<String, String>) -> Result<()> {
     for (key, value) in env {
-        ensure!(!key.is_empty() && key.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
-            && !key.as_bytes()[0].is_ascii_digit(), "unsupported environment name");
+        ensure!(
+            !key.is_empty()
+                && key.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                && !key.as_bytes()[0].is_ascii_digit(),
+            "unsupported environment name"
+        );
         ensure!(!value.contains('\0'), "NUL environment value");
     }
     Ok(())
@@ -61,7 +77,10 @@ fn validate_environment(env: &BTreeMap<String, String>) -> Result<()> {
 fn absolute_text(path: &Path) -> Result<&str> {
     ensure!(path.is_absolute(), "producer paths must be absolute");
     let text = path.to_str().context("non-UTF8 producer path")?;
-    ensure!(!text.contains(['\0', '\n', '\r', '%']), "unsupported producer path");
+    ensure!(
+        !text.contains(['\0', '\n', '\r', '%']),
+        "unsupported producer path"
+    );
     Ok(text)
 }
 
@@ -70,22 +89,38 @@ fn absolute_text(path: &Path) -> Result<&str> {
 /// other undeclared variables cannot reach the actual producer.
 pub(crate) fn epoch_producer_trampoline() -> Result<()> {
     let args: Vec<_> = std::env::args_os().collect();
-    if args.get(1).is_none_or(|arg| arg != TRAMPOLINE) { return Ok(()); }
+    if args.get(1).is_none_or(|arg| arg != TRAMPOLINE) {
+        return Ok(());
+    }
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
-        let count: usize = args.get(2).and_then(|s| s.to_str()).context("missing environment count")?.parse()?;
-        ensure!(count <= args.len().saturating_sub(4), "invalid environment count");
+        let count: usize = args
+            .get(2)
+            .and_then(|s| s.to_str())
+            .context("missing environment count")?
+            .parse()?;
+        ensure!(
+            count <= args.len().saturating_sub(4),
+            "invalid environment count"
+        );
         let mut env = BTreeMap::new();
         for key in &args[3..3 + count] {
             let key = key.to_str().context("non-UTF8 environment name")?;
             let value = std::env::var(key).context("forwarded environment missing")?;
-            ensure!(env.insert(key.to_owned(), value).is_none(), "duplicate environment name");
+            ensure!(
+                env.insert(key.to_owned(), value).is_none(),
+                "duplicate environment name"
+            );
         }
         validate_environment(&env)?;
         let target = Path::new(&args[3 + count]);
         absolute_text(target)?;
-        let error = std::process::Command::new(target).args(&args[4 + count..]).env_clear().envs(env).exec();
+        let error = std::process::Command::new(target)
+            .args(&args[4 + count..])
+            .env_clear()
+            .envs(env)
+            .exec();
         return Err(error.into());
     }
     #[cfg(not(unix))]
@@ -94,13 +129,23 @@ pub(crate) fn epoch_producer_trampoline() -> Result<()> {
 
 /// Opaque, noncloneable completion proof. The lease-owning caller may consume it;
 /// merely dropping a scope, timing out, or signalling a unit never produces one.
-pub(crate) struct SettledProducer { _private: () }
+pub(crate) struct SettledProducer {
+    _private: (),
+}
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) enum ProducerExit { Code(i32), Signal(i32) }
+pub(crate) enum ProducerExit {
+    Code(i32),
+    Signal(i32),
+}
 
 #[derive(Clone, Debug)]
-struct Manager { uid: u32, runner: PathBuf, control: PathBuf, helper: PathBuf }
+struct Manager {
+    uid: u32,
+    runner: PathBuf,
+    control: PathBuf,
+    helper: PathBuf,
+}
 
 impl Manager {
     fn new() -> Result<Self> {
@@ -110,70 +155,124 @@ impl Manager {
         bail!("epoch containment requires Linux cgroup v2");
         fn locate(name: &str) -> Result<PathBuf> {
             std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default())
-                .map(|p| p.join(name)).find(|p| p.is_file())
-                .context("systemd user-service tooling unavailable")?.canonicalize().map_err(Into::into)
+                .map(|p| p.join(name))
+                .find(|p| p.is_file())
+                .context("systemd user-service tooling unavailable")?
+                .canonicalize()
+                .map_err(Into::into)
         }
-        Ok(Self { uid, runner: locate("systemd-run")?, control: locate("systemctl")?, helper: std::env::current_exe()? })
+        Ok(Self {
+            uid,
+            runner: locate("systemd-run")?,
+            control: locate("systemctl")?,
+            helper: std::env::current_exe()?,
+        })
     }
     fn command(&self, executable: &Path) -> Command {
         let mut command = Command::new(executable);
-        command.env("XDG_RUNTIME_DIR", format!("/run/user/{}", self.uid))
-            .env("DBUS_SESSION_BUS_ADDRESS", format!("unix:path=/run/user/{}/bus", self.uid))
-            .stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
+        command
+            .env("XDG_RUNTIME_DIR", format!("/run/user/{}", self.uid))
+            .env(
+                "DBUS_SESSION_BUS_ADDRESS",
+                format!("unix:path=/run/user/{}/bus", self.uid),
+            )
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
         command
     }
     async fn show(&self, name: &str) -> Result<BTreeMap<String, String>> {
         let output = self.command(&self.control).args(["--user", "show", name,
             "--property=LoadState,ControlGroup,InvocationID,ExecMainCode,ExecMainStatus,ActiveState,SubState"]).output().await?;
-        ensure!(output.status.success(), "user manager property query failed");
-        Ok(String::from_utf8(output.stdout)?.lines().filter_map(|line| line.split_once('='))
-            .map(|(k,v)| (k.to_owned(), v.to_owned())).collect())
+        ensure!(
+            output.status.success(),
+            "user manager property query failed"
+        );
+        Ok(String::from_utf8(output.stdout)?
+            .lines()
+            .filter_map(|line| line.split_once('='))
+            .map(|(k, v)| (k.to_owned(), v.to_owned()))
+            .collect())
     }
 }
 
 #[derive(Clone, Debug)]
-struct Unit { manager: Manager, name: String, invocation: String, cgroup: PathBuf }
+struct Unit {
+    manager: Manager,
+    name: String,
+    invocation: String,
+    cgroup: PathBuf,
+}
 
 fn bind_cgroup(uid: u32, value: &str) -> Result<PathBuf> {
     let prefix = format!("/user.slice/user-{uid}.slice/user@{uid}.service/");
-    ensure!(value.starts_with(&prefix) && !value.contains("..") && !value.ends_with('/'), "unexpected producer cgroup");
+    ensure!(
+        value.starts_with(&prefix) && !value.contains("..") && !value.ends_with('/'),
+        "unexpected producer cgroup"
+    );
     Ok(Path::new("/sys/fs/cgroup").join(value.trim_start_matches('/')))
 }
 
 fn populated(path: &Path) -> Result<bool> {
     let events = std::fs::read_to_string(path.join("cgroup.events"))?;
     match events.lines().find_map(|l| l.strip_prefix("populated ")) {
-        Some("0") => Ok(false), Some("1") => Ok(true), _ => bail!("invalid cgroup.events"),
+        Some("0") => Ok(false),
+        Some("1") => Ok(true),
+        _ => bail!("invalid cgroup.events"),
     }
 }
 
 impl Unit {
     async fn properties(&self) -> Result<BTreeMap<String, String>> {
         let p = self.manager.show(&self.name).await?;
-        ensure!(p.get("InvocationID") == Some(&self.invocation), "unit identity lost or replaced");
+        ensure!(
+            p.get("InvocationID") == Some(&self.invocation),
+            "unit identity lost or replaced"
+        );
         Ok(p)
     }
     async fn completion(&self) -> Result<ProducerExit> {
         loop {
             let p = self.properties().await?;
-            let code = p.get("ExecMainCode").context("missing main code")?.parse::<i32>()?;
+            let code = p
+                .get("ExecMainCode")
+                .context("missing main code")?
+                .parse::<i32>()?;
             if code != 0 && !populated(&self.cgroup)? {
-                let status = p.get("ExecMainStatus").context("missing main status")?.parse()?;
-                return match code { 1 => Ok(ProducerExit::Code(status)), 2 | 3 => Ok(ProducerExit::Signal(status)), _ => bail!("unsupported ExecMainCode") };
+                let status = p
+                    .get("ExecMainStatus")
+                    .context("missing main status")?
+                    .parse()?;
+                return match code {
+                    1 => Ok(ProducerExit::Code(status)),
+                    2 | 3 => Ok(ProducerExit::Signal(status)),
+                    _ => bail!("unsupported ExecMainCode"),
+                };
             }
             tokio::time::sleep(POLL).await;
         }
     }
     async fn stop(self) -> Result<()> {
         self.properties().await?; // Bind the stop to the recorded invocation, not a missing pending unit.
-        let output = self.manager.command(&self.manager.control).args(["--user", "stop", &self.name]).output().await?;
+        let output = self
+            .manager
+            .command(&self.manager.control)
+            .args(["--user", "stop", &self.name])
+            .output()
+            .await?;
         ensure!(output.status.success(), "owned producer stop failed");
         // A completed synchronous StopUnit job is a known terminal lifecycle.
         // Removal is accepted only here, never during pending start/collection.
         loop {
             match populated(&self.cgroup) {
                 Ok(false) => return Ok(()),
-                Err(error) if error.downcast_ref::<std::io::Error>().is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound) => return Ok(()),
+                Err(error)
+                    if error
+                        .downcast_ref::<std::io::Error>()
+                        .is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound) =>
+                {
+                    return Ok(())
+                }
                 Err(error) => return Err(error),
                 Ok(true) => tokio::time::sleep(POLL).await,
             }
@@ -185,58 +284,150 @@ async fn launch(manager: Manager, recipe: EpochProducerCommand, runtime: Duratio
     validate_environment(&recipe.environment)?;
     absolute_text(&recipe.executable)?;
     absolute_text(&recipe.cwd)?;
-    ensure!(recipe.argv.iter().all(|s| !s.contains('\0')), "NUL argument");
+    ensure!(
+        recipe.argv.iter().all(|s| !s.contains('\0')),
+        "NUL argument"
+    );
     // Kernel-generated random identity, never reused even across daemon restarts.
     let mut random = [0u8; 24];
     use std::io::Read;
     std::fs::File::open("/dev/urandom")?.read_exact(&mut random)?;
-    let name = format!("dracon-epoch-{}.service", random.iter().map(|b| format!("{b:02x}")).collect::<String>());
+    let name = format!(
+        "dracon-epoch-{}.service",
+        random
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>()
+    );
     let mut command = manager.command(&manager.runner);
     command.env_clear().envs(&recipe.environment);
-    for (key, value) in [("XDG_RUNTIME_DIR", format!("/run/user/{}", manager.uid)),
-        ("DBUS_SESSION_BUS_ADDRESS", format!("unix:path=/run/user/{}/bus", manager.uid))] {
-        ensure!(recipe.environment.get(key).is_none_or(|v| v == &value), "unsupported bus environment override");
+    for (key, value) in [
+        ("XDG_RUNTIME_DIR", format!("/run/user/{}", manager.uid)),
+        (
+            "DBUS_SESSION_BUS_ADDRESS",
+            format!("unix:path=/run/user/{}/bus", manager.uid),
+        ),
+    ] {
+        ensure!(
+            recipe.environment.get(key).is_none_or(|v| v == &value),
+            "unsupported bus environment override"
+        );
         command.env(key, value);
     }
-    command.args(["--user", "--quiet", "--service-type=exec", "--expand-environment=no", "--unit", &name]);
-    command.args(["--property=ExitType=cgroup", "--property=RemainAfterExit=yes", "--property=KillMode=control-group",
-        "--property=SendSIGKILL=yes", "--property=TimeoutStopSec=2s"]);
+    command.args([
+        "--user",
+        "--quiet",
+        "--service-type=exec",
+        "--expand-environment=no",
+        "--unit",
+        &name,
+    ]);
+    command.args([
+        "--property=ExitType=cgroup",
+        "--property=RemainAfterExit=yes",
+        "--property=KillMode=control-group",
+        "--property=SendSIGKILL=yes",
+        "--property=TimeoutStopSec=2s",
+    ]);
     command.arg(format!("--property=RuntimeMaxSec={}s", runtime.as_secs()));
-    command.arg(format!("--working-directory={}", absolute_text(&recipe.cwd)?));
-    for (property, path) in [("StandardInput", recipe.stdin.as_ref()), ("StandardOutput", recipe.stdout.as_ref()), ("StandardError", recipe.stderr.as_ref())] {
-        command.arg(if let Some(path) = path { format!("--property={property}=file:{}", absolute_text(path)?) }
-            else { format!("--property={property}=null") });
+    command.arg(format!(
+        "--working-directory={}",
+        absolute_text(&recipe.cwd)?
+    ));
+    for (property, path) in [
+        ("StandardInput", recipe.stdin.as_ref()),
+        ("StandardOutput", recipe.stdout.as_ref()),
+        ("StandardError", recipe.stderr.as_ref()),
+    ] {
+        command.arg(if let Some(path) = path {
+            format!("--property={property}=file:{}", absolute_text(path)?)
+        } else {
+            format!("--property={property}=null")
+        });
     }
-    for key in recipe.environment.keys() { command.arg(format!("--setenv={key}")); }
-    command.arg("--").arg(&manager.helper).arg(TRAMPOLINE)
-        .arg(recipe.environment.len().to_string()).args(recipe.environment.keys())
-        .arg(&recipe.executable).args(&recipe.argv);
+    for key in recipe.environment.keys() {
+        command.arg(format!("--setenv={key}"));
+    }
+    command
+        .arg("--")
+        .arg(&manager.helper)
+        .arg(TRAMPOLINE)
+        .arg(recipe.environment.len().to_string())
+        .args(recipe.environment.keys())
+        .arg(&recipe.executable)
+        .args(&recipe.argv);
     // No timeout/kill_on_drop: the scope's registered task owns the pending start.
     // A client error is uncertain containment, never a target exit/refusal.
     let output = command.output().await?;
-    ensure!(output.status.success(), "producer service launch unqualified: {}", String::from_utf8_lossy(&output.stderr));
+    ensure!(
+        output.status.success(),
+        "producer service launch unqualified: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     let properties = manager.show(&name).await?;
-    ensure!(properties.get("LoadState").is_some_and(|s| s == "loaded"), "producer disappeared during launch");
-    let invocation = properties.get("InvocationID").context("missing invocation")?.clone();
-    ensure!(invocation.len() == 32 && invocation.bytes().all(|b| b.is_ascii_hexdigit()), "invalid invocation");
-    let cgroup = bind_cgroup(manager.uid, properties.get("ControlGroup").context("missing control group")?)?;
-    Ok(Unit { manager, name, invocation, cgroup })
+    ensure!(
+        properties.get("LoadState").is_some_and(|s| s == "loaded"),
+        "producer disappeared during launch"
+    );
+    let invocation = properties
+        .get("InvocationID")
+        .context("missing invocation")?
+        .clone();
+    ensure!(
+        invocation.len() == 32 && invocation.bytes().all(|b| b.is_ascii_hexdigit()),
+        "invalid invocation"
+    );
+    let cgroup = bind_cgroup(
+        manager.uid,
+        properties
+            .get("ControlGroup")
+            .context("missing control group")?,
+    )?;
+    Ok(Unit {
+        manager,
+        name,
+        invocation,
+        cgroup,
+    })
 }
 
-struct ScopeState { closed: bool, launches: Vec<JoinHandle<Result<Unit>>> > }
+struct ScopeState {
+    closed: bool,
+    launches: Vec<JoinHandle<Result<Unit>>>,
+}
 
 /// Keep this scope outside the request timeout and alongside the spool lease.
 /// Dropping it does NOT prove completion; finite service runtime is only a backstop.
-pub(crate) struct EpochProducerScope { manager: Manager, runtime: Duration, state: Mutex<ScopeState> }
+pub(crate) struct EpochProducerScope {
+    manager: Manager,
+    runtime: Duration,
+    state: Mutex<ScopeState>,
+}
 
 impl EpochProducerScope {
     pub(crate) fn new(runtime: Duration) -> Result<Self> {
-        ensure!((1..=3600).contains(&runtime.as_secs()), "producer runtime must be 1..3600 seconds");
-        Ok(Self { manager: Manager::new()?, runtime, state: Mutex::new(ScopeState { closed: false, launches: Vec::new() }) })
+        ensure!(
+            (1..=3600).contains(&runtime.as_secs()),
+            "producer runtime must be 1..3600 seconds"
+        );
+        Ok(Self {
+            manager: Manager::new()?,
+            runtime,
+            state: Mutex::new(ScopeState {
+                closed: false,
+                launches: Vec::new(),
+            }),
+        })
     }
     /// Registration happens synchronously BEFORE returning the cancellable request.
-    pub(crate) fn run(&self, recipe: EpochProducerCommand) -> Result<impl std::future::Future<Output = Result<ProducerExit>>> {
-        let mut state = self.state.lock().map_err(|_| anyhow::anyhow!("producer state poisoned"))?;
+    pub(crate) fn run(
+        &self,
+        recipe: EpochProducerCommand,
+    ) -> Result<impl std::future::Future<Output = Result<ProducerExit>>> {
+        let mut state = self
+            .state
+            .lock()
+            .map_err(|_| anyhow::anyhow!("producer state poisoned"))?;
         ensure!(!state.closed, "producer scope closed");
         let (tx, rx) = oneshot::channel();
         let manager = self.manager.clone();
@@ -246,25 +437,44 @@ impl EpochProducerScope {
             let _ = tx.send(result.as_ref().map(Clone::clone).map_err(|e| e.to_string()));
             result
         }));
-        Ok(async move { rx.await.context("producer supervisor lost")?.map_err(anyhow::Error::msg)?.completion().await })
+        Ok(async move {
+            rx.await
+                .context("producer supervisor lost")?
+                .map_err(anyhow::Error::msg)?
+                .completion()
+                .await
+        })
     }
     /// Closing is irreversible. The settlement task itself also survives cancellation.
     /// Deadline expiry, pending starts, manager errors and survivors yield NO proof.
     pub(crate) async fn settle(self, deadline: Duration) -> Result<SettledProducer> {
-        let mut state = self.state.into_inner().map_err(|_| anyhow::anyhow!("producer state poisoned"))?;
+        let mut state = self
+            .state
+            .into_inner()
+            .map_err(|_| anyhow::anyhow!("producer state poisoned"))?;
         state.closed = true;
         let task = tokio::spawn(async move {
             let mut uncertain = Vec::new();
             for launch in state.launches {
                 match launch.await {
-                    Ok(Ok(unit)) => if let Err(e) = unit.stop().await { uncertain.push(e.to_string()); },
+                    Ok(Ok(unit)) => {
+                        if let Err(e) = unit.stop().await {
+                            uncertain.push(e.to_string());
+                        }
+                    }
                     other => uncertain.push(format!("unresolved producer launch: {other:?}")),
                 }
             }
-            ensure!(uncertain.is_empty(), "producer settlement unqualified: {}", uncertain.join("; "));
+            ensure!(
+                uncertain.is_empty(),
+                "producer settlement unqualified: {}",
+                uncertain.join("; ")
+            );
             Ok(SettledProducer { _private: () })
         });
-        tokio::time::timeout(deadline, task).await.context("producer settlement deadline; retain spool")?
+        tokio::time::timeout(deadline, task)
+            .await
+            .context("producer settlement deadline; retain spool")?
             .context("settlement supervisor failed")?
     }
 }
@@ -275,8 +485,17 @@ mod tests {
 
     #[test]
     fn environment_removals_and_literals() {
-        let mut env = BTreeMap::from([("GIT_DIR".into(), "wrong".into()), ("KEEP".into(), "$HOME literal".into())]);
-        apply_changes(&mut env, [("GIT_DIR".into(), None), ("GIT_INDEX_FILE".into(), Some("/tmp/index".into()))]);
+        let mut env = BTreeMap::from([
+            ("GIT_DIR".into(), "wrong".into()),
+            ("KEEP".into(), "$HOME literal".into()),
+        ]);
+        apply_changes(
+            &mut env,
+            [
+                ("GIT_DIR".into(), None),
+                ("GIT_INDEX_FILE".into(), Some("/tmp/index".into())),
+            ],
+        );
         assert!(!env.contains_key("GIT_DIR"));
         assert_eq!(env["KEEP"], "$HOME literal");
         assert_eq!(env["GIT_INDEX_FILE"], "/tmp/index");
@@ -287,11 +506,17 @@ mod tests {
     #[ignore = "requires user bus, cgroup v2 and prebuilt DRACON_EPOCH_TEST_HELPER; only disposable own units"]
     async fn host_descendants_pending_cancellation_and_exact_environment() -> Result<()> {
         let helper = PathBuf::from(std::env::var("DRACON_EPOCH_TEST_HELPER")?);
-        ensure!(helper.is_absolute() && helper.is_file(), "build the normal helper first");
+        ensure!(
+            helper.is_absolute() && helper.is_file(),
+            "build the normal helper first"
+        );
         let directory = tempfile::tempdir()?;
         let shell = std::fs::canonicalize("/bin/sh")?;
         let setsid = std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default())
-            .map(|p| p.join("setsid")).find(|p| p.is_file()).context("setsid unavailable")?.canonicalize()?;
+            .map(|p| p.join("setsid"))
+            .find(|p| p.is_file())
+            .context("setsid unavailable")?
+            .canonicalize()?;
         let output = directory.path().join("output");
         let mut scope = EpochProducerScope::new(Duration::from_secs(12))?;
         scope.manager.helper = helper.clone();
@@ -306,7 +531,10 @@ mod tests {
         drop(request);
         let started = std::time::Instant::now();
         scope.settle(Duration::from_secs(20)).await?;
-        ensure!(started.elapsed() < Duration::from_secs(20), "settlement was not bounded");
+        ensure!(
+            started.elapsed() < Duration::from_secs(20),
+            "settlement was not bounded"
+        );
         // A separate fixture observes leader status while closed-stdio setsid child
         // remains populated, then proves numeric exit 1 is not a wrapper error.
         let mut scope = EpochProducerScope::new(Duration::from_secs(12))?;
@@ -322,7 +550,10 @@ mod tests {
         let settlement = scope.settle(Duration::from_secs(20)).await;
         assert_eq!(result?, ProducerExit::Code(1));
         settlement?;
-        ensure!(started.elapsed() >= Duration::from_millis(800), "escaped descendant lifetime");
+        ensure!(
+            started.elapsed() >= Duration::from_millis(800),
+            "escaped descendant lifetime"
+        );
         assert_eq!(std::fs::read_to_string(output)?, "$HOME literal:unset");
         Ok(())
     }
@@ -330,8 +561,16 @@ mod tests {
     #[test]
     fn cgroup_binding_rejects_other_owners_and_traversal() {
         assert!(bind_cgroup(1000, "/system.slice/dracon.service").is_err());
-        assert!(bind_cgroup(1000, "/user.slice/user-1001.slice/user@1001.service/app.slice/x").is_err());
+        assert!(bind_cgroup(
+            1000,
+            "/user.slice/user-1001.slice/user@1001.service/app.slice/x"
+        )
+        .is_err());
         assert!(bind_cgroup(1000, "/user.slice/user-1000.slice/user@1000.service/../x").is_err());
-        assert!(bind_cgroup(1000, "/user.slice/user-1000.slice/user@1000.service/app.slice/x.service").is_ok());
+        assert!(bind_cgroup(
+            1000,
+            "/user.slice/user-1000.slice/user@1000.service/app.slice/x.service"
+        )
+        .is_ok());
     }
 }
