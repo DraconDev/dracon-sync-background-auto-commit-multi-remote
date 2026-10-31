@@ -147,12 +147,21 @@ fn child_status_result(
 
 /// Owns only a child group created by configure_git_process_group. Disarm
 /// immediately after reaping its leader to avoid signalling a reused PID.
+///
+/// This is the backstop stage, not the graceful one: `Drop` cannot await, so a
+/// SIGTERM sent here is followed by SIGKILL within microseconds and no trapping
+/// child can act on it. The real grace lives in `kill_process_group`, which
+/// sleeps `SIGTERM_GRACE` between the two signals. Sending TERM first is still
+/// kept so the ordering is uniform with that path and so the signal a group sees
+/// is never a bare KILL when a TERM was intended.
 struct GroupKillGuard(Option<u32>);
 impl Drop for GroupKillGuard {
     fn drop(&mut self) {
         #[cfg(unix)]
         if let Some(pid) = self.0 {
             // SAFETY: a positive child PID is also its explicitly-created PGID.
+            unsafe { libc::kill(-(pid as libc::pid_t), libc::SIGTERM) };
+            // SAFETY: same invariant; unmaskable, so the group cannot survive.
             let result = unsafe { libc::kill(-(pid as libc::pid_t), libc::SIGKILL) };
             if result != 0 {
                 let error = std::io::Error::last_os_error();
