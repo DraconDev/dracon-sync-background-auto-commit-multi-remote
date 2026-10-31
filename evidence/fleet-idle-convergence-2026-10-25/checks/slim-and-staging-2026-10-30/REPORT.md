@@ -80,3 +80,27 @@ and producers writing every few seconds (`browser-extensions-shared` had
 `run-push-gates.mjs` live and a commit 3 seconds old). No producer was stopped,
 no hook bypassed, no history rewritten outside the authorized polis slimming,
 and no manual recovery push was used.
+
+## (c) Retained private-epoch spools: a bounded, deliberate tradeoff — NOT deleted
+
+While verifying `ai-auto-writer` I found **41 top-level
+`.git/dracon-staging-*` directories holding 5.04 GB**, 9 of them created in the
+last hour, with one `retained-*.pack` alone at 4.75 GB. `reap_abandoned_spools`
+is a deliberate no-op:
+
+```rust
+// Neither age nor a process-local registry proves that retained objects
+// are published or unused by a different daemon/CLI process. Fail closed.
+0
+```
+
+I measured redundancy directly rather than trusting the age heuristic: of the
+**87,402 blobs** in that pack, **87,400 are already present in the main object
+store**. So it is 99.998% redundant — and 2 blobs exist *only* in the spool.
+
+That is exactly why the reaper fails closed, and why I did **not** delete it.
+Removing it on an age or redundancy heuristic would be the "age-only deletion is
+unsafe" failure the code warns about. Recorded here as a real disk cost with a
+real reason, not as something fixed. The repo itself converged normally
+(`dirty 0`, `ahead 0`) once its commit went through, so the spools do not block
+convergence — they cost space.
