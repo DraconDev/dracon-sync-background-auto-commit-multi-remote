@@ -2899,4 +2899,10 @@ test reap_tests::reverification_rejects_a_vanished_process ... ok
 test reap_tests::reverification_rejects_pids_the_guard_must_never_signal ... ok
 test reap_tests::signalled_disposition_is_reported_for_a_verified_kill ... ok
 test reap_tests::terminate_ends_a_live_child_with_sigterm ... ok
-test reap_tests::terminate_escalates_to_sigkill_when_term_is_ignored ... 
+test reap_tests::terminate_escalates_to_sigkill_when_term_is_ignored ... ok
+test reap_tests::terminate_refuses_reserved_and_own_pids ... ok
+test reap_tests::terminate_reports_a_pid_that_cannot_exist ... ok
+test reap_tests::the_cpu_ceiling_is_inclusive ... ok
+test reap_tests::the_executable_name_comes_from_the_exe_symlink_when_there_is_one ... ok
+test reap_tests::the_idle_floor_is_inclusive ... ok
+test relocate_tests::apply_relocate_rechecks_space_at_apply_start ... 
