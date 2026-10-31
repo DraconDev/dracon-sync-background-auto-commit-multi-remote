@@ -566,4 +566,7 @@ test bucket_runner_bridge::outgoing::tests::accounting_potential_codeberg_destin
 test bucket_runner_bridge::outgoing::tests::accounting_real_git_deduplicates_history_and_selected_worktree ... ok
 test bucket_runner_bridge::outgoing::tests::accounting_refuses_unsupported_encoding_without_transcoding ... ok
 test bucket_runner_bridge::outgoing::tests::accounting_refuses_zero_ceiling_for_a_filtered_candidate_that_would_be_admitted ... ok
-test bucket_runner_bridge::outgoing::tests::accounting_reserves_enforced_output_ceiling_without_executing_filter ... 
+test bucket_runner_bridge::outgoing::tests::accounting_reserves_enforced_output_ceiling_without_executing_filter ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_reserves_tracked_filter_even_when_raw_status_is_clean ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_snapshot_rejects_real_worktree_index_head_and_tip_changes ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_symlink_sizes_link_text_not_referent ... 
