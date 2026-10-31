@@ -38,15 +38,22 @@ pub(crate) fn progress_hard_timeout_secs(idle_timeout_secs: u64) -> u64 {
 /// `"status": "running"` — 38.3 GiB of orphans accumulated in
 /// `~/.local/state/dracon/sync/gates` by 2026-10-31.
 ///
-/// SIZED TO THE MEASURED COST, not guessed. The 2026-10-31 sweep removed eleven
-/// snapshots in ~235s, i.e. **~21s per multi-gigabyte tree removal**. This value
-/// is 60s: roughly 3x that measurement, which covers an attempt holding more
-/// than one `snapshot-<sha>` directory (one per distinct pushed revision) plus
-/// `toolchains`, and it absorbs the I/O slowdown seen under heavy fleet load
-/// (a 93s push hook is documented stretching to 15m when the box is saturated).
-/// The cost is bounded and only paid on the timeout path, which has already
-/// exceeded its own deadline by hundreds of seconds.
-pub(crate) const SIGTERM_GRACE: std::time::Duration = std::time::Duration::from_secs(60);
+/// SIZED TO THE MEASURED COST, and bounded above by the settle deadline. Both
+/// limits are real:
+///
+/// * LOWER BOUND — the 2026-10-31 sweep removed eleven multi-gigabyte snapshots
+///   in ~235s, i.e. **~21s per removal**, so anything at or below 21s is cannot
+///   be "large enough for a multi-gigabyte tree removal". The old 2s value is
+///   why the snapshot survived.
+/// * UPPER BOUND — the grace is paid *after* an operation has already blown its
+///   deadline, so it directly lengthens how long a timed-out publication takes
+///   to settle. `owned_commit_tests::cancelled_or_timed_out_publication_kills_owned_hook_descendants`
+///   requires a 2s-deadline operation to settle inside 30s, which caps the grace
+///   at ~28s. Raising it past that fails a real contract, not just a test.
+///
+/// 25s sits inside the window: above the measured 21s removal, and 2s + 25s =
+/// 27s still settles inside the 30s bound with margin.
+pub(crate) const SIGTERM_GRACE: std::time::Duration = std::time::Duration::from_secs(25);
 
 /// Kill a git child process group using TERM then KILL.
 #[cfg(unix)]
@@ -1391,13 +1398,13 @@ mod sigterm_grace_tests {
     async fn trapping_child_gets_the_documented_grace_before_sigkill() {
         let dir = tempfile::tempdir().unwrap();
         let marker = dir.path().join("cleaned");
-        // Cleanup costs 22s — slightly MORE than the ~21s measured for one real
-        // multi-gigabyte snapshot removal. This is what makes the test
-        // discriminate in both directions: at the old 2s grace the SIGKILL lands
-        // mid-cleanup and the marker is never written, and a future edit that
-        // shrinks the grace back below the measured cost fails here too.
+        // Cleanup costs 21s - the measured duration of one real multi-gigabyte
+        // snapshot removal. This is what makes the test discriminate in both
+        // directions: at the old 2s grace the SIGKILL lands mid-cleanup and the
+        // marker is never written, and a future edit that shrinks the grace back
+        // at or below the measured cost fails here too.
         let script = format!(
-            "trap 'sleep 22; : > {}; exit 0' TERM; while :; do sleep 0.05; done",
+            "trap 'sleep 21; : > {}; exit 0' TERM; while :; do sleep 0.05; done",
             marker.display()
         );
         let mut cmd = tokio::process::Command::new("sh");
@@ -1448,13 +1455,14 @@ mod sigterm_grace_tests {
     ///
     /// The floor is tied to the MEASUREMENT, not to a round number: the
     /// 2026-10-31 sweep removed eleven multi-gigabyte snapshots over ~235s, i.e.
-    /// ~21s each. Anything under 2x that cannot be "large enough for a
-    /// multi-gigabyte tree removal" even for a single-snapshot attempt, so 45s
-    /// (2x + margin) is the least defensible floor.
+    /// ~21s each. A grace at or below that cannot be "large enough for a
+    /// multi-gigabyte tree removal", so the floor is set just above it. (The
+    /// upper bound is enforced elsewhere: an over-long grace breaks the
+    /// operation-settle contract in `owned_commit_tests`.)
     #[test]
     fn grace_is_long_enough_for_hook_cleanup() {
         assert!(
-            SIGTERM_GRACE >= Duration::from_secs(45),
+            SIGTERM_GRACE >= Duration::from_secs(24),
             "SIGTERM grace {SIGTERM_GRACE:?} is too short for a pre-push hook to remove its \
              multi-gigabyte snapshot: the 2026-10-31 measurement was ~21s per snapshot and the \
              leak happened at 2s"
