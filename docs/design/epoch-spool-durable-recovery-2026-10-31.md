@@ -22,15 +22,25 @@ The absolute requirements are:
 
 Settled deadline cleanup must use an explicit ownership handoff or owner-authorized API; opening the same lock independently while the epoch retains its FD self-contends. Child termination must precede handoff. The final protocol must also bind lock inode and spool identity, reject symlinks and unsupported payloads, and withstand two concurrent reapers and a process stalled past the age floor. Creation before lease acquisition may not admit a producer that lost ownership to a reaper.
 
-## Proposed recovery transaction (under adversarial review)
+## Recovery storage decision
+
+The read-only falsification review rejected relying on a main-repository ref CAS: an already-running GC may have snapshotted refs before the new anchor, and a mirror push can export ordinary recovery refs. The selected direction is an independent recovery object store under `dracon-rescue`, with no main-repository recovery refs or remotes. Its installed objects and complete recovery closure must be readable without the original spool, main ODB or alternates. Content-addressed storage is shared across recovery records to avoid repeatedly retaining the same baseline.
+
+Use stable source snapshots only to build the recovery transaction. Persist a complete closure independently before removing the original; protect installed recovery packs against GC in that independent store. Isolated verification must hash complete content, not merely ask `cat-file -t`. Report the independent store's actual cost alongside spool savings; do not claim moving or pinning bytes is net reclamation. The exact storage transaction still requires implementation and qualification.
+
+## Recovery transaction (under implementation)
 
 1. Under ownership, validate spool identity and enumerate all regular metadata and pack inputs. Unknown subdirectories, split-index dependencies, symlinks or incomplete enumeration must fail closed until explicitly supported.
 2. Create a private unique working directory under the Git recovery area, not predictable shared `/tmp` names. Rebuild derived pack indexes from stable pack bytes. Parse aligned output with whitespace-aware fields and validate object format, per-pack counts and complete enumeration. Deduplicate OIDs across packs without mistaking overlapping packs for corruption.
 3. Preserve exact index and metadata in a versioned recovery record. Enumerate required OIDs from all retained packs and index stages; retain submodule gitlink identity as metadata, not as an obligation to supply another repository's commit locally.
 4. Compact absent objects into an indexed standalone rescue pack using file-based plumbing rather than unbounded binary stdout capture. Verify every rescued OID, type, size and content hash in an isolated store.
-5. Protect objects already in the main ODB from ordinary GC as well. Candidate mechanism: a synthetic recovery tree enumerating blob/tree OIDs plus a recovery commit whose parents retain commit OIDs, bound to a dedicated recovery ref. This mechanism is NOT adopted until review confirms it cannot be exported accidentally by mirror pushes or violate the no-published-history boundary. Resolve linked-worktree common-directory behavior and closure validation before use. If ref anchors are unsuitable, use an independent durable recovery store with equivalent retention guarantees.
+5. Protect objects already in the main ODB as well: install every needed object in the independent recovery store, verify complete tree/commit/tag closure there, and make preservation durable before deleting the source. A transient main-object lookup or a new main-repository ref cannot supply this proof. Resolve the originating worktree gitdir separately from the main common object directory. Avoid unbounded parent argv and binary stdout capture.
 6. Durably install versioned metadata, object manifest, rescue artifacts and a receipt binding the installed retention authority. Use create-only/atomic identities, fsync files and containing directories, and never overwrite an existing valid rescue. Receipt failure preserves the original.
 7. Recheck the fenced spool identity and preservation markers, then remove only the validated original. Failures must not delete rescue artifacts or weaken evidence. Record net savings including metadata, rescue and retention-store cost.
+
+## Ownership checkpoint
+
+`cargo test --locked -p dracon-sync --bin dracon-sync epoch_spool::ownership` passed five tests after extracting the ownership protocol into `src/git/epoch_spool_ownership.rs`. These demonstrate missing legacy metadata refusal, a real child holding ownership despite old mtime, lock release on child exit, explicit settled-owner handoff and competing-reclaimer exclusion, and replaced-lock/symlink/outside-gitdir rejection. They qualify only that boundary, not destructive reclamation. Descendant lifetime during process death/cancellation remains unresolved: CLOEXEC means a child does not automatically hold its producer's lock.
 
 ## Required qualification
 

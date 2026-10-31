@@ -1,0 +1,13 @@
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 21s
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 5 tests
+test git::epoch_spool::ownership::tests::child_holds_spool_owner_probe ... ok
+test git::epoch_spool::ownership::tests::legacy_owner_metadata_is_not_manufactured ... ok
+test git::epoch_spool::ownership::tests::old_but_live_child_is_excluded_then_exit_releases_ownership ... ok
+test git::epoch_spool::ownership::tests::replaced_lock_and_symlink_directory_fail_closed ... ok
+test git::epoch_spool::ownership::tests::settled_owner_handoff_and_two_reclaimers_are_exclusive ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1554 filtered out; finished in 0.06s
+
