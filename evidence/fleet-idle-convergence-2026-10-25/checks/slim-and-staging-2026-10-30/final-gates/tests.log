@@ -419,4 +419,5 @@ test storage_core::journal::tests::exclusive_leases_and_revision_checks_refuse_s
 test storage_core::journal::tests::forged_regression_and_plaintext_encryption_are_rejected ... ok
 test storage_core::journal::tests::payload_crash_child ... ignored, subprocess helper, invoked by payload crash recovery test
 test storage_core::journal::tests::payload_spools_resume_matching_prefix_and_have_independent_byte_budget ... ok
-test storage_core::journal::tests::prepared_payload_is_retained_once_and_cannot_change_across_restart ... 
+test storage_core::journal::tests::prepared_payload_is_retained_once_and_cannot_change_across_restart ... ok
+test storage_core::journal::tests::prepared_payload_recovers_process_death_without_repeating_security_processing ... 
