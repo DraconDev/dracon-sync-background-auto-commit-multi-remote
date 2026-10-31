@@ -182,4 +182,198 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 running 2 tests
 test prop_test_binary_passthrough_integrity ... ok
-test prop_test_hybrid_security_logic ... 
+test prop_test_hybrid_security_logic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 41.07s
+
+     Running tests/massive_secret_scan.rs (target/debug/deps/massive_secret_scan-8d58abd5bed9cea6)
+
+running 1 test
+test test_massive_dataset_permutations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.62s
+
+     Running tests/pattern_integrity.rs (target/debug/deps/pattern_integrity-846f4c3658ce58c7)
+
+running 2 tests
+test test_no_nested_quantifiers_in_patterns ... ok
+test test_patterns_compile_and_have_reasonable_length ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+
+     Running tests/plaintext_sibling_test.rs (target/debug/deps/plaintext_sibling_test-77744c2b8b36cf1c)
+
+running 11 tests
+test clean_encrypts_absolute_hatched_path_fail_closed ... ok
+test clean_encrypts_normally_without_plaintext_sibling ... ok
+test clean_skips_encryption_when_plaintext_sibling_exists ... ok
+test clean_with_empty_sibling_path_is_a_noop ... ok
+test clean_with_plaintext_sibling_does_not_add_env_version_header ... ok
+test clean_with_plaintext_sibling_preserves_binary_content ... ok
+test is_hatched_in_repo_accepts_contained_paths ... ok
+test is_hatched_in_repo_rejects_escape_even_when_sibling_exists ... ok
+test is_hatched_rejects_absolute_and_dotdot ... ok
+test is_hatched_returns_false_for_empty_path ... ok
+test is_hatched_returns_false_when_sibling_missing ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.71s
+
+     Running tests/redos_stress_test.rs (target/debug/deps/redos_stress_test-5ed976421e31c090)
+
+running 6 tests
+test test_azure_sas_scan ... ok
+test test_generic_assignment_pattern_completes_in_reasonable_time ... ok
+test test_nested_quantifier_patterns_do_not_cause_exponential_blowup ... ok
+test test_scanner_detects_known_secret_patterns ... ok
+test test_scanner_performance_mixed_secret_and_filler ... ok
+test test_scanner_performance_under_large_evil_input ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.79s
+
+     Running tests/registry_credentials_test.rs (target/debug/deps/registry_credentials_test-0587784fda18636f)
+
+running 1 test
+test test_load_registry_credentials_when_none_exist ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/restore_test.rs (target/debug/deps/restore_test-2c322f06d8bad793)
+
+running 1 test
+test test_restore_workflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.71s
+
+     Running tests/scanner_edge_cases_test.rs (target/debug/deps/scanner_edge_cases_test-71652d7cc3a2b426)
+
+running 12 tests
+test test_patterns_are_valid_regexes ... ok
+test test_scanner_completes_quickly_on_large_clean_input ... ok
+test test_scanner_detects_aws_access_key ... ok
+test test_scanner_detects_github_token ... ok
+test test_scanner_detects_private_key_formats_by_specific_name ... ok
+test test_scanner_detects_stripe_key ... ok
+test test_scanner_detects_unquoted_padded_generic_secret ... ok
+test test_scanner_detects_unquoted_padded_password ... ok
+test test_scanner_handles_clean_text ... ok
+test test_scanner_handles_empty_input ... ok
+test test_scanner_handles_unicode_content ... ok
+test test_scanner_ignores_too_short_unquoted_password ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.26s
+
+     Running tests/scanner_stress.rs (target/debug/deps/scanner_stress-817b0a7e2aa540ee)
+
+running 1 test
+test test_scanner_stress_1000 ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.75s
+
+     Running tests/security_critical_test.rs (target/debug/deps/security_critical_test-c7f94f35d40ad35c)
+
+running 44 tests
+test test_authorize_recipient_writes_verified_direct_pair ... ok
+test test_create_team_creates_private_key_without_overwrite ... ok
+test test_create_team_name_validation_rejects_backslash ... ok
+test test_create_team_name_validation_rejects_colon ... ok
+test test_create_team_name_validation_rejects_slash ... ok
+test test_decrypt_with_repo_key_too_short_ciphertext ... ok
+test test_encrypt_decrypt_repo_key_roundtrip ... ok
+test test_encrypt_for_node_uses_disk_master_identities ... ignored
+test test_encrypt_v2_for_all_uses_global_mesh_pub_without_master_identity ... ok
+test test_encrypt_with_repo_key_empty_plaintext ... ok
+test test_encrypt_with_repo_key_random_nonce_per_call ... ok
+test test_env_manager_combined ... ok
+test test_env_manager_load_from_env_file ... ok
+test test_env_manager_load_from_env_file_nonexistent ... ok
+test test_env_manager_load_from_env_file_with_embedded_equals ... ok
+test test_env_manager_load_from_env_file_with_single_quotes ... ok
+test test_env_manager_to_env_file_escapes_quotes ... ok
+test test_env_manager_to_env_file_secrets ... ok
+test test_env_manager_to_env_file_variables ... ok
+test test_gather_all_recipients_includes_global_mesh_pub_without_master_identity ... ok
+test test_gather_rejects_forged_repo_key_authorization_without_owner_proof ... ok
+test test_generate_master_identity_refuses_dedicated_master_private ... ok
+test test_generate_master_identity_refuses_dedicated_master_public ... ok
+test test_generate_master_identity_refuses_existing_identity ... ignored
+test test_generate_master_identity_refuses_legacy_identity ... ignored
+test test_list_authorized_recipients_rejects_symlink_aliases ... ok
+test test_load_repo_key_empty_keys_directory ... ok
+test test_load_repo_key_ignores_arbitrary_master_encrypted_age_blob ... ok
+test test_load_repo_key_machine_key_env_var ... ignored
+test test_load_repo_key_master_identity_success ... ok
+test test_load_repo_key_no_keys_directory ... ok
+test test_load_repo_key_team_key ... ignored
+test test_load_repo_key_with_master_identity_in_keys_dir ... ok
+test test_machine_and_team_recipients_require_authenticated_sidecars ... ok
+test test_machine_only_repo_key_requires_owner_authenticated_proof ... ok
+test test_repokey_from_file_empty ... ok
+test test_repokey_from_file_nonexistent ... ok
+test test_repokey_from_file_overlength ... ok
+test test_repokey_from_file_truncated ... ok
+test test_unlock_payload_empty ... ignored
+test test_unlock_payload_too_short ... ok
+test test_unlock_payload_v1_format ... ok
+test test_unlock_payload_v1_format_roundtrip ... ok
+test test_unlock_payload_wrong_key ... ok
+
+test result: ok. 38 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 0.69s
+
+     Running tests/team_key_test.rs (target/debug/deps/team_key_test-8b6ecf41b65502c5)
+
+running 2 tests
+test test_add_team_member_rejects_invalid_key ... ok
+test test_create_team_invite_requires_existing_team ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/tier1_source_encrypt.rs (target/debug/deps/tier1_source_encrypt-9ccd7ca479e57e1f)
+
+running 9 tests
+test tier1_binary_passthrough_unprotected ... ok
+test tier1_ignores_ordinary_code ... ok
+test tier1_is_subset_of_get_patterns ... ok
+test tier1_openai_boundaries_and_source_roundtrip ... ok
+test tier1_pem_block_in_source_is_caught ... ok
+test tier1_pkcs8_and_gcp_source_roundtrip ... ok
+test tier1_scanner_catches_structured_tokens ... ok
+test tier1_source_file_clean_and_roundtrip ... ok
+test tier1_square_requires_exact_body_length ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.92s
+
+     Running tests/tier_inventory.rs (target/debug/deps/tier_inventory-f7f35ba4323d4efa)
+
+running 2 tests
+test inventory_covers_every_builtin_family_and_tier ... ok
+test promoted_provider_tokens_replace_completely ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-15666e88ff3ec9d8)
+
+running 157 tests
+test lfs_classify::tests::large_database_is_refused_not_enrolled ... ok
+test lfs_classify::tests::large_sensitive_key_is_refused_not_enrolled ... ok
+test lfs_classify::tests::large_sql_migration_stays_source_text ... ok
+test lfs_classify::tests::over_100_mib_approved_asset_is_selected_for_lfs ... ok
+test lfs_classify::tests::per_repo_override_moves_threshold_for_real_file ... ok
+test lfs_classify::tests::sticky_enrollment_survives_shrinkage_on_real_file ... ok
+test lfs_classify::tests::two_hundred_mib_small_image_repo_stays_in_git ... ok
+test lfs_classify::tests::unknown_archive_is_held_not_enrolled ... ok
+test lfs_policy::tests::disabled_optout_and_unapproved_binding_prevent_enrollment ... ok
+test lfs_policy::tests::every_effective_lfs_path_preserves_representation_on_failure ... ok
+test lfs_policy::tests::exclusions_and_conflicting_filters_win ... ok
+test lfs_policy::tests::invalid_thresholds_fail_closed ... ok
+test lfs_policy::tests::overrides_inherit_and_change_each_threshold ... ok
+test lfs_policy::tests::pressure_and_churn_require_minimum_asset_size ... ok
+test lfs_policy::tests::sensitive_database_and_unknown_payloads_are_held ... ok
+test lfs_policy::tests::small_image_repository_stays_git ... ok
+test lfs_policy::tests::source_text_is_not_blanket_excluded ... ok
+test lfs_policy::tests::sticky_paths_never_fall_back_to_raw_git ... ok
+test lfs_policy::tests::unknown_history_does_not_mask_individual_trigger ... ok
+test storage_core::backend::tests::encrypted_payload_round_trip_uses_isolated_keys_and_cold_backend ... ignored, operational prototype: requires age and age-keygen on PATH
+test storage_core::backend::tests::failed_capture_does_not_publish_partial_object ... ok
+test storage_core::backend::tests::immutable_round_trip_deduplicates_and_detects_corruption ... ok
+test storage_core::backend::tests::malicious_object_symlink_cannot_escape_backend ... ok
+test storage_core::backend::tests::streamed_large_payload_has_bounded_read_requests_and_survives_cold_reopen ... 
