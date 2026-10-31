@@ -377,4 +377,12 @@ test storage_core::backend::tests::encrypted_payload_round_trip_uses_isolated_ke
 test storage_core::backend::tests::failed_capture_does_not_publish_partial_object ... ok
 test storage_core::backend::tests::immutable_round_trip_deduplicates_and_detects_corruption ... ok
 test storage_core::backend::tests::malicious_object_symlink_cannot_escape_backend ... ok
-test storage_core::backend::tests::streamed_large_payload_has_bounded_read_requests_and_survives_cold_reopen ... 
+test storage_core::backend::tests::streamed_large_payload_has_bounded_read_requests_and_survives_cold_reopen ... ok
+test storage_core::capture::tests::exact_source_selection_is_bounded_and_rewound ... ok
+test storage_core::capture::tests::links_nested_repos_git_internals_and_nonregular_files_are_refused ... ok
+test storage_core::clean::tests::changed_shorter_longer_and_foreign_pointer_inputs_emit_nothing ... ok
+test storage_core::clean::tests::large_source_uses_bounded_read_requests ... ok
+test storage_core::clean::tests::oversized_unknown_stream_stops_at_bounded_recognition_window ... ok
+test storage_core::clean::tests::read_failure_cannot_publish_partial_reference_or_raw_input ... ok
+test storage_core::clean::tests::unchanged_input_and_exact_unhydrated_pointer_are_deterministic ... ok
+test storage_core::hydration::tests::concurrent_edits_creation_and_parent_replacement_preserve_all_operator_bytes ... 
