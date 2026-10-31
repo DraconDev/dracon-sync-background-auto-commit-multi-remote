@@ -40,22 +40,45 @@ fn git(repo: &Path) -> Command {
     c
 }
 
+async fn capture<R: tokio::io::AsyncRead + Unpin>(pipe: Option<R>) -> Result<Vec<u8>> {
+    use tokio::io::AsyncReadExt;
+    const LIMIT: u64 = 16 * 1024 * 1024;
+    let mut bytes = Vec::new();
+    if let Some(pipe) = pipe {
+        pipe.take(LIMIT + 1).read_to_end(&mut bytes).await?;
+        ensure!(bytes.len() as u64 <= LIMIT, "recovery Git output limit exceeded");
+    }
+    Ok(bytes)
+}
+
 async fn run(mut c: Command, seconds: u64) -> Result<Vec<u8>> {
-    // Command::output would override file stdout with a pipe, defeating the
-    // file-backed pack enumeration and potentially capturing binary data.
-    let child = c.spawn()?;
-    let output = tokio::time::timeout(
+    // Keep file-backed stdout intact. Each command here is audited Git plumbing
+    // in a template-free bare builder (or read-only rev-parse), not hook/filter
+    // execution. On timeout JOIN the killed process before releasing its files.
+    // The enclosing preparation task outlives cancellation of its caller.
+    let mut child = c.spawn()?;
+    let stdout = tokio::spawn(capture(child.stdout.take()));
+    let stderr = tokio::spawn(capture(child.stderr.take()));
+    let waited = tokio::time::timeout(
         std::time::Duration::from_secs(seconds),
-        child.wait_with_output(),
-    )
-    .await
-    .context("recovery Git timeout")??;
-    ensure!(
-        output.status.success(),
-        "recovery Git failed: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    Ok(output.stdout)
+        child.wait(),
+    ).await;
+    let timed_out = waited.is_err();
+    let status = match waited {
+        Ok(result) => result?,
+        Err(_) => {
+            // A pending uninterruptible process retains the preparation task and
+            // its temporary storage. The caller's whole-transaction deadline
+            // still returns without granting any removal authority.
+            child.start_kill()?;
+            child.wait().await?
+        }
+    };
+    let out = stdout.await??;
+    let err = stderr.await??;
+    ensure!(!timed_out, "recovery Git timeout; process termination joined");
+    ensure!(status.success(), "recovery Git failed: {}", String::from_utf8_lossy(&err));
+    Ok(out)
 }
 
 async fn text(repo: &Path, args: &[&str], timeout: u64) -> Result<String> {
@@ -297,15 +320,42 @@ fn sync_tree(path: &Path, base: &Path, manifest: &mut String) -> Result<()> {
     Ok(())
 }
 
-/// Caller owns the source lease throughout. A receipt authorizes no removal by
-/// itself: caller must recheck identities and preservation markers. All Git
-/// timeouts are per subprocess, not a whole-transaction deadline.
+/// Caller must have established irreversible producer quiescence and own the
+/// source lease. A receipt grants no removal authority without final identity
+/// and preservation checks. Cancellation detaches preparation, never destroys
+/// storage beneath a running Git process; an abandoned task may retain a record
+/// but NEVER removes its source. The caller has a whole-transaction deadline.
 #[allow(dead_code)] // Deliberately not connected to destructive reclamation.
 pub(super) async fn prepare_record(
     repo: &Path,
     spool: &Path,
     timeout: u64,
 ) -> Result<DurableReceipt> {
+    prepare_with_fault(repo, spool, timeout, Fault::None).await
+}
+
+#[derive(Clone, Copy)]
+enum Fault {
+    None,
+    #[cfg(test)]
+    CorruptBeforeVerify,
+    #[cfg(test)]
+    BeforeReceipt,
+    #[cfg(test)]
+    AfterRetain,
+}
+
+async fn prepare_with_fault(repo: &Path, spool: &Path, seconds: u64, fault: Fault) -> Result<DurableReceipt> {
+    let (repo, spool) = (repo.to_path_buf(), spool.to_path_buf());
+    let preparation = tokio::spawn(async move {
+        prepare_inner(&repo, &spool, seconds, fault).await
+    });
+    tokio::time::timeout(std::time::Duration::from_secs(seconds), preparation)
+        .await.context("recovery transaction deadline; source preserved")?
+        .context("recovery preparation task failed")?
+}
+
+async fn prepare_inner(repo: &Path, spool: &Path, timeout: u64, _fault: Fault) -> Result<DurableReceipt> {
     let gitdir = PathBuf::from(text(repo, &["rev-parse", "--absolute-git-dir"], timeout).await?);
     ensure!(
         fs::symlink_metadata(spool)?.is_dir(),
@@ -480,6 +530,14 @@ pub(super) async fn prepare_record(
         store.join(format!("objects/pack/pack-{hash}.keep")),
         b"Independent epoch recovery; do not prune\n",
     )?;
+    #[cfg(test)]
+    if matches!(_fault, Fault::CorruptBeforeVerify) {
+        let pack = store.join(format!("objects/pack/pack-{hash}.pack"));
+        let mut bytes = fs::read(&pack)?;
+        ensure!(bytes.len() > 15, "fault fixture pack too short");
+        bytes[15] ^= 0x55;
+        fs::write(pack, bytes)?;
+    }
     verify(&store, &roots_path, timeout).await?;
     let mut manifest = String::from("dracon-epoch-recovery-v1\n");
     sync_tree(record.path(), record.path(), &mut manifest)?;
@@ -497,10 +555,18 @@ pub(super) async fn prepare_record(
     writeln!(receipt, "dracon-epoch-recovery-v1 {manifest_sha256}")?;
     receipt.sync_all()?;
     File::open(record.path())?.sync_all()?;
+    #[cfg(test)]
+    if matches!(_fault, Fault::BeforeReceipt) {
+        bail!("injected failure before retaining prepared record");
+    }
     // Retain before publication: no later error may remove a published receipt.
     // An interrupted publication can leave a prepared directory without one.
     let record = record.keep();
     File::open(&rescue)?.sync_all()?;
+    #[cfg(test)]
+    if matches!(_fault, Fault::AfterRetain) {
+        bail!("injected failure after retaining record, before receipt publication");
+    }
     // Hard-link publication is create-only and exposes only complete bytes.
     fs::hard_link(record.join("receipt.pending"), record.join("receipt"))?;
     File::open(&record)?.sync_all()?;
@@ -650,6 +716,21 @@ mod tests {
                 .await
                 .unwrap();
             assert!(spool.join("index").exists());
+        }
+    }
+
+    // Protect the actual prepublication gate: corruption must fail preparation,
+    // not merely be detectable by a verifier invoked after a successful receipt.
+    #[tokio::test]
+    async fn post_write_corruption_and_publication_faults_preserve_source() {
+        for fault in [Fault::CorruptBeforeVerify, Fault::BeforeReceipt, Fault::AfterRetain] {
+            let (_root, repo, spool, _) = fixture("sha1").await;
+            let original = fs::read(spool.join("index")).unwrap();
+            assert!(prepare_with_fault(&repo, &spool, 20, fault).await.is_err());
+            assert_eq!(fs::read(spool.join("index")).unwrap(), original);
+            for record in fs::read_dir(repo.join(".git/dracon-rescue")).unwrap() {
+                assert!(!record.unwrap().path().join("receipt").exists(), "failed preparation must not authorize removal");
+            }
         }
     }
 
