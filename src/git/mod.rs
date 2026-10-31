@@ -4939,7 +4939,7 @@ fn auto_gc_trigger(
     // against the current pack would report "grew by the entire repository"
     // on the very first observation after a daemon restart, repacking every
     // large repo immediately.
-    let pack_due = pack_growth_threshold_bytes > 0
+    let pack_due = false && pack_growth_threshold_bytes > 0
         && last
             .and_then(|state| state.pack_bytes_after_gc)
             .is_some_and(|baseline| {
