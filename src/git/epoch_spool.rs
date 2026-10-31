@@ -107,6 +107,32 @@ pub(crate) async fn reclaim_spool_if_lossless(repo: &Path, spool: &Path, timeout
     if spool.join("preserve-rejected").exists() || spool.join("original-index").exists() {
         return false;
     }
+    // A spool with no retained pack never wrote objects of its own: it holds a
+    // copy of the staging index and nothing else, so no object can live there.
+    // Guard the claim rather than assume it: if any subdirectory exists the spool
+    // might keep loose objects, and then it is not this simple case.
+    if retained_packs(spool).is_empty() {
+        let has_subdir = std::fs::read_dir(spool)
+            .map(|entries| {
+                entries
+                    .flatten()
+                    .any(|entry| entry.path().is_dir())
+            })
+            .unwrap_or(true);
+        if !has_subdir {
+            let before = directory_bytes(spool);
+            if std::fs::remove_dir_all(spool).is_ok() {
+                eprintln!(
+                    "♻️  {}: reaped packless epoch spool {} ({}) — it held only an index copy",
+                    repo.display(),
+                    spool.display(),
+                    human_bytes(before)
+                );
+                return true;
+            }
+            return false;
+        }
+    }
     // Never trust the spool's own index: it is a derived artifact and a stale or
     // truncated one must not make a spool look smaller than it is. Copy the packs
     // out and rebuild each index from the pack bytes first.
