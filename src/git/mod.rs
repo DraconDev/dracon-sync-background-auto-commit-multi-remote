@@ -5893,6 +5893,67 @@ mod auto_gc_tests {
         );
     }
 
+    /// The trigger must ARM itself on first observation.
+    ///
+    /// REGRESSION: without arming, a repository that never trips the garbage
+    /// or loose triggers has no post-gc baseline and the growth trigger stays
+    /// disarmed forever — which is precisely the quiet-repo case it exists to
+    /// catch (the live defect was 6.53 GiB of dead objects with `garbage: 0`).
+    #[tokio::test]
+    async fn test_maybe_auto_gc_arms_pack_growth_baseline_without_gcing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        assert!(
+            crate::policy::std_git_command()
+                .args(["init", "-q", "-b", "main"])
+                .arg(&repo)
+                .status()
+                .unwrap()
+                .success()
+        );
+        // A commit so the repo has a pack-ish shape.
+        std::fs::write(repo.join("a.txt"), "a\n").unwrap();
+        for args in [vec!["add", "a.txt"], vec!["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "a"]] {
+            let _ = crate::policy::std_git_command().args(&args).current_dir(&repo).status();
+        }
+        // Clear any state from other tests in this process.
+        super::attempts_for(&repo).remove(&repo);
+
+        // First call: only the pack-growth knob is enabled, so nothing can
+        // legitimately trigger a gc — but the baseline must be recorded.
+        let triggered = super::maybe_auto_gc(&repo, 0, 0, GIB).await;
+        assert_eq!(triggered, None, "arming must not run a gc");
+        let baseline = super::attempts_for(&repo)
+            .get(&repo)
+            .and_then(|state| state.pack_bytes_after_gc);
+        assert!(
+            baseline.is_some(),
+            "first observation must arm the pack-growth baseline"
+        );
+
+        // With the baseline armed, simulating enough growth must fire it.
+        let armed = super::attempts_for(&repo).get(&repo).copied().unwrap();
+        assert_eq!(
+            super::auto_gc_trigger(
+                0,
+                0,
+                armed.pack_bytes_after_gc.unwrap() + 2 * GIB,
+                0,
+                0,
+                GIB,
+                Some(&pack_growth_state(
+                    armed.pack_bytes_after_gc,
+                    true,
+                    super::AUTO_GC_PACK_GROWTH_COOLDOWN_SECS + 1
+                )),
+                std::time::Instant::now(),
+            ),
+            Some(super::AutoGcTrigger::PackGrowth)
+        );
+        super::attempts_for(&repo).remove(&repo);
+    }
+
     /// `size-pack` parsing: it is the field the trigger depends on, and it
     /// is reported in KiB like the other size fields.
     #[test]
