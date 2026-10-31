@@ -5691,7 +5691,7 @@ mod auto_gc_tests {
         assert!(loose_before > 1, "fixture must contain loose objects");
 
         assert_eq!(
-            super::maybe_auto_gc(&repo, 0, 1).await,
+            super::maybe_auto_gc(&repo, 0, 1, 0).await,
             Some(loose_before),
             "a tiny threshold should select the loose-object trigger"
         );
@@ -5724,10 +5724,10 @@ mod auto_gc_tests {
         assert!(status.success());
 
         // Both triggers disabled.
-        assert!(super::maybe_auto_gc(&repo, 0, 0).await.is_none());
+        assert!(super::maybe_auto_gc(&repo, 0, 0, 0).await.is_none());
         // Fresh repo has ~0 garbage and no loose threshold configured.
         assert!(
-            super::maybe_auto_gc(&repo, 2 * 1024 * 1024 * 1024, 0)
+            super::maybe_auto_gc(&repo, 2 * 1024 * 1024 * 1024, 0, 0)
                 .await
                 .is_none()
         );

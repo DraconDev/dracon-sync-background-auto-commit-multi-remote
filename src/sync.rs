@@ -5374,6 +5374,7 @@ async fn sync_repo_local_with_ownership(
             repo,
             policy.auto_gc_garbage_threshold_bytes,
             policy.auto_gc_loose_threshold_bytes,
+            policy.auto_gc_pack_growth_bytes,
         )
         .await;
         // ADDED 2026-10-26: sweep stale `tmp_pack_*` leftovers.

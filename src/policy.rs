@@ -651,6 +651,31 @@ pub(crate) struct SyncPolicy {
     /// this loose-object trigger (the garbage trigger remains independent).
     #[serde(default = "default_auto_gc_loose_threshold_bytes")]
     pub(crate) auto_gc_loose_threshold_bytes: u64,
+    /// ADDED 2026-10-31: repack when PACKED storage has grown past the
+    /// post-gc baseline by this many bytes.
+    ///
+    /// WHY THIS EXISTS: the two triggers above cannot see
+    /// unreachable-objects-INSIDE-packs bloat. `size-garbage` counts only
+    /// loose unreachable objects, and `size` counts loose objects at all,
+    /// so a repository carrying hundreds of MiB of dead objects inside a
+    /// pack reports `garbage: 0` / `loose: 0` and neither trigger fires.
+    /// Observed live 2026-10-31: `dracon-platform` held **6.53 GiB** of
+    /// unreachable pre-slim book covers inside its packs with both
+    /// counters at zero, and had never been gc-ed in seven days.
+    ///
+    /// Safety: this runs plain `git gc`, which keeps unreachable objects
+    /// for the ordinary two-week prune grace. It therefore cannot lose
+    /// recoverable work — it only stops dead weight accumulating
+    /// indefinitely. The baseline is the `size-pack` observed after a
+    /// SUCCESSFUL gc, and no baseline means the trigger stays disarmed
+    /// (comparing against an absent baseline would report "grew by the
+    /// whole repository" on the first observation after every restart).
+    ///
+    /// Default: 1 GiB; 0 disables this trigger (the other two remain
+    /// independent). Long cooldown (24h) because repacking a multi-GiB
+    /// repository is expensive and the excess is not urgent.
+    #[serde(default = "default_auto_gc_pack_growth_bytes")]
+    pub(crate) auto_gc_pack_growth_bytes: u64,
     /// ADDED 2026-10-26: age before an abandoned private-epoch spool
     /// (`<gitdir>/dracon-staging-*`) may be reaped by the daemon.
     ///
@@ -1360,6 +1385,15 @@ pub(crate) fn default_auto_gc_loose_threshold_bytes() -> u64 {
     // rewritten-but-eligible session export is repacked before loose copies
     // consume the bucket guard's headroom.
     64 * 1024 * 1024
+}
+
+pub(crate) fn default_auto_gc_pack_growth_bytes() -> u64 {
+    // 1 GiB. Growth of packed storage past the post-gc baseline is
+    // unreachable-inside-pack bloat that no other trigger can see. Sized
+    // well above ordinary reachable growth between runs so a healthy,
+    // fast-growing repository does not trigger a repack every day; the
+    // observed defect was 6.53 GiB, so 1 GiB still catches it early.
+    1024 * 1024 * 1024
 }
 
 pub(crate) fn default_epoch_spool_max_age_secs() -> u64 {
@@ -2257,6 +2291,7 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
         push_op_timeout_secs: 300,
         auto_gc_garbage_threshold_bytes: default_auto_gc_garbage_threshold_bytes(),
         auto_gc_loose_threshold_bytes: default_auto_gc_loose_threshold_bytes(),
+        auto_gc_pack_growth_bytes: default_auto_gc_pack_growth_bytes(),
         epoch_spool_max_age_secs: default_epoch_spool_max_age_secs(),
         repo_sync_timeout_secs: 420,
         stage_op_timeout_secs: 60,
@@ -2395,6 +2430,7 @@ mod tests {
         "auto_commit_backstop_threshold",
         "auto_gc_garbage_threshold_bytes",
         "auto_gc_loose_threshold_bytes",
+        "auto_gc_pack_growth_bytes",
         "epoch_spool_max_age_secs",
         "auto_github_private",
         "auto_github_private_account",
