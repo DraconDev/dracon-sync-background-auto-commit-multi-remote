@@ -271,6 +271,7 @@ async fn rescue_and_remove(
     else {
         return false;
     };
+    eprintln!("DEBUG rescue: unique={} input_lines={} stdout_bytes={} status={}", unique.len(), input.lines().count(), output.stdout.len(), output.status);
     if !output.status.success() || output.stdout.is_empty() {
         return false;
     }
@@ -705,14 +706,6 @@ mod tests {
             }
         }
         let scratch = scratch.expect("rescue pack located");
-        {
-            let dbg = run_git(&repo, &["verify-pack", "-v", scratch.join("pack").join(
-                std::fs::read_dir(scratch.join("pack")).unwrap().flatten()
-                    .find(|e| e.path().extension().is_some_and(|x| x == "pack"))
-                    .map(|e| e.file_name().to_str().unwrap().to_string()).unwrap()).to_str().unwrap()]);
-            panic!("DEBUG scratch={:?} unique={:?} verify-pack_stdout={} stderr={}",
-                scratch, unique, String::from_utf8_lossy(&dbg.stdout), String::from_utf8_lossy(&dbg.stderr));
-        }
         for oid in &unique {
             let out = Command::new("git")
                 .args(["cat-file", "-t", oid])
