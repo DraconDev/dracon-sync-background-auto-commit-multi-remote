@@ -182,4 +182,5 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
      Running tests/leak_prevention_test.rs (target/debug/deps/leak_prevention_test-d2cdb31e0837e1d0)
 
 running 2 tests
-test prop_test_binary_passthrough_integrity ... 
+test prop_test_binary_passthrough_integrity ... ok
+test prop_test_hybrid_security_logic ... 
