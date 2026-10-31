@@ -47,6 +47,12 @@ impl SpoolLease {
     }
 }
 
+impl Drop for SpoolLease {
+    fn drop(&mut self) {
+        self.release_for_reclaim();
+    }
+}
+
 /// Holds ownership and the identities against which final deletion is checked.
 pub(super) struct ReclaimOwner {
     _file: File,

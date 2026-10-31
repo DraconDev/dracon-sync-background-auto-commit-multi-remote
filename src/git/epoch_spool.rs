@@ -1,4 +1,4 @@
-//! Recovery spool inventory and duplication-proof reaping.
+//! Recovery spool inventory and guarded reclamation prototype.
 //!
 //! Every staging epoch allocates `<gitdir>/dracon-staging-*`: its own index plus
 //! an independent pack holding the objects it staged. A settled epoch releases
@@ -11,26 +11,13 @@
 //! fail-closed no-ops, which bounded the data loss but let the spools grow
 //! forever (~15.2 GiB / 732 directories by 2026-10-31).
 //!
-//! This module restores reclamation WITHOUT restoring the age heuristic. The new
-//! authority is duplication, which is a proof rather than an assumption:
-//!
-//! * every object in a spool's pack is already present in the repository's
-//!   object database  -> the spool is a pure copy -> remove it;
-//! * some object is absent -> pack exactly the absent objects into a compact
-//!   rescue pack, index it, verify each one reads back from that pack ALONE, and
-//!   only then remove the spool. The rescue keeps the data and drops the
-//!   container: the measured worst case is a 4.98 GB spool whose 93,939 objects
-//!   include 9 unique ones, rescued into 49,948 bytes.
-//! * rescue cannot be verified -> preserve the spool untouched and report it.
-//!
-//! "Present in the object database" is the criterion, deliberately not
-//! reachability: a present-but-dangling object still lives in `.git/objects`
-//! under git's normal prune grace, so discarding the spool's duplicate of it
-//! loses nothing.
+//! The original presence-only prototype below is disabled: instantaneous object
+//! presence does not protect dangling objects from GC, and object bytes do not
+//! preserve index/recovery semantics. Durable recovery and ownership qualification
+//! must replace that premise before destructive reclaim can be enabled.
 //!
 //! Age-only deletion remains impossible. `sweep_epoch_spools` still refuses to
-//! apply because an untouched pack proves nothing on its own; only the
-//! duplication test above authorizes removal.
+//! apply. See docs/design/epoch-spool-durable-recovery-2026-10-31.md.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -52,33 +39,9 @@ const MAX_SPOOLS_PER_PASS: usize = 64;
 // are implemented and independently qualified. This is not a completion claim.
 const LOSSLESS_RECLAIM_QUALIFIED: bool = false;
 
-pub(crate) struct SpoolLease {
-    path: Option<PathBuf>,
-    // Kernel ownership, held from creation through staging and epoch settlement.
-    // Unlike directory age this remains authoritative for a stalled process.
-    _owner: Option<std::fs::File>,
-}
-impl SpoolLease {
-    pub(crate) fn new(path: Option<PathBuf>) -> Self {
-        Self { path, _owner: None }
-    }
-    pub(crate) fn acquire(path: &Path) -> anyhow::Result<Self> {
-        use std::fs::OpenOptions;
-        let mut options = OpenOptions::new();
-        options.read(true).write(true).create_new(true);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            options.mode(0o600).custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC);
-        }
-        let owner = options.open(path.join("reclaim-owner.lock"))?;
-        owner.try_lock()?;
-        Ok(Self { path: Some(path.to_path_buf()), _owner: Some(owner) })
-    }
-    pub(crate) fn named(&self) -> Option<&Path> {
-        self.path.as_deref()
-    }
-}
+#[path = "epoch_spool_ownership.rs"]
+mod ownership;
+pub(crate) use ownership::SpoolLease;
 
 /// Verdict for one spool after comparing its pack against the object database.
 enum Verdict {
@@ -98,9 +61,8 @@ pub(crate) async fn reap_abandoned_spools(
     max_age_secs: u64,
     op_timeout_secs: u64,
 ) -> usize {
-    // A live epoch rewrites its spool as it stages, so an untouched pack is the
-    // in-flight guard. A zero policy value falls back to the floor rather than
-    // meaning "no floor".
+    // Age only schedules work. Kernel ownership, not mtime, excludes a stalled
+    // live producer. Zero falls back to the floor rather than meaning no floor.
     let floor = std::time::Duration::from_secs(if max_age_secs == 0 { 3600 } else { max_age_secs });
     let Some(gitdir) = absolute_git_dir(repo).await else { return 0 };
     let candidates = spool_candidates(&gitdir, floor);
@@ -131,22 +93,8 @@ pub(crate) async fn reclaim_spool_if_lossless(repo: &Path, spool: &Path, timeout
         );
         return false;
     }
-    // Only spools created by the ownership-aware lifecycle can be reclaimed.
-    // Legacy spools have no shared ownership proof: age is not a substitute.
-    // Never create this file here, as that would manufacture evidence for an
-    // old spool potentially still owned by another daemon version.
-    let mut options = std::fs::OpenOptions::new();
-    options.read(true).write(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC);
-    }
-    let Ok(owner) = options.open(spool.join("reclaim-owner.lock")) else { return false };
-    if owner.try_lock().is_err() {
-        return false;
-    }
-    let _owner_guard = owner;
+    let Some(gitdir) = absolute_git_dir(repo).await else { return false };
+    let Ok(_owner_guard) = ownership::ReclaimOwner::acquire(&gitdir, spool) else { return false };
     // A refusal or conflict payload is deliberate diagnostic evidence. Both
     // markers exist for exactly this purpose and no proof overrides them.
     if spool.join("preserve-rejected").exists() || spool.join("original-index").exists() {
