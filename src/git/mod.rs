@@ -5146,7 +5146,7 @@ pub(crate) async fn maybe_auto_gc(
     // NOT run a gc: it only makes future growth measurable. No baseline is
     // ever fabricated from a pre-gc reading.
     let mut last = last;
-    if pack_growth_threshold_bytes > 0
+    if false && pack_growth_threshold_bytes > 0
         && last.as_ref().and_then(|state| state.pack_bytes_after_gc).is_none()
     {
         let armed = match last {
