@@ -2886,10 +2886,8 @@ pub(crate) fn push_stuck_hint(repo: &Path, failures: u32, redacted_error: &str) 
 
 fn current_blocker_hint(current: current_health::Current, hint: &str) -> String {
     if current == current_health::Current::Unknown
-        && (hint.starts_with("healthy")
-            || hint.starts_with("daemon will push after changes settle")
-            || hint.starts_with("daemon handles after changes settle")
-            || hint.starts_with("run dracon-sync repair concerns --apply"))
+        && (hint.starts_with("daemon will push after changes settle")
+            || hint.starts_with("daemon handles after changes settle"))
     {
         // Unknown is an evidence gap, not proof of healthy progress or a
         // reason to prescribe a push/history rewrite. Keep diagnostic

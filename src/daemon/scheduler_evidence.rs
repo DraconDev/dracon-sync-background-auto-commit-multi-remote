@@ -165,8 +165,6 @@ pub(super) fn build(inputs: Inputs<'_>, now: Instant, written_at: u64) -> Snapsh
     for path in inputs
         .activity
         .keys()
-        .chain(inputs.eligible)
-        .chain(inputs.admitted.keys())
         .chain(inputs.probes)
         .chain(inputs.maintenance)
     {
