@@ -41,6 +41,8 @@ const LOSSLESS_RECLAIM_QUALIFIED: bool = false;
 
 #[path = "epoch_spool_ownership.rs"]
 mod ownership;
+#[path = "epoch_spool_recovery.rs"]
+mod recovery;
 pub(crate) use ownership::SpoolLease;
 
 /// Verdict for one spool after comparing its pack against the object database.
