@@ -493,4 +493,27 @@ test storage_core::security::tests::bad_recovery_representation_records_failure_
 test storage_core::security::tests::completed_unapproved_output_after_crash_is_not_adopted ... ok
 test storage_core::security::tests::deadline_kills_child_and_retry_respects_backoff ... ok
 test storage_core::security::tests::failed_exit_and_plaintext_stdout_cannot_approve_a_payload ... ok
-test storage_core::security::tests::foreign_repo_binding_cannot_encrypt_or_adopt_a_prepared_job ... 
+test storage_core::security::tests::foreign_repo_binding_cannot_encrypt_or_adopt_a_prepared_job ... ok
+test storage_core::security::tests::oversized_stdout_and_unapproved_orphan_do_not_escape_capacity ... ok
+test storage_core::security::tests::real_warden_large_payload_copies_and_cold_restore_use_fixture_keys ... ignored, operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary
+test storage_core::security::tests::security_crash_child ... ignored, subprocess helper, invoked by security crash recovery test
+test storage_core::security::tests::success_publishes_once_and_restart_does_not_spawn_again ... ok
+test storage_core::transfer::tests::apparent_upload_success_without_readback_is_not_a_receipt ... ok
+test storage_core::transfer::tests::changed_snapshot_cannot_reach_s3_transport ... ok
+test storage_core::transfer::tests::changed_snapshot_is_rejected_before_immutable_backend_publication ... ok
+test storage_core::transfer::tests::foreign_or_unapproved_security_bindings_refuse_before_backend_io ... ok
+test storage_core::transfer::tests::incomplete_consumption_cannot_produce_a_copy_receipt ... ok
+test storage_core::transfer::tests::missing_bindings_and_capacity_failure_cannot_mark_ready ... ok
+test storage_core::transfer::tests::required_copies_use_retained_bytes_and_restart_rechecks_corruption ... ok
+test storage_core::transfer::tests::selected_input_requires_exact_eof_even_for_empty_payloads ... ok
+test storage_core::transfer::tests::transient_readback_failure_retains_exact_payload_and_obeys_backoff ... ok
+test storage_core::worker::tests::captured_version_is_prepared_copied_and_retry_keeps_identity ... ok
+test storage_core::worker::tests::encrypted_preparation_copies_only_approved_representation ... ok
+test storage_core::worker::tests::missing_warden_and_forbidden_class_do_not_prepare_or_upload ... ok
+
+test result: ok. 144 passed; 0 failed; 13 ignored; 0 measured; 0 filtered out; finished in 216.64s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-78eb849c93424a02)
+
+running 1538 tests
+test bucket_assets::tests::daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure ... 
