@@ -27,9 +27,20 @@ pub(crate) fn progress_hard_timeout_secs(idle_timeout_secs: u64) -> u64 {
 ///
 /// F47 (2026-07-19): the previous 200ms SIGTERM→SIGKILL gap was
 /// tight for processes that need cleanup time (large git filter-repo
-/// unpacking, etc.). Now: SIGTERM, wait 2s for graceful cleanup, then
-/// SIGKILL. The wait is asynchronous so a timed-out Git operation does
+/// unpacking, etc.). The wait is asynchronous so a timed-out Git operation does
 /// not block a Tokio worker thread while its process group exits.
+///
+/// CHANGED 2026-10-31: the grace was 2s, which is shorter than the time a
+/// pre-push hook needs to remove its multi-gigabyte source snapshot. A hook
+/// blocked in a synchronous exec cannot run its SIGTERM handler inside 2s, so
+/// the KILL landed first and the snapshot leaked while `manifest.json` still
+/// said `"status": "running"` — 38.3 GiB of orphans accumulated in
+/// `~/.local/state/dracon/sync/gates` by 2026-10-31. The grace is now long
+/// enough for a real cleanup and is a named constant so the two call sites and
+/// the regression tests cannot drift apart.
+pub(crate) const SIGTERM_GRACE: std::time::Duration = std::time::Duration::from_secs(15);
+
+/// Kill a git child process group using TERM then KILL.
 #[cfg(unix)]
 async fn kill_process_group(pid: u32) {
     let pid_s = format!("-{pid}");
@@ -58,7 +69,7 @@ async fn kill_process_group(pid: u32) {
             pid
         );
     }
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    tokio::time::sleep(SIGTERM_GRACE).await;
     let _ = tokio::task::spawn_blocking(move || {
         let _ = std::process::Command::new("kill")
             .args(["-KILL", pid_s.as_str()])
