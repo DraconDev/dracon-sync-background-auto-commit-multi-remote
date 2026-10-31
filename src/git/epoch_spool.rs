@@ -46,6 +46,12 @@ const LEDGER_FILE: &str = "ledger.tsv";
 /// daemon pulse. Leftovers are reclaimed on the next pass.
 const MAX_SPOOLS_PER_PASS: usize = 64;
 
+// Safety interlock: the prototype's presence-only proof does not protect
+// dangling objects against GC, preserve the recovery index, or prove legacy
+// ownership. Keep destructive reclamation disabled until all three invariants
+// are implemented and independently qualified. This is not a completion claim.
+const LOSSLESS_RECLAIM_QUALIFIED: bool = false;
+
 pub(crate) struct SpoolLease {
     path: Option<PathBuf>,
     // Kernel ownership, held from creation through staging and epoch settlement.
@@ -118,6 +124,13 @@ pub(crate) async fn reap_abandoned_spools(
 ///
 /// Returns true only when the spool directory is gone.
 pub(crate) async fn reclaim_spool_if_lossless(repo: &Path, spool: &Path, timeout: u64) -> bool {
+    if !LOSSLESS_RECLAIM_QUALIFIED {
+        eprintln!(
+            "⚠️ {}: epoch spool {} preserved; durable recovery qualification incomplete",
+            repo.display(), spool.display()
+        );
+        return false;
+    }
     // Only spools created by the ownership-aware lifecycle can be reclaimed.
     // Legacy spools have no shared ownership proof: age is not a substitute.
     // Never create this file here, as that would manufacture evidence for an
