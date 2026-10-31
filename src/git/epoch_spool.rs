@@ -192,6 +192,18 @@ async fn classify_spool(repo: &Path, spool: &Path, timeout: u64) -> Verdict {
     let Some(objects) = pack_objects(repo, &packs, timeout).await else {
         return Verdict::Unreadable;
     };
+    // The pack header states how many objects the file contains. If enumeration
+    // disagrees, the listing is incomplete and an incomplete listing must never
+    // authorize deletion: an unlisted object could be the only surviving copy.
+    let declared: u64 = packs.iter().filter_map(|pack| declared_objects(pack)).sum();
+    if declared != objects.len() as u64 {
+        eprintln!(
+            "⚠️  pack enumeration disagrees with its header ({} listed, {} declared); preserved",
+            objects.len(),
+            declared
+        );
+        return Verdict::Unreadable;
+    }
     if objects.is_empty() {
         return Verdict::Duplicate;
     }
@@ -420,6 +432,21 @@ fn alternates_for(spool: &Path) -> Option<PathBuf> {
         }
     }
     Some(root)
+}
+
+/// Object count from a pack's own header (bytes 8..12, big-endian).
+///
+/// Read from the file rather than the index on purpose: the index is a derived
+/// artifact, and a stale or truncated one must not be able to make a spool look
+/// smaller than it is.
+fn declared_objects(pack: &Path) -> Option<u64> {
+    use std::io::Read;
+    let mut header = [0u8; 12];
+    std::fs::File::open(pack).ok()?.read_exact(&mut header).ok()?;
+    if &header[0..4] != b"PACK" {
+        return None;
+    }
+    Some(u32::from_be_bytes([header[8], header[9], header[10], header[11]]) as u64)
 }
 
 fn retained_packs(spool: &Path) -> Vec<PathBuf> {
