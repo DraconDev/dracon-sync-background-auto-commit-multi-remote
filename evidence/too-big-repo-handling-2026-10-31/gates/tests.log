@@ -391,4 +391,7 @@ test storage_core::backend::tests::streamed_large_payload_has_bounded_read_reque
 test storage_core::capture::tests::exact_source_selection_is_bounded_and_rewound ... ok
 test storage_core::capture::tests::links_nested_repos_git_internals_and_nonregular_files_are_refused ... ok
 test storage_core::clean::tests::changed_shorter_longer_and_foreign_pointer_inputs_emit_nothing ... ok
-test storage_core::clean::tests::large_source_uses_bounded_read_requests ... 
+test storage_core::clean::tests::large_source_uses_bounded_read_requests ... ok
+test storage_core::clean::tests::oversized_unknown_stream_stops_at_bounded_recognition_window ... ok
+test storage_core::clean::tests::read_failure_cannot_publish_partial_reference_or_raw_input ... ok
+test storage_core::clean::tests::unchanged_input_and_exact_unhydrated_pointer_are_deterministic ... 
