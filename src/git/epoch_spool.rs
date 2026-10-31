@@ -508,3 +508,290 @@ fn append_ledger(rescue_dir: &Path, spool: &str, unique: usize, unique_bytes: u6
 pub(crate) fn human_bytes(bytes: u64) -> String {
     format!("{:.2} MiB", bytes as f64 / 1048576.0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::process::{Command, Stdio};
+
+    fn run_git(dir: &Path, args: &[&str]) -> std::process::Output {
+        Command::new("git")
+            .args(args)
+            .current_dir(dir)
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_INDEX_FILE")
+            .env_remove("GIT_ALTERNATE_OBJECT_DIRECTORIES")
+            .output()
+            .expect("git runs")
+    }
+
+    /// A repo with one commit, so its object database is non-empty.
+    fn repo_with_commit(root: &Path) -> PathBuf {
+        let repo = root.join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        assert!(run_git(&repo, &["init", "-q"]).status.success());
+        std::fs::write(repo.join("a.txt"), "hello").unwrap();
+        assert!(run_git(&repo, &["add", "a.txt"]).status.success());
+        let commit = run_git(
+            &repo,
+            &["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "one"],
+        );
+        assert!(commit.status.success(), "fixture commit failed");
+        repo
+    }
+
+    /// Pack every object reachable in `dir` into `out`, with the matching .idx.
+    fn make_pack(dir: &Path, out: &Path) -> Vec<String> {
+        let listing = run_git(dir, &["rev-list", "--objects", "--all"]);
+        assert!(listing.status.success());
+        let oids: String = String::from_utf8_lossy(&listing.stdout)
+            .lines()
+            .filter_map(|line| line.split(' ').next())
+            .map(|oid| format!("{oid}\n"))
+            .collect();
+        let mut child = Command::new("git")
+            .args(["pack-objects", "--stdout"])
+            .current_dir(dir)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("pack-objects spawns");
+        {
+            use std::io::Write;
+            child.stdin.as_mut().unwrap().write_all(oids.as_bytes()).unwrap();
+        }
+        let packed = child.wait_with_output().unwrap();
+        assert!(packed.status.success(), "pack-objects failed");
+        std::fs::write(out, &packed.stdout).unwrap();
+        // verify-pack only reads a pack through its index.
+        assert!(run_git(dir, &["index-pack", out.to_str().unwrap()]).status.success());
+        let names = run_git(dir, &["verify-pack", "-v", out.to_str().unwrap()]);
+        String::from_utf8_lossy(&names.stdout)
+            .lines()
+            .filter_map(|line| {
+                let oid = line.split(' ').next()?;
+                (oid.len() == 40 && oid.bytes().all(|b| b.is_ascii_hexdigit())).then(|| oid.to_string())
+            })
+            .collect()
+    }
+
+    /// Install a pack into a spool directory as the retained pack.
+    fn spool_with_pack(gitdir: &Path, name: &str, pack: &Path) -> PathBuf {
+        let spool = gitdir.join(name);
+        std::fs::create_dir_all(&spool).unwrap();
+        let stem = pack.file_stem().unwrap().to_str().unwrap();
+        std::fs::copy(pack, spool.join(format!("retained-{stem}.pack"))).unwrap();
+        std::fs::copy(pack.with_extension("idx"), spool.join(format!("retained-{stem}.idx"))).unwrap();
+        std::fs::write(spool.join("index"), b"staging index copy").unwrap();
+        spool
+    }
+
+    /// Backdate a directory past any age floor.
+    fn backdate(dir: &Path) {
+        std::fs::File::open(dir)
+            .unwrap()
+            .set_modified(std::time::SystemTime::UNIX_EPOCH)
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn old_unpublished_recovery_survives_apply_and_automatic_cleanup() {
+        let root = tempfile::tempdir().unwrap();
+        let spool = root.path().join("dracon-staging-unpublished");
+        std::fs::create_dir(&spool).unwrap();
+        std::fs::write(spool.join("retained.pack"), b"only surviving candidate").unwrap();
+        std::fs::File::open(&spool).unwrap().set_modified(std::time::SystemTime::UNIX_EPOCH).unwrap();
+        assert_eq!(reap_abandoned_spools(root.path(), 1, 1).await, 0);
+        assert_eq!(sweep_epoch_spools(root.path(), 1, true).await, (0, 0));
+        assert_eq!(std::fs::read(spool.join("retained.pack")).unwrap(), b"only surviving candidate");
+    }
+
+    /// A spool whose every object already exists in the repository is a pure
+    /// copy: removing it cannot lose anything.
+    #[tokio::test]
+    async fn duplicate_spool_is_reaped() {
+        let root = tempfile::tempdir().unwrap();
+        let repo = repo_with_commit(root.path());
+        let gitdir = absolute_git_dir(&repo).await.unwrap();
+        let pack = root.path().join("dup.pack");
+        make_pack(&repo, &pack);
+        let spool = spool_with_pack(&gitdir, "dracon-staging-dup", &pack);
+        backdate(&spool);
+
+        assert_eq!(reap_abandoned_spools(&repo, 1, 60).await, 1);
+        assert!(!spool.exists(), "duplicate spool must be removed");
+        assert!(
+            !gitdir.join(RESCUE_DIR).exists(),
+            "a pure duplicate needs no rescue pack"
+        );
+    }
+
+    /// A spool holding an object that exists nowhere else must be rescued, and
+    /// the rescued object must read back from the rescue pack alone.
+    #[tokio::test]
+    async fn spool_with_unique_objects_is_rescued_then_reaped() {
+        let root = tempfile::tempdir().unwrap();
+        let repo = repo_with_commit(root.path());
+        let gitdir = absolute_git_dir(&repo).await.unwrap();
+
+        let foreign = root.path().join("foreign");
+        std::fs::create_dir_all(&foreign).unwrap();
+        assert!(run_git(&foreign, &["init", "-q"]).status.success());
+        std::fs::write(foreign.join("u.txt"), "unique-content-xyz").unwrap();
+        assert!(run_git(&foreign, &["add", "u.txt"]).status.success());
+        assert!(
+            run_git(
+                &foreign,
+                &["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "u"]
+            )
+            .status
+            .success()
+        );
+        let pack = root.path().join("uniq.pack");
+        let unique = make_pack(&foreign, &pack);
+        assert!(!unique.is_empty(), "fixture must produce unique objects");
+        // The premise: these objects are absent from the target repository.
+        for oid in &unique {
+            assert!(
+                !run_git(&repo, &["cat-file", "-e", oid]).status.success(),
+                "fixture object {oid} unexpectedly present in the repo"
+            );
+        }
+
+        let spool = spool_with_pack(&gitdir, "dracon-staging-uniq", &pack);
+        backdate(&spool);
+
+        assert_eq!(reap_abandoned_spools(&repo, 1, 60).await, 1);
+        assert!(!spool.exists(), "rescued spool must be reclaimed after the rescue verifies");
+
+        let rescue_dir = gitdir.join(RESCUE_DIR);
+        let survives = std::fs::read_dir(&rescue_dir)
+            .unwrap()
+            .flatten()
+            .any(|entry| entry.file_name().to_string_lossy().ends_with(".pack"));
+        assert!(survives, "rescue pack must exist");
+        let ledger = std::fs::read_to_string(rescue_dir.join(LEDGER_FILE)).unwrap();
+        assert!(
+            ledger.contains("dracon-staging-uniq"),
+            "ledger must record the rescue"
+        );
+        // Read each unique object from the rescue pack ALONE: the repository does
+        // not have them, so success proves the pack carries them.
+        let mut scratch = None;
+        for entry in std::fs::read_dir(&rescue_dir).unwrap().flatten() {
+            let path = entry.path();
+            if path.extension().is_some_and(|ext| ext == "pack") {
+                let dir = rescue_dir.join("readback/pack");
+                std::fs::create_dir_all(&dir).unwrap();
+                let name = path.file_name().unwrap().to_str().unwrap().to_string();
+                std::fs::copy(&path, dir.join(&name)).unwrap();
+                std::fs::copy(path.with_extension("idx"), dir.join(name.replace(".pack", ".idx"))).unwrap();
+                scratch = Some(rescue_dir.join("readback"));
+                break;
+            }
+        }
+        let scratch = scratch.expect("rescue pack located");
+        for oid in &unique {
+            let out = Command::new("git")
+                .args(["cat-file", "-t", oid])
+                .current_dir(&repo)
+                .env("GIT_ALTERNATE_OBJECT_DIRECTORIES", &scratch)
+                .output()
+                .unwrap();
+            assert!(out.status.success(), "rescued object {oid} must read back from the rescue pack");
+        }
+        let _ = std::fs::remove_dir_all(&scratch);
+    }
+
+    /// A refusal payload is evidence: no proof overrides the marker.
+    #[tokio::test]
+    async fn preserve_marked_spool_is_never_deleted() {
+        let root = tempfile::tempdir().unwrap();
+        let repo = repo_with_commit(root.path());
+        let gitdir = absolute_git_dir(&repo).await.unwrap();
+        let pack = root.path().join("dup.pack");
+        make_pack(&repo, &pack);
+
+        for marker in ["preserve-rejected", "original-index"] {
+            let spool = spool_with_pack(&gitdir, &format!("dracon-staging-{marker}"), &pack);
+            std::fs::write(spool.join(marker), b"evidence").unwrap();
+            backdate(&spool);
+            assert_eq!(
+                reap_abandoned_spools(&repo, 1, 60).await,
+                0,
+                "a {marker} spool must never be deleted"
+            );
+            assert!(spool.exists(), "{marker} spool must survive");
+        }
+    }
+
+    /// The age floor still protects an in-flight spool.
+    #[tokio::test]
+    async fn fresh_spool_is_protected_by_the_age_floor() {
+        let root = tempfile::tempdir().unwrap();
+        let repo = repo_with_commit(root.path());
+        let gitdir = absolute_git_dir(&repo).await.unwrap();
+        let pack = root.path().join("dup.pack");
+        make_pack(&repo, &pack);
+        let spool = spool_with_pack(&gitdir, "dracon-staging-fresh", &pack);
+
+        assert_eq!(reap_abandoned_spools(&repo, 3600, 60).await, 0);
+        assert!(spool.exists(), "a live spool must not be reaped");
+    }
+
+    /// When the rescue cannot be written the spool must survive intact: an
+    /// unverified rescue is not a rescue.
+    #[tokio::test]
+    async fn unverifiable_rescue_preserves_spool() {
+        let root = tempfile::tempdir().unwrap();
+        let repo = repo_with_commit(root.path());
+        let gitdir = absolute_git_dir(&repo).await.unwrap();
+        let foreign = root.path().join("foreign");
+        std::fs::create_dir_all(&foreign).unwrap();
+        assert!(run_git(&foreign, &["init", "-q"]).status.success());
+        std::fs::write(foreign.join("u.txt"), "unique-content-xyz").unwrap();
+        assert!(run_git(&foreign, &["add", "u.txt"]).status.success());
+        assert!(
+            run_git(
+                &foreign,
+                &["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "u"]
+            )
+            .status
+            .success()
+        );
+        let pack = root.path().join("uniq.pack");
+        assert!(!make_pack(&foreign, &pack).is_empty());
+        let spool = spool_with_pack(&gitdir, "dracon-staging-uniq", &pack);
+        backdate(&spool);
+
+        // Block the rescue directory with a regular file so the rescue cannot be
+        // created: the spool must be preserved rather than removed unverified.
+        std::fs::write(gitdir.join(RESCUE_DIR), b"not a directory").unwrap();
+
+        assert_eq!(reap_abandoned_spools(&repo, 1, 60).await, 0);
+        assert!(spool.exists(), "unverifiable spool must be preserved");
+        assert!(
+            spool.join("retained-uniq.pack").exists(),
+            "the original pack must be intact"
+        );
+    }
+
+    /// Age-only deletion must stay impossible, whatever the spool looks like.
+    #[tokio::test]
+    async fn sweep_apply_still_refuses_age_only_deletion() {
+        let root = tempfile::tempdir().unwrap();
+        let repo = repo_with_commit(root.path());
+        let gitdir = absolute_git_dir(&repo).await.unwrap();
+        let pack = root.path().join("dup.pack");
+        make_pack(&repo, &pack);
+        let spool = spool_with_pack(&gitdir, "dracon-staging-old", &pack);
+        backdate(&spool);
+
+        assert_eq!(sweep_epoch_spools(&repo, 1, true).await, (0, 0));
+        assert!(spool.exists(), "age alone must never delete a spool");
+        let report = sweep_epoch_spools(&repo, 1, false).await;
+        assert_eq!(report.0, 1, "report-only inventory must still count it");
+        assert!(report.1 > 0, "report-only inventory must report its bytes");
+    }
+}
