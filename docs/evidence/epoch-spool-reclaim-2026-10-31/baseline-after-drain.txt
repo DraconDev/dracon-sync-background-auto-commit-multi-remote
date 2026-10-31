@@ -1,0 +1,11 @@
+# epoch-spool state AFTER the verified drain
+captured_at=2026-10-31T21:20:02+00:00
+
+repo                                       spools          bytes
+./dracon-strategy/ai-auto-writer                2       27771821
+./browser-extensions-shared                    62      108328865
+./dracon-platform                             126      234063751
+
+TOTAL_SPOOLS=190
+TOTAL_BYTES=370164437
+free_bytes=146273693696
