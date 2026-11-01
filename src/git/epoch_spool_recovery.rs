@@ -766,9 +766,12 @@ async fn prepare_inner(
         fs::write(path, bytes)?;
     }
     verify(&store, &roots_path, timeout).await?;
-    // Share repeated metadata bytes only after the record verified: a failed
-    // preparation must leave no shared artifact behind either.
+    // Never share unsupported input. A later failure may retain unpublished
+    // CAS data, but cannot grant source deletion authority.
     cas::share_metadata(record.path(), &rescue)?;
+    // Sharing is a representation change: recheck exact bytes AND permissions
+    // against the original snapshot before any receipt can be published.
+    source::verify_copies(&source_snapshot, &metadata, &inputs).await?;
     #[cfg(test)]
     let corrupt_unique = matches!(_fault, Fault::CorruptUniqueBeforeVerify);
     #[cfg(not(test))]
