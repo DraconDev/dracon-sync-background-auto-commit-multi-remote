@@ -1,0 +1,42 @@
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: function `continuation_lines` is never used
+     --> dracon-sync/src/report.rs:17163:8
+      |
+17163 |     fn continuation_lines(rendered: &str) -> Vec<String> {
+      |        ^^^^^^^^^^^^^^^^^^
+      |
+      = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `dracon-sync` (bin "dracon-sync" test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.79s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 1 test
+test report::v011321_tests::every_table_tier_renders_single_line_rows ... FAILED
+
+failures:
+
+---- report::v011321_tests::every_table_tier_renders_single_line_rows stdout ----
+
+thread 'report::v011321_tests::every_table_tier_renders_single_line_rows' (47238) panicked at dracon-sync/src/report.rs:17230:9:
+full tier wrapped a cell:
+┌────┬───────────────┬───────────────────┬──────────────────┬───────────┬─────────────────┬────────┬────────┬───────┬─────────┬───────────┬─────────────┬────────────────────────────────┬─────────────────┬───────────┬─────────────┬───────────┬────────┬────────┬────────┬───────────────┬───────────────┬───────────────┐
+│ #  ┆ 🏷 STATUS      ┆ 📦 REPO           ┆ 🔗 ROLE          ┆ 🌿 BRANCH ┆ 🔗 PUBLISH      ┆ 📝 MOD ┆ 📥 STG ┆ ❓ UT ┆ ↑ AHEAD ┆ ↓ BEHIND  ┆ 🚀 PUSH     ┆ 🛰 PUSH-TO                      ┆ 📜 LAST COMMIT  ┆ 📤 REF    ┆ ⏰ ACTIVITY ┆ 👤 AUTHOR ┆ 📊 1h  ┆ 📊 6h  ┆ 📊 24h ┆ 🩺 STATE      ┆ 🤖 DAEMON     ┆ 💡 HINT       │
+│    ┆               ┆                   ┆                  ┆           ┆                 ┆        ┆        ┆       ┆         ┆           ┆             ┆                                ┆                 ┆ AGE       ┆             ┆           ┆        ┆        ┆        ┆               ┆               ┆               │
+╞════╪═══════════════╪═══════════════════╪══════════════════╪═══════════╪═════════════════╪════════╪════════╪═══════╪═════════╪═══════════╪═════════════╪════════════════════════════════╪═════════════════╪═══════════╪═════════════╪═══════════╪════════╪════════╪════════╪═══════════════╪═══════════════╪═══════════════╡
+│ 1  ┆ 📤 PUBLISHING ┆ one               ┆ standalone       ┆ feature/… ┆ origin/main     ┆ 12k    ┆ 12k    ┆ 12345 ┆ 12k     ┆ 12k       ┆ — unknown   ┆ codeberg,github,gitlab         ┆  a very long c… ┆ 🟣        ┆ 📤 PUBLISH… ┆ DraconDe… ┆ 12k    ┆ 12k    ┆ 12k    ┆ 📤 PUBLISHIN… ┆ 12 days ago   ┆ daemon handl… │
+│    ┆               ┆                   ┆                  ┆           ┆                 ┆        ┆        ┆       ┆         ┆           ┆             ┆                                ┆                 ┆ PENDING   ┆             ┆           ┆        ┆        ┆        ┆               ┆               ┆               │
+│    ┆               ┆                   ┆                  ┆           ┆                 ┆        ┆        ┆       ┆         ┆           ┆             ┆                                ┆                 ┆ 59m       ┆             ┆           ┆        ┆        ┆        ┆               ┆               ┆               │
+│ 2  ┆ 📤 PUBLISHING ┆ two               ┆ standalone       ┆ feature/… ┆ origin/main     ┆ 12k    ┆ 12k    ┆ 12345 ┆ 12k     ┆ 12k       ┆ — unknown   ┆ codeberg,github,gitlab         ┆  a very long c… ┆ 🟣        ┆ 📤 PUBLISH… ┆ DraconDe… ┆ 12k    ┆ 12k    ┆ 12k    ┆ 📤 PUBLISHIN… ┆ 12 days ago   ┆ daemon handl… │
+│    ┆               ┆                   ┆                  ┆           ┆                 ┆        ┆        ┆       ┆         ┆           ┆             ┆                                ┆                 ┆ PENDING   ┆             ┆           ┆        ┆        ┆        ┆               ┆               ┆               │
+│    ┆               ┆                   ┆                  ┆           ┆                 ┆        ┆        ┆       ┆         ┆           ┆             ┆                                ┆                 ┆ 59m       ┆             ┆           ┆        ┆        ┆        ┆               ┆               ┆               │
+└────┴───────────────┴───────────────────┴──────────────────┴───────────┴─────────────────┴────────┴────────┴───────┴─────────┴───────────┴─────────────┴────────────────────────────────┴─────────────────┴───────────┴─────────────┴───────────┴────────┴────────┴────────┴───────────────┴───────────────┴───────────────┘
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    report::v011321_tests::every_table_tier_renders_single_line_rows
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1598 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

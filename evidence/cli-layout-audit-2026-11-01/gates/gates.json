@@ -1,0 +1,31 @@
+{
+  "created": "2026-11-01",
+  "purpose": "CLI table layout audit: no tier may wrap a cell (wrapped cells read as extra rows).",
+  "assembly": {
+    "dracon_sync_head": "ff00f800773f5abf51b19167e473fa91c0fcaecb",
+    "src_tree_sha": "55197e5142feac993f5420cdecbf0332d0d3c4b0",
+    "cargo_lock_sha": "1f009ca9f39f3ebe7525c0838868537343353aa5"
+  },
+  "gates": {
+    "workspace_tests": {
+      "exit": 0,
+      "suites": 44,
+      "passed": 2982,
+      "failed": 0
+    },
+    "release_build": {
+      "exit": 0
+    },
+    "clippy_all_targets_strict": {
+      "exit": 0
+    },
+    "cargo_deny": {
+      "exit": 0
+    }
+  },
+  "defects_found": 6,
+  "negative_controls": [
+    "restoring Fixed(13) STATUS reproduced the PUBLISHING wrap",
+    "restoring untruncated PUSHED/UT cells failed the full-tier audit"
+  ]
+}

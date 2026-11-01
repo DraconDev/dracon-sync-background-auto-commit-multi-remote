@@ -1,0 +1,28 @@
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 27.63s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 1 test
+test report::v011321_tests::rich_table_does_not_wrap_publishing_status ... FAILED
+
+failures:
+
+---- report::v011321_tests::rich_table_does_not_wrap_publishing_status stdout ----
+
+thread 'report::v011321_tests::rich_table_does_not_wrap_publishing_status' (2283927) panicked at dracon-sync/src/report.rs:17143:9:
+the PUBLISHING status wrapped onto its own line:
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│  #   STATUS        REPO                                                                       ACTIVITY          📝    📦    🆕    🚫   A/B       PUSH         REM         1H      6H     24H    GIT SIZE   TOUCHED       │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│  1   📤                                                                                       📤 PUBLISHING      —     —     —     —   ↑3        — unknown    🐙           0       0       0           ?   -             │
+│      PUBLISHING                                                                                                                                                                                                          │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    report::v011321_tests::rich_table_does_not_wrap_publishing_status
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1597 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
