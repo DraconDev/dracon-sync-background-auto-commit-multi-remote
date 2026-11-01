@@ -298,19 +298,29 @@ mod tests {
         let admitted_repo = PathBuf::from("admitted-without-activity");
         let eligible = HashSet::from([eligible_repo.clone()]);
         let admitted = HashMap::from([(admitted_repo.clone(), now)]);
-        let snapshot = build(Inputs {
-            activity: &HashMap::new(),
-            eligible: &eligible,
-            probes: &HashSet::new(),
-            maintenance: &HashSet::new(),
-            retries: &[],
-            recovery: &SyncRecovery::default(),
-            admitted: &admitted,
-        }, now, 100);
-        let row = snapshot.repos.get(&eligible_repo).expect("eligible evidence was dropped");
+        let snapshot = build(
+            Inputs {
+                activity: &HashMap::new(),
+                eligible: &eligible,
+                probes: &HashSet::new(),
+                maintenance: &HashSet::new(),
+                retries: &[],
+                recovery: &SyncRecovery::default(),
+                admitted: &admitted,
+            },
+            now,
+            100,
+        );
+        let row = snapshot
+            .repos
+            .get(&eligible_repo)
+            .expect("eligible evidence was dropped");
         assert!(row.eligible);
         assert_eq!(row.phase, None, "eligibility is not execution");
-        let row = snapshot.repos.get(&admitted_repo).expect("admission evidence was dropped");
+        let row = snapshot
+            .repos
+            .get(&admitted_repo)
+            .expect("admission evidence was dropped");
         assert_eq!(row.admitted_secs, Some(0));
         assert_eq!(row.phase, None, "past admission is not current execution");
         assert!(!row.eligible, "admission does not establish current dirt");

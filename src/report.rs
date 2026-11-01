@@ -5195,13 +5195,8 @@ pub(crate) async fn run_repos_report(
         _ => rows.sort_by_key(|a| std::cmp::Reverse(a.last_unix)),
     }
 
-    let (
-        ok_count_all,
-        active_count_all,
-        warn_count_all,
-        concern_count_all,
-        pending_count_all,
-    ) = row_bucket_counts(&rows);
+    let (ok_count_all, active_count_all, warn_count_all, concern_count_all, pending_count_all) =
+        row_bucket_counts(&rows);
     match filter {
         RepoFilter::All => {}
         RepoFilter::Concern => rows.retain(|r| r.concern),
@@ -17076,7 +17071,10 @@ mod v011321_tests {
     #[test]
     fn unknown_hints_reject_healthy_and_speculative_rewrite_advice() {
         use super::current_health::Current;
-        for action in ["healthy", "run dracon-sync repair concerns --apply (push or rewrite)"] {
+        for action in [
+            "healthy",
+            "run dracon-sync repair concerns --apply (push or rewrite)",
+        ] {
             let hint = format!("{action}; GitHub pack guard clear; deep checks deferred");
             let unknown = current_blocker_hint(Current::Unknown, &hint);
             assert!(unknown.contains("evidence unavailable"), "{unknown}");

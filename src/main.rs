@@ -1459,8 +1459,7 @@ async fn run_cli(cli: Cli) -> Result<()> {
                 let mut per_repo: Vec<(PathBuf, usize, u64)> = Vec::new();
                 let mut reclaimed_total = 0usize;
                 for repo in repos {
-                    let (dirs, bytes) =
-                        git::sweep_epoch_spools(&repo, max_age, false).await;
+                    let (dirs, bytes) = git::sweep_epoch_spools(&repo, max_age, false).await;
                     if dirs > 0 {
                         per_repo.push((repo.clone(), dirs, bytes));
                         total_dirs += dirs;

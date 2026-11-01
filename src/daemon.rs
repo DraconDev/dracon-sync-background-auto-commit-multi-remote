@@ -930,59 +930,61 @@ where
     let mut locks_removed = 0u64;
     for repo in repo_set {
         for lock in stale_lock_candidates(repo) {
-        if lock.exists() {
-            let age_secs = std::fs::metadata(&lock)
-                .and_then(|m| m.modified())
-                .ok()
-                .and_then(|t| std::time::SystemTime::now().duration_since(t).ok())
-                .map(|d| d.as_secs());
-            if age_secs.is_some_and(|s| s < STALE_INDEX_LOCK_AGE_SECS) {
-                veprintln!(
-                    1,
-                    "⏳ index.lock sweep: retaining fresh lock in {} (age under {}s)",
-                    repo.display(),
-                    STALE_INDEX_LOCK_AGE_SECS
+            if lock.exists() {
+                let age_secs = std::fs::metadata(&lock)
+                    .and_then(|m| m.modified())
+                    .ok()
+                    .and_then(|t| std::time::SystemTime::now().duration_since(t).ok())
+                    .map(|d| d.as_secs());
+                if age_secs.is_some_and(|s| s < STALE_INDEX_LOCK_AGE_SECS) {
+                    veprintln!(
+                        1,
+                        "⏳ index.lock sweep: retaining fresh lock in {} (age under {}s)",
+                        repo.display(),
+                        STALE_INDEX_LOCK_AGE_SECS
+                    );
+                    continue;
+                }
+                eprintln!(
+                    "🧹 index.lock sweep: found {} in {} (checking fuser...)",
+                    lock.file_name()
+                        .map(|n| n.to_string_lossy().into_owned())
+                        .unwrap_or_default(),
+                    repo.display()
                 );
-                continue;
-            }
-            eprintln!(
-                "🧹 index.lock sweep: found {} in {} (checking fuser...)",
-                lock.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
-                repo.display()
-            );
-            match fuser_check(&lock) {
-                Ok(false) => {
-                    if let Err(e) = std::fs::remove_file(&lock) {
-                        eprintln!(
-                            "⚠️ index.lock sweep: failed to remove {}: {}",
-                            lock.display(),
-                            e
-                        );
-                    } else {
-                        eprintln!(
+                match fuser_check(&lock) {
+                    Ok(false) => {
+                        if let Err(e) = std::fs::remove_file(&lock) {
+                            eprintln!(
+                                "⚠️ index.lock sweep: failed to remove {}: {}",
+                                lock.display(),
+                                e
+                            );
+                        } else {
+                            eprintln!(
                             "🧹 index.lock sweep: removed stale lock {} in {} (fuser-clean, age over {}s)",
                             lock.display(),
                             repo.display(),
                             STALE_INDEX_LOCK_AGE_SECS
                         );
-                        locks_removed += 1;
+                            locks_removed += 1;
+                        }
                     }
-                }
-                Ok(true) => {
-                    eprintln!(
-                        "⏳ index.lock sweep: retaining {} because fuser reports it is in use",
-                        lock.display()
-                    );
-                }
-                Err(e) => {
-                    eprintln!(
+                    Ok(true) => {
+                        eprintln!(
+                            "⏳ index.lock sweep: retaining {} because fuser reports it is in use",
+                            lock.display()
+                        );
+                    }
+                    Err(e) => {
+                        eprintln!(
                         "⚠️ index.lock sweep: retaining {} because fuser could not verify it is stale: {}",
                         lock.display(),
                         e
                     );
+                    }
                 }
             }
-        }
         }
     }
     locks_removed
@@ -998,7 +1000,11 @@ where
 /// ref update (which holds these for milliseconds) is never interrupted.
 fn stale_lock_candidates(repo: &Path) -> Vec<PathBuf> {
     let gitdir = crate::git::path_gitdir(repo).unwrap_or_else(|| repo.join(".git"));
-    let mut candidates = vec![gitdir.join("index.lock"), gitdir.join("HEAD.lock"), gitdir.join("packed-refs.lock")];
+    let mut candidates = vec![
+        gitdir.join("index.lock"),
+        gitdir.join("HEAD.lock"),
+        gitdir.join("packed-refs.lock"),
+    ];
     for sub in ["refs/heads", "refs/tags", "refs/remotes"] {
         collect_lock_files(&gitdir.join(sub), &mut candidates, 0);
     }

@@ -185,7 +185,8 @@ pub(super) async fn apply_ignore(
         const LIMIT: u64 = 8 * 1024 * 1024;
         let canonical = std::fs::canonicalize(repo)?;
         let repo = canonical.as_path();
-        let writer_fence = crate::git::write_fence::WriteFence::acquire_until(repo, deadline).await?;
+        let writer_fence =
+            crate::git::write_fence::WriteFence::acquire_until(repo, deadline).await?;
         let lock = match crate::git::IndexLock::try_acquire_path(crate::git::index_lock_path(repo))
         {
             Ok(lock) => lock,
@@ -734,8 +735,10 @@ pub(super) async fn helper(request_path: &Path) -> Result<()> {
     // any canonical path lookup. Keep the actual helper PID and existing parent
     // death/cancellation binding unchanged (no intermediary writer process).
     let writer_fence = crate::git::write_fence::WriteFence::acquire_until(
-        &repo, Instant::now() + Duration::from_secs(30),
-    ).await?;
+        &repo,
+        Instant::now() + Duration::from_secs(30),
+    )
+    .await?;
     let tree = request_path
         .parent()
         .context("recovery root missing")?

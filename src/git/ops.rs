@@ -1410,7 +1410,8 @@ mod sigterm_grace_tests {
         let mut cmd = tokio::process::Command::new("sh");
         cmd.args(["-c", &script]);
         cmd.process_group(0);
-        cmd.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+        cmd.stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
         let child = cmd.spawn().unwrap();
         // 1s idle timeout: the child is killed by kill_process_group, which must
         // then wait SIGTERM_GRACE before escalating.
@@ -1434,7 +1435,8 @@ mod sigterm_grace_tests {
         let mut cmd = tokio::process::Command::new("sh");
         cmd.args(["-c", "trap '' TERM; while :; do sleep 0.05; done"]);
         cmd.process_group(0);
-        cmd.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+        cmd.stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
         let child = cmd.spawn().unwrap();
         let pid = child.id();
         let result = run_child_with_progress(child, dir.path(), 1, "grace-test", is_progress).await;

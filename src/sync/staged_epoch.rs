@@ -92,7 +92,11 @@ pub(super) async fn git(
     if args.first() == Some(&"pack-objects") {
         if let Some(spool) = args.last().and_then(|prefix| Path::new(prefix).parent()) {
             if let Some(output) = crate::git::run_spool_git(repo, spool, args, input, None).await? {
-                ensure!(output.status.success(), "scoped retention refused: {}", String::from_utf8_lossy(&output.stderr));
+                ensure!(
+                    output.status.success(),
+                    "scoped retention refused: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
                 return Ok(output);
             }
         }
@@ -684,8 +688,9 @@ impl Epoch {
                     // the spools reach ~15 GiB. Release only when the contents are
                     // durably preserved with recovery semantics after verified
                     // producer settlement. Otherwise the source remains.
-                    Err(error)
-                        .context("staged epoch deadline expired; ref outcome may require inspection")
+                    Err(error).context(
+                        "staged epoch deadline expired; ref outcome may require inspection",
+                    )
                 }
             }
         }
@@ -698,16 +703,24 @@ impl Epoch {
     async fn release_spool_if_lossless(&mut self, repo: &Path) {
         // Conflict recovery retains original stages which need not be in the
         // selected commit. Never discard that evidence on this path either.
-        if self
-            .retained
-            .as_ref()
-            .is_some_and(|path| path.join("original-index").exists() || path.join("preserve-rejected").exists())
-        {
+        if self.retained.as_ref().is_some_and(|path| {
+            path.join("original-index").exists() || path.join("preserve-rejected").exists()
+        }) {
             return;
         }
-        let Some(path) = self.retained.clone() else { return };
-        if let Err(error) = self.spool_lease.settle_for_reclaim(Duration::from_secs(30)).await {
-            eprintln!("⚠️ {}: spool producer settlement uncertain; retained {}: {error:#}", repo.display(), path.display());
+        let Some(path) = self.retained.clone() else {
+            return;
+        };
+        if let Err(error) = self
+            .spool_lease
+            .settle_for_reclaim(Duration::from_secs(30))
+            .await
+        {
+            eprintln!(
+                "⚠️ {}: spool producer settlement uncertain; retained {}: {error:#}",
+                repo.display(),
+                path.display()
+            );
             return;
         }
         // A source this epoch just produced is never legacy; the legacy fence
@@ -835,8 +848,14 @@ pub(super) async fn run_index_git(
 ) -> Result<()> {
     if let Some(index) = index {
         if let Some(spool) = index.parent() {
-            if let Some(output) = crate::git::run_spool_git(repo, spool, args, None, Some(index)).await? {
-                ensure!(output.status.success(), "{label} refused: {}", String::from_utf8_lossy(&output.stderr));
+            if let Some(output) =
+                crate::git::run_spool_git(repo, spool, args, None, Some(index)).await?
+            {
+                ensure!(
+                    output.status.success(),
+                    "{label} refused: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
                 return Ok(());
             }
         }
@@ -893,12 +912,18 @@ impl Staging {
         }
         let directory = builder.tempdir_in(directory)?.keep();
         let mut spool_lease = crate::git::SpoolLease::acquire(&directory)?;
-        let runtime = baseline.deadline.saturating_duration_since(Instant::now()).as_secs().clamp(1, 3600);
+        let runtime = baseline
+            .deadline
+            .saturating_duration_since(Instant::now())
+            .as_secs()
+            .clamp(1, 3600);
         if let Err(error) = spool_lease.begin_producers(Duration::from_secs(runtime)) {
             // Unsupported containment must not invent a completion proof. The
             // historical staging runner may proceed, but this source remains
             // ineligible for cleanup and reports why at settlement.
-            eprintln!("⚠️ private epoch containment unavailable; spool remains protected: {error:#}");
+            eprintln!(
+                "⚠️ private epoch containment unavailable; spool remains protected: {error:#}"
+            );
         }
         let index = directory.join("index");
         let staging = Self {
@@ -980,11 +1005,25 @@ impl Staging {
                 .args(["write-tree"])
                 .current_dir(repo)
                 .env("GIT_INDEX_FILE", &self.index);
-            let output = match crate::git::run_spool_git(repo, &self.directory, &["write-tree"], None, Some(&self.index)).await? {
+            let output = match crate::git::run_spool_git(
+                repo,
+                &self.directory,
+                &["write-tree"],
+                None,
+                Some(&self.index),
+            )
+            .await?
+            {
                 Some(output) => output,
-                None => crate::git::run_command_captured_output(
-                    command.into_tokio(), 3600, "private staged tree", None,
-                ).await?,
+                None => {
+                    crate::git::run_command_captured_output(
+                        command.into_tokio(),
+                        3600,
+                        "private staged tree",
+                        None,
+                    )
+                    .await?
+                }
             };
             ensure!(
                 output.status.success(),
@@ -1086,7 +1125,10 @@ impl Staging {
             // exclusion gate; every other excluded path is still refused.
             let rejected = epoch.ineligible_paths(repo, policy, excluded).await?;
             if !rejected.is_empty() {
-                std::fs::write(self.directory.join("preserve-rejected"), b"unpublished candidate bytes\n")?;
+                std::fs::write(
+                    self.directory.join("preserve-rejected"),
+                    b"unpublished candidate bytes\n",
+                )?;
             }
             for path in rejected {
                 // This view began without staged intent. Restore only our
@@ -1149,7 +1191,8 @@ impl Staging {
                 PathBuf::from(std::str::from_utf8(&actual_index.stdout)?.trim_end_matches('\n'));
             let mut lock = acquire_epoch_lock(actual_index.with_extension("lock"))?;
             self.baseline.unchanged(repo, &lock).await?;
-            lock.install_index(repo, &self.index, &actual_index, deadline).await?;
+            lock.install_index(repo, &self.index, &actual_index, deadline)
+                .await?;
             // The returned identities are the proven private candidate, not
             // a read-after-install observation of a concurrently replaced index.
             // Commit's unchanged check must reject any later delta intact.
@@ -1228,7 +1271,10 @@ mod tests {
             std::fs::write(directory.path().join(marker), b"unpublished evidence").unwrap();
             epoch.retained = Some(directory.path().to_owned());
             epoch.release_spool(root.path()).await;
-            assert_eq!(std::fs::read(directory.path().join(marker)).unwrap(), b"unpublished evidence");
+            assert_eq!(
+                std::fs::read(directory.path().join(marker)).unwrap(),
+                b"unpublished evidence"
+            );
         }
     }
 
@@ -1337,7 +1383,10 @@ mod tests {
             .await
             .unwrap();
         assert!(!epoch.has_intent(), "foreign staging must not be absorbed");
-        assert!(!retained.exists(), "an empty original candidate must not leak a spool");
+        assert!(
+            !retained.exists(),
+            "an empty original candidate must not leak a spool"
+        );
         assert_eq!(
             std::fs::read(repo.join(".git/index")).unwrap(),
             foreign_index
@@ -1414,11 +1463,36 @@ mod tests {
             "even the rejected candidate blob must survive independently of loose-object pruning"
         );
 
-        epoch.commit(repo, "publish eligible subset", &policy, &BTreeSet::new(), None).await.unwrap();
-        assert_eq!(git(repo, &["show", "HEAD:file"], None).await.unwrap().stdout, b"eligible change\n");
-        let packed_after_commit = git(repo, &["verify-pack", "-v", pack_index.to_str().unwrap()], None).await.unwrap();
-        assert!(String::from_utf8(packed_after_commit.stdout).unwrap().contains(large_oid.trim()),
-            "publishing the eligible subset must preserve the rejected original payload");
+        epoch
+            .commit(
+                repo,
+                "publish eligible subset",
+                &policy,
+                &BTreeSet::new(),
+                None,
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            git(repo, &["show", "HEAD:file"], None)
+                .await
+                .unwrap()
+                .stdout,
+            b"eligible change\n"
+        );
+        let packed_after_commit = git(
+            repo,
+            &["verify-pack", "-v", pack_index.to_str().unwrap()],
+            None,
+        )
+        .await
+        .unwrap();
+        assert!(
+            String::from_utf8(packed_after_commit.stdout)
+                .unwrap()
+                .contains(large_oid.trim()),
+            "publishing the eligible subset must preserve the rejected original payload"
+        );
 
         // A user's existing oversized staging is not OUR candidate to prune.
         git(repo, &["add", "--", "large"], None).await.unwrap();
@@ -1438,52 +1512,135 @@ mod tests {
         let repo = root.path();
         let baseline_oid = git(repo, &["rev-parse", "HEAD:file"], None).await.unwrap();
         let baseline_oid = std::str::from_utf8(&baseline_oid.stdout).unwrap().trim();
-        let staging = Staging::new(repo, Epoch::capture(repo, 60).await.unwrap()).await.unwrap();
+        let staging = Staging::new(repo, Epoch::capture(repo, 60).await.unwrap())
+            .await
+            .unwrap();
         let retained = staging.directory.clone();
         let payload = b"new candidate only\n";
         std::fs::write(repo.join("new-file"), payload).unwrap();
-        run_index_git(repo, &["add", "--", "new-file"], 60, "retention delta", Some(staging.index())).await.unwrap();
-        let epoch = staging.finish(repo, &policy, &BTreeSet::new(), false, false).await.unwrap();
-        let index = std::fs::read_dir(&retained).unwrap().map(|e| e.unwrap().path())
-            .find(|p| p.extension().is_some_and(|ext| ext == "idx")).unwrap();
-        let packed = git(repo, &["verify-pack", "-v", index.to_str().unwrap()], None).await.unwrap();
+        run_index_git(
+            repo,
+            &["add", "--", "new-file"],
+            60,
+            "retention delta",
+            Some(staging.index()),
+        )
+        .await
+        .unwrap();
+        let epoch = staging
+            .finish(repo, &policy, &BTreeSet::new(), false, false)
+            .await
+            .unwrap();
+        let index = std::fs::read_dir(&retained)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .find(|p| p.extension().is_some_and(|ext| ext == "idx"))
+            .unwrap();
+        let packed = git(repo, &["verify-pack", "-v", index.to_str().unwrap()], None)
+            .await
+            .unwrap();
         let packed = String::from_utf8(packed.stdout).unwrap();
-        assert!(!packed.lines().any(|line| line.starts_with(baseline_oid)),
-            "unchanged baseline blobs must not be copied on every cycle");
-        let added_oid = &epoch.snapshot.entries.get(b"new-file".as_slice()).unwrap().oid;
-        assert!(packed.lines().any(|line| line.starts_with(added_oid)),
-            "the unpublished candidate must remain independently recoverable");
+        assert!(
+            !packed.lines().any(|line| line.starts_with(baseline_oid)),
+            "unchanged baseline blobs must not be copied on every cycle"
+        );
+        let added_oid = &epoch
+            .snapshot
+            .entries
+            .get(b"new-file".as_slice())
+            .unwrap()
+            .oid;
+        assert!(
+            packed.lines().any(|line| line.starts_with(added_oid)),
+            "the unpublished candidate must remain independently recoverable"
+        );
         // Disposable negative control: reproduce the former commit-only
         // exclusion using this fixture's immutable candidate tree.
-        let tree = epoch.snapshot.materialize_tree(repo, epoch.deadline).await.unwrap();
+        let tree = epoch
+            .snapshot
+            .materialize_tree(repo, epoch.deadline)
+            .await
+            .unwrap();
         let bad_prefix = retained.join("bad-control");
-        git(repo, &["pack-objects", "--revs", "--window=0", "--depth=0", bad_prefix.to_str().unwrap()],
-            Some(format!("{tree}\n^HEAD\n").as_bytes())).await.unwrap();
-        let bad_index = std::fs::read_dir(&retained).unwrap().map(|e| e.unwrap().path())
-            .find(|p| p.file_name().unwrap().to_string_lossy().starts_with("bad-control-")
-                && p.extension().is_some_and(|ext| ext == "idx")).unwrap();
-        let bad = git(repo, &["verify-pack", "-v", bad_index.to_str().unwrap()], None).await.unwrap();
-        assert!(String::from_utf8(bad.stdout).unwrap().lines().any(|line| line.starts_with(baseline_oid)),
-            "the negative control must demonstrate full-tree duplication");
+        git(
+            repo,
+            &[
+                "pack-objects",
+                "--revs",
+                "--window=0",
+                "--depth=0",
+                bad_prefix.to_str().unwrap(),
+            ],
+            Some(format!("{tree}\n^HEAD\n").as_bytes()),
+        )
+        .await
+        .unwrap();
+        let bad_index = std::fs::read_dir(&retained)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .find(|p| {
+                p.file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .starts_with("bad-control-")
+                    && p.extension().is_some_and(|ext| ext == "idx")
+            })
+            .unwrap();
+        let bad = git(
+            repo,
+            &["verify-pack", "-v", bad_index.to_str().unwrap()],
+            None,
+        )
+        .await
+        .unwrap();
+        assert!(
+            String::from_utf8(bad.stdout)
+                .unwrap()
+                .lines()
+                .any(|line| line.starts_with(baseline_oid)),
+            "the negative control must demonstrate full-tree duplication"
+        );
     }
 
     #[tokio::test]
     async fn all_rejected_empty_selection_preserves_original_pack() {
         let (root, policy) = fixture().await;
         let repo = root.path();
-        let staging = Staging::new(repo, Epoch::capture(repo, 60).await.unwrap()).await.unwrap();
+        let staging = Staging::new(repo, Epoch::capture(repo, 60).await.unwrap())
+            .await
+            .unwrap();
         let retained = staging.directory.clone();
         let bytes = vec![b'x'; 2048];
         std::fs::write(repo.join("oversized"), &bytes).unwrap();
-        run_index_git(repo, &["add", "--", "oversized"], 60, "all rejected", Some(staging.index())).await.unwrap();
-        let epoch = staging.finish(repo, &policy, &BTreeSet::new(), false, false).await.unwrap();
+        run_index_git(
+            repo,
+            &["add", "--", "oversized"],
+            60,
+            "all rejected",
+            Some(staging.index()),
+        )
+        .await
+        .unwrap();
+        let epoch = staging
+            .finish(repo, &policy, &BTreeSet::new(), false, false)
+            .await
+            .unwrap();
         assert!(!epoch.has_intent());
         assert!(retained.join("preserve-rejected").exists());
-        let index = std::fs::read_dir(&retained).unwrap().map(|e| e.unwrap().path())
-            .find(|p| p.extension().is_some_and(|ext| ext == "idx")).unwrap();
-        let oid = git(repo, &["hash-object", "--stdin"], Some(&bytes)).await.unwrap();
-        let packed = git(repo, &["verify-pack", "-v", index.to_str().unwrap()], None).await.unwrap();
-        assert!(String::from_utf8(packed.stdout).unwrap().contains(std::str::from_utf8(&oid.stdout).unwrap().trim()));
+        let index = std::fs::read_dir(&retained)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .find(|p| p.extension().is_some_and(|ext| ext == "idx"))
+            .unwrap();
+        let oid = git(repo, &["hash-object", "--stdin"], Some(&bytes))
+            .await
+            .unwrap();
+        let packed = git(repo, &["verify-pack", "-v", index.to_str().unwrap()], None)
+            .await
+            .unwrap();
+        assert!(String::from_utf8(packed.stdout)
+            .unwrap()
+            .contains(std::str::from_utf8(&oid.stdout).unwrap().trim()));
         assert_eq!(std::fs::read(repo.join("oversized")).unwrap(), bytes);
     }
 
@@ -1633,7 +1790,8 @@ mod tests {
     }
 
     #[test]
-    fn lock_contention_is_deferred_but_filesystem_failure_is_not() {        let root = tempfile::tempdir().unwrap();
+    fn lock_contention_is_deferred_but_filesystem_failure_is_not() {
+        let root = tempfile::tempdir().unwrap();
         let path = root.path().join("index.lock");
         let owner = acquire_epoch_lock(path.clone()).unwrap();
         let busy = acquire_epoch_lock(path.clone()).err().expect("held lock");
@@ -1696,8 +1854,19 @@ mod tests {
         let baseline = Epoch::capture(repo, 60).await.unwrap();
         let staging = Staging::new(repo, baseline).await.unwrap();
         let retained = staging.directory.clone();
-        run_index_git(repo, &["add", "--", "file"], 60, "deadline private candidate", Some(staging.index())).await.unwrap();
-        let mut epoch = staging.finish(repo, &policy, &BTreeSet::new(), false, false).await.unwrap();
+        run_index_git(
+            repo,
+            &["add", "--", "file"],
+            60,
+            "deadline private candidate",
+            Some(staging.index()),
+        )
+        .await
+        .unwrap();
+        let mut epoch = staging
+            .finish(repo, &policy, &BTreeSet::new(), false, false)
+            .await
+            .unwrap();
         epoch.deadline = Instant::now() + Duration::from_secs(10);
         let result = tokio::time::timeout(
             Duration::from_secs(15),
@@ -1715,7 +1884,10 @@ mod tests {
             matches!(result, Ok(true)),
             "known publication must remain pending, not failure: {result:?}"
         );
-        assert!(!retained.exists(), "a published ordinary spool must be released even when post-commit times out");
+        assert!(
+            !retained.exists(),
+            "a published ordinary spool must be released even when post-commit times out"
+        );
         assert_eq!(
             git(repo, &["show", "HEAD:file"], None)
                 .await
@@ -1837,7 +2009,6 @@ mod tests {
             "a marked UNPUBLISHED epoch must keep its spool as evidence: {} is gone",
             marked.display()
         );
-
     }
 
     #[tokio::test]
@@ -1932,7 +2103,10 @@ mod tests {
             .await
             .unwrap();
         let archived_index = std::fs::read(released.join("index")).unwrap();
-        let head_before = git(repo, &["rev-parse", "HEAD"], None).await.unwrap().stdout;
+        let head_before = git(repo, &["rev-parse", "HEAD"], None)
+            .await
+            .unwrap()
+            .stdout;
         expired.deadline = tokio::time::Instant::now();
         let result = expired
             .commit(repo, "must not publish", &policy, &BTreeSet::new(), None)
@@ -1952,23 +2126,41 @@ mod tests {
                 .success(),
             "releasing the spool must not cost the staged content: {staged_blob} is gone"
         );
-        assert_eq!(git(repo, &["rev-parse", "HEAD"], None).await.unwrap().stdout, head_before);
-        let record = std::fs::read_dir(repo.join(".git/dracon-rescue")).unwrap()
+        assert_eq!(
+            git(repo, &["rev-parse", "HEAD"], None)
+                .await
+                .unwrap()
+                .stdout,
+            head_before
+        );
+        let record = std::fs::read_dir(repo.join(".git/dracon-rescue"))
+            .unwrap()
             .filter_map(|entry| {
                 let path = entry.ok()?.path();
                 let source = std::fs::read(path.join("source.json")).ok()?;
                 let source: serde_json::Value = serde_json::from_slice(&source).ok()?;
-                (source["spool_path_bytes"] == serde_json::json!(released.as_os_str().as_encoded_bytes())).then_some(path)
-            }).next().expect("deadline release must leave a source-bound recovery record");
+                (source["spool_path_bytes"]
+                    == serde_json::json!(released.as_os_str().as_encoded_bytes()))
+                .then_some(path)
+            })
+            .next()
+            .expect("deadline release must leave a source-bound recovery record");
         assert!(record.join("receipt").is_file());
         assert!(record.join("reclaimed.json").is_file());
-        assert_eq!(std::fs::read(record.join("metadata/index")).unwrap(), archived_index);
+        assert_eq!(
+            std::fs::read(record.join("metadata/index")).unwrap(),
+            archived_index
+        );
         let store = record.join("store.git");
         assert!(!store.join("objects/info/alternates").exists());
         git(&store, &["gc", "--prune=now"], None).await.unwrap();
-        assert_eq!(git(&store, &["cat-file", "-p", &staged_blob], None).await.unwrap().stdout,
-            b"released but preserved\n", "deadline recovery must survive ordinary GC without main/spool fallback");
+        assert_eq!(
+            git(&store, &["cat-file", "-p", &staged_blob], None)
+                .await
+                .unwrap()
+                .stdout,
+            b"released but preserved\n",
+            "deadline recovery must survive ordinary GC without main/spool fallback"
+        );
     }
 }
-
-

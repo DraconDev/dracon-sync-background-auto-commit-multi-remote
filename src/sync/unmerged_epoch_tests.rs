@@ -325,18 +325,39 @@ async fn unmerged_entry_production_sync_commits_only_verified_entry_staging_and_
         b"pre-commit\n",
         "meaningful original hook executes exactly once"
     );
-    let recovery = std::fs::read_dir(r.join(".git")).unwrap().map(|e| e.unwrap().path())
-        .find(|p| p.file_name().unwrap().to_string_lossy().starts_with("dracon-unmerged-recovery-")).unwrap();
-    assert_eq!(std::fs::read(recovery.join("original-index")).unwrap(), original_index,
-        "publication must preserve the original conflict index");
-    let pack = std::fs::read_dir(&recovery).unwrap().map(|e| e.unwrap().path())
-        .find(|p| p.extension().is_some_and(|ext| ext == "pack")).unwrap();
+    let recovery = std::fs::read_dir(r.join(".git"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .find(|p| {
+            p.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("dracon-unmerged-recovery-")
+        })
+        .unwrap();
+    assert_eq!(
+        std::fs::read(recovery.join("original-index")).unwrap(),
+        original_index,
+        "publication must preserve the original conflict index"
+    );
+    let pack = std::fs::read_dir(&recovery)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .find(|p| p.extension().is_some_and(|ext| ext == "pack"))
+        .unwrap();
     let cold = tempfile::tempdir().unwrap();
     native(cold.path(), &["init", "--bare", "--template=", "-q"], None);
-    native(cold.path(), &["index-pack", "--stdin"], Some(&std::fs::read(pack).unwrap()));
+    native(
+        cold.path(),
+        &["index-pack", "--stdin"],
+        Some(&std::fs::read(pack).unwrap()),
+    );
     for (oid, bytes) in saved {
-        assert_eq!(native(cold.path(), &["cat-file", "blob", &oid], None), bytes,
-            "original conflict payload must remain cold-recoverable after publication");
+        assert_eq!(
+            native(cold.path(), &["cat-file", "blob", &oid], None),
+            bytes,
+            "original conflict payload must remain cold-recoverable after publication"
+        );
     }
 }
 

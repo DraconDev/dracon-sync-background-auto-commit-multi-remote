@@ -123,11 +123,9 @@ async fn pinned_origin_and_mirror_publish_the_same_commit_after_head_advances() 
         result = &mut push => panic!("push ended before hook release: {result:?}"),
         () = entered => {}
     }
-    assert!(
-        super::super::sync_lease::try_acquire_publication(&repo)
-            .unwrap()
-            .is_none()
-    );
+    assert!(super::super::sync_lease::try_acquire_publication(&repo)
+        .unwrap()
+        .is_none());
     let local = super::super::sync_lease::try_acquire(&repo)
         .unwrap()
         .unwrap();

@@ -1343,8 +1343,8 @@ mod config;
 pub(crate) use config::*;
 mod discovery;
 pub(crate) use discovery::*;
-pub(crate) mod multi_remote;
 mod epoch_spool;
+pub(crate) mod multi_remote;
 pub(crate) use epoch_spool::*;
 mod ops;
 pub(crate) use ops::*;
@@ -5030,17 +5030,11 @@ pub(crate) async fn sweep_stale_tmp_packs(
         ])
         .current_dir(repo)
         .env("GIT_OPTIONAL_LOCKS", "0");
-    let output = match run_command_captured_output(
-        command.into_tokio(),
-        60,
-        "tmp_pack path",
-        None,
-    )
-    .await
-    {
-        Ok(output) if output.status.success() => output,
-        _ => return (0, 0),
-    };
+    let output =
+        match run_command_captured_output(command.into_tokio(), 60, "tmp_pack path", None).await {
+            Ok(output) if output.status.success() => output,
+            _ => return (0, 0),
+        };
     let Ok(text) = std::str::from_utf8(&output.stdout) else {
         return (0, 0);
     };
@@ -5071,7 +5065,11 @@ pub(crate) async fn sweep_stale_tmp_packs(
             continue;
         }
         // Age is an inventory filter, not proof of abandonment.
-        let Some(age) = meta.modified().ok().and_then(|m| now.duration_since(m).ok()) else {
+        let Some(age) = meta
+            .modified()
+            .ok()
+            .and_then(|m| now.duration_since(m).ok())
+        else {
             continue;
         };
         if age < max_age {
@@ -5092,7 +5090,9 @@ pub(crate) async fn maybe_auto_gc(
     loose_threshold_bytes: u64,
     pack_growth_threshold_bytes: u64,
 ) -> Option<u64> {
-    if garbage_threshold_bytes == 0 && loose_threshold_bytes == 0 && pack_growth_threshold_bytes == 0
+    if garbage_threshold_bytes == 0
+        && loose_threshold_bytes == 0
+        && pack_growth_threshold_bytes == 0
     {
         return None;
     }
@@ -5147,7 +5147,10 @@ pub(crate) async fn maybe_auto_gc(
     // ever fabricated from a pre-gc reading.
     let mut last = last;
     if pack_growth_threshold_bytes > 0
-        && last.as_ref().and_then(|state| state.pack_bytes_after_gc).is_none()
+        && last
+            .as_ref()
+            .and_then(|state| state.pack_bytes_after_gc)
+            .is_none()
     {
         let armed = match last {
             Some(state) => AutoGcState {
@@ -5238,9 +5241,7 @@ pub(crate) async fn maybe_auto_gc(
                 .ok()
                 .filter(|output| output.status.success())
                 .map(|output| String::from_utf8_lossy(&output.stdout).into_owned());
-            let loose_after = after
-                .as_deref()
-                .map(parse_count_objects_loose_bytes);
+            let loose_after = after.as_deref().map(parse_count_objects_loose_bytes);
             let pack_after = after
                 .as_deref()
                 .map(parse_count_objects_pack_bytes)
@@ -5603,8 +5604,7 @@ mod tmp_pack_sweep_tests {
         let path = pack.join(name);
         std::fs::write(&path, vec![7u8; bytes]).unwrap();
         if age_secs > 0 {
-            let when = std::time::SystemTime::now()
-                - std::time::Duration::from_secs(age_secs);
+            let when = std::time::SystemTime::now() - std::time::Duration::from_secs(age_secs);
             std::fs::File::options()
                 .write(true)
                 .open(&path)
@@ -5681,7 +5681,16 @@ mod auto_gc_tests {
             succeeded: true,
         };
         assert_eq!(
-            super::auto_gc_trigger(0, threshold + threshold - 1, 0, 0, threshold, 0, Some(&last), now,),
+            super::auto_gc_trigger(
+                0,
+                threshold + threshold - 1,
+                0,
+                0,
+                threshold,
+                0,
+                Some(&last),
+                now,
+            ),
             None,
             "less than one threshold of new loose data must not repack repeatedly"
         );
@@ -5773,11 +5782,9 @@ mod auto_gc_tests {
         // Both triggers disabled.
         assert!(super::maybe_auto_gc(&repo, 0, 0, 0).await.is_none());
         // Fresh repo has ~0 garbage and no loose threshold configured.
-        assert!(
-            super::maybe_auto_gc(&repo, 2 * 1024 * 1024 * 1024, 0, 0)
-                .await
-                .is_none()
-        );
+        assert!(super::maybe_auto_gc(&repo, 2 * 1024 * 1024 * 1024, 0, 0)
+            .await
+            .is_none());
         let attempts =
             super::AUTO_GC_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
         let map = attempts.lock().unwrap_or_else(|p| p.into_inner());
@@ -5795,7 +5802,11 @@ mod auto_gc_tests {
     /// `loose: 0`, and had never been gc-ed in seven days. Without this
     /// trigger that bloat is only ever removed by an operator running
     /// `gc --prune=now` by hand.
-    fn pack_growth_state(pack_after: Option<u64>, succeeded: bool, secs_ago: u64) -> super::AutoGcState {
+    fn pack_growth_state(
+        pack_after: Option<u64>,
+        succeeded: bool,
+        secs_ago: u64,
+    ) -> super::AutoGcState {
         super::AutoGcState {
             attempted_at: std::time::Instant::now()
                 .checked_sub(std::time::Duration::from_secs(secs_ago))
@@ -5827,8 +5838,14 @@ mod auto_gc_tests {
         // Below threshold -> no trigger.
         assert_eq!(
             super::auto_gc_trigger(
-                0, 0, 2 * GIB + 512 * 1024 * 1024, 0, 0, GIB,
-                Some(pack_growth_state(baseline, true, 2 * 86_400)).as_ref(), now,
+                0,
+                0,
+                2 * GIB + 512 * 1024 * 1024,
+                0,
+                0,
+                GIB,
+                Some(pack_growth_state(baseline, true, 2 * 86_400)).as_ref(),
+                now,
             ),
             None
         );
@@ -5836,8 +5853,14 @@ mod auto_gc_tests {
         // Past the cooldown with real growth -> trigger.
         assert_eq!(
             super::auto_gc_trigger(
-                0, 0, 9 * GIB, 0, 0, GIB,
-                Some(pack_growth_state(baseline, true, 2 * 86_400)).as_ref(), now,
+                0,
+                0,
+                9 * GIB,
+                0,
+                0,
+                GIB,
+                Some(pack_growth_state(baseline, true, 2 * 86_400)).as_ref(),
+                now,
             ),
             Some(super::AutoGcTrigger::PackGrowth)
         );
@@ -5846,8 +5869,14 @@ mod auto_gc_tests {
         // multi-GiB repo is expensive; the excess is not urgent).
         assert_eq!(
             super::auto_gc_trigger(
-                0, 0, 9 * GIB, 0, 0, GIB,
-                Some(pack_growth_state(baseline, true, 60)).as_ref(), now,
+                0,
+                0,
+                9 * GIB,
+                0,
+                0,
+                GIB,
+                Some(pack_growth_state(baseline, true, 60)).as_ref(),
+                now,
             ),
             None
         );
@@ -5855,8 +5884,14 @@ mod auto_gc_tests {
         // Shrunk pack (operator gc ran) -> no trigger.
         assert_eq!(
             super::auto_gc_trigger(
-                0, 0, GIB, 0, 0, GIB,
-                Some(pack_growth_state(baseline, true, 2 * 86_400)).as_ref(), now,
+                0,
+                0,
+                GIB,
+                0,
+                0,
+                GIB,
+                Some(pack_growth_state(baseline, true, 2 * 86_400)).as_ref(),
+                now,
             ),
             None
         );
@@ -5864,8 +5899,14 @@ mod auto_gc_tests {
         // Threshold 0 disables it entirely.
         assert_eq!(
             super::auto_gc_trigger(
-                0, 0, 99 * GIB, 0, 0, 0,
-                Some(pack_growth_state(baseline, true, 2 * 86_400)).as_ref(), now,
+                0,
+                0,
+                99 * GIB,
+                0,
+                0,
+                0,
+                Some(pack_growth_state(baseline, true, 2 * 86_400)).as_ref(),
+                now,
             ),
             None
         );
@@ -5879,15 +5920,20 @@ mod auto_gc_tests {
         let stale = pack_growth_state(Some(GIB), true, 2 * 86_400);
         // Garbage wins over pack growth.
         assert_eq!(
-            super::auto_gc_trigger(
-                3 * GIB, 0, 9 * GIB, 2 * GIB, 0, GIB, Some(&stale), now
-            ),
+            super::auto_gc_trigger(3 * GIB, 0, 9 * GIB, 2 * GIB, 0, GIB, Some(&stale), now),
             Some(super::AutoGcTrigger::Garbage)
         );
         // Loose wins over pack growth.
         assert_eq!(
             super::auto_gc_trigger(
-                0, 512 * 1024 * 1024, 9 * GIB, 0, 64 * 1024 * 1024, GIB, Some(&stale), now
+                0,
+                512 * 1024 * 1024,
+                9 * GIB,
+                0,
+                64 * 1024 * 1024,
+                GIB,
+                Some(&stale),
+                now
             ),
             Some(super::AutoGcTrigger::LooseObjects)
         );
@@ -5904,18 +5950,30 @@ mod auto_gc_tests {
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path().join("repo");
         std::fs::create_dir_all(&repo).unwrap();
-        assert!(
-            crate::policy::std_git_command()
-                .args(["init", "-q", "-b", "main"])
-                .arg(&repo)
-                .status()
-                .unwrap()
-                .success()
-        );
+        assert!(crate::policy::std_git_command()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap()
+            .success());
         // A commit so the repo has a pack-ish shape.
         std::fs::write(repo.join("a.txt"), "a\n").unwrap();
-        for args in [vec!["add", "a.txt"], vec!["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "a"]] {
-            let _ = crate::policy::std_git_command().args(&args).current_dir(&repo).status();
+        for args in [
+            vec!["add", "a.txt"],
+            vec![
+                "-c",
+                "user.email=t@t",
+                "-c",
+                "user.name=t",
+                "commit",
+                "-qm",
+                "a",
+            ],
+        ] {
+            let _ = crate::policy::std_git_command()
+                .args(&args)
+                .current_dir(&repo)
+                .status();
         }
         // Clear any state from other tests in this process.
         super::attempts_for(&repo).remove(&repo);
@@ -5964,7 +6022,10 @@ mod auto_gc_tests {
             1_441_205 * 1024
         );
         assert_eq!(super::parse_count_objects_pack_bytes(""), 0);
-        assert_eq!(super::parse_count_objects_pack_bytes("size-pack: notanumber"), 0);
+        assert_eq!(
+            super::parse_count_objects_pack_bytes("size-pack: notanumber"),
+            0
+        );
     }
 }
 

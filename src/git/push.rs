@@ -304,8 +304,15 @@ pub(crate) async fn pull_merge_upstream(
     op_label: &str,
 ) -> Result<()> {
     let fence = acquire_pull_fence(repo, timeout_secs).await?;
-    pull_with_fence(repo, &["pull", "--no-rebase", "--no-edit"], timeout_secs, op_label, false, &fence)
-        .await
+    pull_with_fence(
+        repo,
+        &["pull", "--no-rebase", "--no-edit"],
+        timeout_secs,
+        op_label,
+        false,
+        &fence,
+    )
+    .await
 }
 
 async fn acquire_pull_fence(
@@ -375,15 +382,8 @@ async fn pull_with_fence(
         )
         .await
     } else {
-        super::run_git_with_timeout_env_fenced(
-            repo,
-            pull_args,
-            timeout_secs,
-            op_label,
-            &env,
-            fence,
-        )
-        .await
+        super::run_git_with_timeout_env_fenced(repo, pull_args, timeout_secs, op_label, &env, fence)
+            .await
     };
     if let Err(pull_error) = pull_result {
         // Abort only a merge created by this fenced pull. A pre-existing
