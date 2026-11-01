@@ -15370,8 +15370,9 @@ mod tests {
             "rich table total width drifted from the rich-tier floor — update RICH_TIER_MIN_COLS deliberately"
         );
         assert!(
-            total <= 165,
-            "rich table total width {total} > 165-col minimum. Reduce a column or drop a column."
+            total as u16 <= RICH_TIER_MIN_COLS,
+            "rich table total width {total} exceeds the {RICH_TIER_MIN_COLS}-col rich-tier floor. \
+             Reduce a column or drop a column, or raise RICH_TIER_MIN_COLS deliberately."
         );
     }
 
