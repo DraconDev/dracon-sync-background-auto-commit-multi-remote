@@ -77,12 +77,13 @@ pub(super) async fn attempt(
     repo: &Path,
     spool: &Path,
     seconds: u64,
+    legacy_floor: std::time::Duration,
     fault: Fault,
 ) -> Result<recovery::DurableReceipt> {
     let seconds = seconds.clamp(1, 600);
     tokio::time::timeout(
         std::time::Duration::from_secs(seconds),
-        inner(repo, spool, seconds, fault),
+        inner(repo, spool, seconds, legacy_floor, fault),
     )
     .await
     .context("reclamation transaction deadline; no removal authority")?
@@ -91,16 +92,16 @@ async fn inner(
     repo: &Path,
     spool: &Path,
     seconds: u64,
+    legacy_floor: std::time::Duration,
     _fault: Fault,
 ) -> Result<recovery::DurableReceipt> {
     let gitdir = super::absolute_git_dir(repo)
         .await
         .context("cannot establish originating gitdir")?;
-    let owner = ReclaimOwner::acquire(&gitdir, spool)?;
-    ensure!(
-        owner.is_settled(),
-        "producer quiescence uncertain: no matching settled marker"
-    );
+    let owner = ReclaimOwner::acquire(&gitdir, spool, legacy_floor)?;
+    owner
+        .proves_inactivity()
+        .context("source inactivity is not proven")?;
     ensure!(!protected(spool), "preserve-marked source");
     let original_bytes = super::directory_bytes(spool)?;
     #[cfg(test)]
@@ -130,9 +131,12 @@ async fn inner(
     recovery::verify_receipt(&receipt.record, &receipt.manifest_sha256, seconds).await?;
     let owner = recovery::verify_source_owned(&receipt.record, spool, owner).await?;
     ensure!(
-        owner.still_owned() && owner.is_settled() && !protected(spool),
+        owner.still_owned() && !protected(spool),
         "source ownership or preservation changed"
     );
+    owner
+        .proves_inactivity()
+        .context("source inactivity changed during preparation")?;
     let intent = serde_json::json!({
         "version": 1, "phase": "authorized-not-yet-removed",
         "spool_path_bytes": spool.as_os_str().as_encoded_bytes(),
@@ -158,9 +162,12 @@ async fn inner(
     // No await after these final checks: a cancelled request cannot resume later
     // and remove a source. All surviving preparations retain data, never delete.
     ensure!(
-        owner.still_owned() && owner.is_settled() && !protected(spool),
+        owner.still_owned() && !protected(spool),
         "final ownership/preserve check failed"
     );
+    owner
+        .proves_inactivity()
+        .context("final inactivity check failed")?;
     recovery::final_source_check(&receipt.record, spool)?;
     fs::remove_dir_all(spool).context("source removal failed; independent recovery retained")?;
     File::open(&gitdir)?

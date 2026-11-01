@@ -269,16 +269,34 @@ impl Drop for SpoolLease {
     }
 }
 
+/// How inactivity was established for one source.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(super) enum Inactivity {
+    /// The protocol owner published an identity-bound settled marker.
+    SettledMarker,
+    /// A legacy source without the protocol: inactivity was observed through an
+    /// exclusive lease plus a live-writer scan, never assumed from age alone.
+    LegacyFence,
+}
+
 /// Holds ownership and the identities against which final deletion is checked.
 pub(super) struct ReclaimOwner {
     _file: File,
     spool: PathBuf,
     directory: Metadata,
     lock: Metadata,
+    inactivity: Inactivity,
 }
 
 impl ReclaimOwner {
-    pub(super) fn acquire(gitdir: &Path, spool: &Path) -> Result<Self> {
+    /// Acquire the source fence.
+    ///
+    /// A protocol spool carries the owner lock; its inactivity proof is the
+    /// settled marker and a missing marker stays uncertainty. A legacy spool
+    /// has no lease at all: it may only be fenced when it is older than the
+    /// scheduling floor and no process references it, and the fence is created
+    /// exclusively so two reclaimers cannot both claim it.
+    pub(super) fn acquire(gitdir: &Path, spool: &Path, legacy_floor: std::time::Duration) -> Result<Self> {
         let name = spool
             .file_name()
             .and_then(|n| n.to_str())
@@ -293,9 +311,25 @@ impl ReclaimOwner {
         );
         let directory = std::fs::symlink_metadata(spool)?;
         ensure!(directory.is_dir(), "spool must not be a symlink");
-        // Open only. Missing legacy metadata is uncertainty, not abandonment.
-        let before = std::fs::symlink_metadata(spool.join(OWNER_FILE))?;
-        validate_lock(&before)?;
+        let lock_path = spool.join(OWNER_FILE);
+        match std::fs::symlink_metadata(&lock_path) {
+            Ok(before) => {
+                validate_lock(&before)?;
+                Self::acquire_locked(spool, directory, before, Inactivity::SettledMarker)
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                Self::acquire_legacy(spool, directory, legacy_floor)
+            }
+            Err(error) => Err(error.into()),
+        }
+    }
+
+    fn acquire_locked(
+        spool: &Path,
+        directory: Metadata,
+        before: Metadata,
+        inactivity: Inactivity,
+    ) -> Result<Self> {
         let file = owner_options().open(spool.join(OWNER_FILE))?;
         validate_lock(&file.metadata()?)?;
         ensure!(
@@ -308,12 +342,70 @@ impl ReclaimOwner {
             _file: file,
             spool: spool.to_path_buf(),
             directory,
+            inactivity,
         };
         ensure!(
             held.still_owned(),
             "spool identity changed while acquiring ownership"
         );
         Ok(held)
+    }
+
+    /// Legacy sources have no lease. Establish a real fence instead: an
+    /// exclusive lease every later reclaimer must respect, an age floor that a
+    /// live epoch cannot reach, and an observation that no process references
+    /// the source right now.
+    fn acquire_legacy(
+        spool: &Path,
+        directory: Metadata,
+        legacy_floor: std::time::Duration,
+    ) -> Result<Self> {
+        let modified = directory.modified().context("legacy spool has no readable mtime")?;
+        let age = modified.elapsed().context("legacy spool mtime is in the future")?;
+        ensure!(
+            age >= legacy_floor,
+            "legacy spool is younger than the scheduling floor"
+        );
+        let mut options = owner_options();
+        options.create_new(true);
+        let file = options.open(spool.join(OWNER_FILE))?;
+        validate_lock(&file.metadata()?)?;
+        file.try_lock().context("legacy spool lease is already held")?;
+        let held = Self {
+            lock: file.metadata()?,
+            _file: file,
+            spool: spool.to_path_buf(),
+            directory,
+            inactivity: Inactivity::LegacyFence,
+        };
+        ensure!(
+            held.still_owned(),
+            "legacy spool identity changed while acquiring the fence"
+        );
+        let handles = super::liveness::live_handles(spool)?;
+        ensure!(
+            handles.is_empty(),
+            "legacy spool still has live references: {handles:?}"
+        );
+        Ok(held)
+    }
+
+    /// The proof that the source may be inspected and eventually removed.
+    pub(super) fn proves_inactivity(&self) -> Result<()> {
+        match self.inactivity {
+            Inactivity::SettledMarker => {
+                ensure!(self.is_settled(), "producer quiescence uncertain: no matching settled marker")
+            }
+            Inactivity::LegacyFence => {
+                ensure!(self.still_owned(), "legacy fence identity changed");
+                let handles = super::liveness::live_handles(&self.spool)?;
+                ensure!(
+                    handles.is_empty(),
+                    "legacy spool gained live references: {handles:?}"
+                );
+            }
+        }
+        Ok(())
     }
 
     /// An unlocked crash-abandoned producer is not settled. Never manufacture

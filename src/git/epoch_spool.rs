@@ -32,6 +32,8 @@ mod dispatch;
 mod ownership;
 #[path = "epoch_spool_producer.rs"]
 mod producer;
+#[path = "epoch_spool_liveness.rs"]
+mod liveness;
 #[path = "epoch_spool_reclaim.rs"]
 mod reclaim;
 #[path = "epoch_spool_recovery.rs"]
