@@ -881,6 +881,32 @@ mod tests {
         run(c, 10).await.unwrap();
     }
 
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn metadata_cas_preserves_distinct_permissions_in_both_insertion_orders() {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        for modes in [[0o644, 0o600], [0o600, 0o644]] {
+            let (_root, repo, spool, _) = fixture("sha1").await;
+            let original = fs::read(spool.join("index")).unwrap();
+            let mut records = Vec::new();
+            for mode in modes {
+                fs::set_permissions(spool.join("index"), fs::Permissions::from_mode(mode)).unwrap();
+                let receipt = prepare_record(&repo, &spool, 20).await.unwrap();
+                records.push(receipt);
+            }
+            let mut inodes = Vec::new();
+            for (receipt, mode) in records.iter().zip(modes) {
+                let index = receipt.record.join("metadata/index");
+                assert_eq!(fs::read(&index).unwrap(), original);
+                let metadata = fs::metadata(&index).unwrap();
+                assert_eq!(metadata.mode() & 0o7777, mode, "metadata sharing must not substitute another source's mode");
+                inodes.push(metadata.ino());
+                verify_receipt(&receipt.record, &receipt.manifest_sha256, 20).await.unwrap();
+            }
+            assert_ne!(inodes[0], inodes[1], "different preserved modes must not share an inode");
+        }
+    }
+
     #[tokio::test]
     async fn index_only_reconstructs_exact_bytes_and_paths_without_main_or_spool() {
         for format in ["sha1", "sha256"] {
