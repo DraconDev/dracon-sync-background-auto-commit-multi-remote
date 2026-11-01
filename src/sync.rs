@@ -4708,10 +4708,25 @@ async fn stage_commit_and_push(
                 // policy) so the HINT says WHY, not just WHO.
                 let names = failing_remote_names(ctx.remote_failures.as_deref());
                 let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
-                let msg = format!(
-                    "git push returned non-zero (remotes: {}) — {}",
-                    names, cause
-                );
+                // T1 (2026-11-01): a hook refusal must say WHICH gate failed.
+                // The classifier is a static string, so the raw per-remote text
+                // (which carries the hook's own "  - ws/GATE exited N" lines)
+                // is mined for a short cause instead of being discarded.
+                let hook_detail = ctx.remote_failures.as_deref().and_then(|failures| {
+                    failures
+                        .values()
+                        .find_map(|info| crate::git::hook_failure_summary(&info.last_error))
+                });
+                let msg = match hook_detail {
+                    Some(detail) => format!(
+                        "git push returned non-zero (remotes: {}) — {}: {}",
+                        names, cause, detail
+                    ),
+                    None => format!(
+                        "git push returned non-zero (remotes: {}) — {}",
+                        names, cause
+                    ),
+                };
                 // v0.113.73 forge-degraded: fully incident-covered
                 // transient failures don't burn the stuck budget (and
                 // don't fire per-repo webhooks — the incident alert
