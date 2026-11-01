@@ -17076,6 +17076,51 @@ mod v011321_tests {
         assert!(!report_repo_matches_detail(paths[0], Some("targ")));
     }
 
+    /// REGRESSION (2026-11-01): the STATUS column must fit every label.
+    ///
+    /// The rich table wrapped `📤 PUBLISHING` onto a second line because the
+    /// column was a hand-tuned `Fixed(13)` and that label is exactly 13
+    /// display columns. A wrapped status reads like an extra table row.
+    #[test]
+    fn status_labels_fit_the_rich_column() {
+        use unicode_width::UnicodeWidthStr;
+        let width = status_column_width();
+        for label in current_health::ALL_STATUS_LABELS {
+            let label_width = UnicodeWidthStr::width(label);
+            assert!(
+                label_width < width,
+                "status label {label:?} is {label_width} cols but the column is {width}                  (needs at least one column of slack so comfy-table cannot wrap it)"
+            );
+        }
+        // The specific label that regressed must be represented.
+        assert!(current_health::ALL_STATUS_LABELS.contains(&"📤 PUBLISHING"));
+    }
+
+    /// The rendered rich table must not produce a status continuation line,
+    /// which is what made one row look like two.
+    #[test]
+    fn rich_table_does_not_wrap_publishing_status() {
+        let mut row = base_row();
+        row.active = true;
+        row.ahead = 3;
+        row.push_status = "PENDING".to_string();
+        row.health.current = current_health::Current::Publishing;
+        row.hint = "run dracon-sync repair concerns --apply".to_string();
+        let rendered = build_repos_rich_table(&[row], false, 220).to_string();
+        let rows = rendered
+            .lines()
+            .filter(|line| line.starts_with('│') && line.contains('┆'))
+            .count();
+        assert_eq!(rows, 1, "exactly one data row must render:\n{rendered}");
+        let wrapped = rendered.lines().any(|line| {
+            line.starts_with('│') && !line.contains('┆') && line.contains("PUBLISHING")
+        });
+        assert!(
+            !wrapped,
+            "the PUBLISHING status wrapped onto its own line:\n{rendered}"
+        );
+    }
+
     #[test]
     fn unknown_hints_do_not_promise_unobserved_convergence() {
         use super::current_health::Current;
