@@ -2859,8 +2859,10 @@ mod tests {
         let lock = temp.path().join("index.lock");
         std::fs::write(&lock, b"active").unwrap();
 
-        let result =
-            crate::git::fuser_path_in_use_with_command("/definitely/missing/dracon-sync-fuser-test", &lock);
+        let result = crate::git::fuser_path_in_use_with_command(
+            "/definitely/missing/dracon-sync-fuser-test",
+            &lock,
+        );
         assert!(result.is_err());
         assert!(
             !matches!(result, Ok(false)),

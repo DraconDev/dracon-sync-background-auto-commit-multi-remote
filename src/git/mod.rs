@@ -5701,21 +5701,52 @@ mod tmp_pack_sweep_tests {
         }
     }
 
+    /// CHANGED 2026-11-01: age alone is still NOT proof — an aged pack with a
+    /// live holder, or one whose holder cannot be verified, is preserved.
     #[tokio::test]
     async fn aged_tmp_pack_is_preserved_without_producer_ownership_proof() {
         let (root, pack) = init_repo();
         write_aged(&pack, "tmp_pack_OLDAAA", 4096, 7200);
-        let (files, freed) = super::sweep_stale_tmp_packs(root.path(), 3600).await;
-        assert_eq!(files, 0, "age alone does not prove the pack writer is dead");
+        // A live holder.
+        let (files, freed) = super::sweep_stale_tmp_packs(root.path(), 3600, |_| Ok(true)).await;
+        assert_eq!(files, 0, "a held pack must never be removed");
         assert_eq!(freed, 0);
         assert!(pack.join("tmp_pack_OLDAAA").exists());
+        // An unverifiable holder fails closed too.
+        let (files, _) = super::sweep_stale_tmp_packs(root.path(), 3600, |_| {
+            Err(anyhow::anyhow!("fuser unavailable"))
+        })
+        .await;
+        assert_eq!(files, 0, "an unverifiable pack must be preserved");
+        assert!(pack.join("tmp_pack_OLDAAA").exists());
+    }
+
+    /// REGRESSION (2026-11-01): an aged, provably unheld temp pack IS reaped.
+    ///
+    /// The sweeper used to be a permanent no-op, so one repo accumulated
+    /// 12.60 GiB of abandoned packs the daemon would never reclaim.
+    #[tokio::test]
+    async fn aged_unheld_tmp_pack_is_reaped_and_reports_freed_bytes() {
+        let (root, pack) = init_repo();
+        write_aged(&pack, "tmp_pack_REAPME", 4096, 7200);
+        write_aged(&pack, "tmp_pack_KEEPHELD", 2048, 7200);
+        let held = pack.join("tmp_pack_KEEPHELD");
+        let (files, freed) = super::sweep_stale_tmp_packs(root.path(), 3600, |p| {
+            Ok(p == held.as_path()) // this one reports a live holder
+        })
+        .await;
+        assert_eq!(files, 1, "only the provably unheld pack is removed");
+        assert_eq!(freed, 4096, "freed bytes must be reported");
+        assert!(!pack.join("tmp_pack_REAPME").exists());
+        assert!(held.exists(), "the held pack must survive");
     }
 
     #[tokio::test]
     async fn fresh_tmp_pack_survives_because_it_may_still_be_writing() {
         let (root, pack) = init_repo();
         write_aged(&pack, "tmp_pack_NEWBBB", 4096, 0);
-        let (files, _) = super::sweep_stale_tmp_packs(root.path(), 3600).await;
+        // Even with fuser claiming it is unheld, the age floor protects it.
+        let (files, _) = super::sweep_stale_tmp_packs(root.path(), 3600, |_| Ok(false)).await;
         assert_eq!(files, 0, "a tmp_pack still being written must survive");
         assert!(pack.join("tmp_pack_NEWBBB").exists());
     }
@@ -5728,7 +5759,7 @@ mod tmp_pack_sweep_tests {
         write_aged(&pack, "pack-0123456789abcdef.idx", 4096, 86_400);
         // A loose object file is equally not ours.
         write_aged(&pack, "something_else", 4096, 86_400);
-        let (files, _) = super::sweep_stale_tmp_packs(root.path(), 3600).await;
+        let (files, _) = super::sweep_stale_tmp_packs(root.path(), 3600, |_| Ok(false)).await;
         assert_eq!(files, 0, "only tmp_pack_* names are candidates");
         assert!(pack.join("pack-0123456789abcdef.pack").exists());
         assert!(pack.join("pack-0123456789abcdef.idx").exists());
@@ -5739,7 +5770,7 @@ mod tmp_pack_sweep_tests {
     async fn non_repo_path_is_a_silent_no_op() {
         let root = tempfile::tempdir().unwrap();
         assert_eq!(
-            super::sweep_stale_tmp_packs(root.path(), 3600).await,
+            super::sweep_stale_tmp_packs(root.path(), 3600, |_| Ok(false)).await,
             (0, 0),
             "a non-repo path must not error or delete anything"
         );

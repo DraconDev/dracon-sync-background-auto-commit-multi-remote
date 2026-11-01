@@ -5384,13 +5384,12 @@ async fn sync_repo_local_with_ownership(
         // reclaim the 10.71 GiB / 23 files found in
         // browser-extensions-shared. Each failed push leaks one, and a
         // busy repo leaks them continuously.
-        let (tmp_files, tmp_freed) =
-            crate::git::sweep_stale_tmp_packs(
-                repo,
-                policy.epoch_spool_max_age_secs,
-                crate::git::fuser_path_in_use,
-            )
-            .await;
+        let (tmp_files, tmp_freed) = crate::git::sweep_stale_tmp_packs(
+            repo,
+            policy.epoch_spool_max_age_secs,
+            crate::git::fuser_path_in_use,
+        )
+        .await;
         if tmp_files > 0 {
             eprintln!(
                 "🗑️ {} reclaimed {} abandoned tmp_pack file(s) ({})",
