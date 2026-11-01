@@ -3990,7 +3990,7 @@ mod tests {
         // Fresh outage throttles retries (Backoff), never hot-loops.
         let now = timestamp_secs();
         assert!(matches!(
-            stuck_decision(&info, now, 5, 300),
+            stuck_decision(&info, now, 5, 300, None),
             StuckDecision::Backoff
         ));
         // A repeat outage still burns nothing ...
@@ -4001,6 +4001,52 @@ mod tests {
         assert_eq!(get_stuck_push_info(&repo).unwrap().consecutive_failures, 1);
 
         let _ = crate::daemon::unstuck_repo(&repo);
+    }
+
+    /// REGRESSION (2026-11-01): an exhausted budget earned on a SUPERSEDED tip
+    /// must not pause publication of the current one.
+    ///
+    /// Live incident: browser-extensions-shared burned 5 failures on commit
+    /// `2cf8c70e`, whose declared bun workspaces were not yet committed, so
+    /// `bun install` refused ("Workspace not found"). The daemon then added 36
+    /// commits that made the snapshot installable again, yet the repo stayed
+    /// paused until a manual `repair stuck-unstuck`.
+    #[test]
+    fn exhausted_budget_on_a_superseded_tip_does_not_pause_the_current_one() {
+        let now = 10_000u64;
+        let mut info = StuckRepoEntry {
+            path: PathBuf::from("/tmp/superseded-tip"),
+            stuck_since: 1_000,
+            consecutive_failures: 5,
+            last_error: "local pre-push hook failed".into(),
+            last_error_at: 9_000,
+            last_retry_at: 9_000,
+            failed_tip: Some("aaaaaaaa".into()),
+        };
+        // Same tip: the budget still binds.
+        assert_eq!(
+            stuck_decision(&info, now, 5, 300, Some("aaaaaaaa")),
+            StuckDecision::Exhausted
+        );
+        // An unknown current tip must not be assumed superseded.
+        assert_eq!(
+            stuck_decision(&info, now, 5, 300, None),
+            StuckDecision::Exhausted
+        );
+        // New tip: retry immediately, with no backoff to wait out.
+        assert_eq!(
+            stuck_decision(&info, now, 5, 300, Some("bbbbbbbb")),
+            StuckDecision::Retry
+        );
+        assert!(stuck_tip_is_superseded(&info, Some("bbbbbbbb")));
+        assert!(!stuck_tip_is_superseded(&info, Some("aaaaaaaa")));
+        // Legacy entries without a recorded tip keep the old semantics.
+        info.failed_tip = None;
+        assert_eq!(
+            stuck_decision(&info, now, 5, 300, Some("bbbbbbbb")),
+            StuckDecision::Exhausted
+        );
+        assert!(!stuck_tip_is_superseded(&info, Some("bbbbbbbb")));
     }
 
     /// v0.113.89: the per-repo gates are not global bounds. On 2026-09-27
@@ -5778,14 +5824,20 @@ fn stuck_entry(
 fn test_stuck_decision_backoff_inside_window() {
     let info = stuck_entry(2, 1000, 1900, 0);
     // now = 2000, last activity 1900 → 100s < 300s backoff
-    assert_eq!(stuck_decision(&info, 2000, 5, 300), StuckDecision::Backoff);
+    assert_eq!(
+        stuck_decision(&info, 2000, 5, 300, None),
+        StuckDecision::Backoff
+    );
 }
 
 #[test]
 fn test_stuck_decision_retry_after_window() {
     let info = stuck_entry(2, 1000, 1500, 0);
     // 500s since last failure → retry
-    assert_eq!(stuck_decision(&info, 2000, 5, 300), StuckDecision::Retry);
+    assert_eq!(
+        stuck_decision(&info, 2000, 5, 300, None),
+        StuckDecision::Retry
+    );
 }
 
 #[test]
@@ -5794,8 +5846,14 @@ fn test_stuck_decision_retry_respects_last_retry_stamp() {
     // even though the last FAILURE is old, the backoff runs from
     // the attempt so a non-push failure doesn't spin every cycle.
     let info = stuck_entry(2, 1000, 1500, 1950);
-    assert_eq!(stuck_decision(&info, 2000, 5, 300), StuckDecision::Backoff);
-    assert_eq!(stuck_decision(&info, 2300, 5, 300), StuckDecision::Retry);
+    assert_eq!(
+        stuck_decision(&info, 2000, 5, 300, None),
+        StuckDecision::Backoff
+    );
+    assert_eq!(
+        stuck_decision(&info, 2300, 5, 300, None),
+        StuckDecision::Retry
+    );
 }
 
 #[test]
@@ -5805,19 +5863,22 @@ fn test_stuck_decision_exhausted_at_budget() {
     // never fire. Now consecutive_failures accumulates.
     let info = stuck_entry(5, 1000, 1999, 0);
     assert_eq!(
-        stuck_decision(&info, 2000, 5, 300),
+        stuck_decision(&info, 2000, 5, 300, None),
         StuckDecision::Exhausted,
         "consecutive_failures >= push_max_retries must stop auto-push"
     );
     // Exhausted wins even inside the backoff window.
     let info2 = stuck_entry(6, 1000, 1999, 1999);
     assert_eq!(
-        stuck_decision(&info2, 2000, 5, 300),
+        stuck_decision(&info2, 2000, 5, 300, None),
         StuckDecision::Exhausted
     );
     // Just below budget → normal retry flow.
     let info3 = stuck_entry(4, 1000, 1500, 0);
-    assert_eq!(stuck_decision(&info3, 2000, 5, 300), StuckDecision::Retry);
+    assert_eq!(
+        stuck_decision(&info3, 2000, 5, 300, None),
+        StuckDecision::Retry
+    );
 }
 
 #[test]
