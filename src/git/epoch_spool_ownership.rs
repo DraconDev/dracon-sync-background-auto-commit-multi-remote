@@ -149,6 +149,15 @@ impl SpoolLease {
     /// An uncertain/pending family never creates a marker. Failed attempts are
     /// not resumable production: subsequent dispatch against a sealed path fails.
     pub(crate) async fn settle_for_reclaim(&mut self, deadline: Duration) -> Result<()> {
+        if self.scope.is_none() && self.owner.is_none() {
+            let path = self.path.as_ref().context("no spool path")?;
+            let parent = path.parent().context("no originating gitdir")?;
+            ensure!(
+                ReclaimOwner::acquire(parent, path)?.is_settled(),
+                "source has no valid settled marker"
+            );
+            return Ok(());
+        }
         let scope = self
             .scope
             .take()
@@ -195,6 +204,29 @@ impl SpoolLease {
                 && OwnerIdentity::of(&directory, &named)? == *identity,
             "producer identity changed before sealing"
         );
+        // Settlement closes the writer family. Flush the source representation
+        // too, so a crash before the recovery receipt does not leave only an
+        // unsynced index while a durable marker advertises quiescence.
+        for entry in std::fs::read_dir(path)? {
+            let entry = entry?;
+            ensure!(
+                entry.file_type()?.is_file(),
+                "unsupported source layout at settlement"
+            );
+            let mut options = OpenOptions::new();
+            options.read(true);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::OpenOptionsExt;
+                options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+            }
+            let file = options.open(entry.path())?;
+            ensure!(
+                file.metadata()?.is_file(),
+                "source type changed at settlement"
+            );
+            file.sync_all()?;
+        }
         let mut options = owner_options();
         options.create_new(true);
         let mut marker = options.open(path.join(SETTLED_FILE))?;
