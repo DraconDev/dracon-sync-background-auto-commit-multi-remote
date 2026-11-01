@@ -137,3 +137,68 @@ pub(super) async fn share(
     File::open(&store)?.sync_all()?;
     Ok(())
 }
+
+/// Share identical recovery metadata bytes across records. Recovery records
+/// must stay independent, but the same staging index is repeated in many
+/// spools; content-addressed copies keep the recovery store proportional to
+/// distinct content instead of to the number of records. A shared file is
+/// immutable: the manifest still binds its hash, and verification still reads
+/// the record's own file.
+pub(super) fn share_metadata(record: &Path, rescue: &Path) -> Result<()> {
+    let metadata = record.join("metadata");
+    let cas = rescue.join("cas");
+    directory(&cas)?;
+    let shared_root = cas.join("meta");
+    directory(&shared_root)?;
+    let mut entries: Vec<_> = fs::read_dir(&metadata)?.collect::<std::io::Result<Vec<_>>>()?;
+    entries.sort_by_key(|entry| entry.file_name());
+    for entry in entries {
+        let path = entry.path();
+        ensure!(
+            entry.file_type()?.is_file(),
+            "recovery metadata must be a regular file"
+        );
+        let mut digest = Sha256::new();
+        let mut file = regular(&path)?;
+        let mut buffer = [0; 65536];
+        loop {
+            let length = file.read(&mut buffer)?;
+            if length == 0 {
+                break;
+            }
+            digest.update(&buffer[..length]);
+        }
+        let hash = format!("{:x}", digest.finalize());
+        let shared = shared_root.join(&hash);
+        match fs::hard_link(&path, &shared) {
+            Ok(()) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                // Existing content is reused only when it is byte-identical.
+                let mut existing = Sha256::new();
+                let mut file = regular(&shared)?;
+                loop {
+                    let length = file.read(&mut buffer)?;
+                    if length == 0 {
+                        break;
+                    }
+                    existing.update(&buffer[..length]);
+                }
+                ensure!(
+                    format!("{:x}", existing.finalize()) == hash,
+                    "shared recovery metadata differs from the source bytes"
+                );
+            }
+            Err(error) => return Err(error.into()),
+        }
+        regular(&shared)?.sync_all()?;
+        File::open(&shared_root)?.sync_all()?;
+        // Replace the record's copy with a link to the shared immutable bytes.
+        let replacement = record.join(format!(".shared-{}", entry.file_name().to_string_lossy()));
+        fs::rename(&path, &replacement)?;
+        fs::hard_link(&shared, &path)?;
+        fs::remove_file(&replacement)?;
+    }
+    File::open(&shared_root)?.sync_all()?;
+    File::open(&cas)?.sync_all()?;
+    Ok(())
+}

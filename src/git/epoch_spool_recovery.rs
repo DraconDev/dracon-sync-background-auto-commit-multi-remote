@@ -655,6 +655,7 @@ async fn prepare_inner(
         record.path().join("source-fingerprint.json"),
         serde_json::to_vec(&source_snapshot)?,
     )?;
+    cas::share_metadata(record.path(), &rescue)?;
     ensure!(metadata.join("index").is_file(), "spool index missing");
     supported_index(&metadata.join("index"), width)?;
     let build = work.path().join("build.git");
