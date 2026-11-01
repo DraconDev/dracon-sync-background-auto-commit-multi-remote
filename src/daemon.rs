@@ -2838,16 +2838,16 @@ mod tests {
 
     #[test]
     fn test_fuser_failure_is_not_treated_as_unused() {
-        assert!(classify_fuser_status(Some(0), b"").unwrap());
-        assert!(!classify_fuser_status(Some(1), b"").unwrap());
+        assert!(crate::git::classify_fuser_status(Some(0), b"").unwrap());
+        assert!(!crate::git::classify_fuser_status(Some(1), b"").unwrap());
 
         // Exit codes other than fuser's documented "no users" result,
         // diagnostics accompanying that result, and a signalled process are
         // all verification failures. The cleanup caller removes a lock only
         // for Ok(false), so each case is fail-closed.
-        assert!(classify_fuser_status(Some(1), b"permission denied").is_err());
-        assert!(classify_fuser_status(Some(2), b"").is_err());
-        assert!(classify_fuser_status(None, b"").is_err());
+        assert!(crate::git::classify_fuser_status(Some(1), b"permission denied").is_err());
+        assert!(crate::git::classify_fuser_status(Some(2), b"").is_err());
+        assert!(crate::git::classify_fuser_status(None, b"").is_err());
     }
 
     #[test]
