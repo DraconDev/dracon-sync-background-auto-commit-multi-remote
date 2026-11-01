@@ -85,6 +85,9 @@ class InventoryTests(unittest.TestCase):
             self.assertEqual(report['spool_logical_bytes'], 15)
             self.assertEqual(report['categories'], {'ownership_uncertain_legacy': 3})
             self.assertFalse(report['deletion_authority'])
+            for row in report['spools']:
+                s = Path(row['path']).stat()
+                self.assertEqual(row['source_identity'], {'device': s.st_dev, 'inode': s.st_ino})
 
 
 if __name__ == '__main__':

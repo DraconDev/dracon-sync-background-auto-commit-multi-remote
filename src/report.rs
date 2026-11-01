@@ -17193,7 +17193,8 @@ mod v011321_tests {
             let rendered = build_repos_rich_table(&rows, false, columns).to_string();
             assert!(
                 wrapped_body_lines(&rendered).is_empty(),
-                "rich tier at {columns} cols wrapped a cell:\n{rendered}"
+                "rich tier at {columns} cols wrapped a cell; offending lines: {:#?}\n{rendered}",
+                wrapped_body_lines(&rendered)
             );
         }
         let compact = build_repos_compact_table(&rows, &filter, 0, 0, 0, false).to_string();
