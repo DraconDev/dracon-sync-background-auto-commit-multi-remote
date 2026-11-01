@@ -7335,9 +7335,11 @@ fn build_repos_rich_table(
     // Dynamic + Absolute; it never clips digits). Fleet is ~35
     // today; widen to 5 (all tiers + mirrors + floors) if it nears 99.
     const NUM_COL: usize = 4;
-    // EXCLUDED/RETRYING include a width-two emoji and eight ASCII
-    // letters: 11 content columns plus two padding. Twelve wrapped them.
-    const STATUS_COL: usize = 13;
+    // Derived from ALL_STATUS_LABELS, never hand-tuned: `📤 PUBLISHING` is
+    // 13 content columns, so a fixed 13 wrapped it onto a second line and
+    // the row read like two rows. `status_labels_fit_the_rich_column` and
+    // `rich_table_does_not_wrap_publishing_status` pin this.
+    let status_col = status_column_width();
     // CHANGED 2026-07-29 (v0.113.15): REPO narrowed 22 → 20 and
     // ACTIVITY narrowed 28 → 24 to fund the new REM column (+9 cols
     // incl. border+padding) within the 165-col rich-tier budget
@@ -7353,7 +7355,7 @@ fn build_repos_rich_table(
     // comfy-table squashes gracefully.
     let repo_col = {
         let fixed_non_repo = NUM_COL
-            + STATUS_COL
+            + status_col
             + ACTIVITY_COL
             + CHG_MOD_COL
             + CHG_STG_COL
@@ -7444,7 +7446,7 @@ fn build_repos_rich_table(
     let border_overhead = num_cols + 1;
     let cell_padding = num_cols * 2;
     let fixed = NUM_COL
-        + STATUS_COL
+        + status_col
         + REPO_COL
         + ACTIVITY_COL
         + CHG_MOD_COL
@@ -7520,7 +7522,7 @@ fn build_repos_rich_table(
     table
         .column_mut(1)
         .expect("STATUS column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(STATUS_COL as u16)));
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(status_col as u16)));
     table
         .column_mut(2)
         .expect("REPO column")
