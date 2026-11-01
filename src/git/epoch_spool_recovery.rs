@@ -624,9 +624,14 @@ async fn prepare_inner(
     #[cfg(test)]
     if matches!(_fault, Fault::SlowBeforeVerify) {
         let mut probe = Command::new(std::env::current_exe()?);
-        probe.args(["--exact", "git::epoch_spool::recovery::tests::recovery_writer_probe"])
+        probe
+            .args([
+                "--exact",
+                "git::epoch_spool::recovery::tests::recovery_writer_probe",
+            ])
             .env("DRACON_RECOVERY_WRITER_PROBE", record.path())
-            .stdout(Stdio::piped()).stderr(Stdio::piped());
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
         run(probe, timeout).await?;
     }
     let metadata = record.path().join("metadata");
@@ -897,11 +902,20 @@ mod tests {
                 let index = receipt.record.join("metadata/index");
                 assert_eq!(fs::read(&index).unwrap(), original);
                 let metadata = fs::metadata(&index).unwrap();
-                assert_eq!(metadata.mode() & 0o7777, mode, "metadata sharing must not substitute another source's mode");
+                assert_eq!(
+                    metadata.mode() & 0o7777,
+                    mode,
+                    "metadata sharing must not substitute another source's mode"
+                );
                 inodes.push(metadata.ino());
-                verify_receipt(&receipt.record, &receipt.manifest_sha256, 20).await.unwrap();
+                verify_receipt(&receipt.record, &receipt.manifest_sha256, 20)
+                    .await
+                    .unwrap();
             }
-            assert_ne!(inodes[0], inodes[1], "different preserved modes must not share an inode");
+            assert_ne!(
+                inodes[0], inodes[1],
+                "different preserved modes must not share an inode"
+            );
         }
     }
 

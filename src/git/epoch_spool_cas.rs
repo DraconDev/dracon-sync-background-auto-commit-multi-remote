@@ -180,7 +180,10 @@ pub(super) fn share_metadata(record: &Path, rescue: &Path) -> Result<()> {
                 // Existing content is reused only when it is byte-identical.
                 let mut existing = Sha256::new();
                 let mut file = regular(&shared)?;
-                ensure!(metadata_mode(&file)? == mode, "shared metadata permissions changed");
+                ensure!(
+                    metadata_mode(&file)? == mode,
+                    "shared metadata permissions changed"
+                );
                 loop {
                     let length = file.read(&mut buffer)?;
                     if length == 0 {
@@ -210,7 +213,13 @@ pub(super) fn share_metadata(record: &Path, rescue: &Path) -> Result<()> {
 
 fn metadata_mode(file: &File) -> Result<u32> {
     #[cfg(unix)]
-    { use std::os::unix::fs::MetadataExt; Ok(file.metadata()?.mode()) }
+    {
+        use std::os::unix::fs::MetadataExt;
+        Ok(file.metadata()?.mode())
+    }
     #[cfg(not(unix))]
-    { let _ = file; bail!("metadata permission identity requires Unix") }
+    {
+        let _ = file;
+        bail!("metadata permission identity requires Unix")
+    }
 }
