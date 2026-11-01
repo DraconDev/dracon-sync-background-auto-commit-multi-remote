@@ -160,10 +160,14 @@ def ownership(path, age_floor):
         with os.fdopen(os.open(marker, flags), 'rb') as source:
             if signature(os.fstat(source.fileno())) != signature(ms):
                 return 'unreadable_failed_proof', 'settlement marker changed during open'
-            identity = json.loads(source.read(4097))
+            data = source.read(4097)
+            if len(data) > 4096:
+                return 'unreadable_failed_proof', 'oversized settlement marker'
+            identity = json.loads(data)
         expected = dict(version=1, directory_device=directory.st_dev,
                         directory_inode=directory.st_ino, lock_device=ls.st_dev, lock_inode=ls.st_ino)
-        if identity != expected or signature(path.lstat()) != signature(directory):
+        if (not isinstance(identity, dict) or any(type(v) is not int for v in identity.values())
+                or identity != expected or signature(path.lstat()) != signature(directory)):
             return 'ownership_uncertain_protocol', 'settlement identity mismatch or source changed'
         if signature(lock.lstat()) != signature(ls) or signature(marker.lstat()) != signature(ms):
             return 'unreadable_failed_proof', 'protocol paths changed during observation'
@@ -186,7 +190,10 @@ def inventory(manifest, age_floor):
         for path in entries:
             if path.name.startswith(PREFIXES):
                 footprint, _ = measure(path)
+                markers = None
                 try:
+                    markers = [n for n in ('preserve-rejected', 'original-index')
+                               if optional_stat(path / n) is not None]
                     category, reason = ownership(path, age_floor)
                 except (OSError, ValueError) as e:
                     category, reason = 'unreadable_failed_proof', str(e)
@@ -194,7 +201,7 @@ def inventory(manifest, age_floor):
                 if footprint['errors']:
                     category, reason = 'unreadable_failed_proof', 'incomplete or changing observation'
                 rows.append(dict(path=str(path), gitdir=str(directory), category=category,
-                                 reason=reason, **footprint))
+                                 preservation_markers=markers, reason=reason, **footprint))
             elif path.name == 'dracon-rescue':
                 footprint, blocks = measure(path)
                 allocated.update(blocks)
