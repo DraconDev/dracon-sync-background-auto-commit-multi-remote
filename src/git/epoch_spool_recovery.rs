@@ -329,16 +329,27 @@ async fn verify(store: &Path, roots: &Path, timeout: u64) -> Result<()> {
 pub(super) async fn verify_receipt(record: &Path, expected: &str, timeout: u64) -> Result<()> {
     let mut receipt = String::new();
     regular(&record.join("receipt"))?.read_to_string(&mut receipt)?;
-    ensure!(receipt == format!("dracon-epoch-recovery-v2 {expected}\n"), "published receipt mismatch");
+    ensure!(
+        receipt == format!("dracon-epoch-recovery-v2 {expected}\n"),
+        "published receipt mismatch"
+    );
     let mut manifest = Vec::new();
     regular(&record.join("manifest.sha256"))?.read_to_end(&mut manifest)?;
-    ensure!(format!("{:x}", Sha256::digest(&manifest)) == expected, "receipt manifest digest mismatch");
+    ensure!(
+        format!("{:x}", Sha256::digest(&manifest)) == expected,
+        "receipt manifest digest mismatch"
+    );
     let manifest = std::str::from_utf8(&manifest)?;
     let mut lines = manifest.lines();
-    ensure!(lines.next() == Some("dracon-epoch-recovery-v2"), "unsupported recovery receipt");
+    ensure!(
+        lines.next() == Some("dracon-epoch-recovery-v2"),
+        "unsupported recovery receipt"
+    );
     let mut paths = BTreeSet::new();
     for line in lines {
-        let (digest, encoded) = line.split_once(' ').context("invalid recovery manifest row")?;
+        let (digest, encoded) = line
+            .split_once(' ')
+            .context("invalid recovery manifest row")?;
         ensure!(oid(digest, 64), "invalid metadata digest");
         let bytes: Vec<u8> = serde_json::from_str(encoded)?;
         #[cfg(unix)]
@@ -348,27 +359,56 @@ pub(super) async fn verify_receipt(record: &Path, expected: &str, timeout: u64) 
         };
         #[cfg(not(unix))]
         let path = PathBuf::from(String::from_utf8(bytes)?);
-        ensure!(!path.as_os_str().is_empty() && path.components().all(|part| matches!(part, std::path::Component::Normal(_))), "unsafe manifest path");
-        ensure!(!path.starts_with("store.git") && paths.insert(path.clone()), "invalid semantic manifest dependency");
+        ensure!(
+            !path.as_os_str().is_empty()
+                && path
+                    .components()
+                    .all(|part| matches!(part, std::path::Component::Normal(_))),
+            "unsafe manifest path"
+        );
+        ensure!(
+            !path.starts_with("store.git") && paths.insert(path.clone()),
+            "invalid semantic manifest dependency"
+        );
         let mut source = regular(&record.join(&path))?;
         let mut hash = Sha256::new();
         let mut buffer = [0; 65536];
         loop {
             let length = source.read(&mut buffer)?;
-            if length == 0 { break; }
+            if length == 0 {
+                break;
+            }
             hash.update(&buffer[..length]);
         }
-        ensure!(format!("{:x}", hash.finalize()) == digest, "recovery metadata changed");
+        ensure!(
+            format!("{:x}", hash.finalize()) == digest,
+            "recovery metadata changed"
+        );
     }
     for required in ["source.json", "roots", "objects.tsv", "metadata/index"] {
-        ensure!(paths.contains(Path::new(required)), "required semantic retention dependency missing");
+        ensure!(
+            paths.contains(Path::new(required)),
+            "required semantic retention dependency missing"
+        );
     }
     let store = record.join("store.git");
     verify(&store, &record.join("roots"), timeout).await?;
-    let actual = text(&store, &["cat-file", "--batch-all-objects", "--batch-check=%(objectname) %(objecttype) %(objectsize)"], timeout).await?;
+    let actual = text(
+        &store,
+        &[
+            "cat-file",
+            "--batch-all-objects",
+            "--batch-check=%(objectname) %(objecttype) %(objectsize)",
+        ],
+        timeout,
+    )
+    .await?;
     let actual: BTreeSet<_> = actual.lines().collect();
     for required in fs::read_to_string(record.join("objects.tsv"))?.lines() {
-        ensure!(actual.contains(required), "recovery object/type/size missing");
+        ensure!(
+            actual.contains(required),
+            "recovery object/type/size missing"
+        );
     }
     Ok(())
 }
@@ -828,7 +868,9 @@ mod tests {
             fs::read(first.record.join("manifest.sha256")).unwrap(),
             manifest
         );
-        verify_receipt(&first.record, &first.manifest_sha256, 10).await.unwrap();
+        verify_receipt(&first.record, &first.manifest_sha256, 10)
+            .await
+            .unwrap();
         verify(
             &second.record.join("store.git"),
             &second.record.join("roots"),
@@ -845,6 +887,17 @@ mod tests {
             .await
             .unwrap(),
             "original recovery payload"
+        );
+        fs::write(
+            first.record.join("metadata/notes"),
+            b"fixture metadata corruption",
+        )
+        .unwrap();
+        assert!(
+            verify_receipt(&first.record, &first.manifest_sha256, 10)
+                .await
+                .is_err(),
+            "a semantic receipt must still detect changed recovery metadata after GC"
         );
     }
 
