@@ -5034,7 +5034,16 @@ pub(crate) fn classify_fuser_status(exit_code: Option<i32>, stderr: &[u8]) -> an
 /// True when some process holds `path` open. Errors mean "cannot prove it is
 /// unheld", which callers must treat as still in use.
 pub(crate) fn fuser_path_in_use(path: &std::path::Path) -> anyhow::Result<bool> {
-    let output = std::process::Command::new("fuser")
+    fuser_path_in_use_with_command("fuser", path)
+}
+
+/// Same verdict against an explicit binary, so tests can prove that a missing
+/// or broken `fuser` fails closed instead of being read as "unheld".
+pub(crate) fn fuser_path_in_use_with_command(
+    command: &str,
+    path: &std::path::Path,
+) -> anyhow::Result<bool> {
+    let output = std::process::Command::new(command)
         .arg(path)
         .output()
         .map_err(|e| anyhow::anyhow!("failed to execute fuser: {e}"))?;
