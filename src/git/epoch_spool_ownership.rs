@@ -571,12 +571,12 @@ mod tests {
         assert!(result.status.success());
         assert!(spool.join("index").is_file());
         assert!(!spool.join(SETTLED_FILE).exists());
-        assert!(ReclaimOwner::acquire(&gitdir, &spool).is_err());
+        assert!(ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).is_err());
         producer
             .settle_for_reclaim(Duration::from_secs(15))
             .await
             .unwrap();
-        let reclaimer = ReclaimOwner::acquire(&gitdir, &spool).unwrap();
+        let reclaimer = ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).unwrap();
         assert!(reclaimer.is_settled());
         assert!(
             crate::git::run_spool_git(
@@ -601,7 +601,7 @@ mod tests {
     #[test]
     fn legacy_owner_metadata_is_not_manufactured() {
         let (_root, gitdir, spool) = fixture();
-        assert!(ReclaimOwner::acquire(&gitdir, &spool).is_err());
+        assert!(ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).is_err());
         assert!(!spool.join(OWNER_FILE).exists());
     }
 
@@ -610,7 +610,7 @@ mod tests {
         let (_root, gitdir, spool) = fixture();
         let mut producer = SpoolLease::acquire(&spool).unwrap();
         producer.release_for_reclaim();
-        let held = ReclaimOwner::acquire(&gitdir, &spool).unwrap();
+        let held = ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).unwrap();
         assert!(
             !held.is_settled(),
             "process/FD exit alone never proves family completion"
@@ -628,12 +628,12 @@ mod tests {
             "sealed production must not resume"
         );
         other.release_for_reclaim();
-        assert!(ReclaimOwner::acquire(&other_gitdir, &other_spool)
+        assert!(ReclaimOwner::acquire(&other_gitdir, &other_spool, Duration::from_secs(0))
             .unwrap()
             .is_settled());
         std::fs::copy(other_spool.join(SETTLED_FILE), spool.join(SETTLED_FILE)).unwrap();
         assert!(
-            !ReclaimOwner::acquire(&gitdir, &spool).unwrap().is_settled(),
+            !ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).unwrap().is_settled(),
             "copied marker must not authorize a different spool"
         );
     }
@@ -658,13 +658,13 @@ mod tests {
     fn settled_owner_handoff_and_two_reclaimers_are_exclusive() {
         let (_root, gitdir, spool) = fixture();
         let mut producer = SpoolLease::acquire(&spool).unwrap();
-        assert!(ReclaimOwner::acquire(&gitdir, &spool).is_err());
+        assert!(ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).is_err());
         producer.release_for_reclaim();
-        let first = ReclaimOwner::acquire(&gitdir, &spool).unwrap();
+        let first = ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).unwrap();
         assert!(first.still_owned());
-        assert!(ReclaimOwner::acquire(&gitdir, &spool).is_err());
+        assert!(ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).is_err());
         drop(first);
-        assert!(ReclaimOwner::acquire(&gitdir, &spool).is_ok());
+        assert!(ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).is_ok());
     }
 
     #[test]
@@ -672,15 +672,15 @@ mod tests {
         let (root, gitdir, spool) = fixture();
         let producer = SpoolLease::acquire(&spool).unwrap();
         drop(producer);
-        let held = ReclaimOwner::acquire(&gitdir, &spool).unwrap();
+        let held = ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).unwrap();
         std::fs::rename(spool.join(OWNER_FILE), spool.join("old-owner.lock")).unwrap();
         std::fs::write(spool.join(OWNER_FILE), b"replacement").unwrap();
         assert!(!held.still_owned());
         let alias = root.path().join("dracon-staging-alias");
         std::os::unix::fs::symlink(&spool, &alias).unwrap();
-        assert!(ReclaimOwner::acquire(root.path(), &alias).is_err());
-        assert!(ReclaimOwner::acquire(root.path(), &spool).is_err());
-        assert!(ReclaimOwner::acquire(&gitdir, &spool.join("nested")).is_err());
+        assert!(ReclaimOwner::acquire(root.path(), &alias, Duration::from_secs(0)).is_err());
+        assert!(ReclaimOwner::acquire(root.path(), &spool, Duration::from_secs(0)).is_err());
+        assert!(ReclaimOwner::acquire(&gitdir, &spool.join("nested"), Duration::from_secs(0)).is_err());
     }
 
     #[test]
@@ -739,7 +739,7 @@ mod tests {
             .set_modified(std::time::UNIX_EPOCH)
             .unwrap();
         assert!(
-            ReclaimOwner::acquire(&gitdir, &spool).is_err(),
+            ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).is_err(),
             "old age must not override a live owner"
         );
         std::fs::write(spool.join("probe-exit"), b"exit").unwrap();
@@ -748,7 +748,7 @@ mod tests {
             std::thread::sleep(Duration::from_millis(10));
         }
         assert!(
-            ReclaimOwner::acquire(&gitdir, &spool).is_ok(),
+            ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).is_ok(),
             "process exit must release kernel ownership"
         );
     }
