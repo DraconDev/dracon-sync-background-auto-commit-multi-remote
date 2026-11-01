@@ -31,8 +31,13 @@ impl OwnerIdentity {
         #[cfg(unix)]
         {
             use std::os::unix::fs::MetadataExt;
-            Ok(Self { version: 1, directory_device: directory.dev(), directory_inode: directory.ino(),
-                lock_device: lock.dev(), lock_inode: lock.ino() })
+            Ok(Self {
+                version: 1,
+                directory_device: directory.dev(),
+                directory_inode: directory.ino(),
+                lock_device: lock.dev(),
+                lock_inode: lock.ino(),
+            })
         }
         #[cfg(not(unix))]
         {
@@ -48,10 +53,18 @@ fn scopes() -> &'static Mutex<Scopes> {
     SCOPES.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-pub(super) fn producer_scope(path: &Path) -> Result<Option<Arc<super::producer::EpochProducerScope>>> {
-    ensure!(!path.join(SETTLED_FILE).exists() && !path.join(CLOSING_FILE).exists(), "closed spool cannot resume production");
-    Ok(scopes().lock().map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?
-        .get(path).and_then(Weak::upgrade))
+pub(super) fn producer_scope(
+    path: &Path,
+) -> Result<Option<Arc<super::producer::EpochProducerScope>>> {
+    ensure!(
+        !path.join(SETTLED_FILE).exists() && !path.join(CLOSING_FILE).exists(),
+        "closed spool cannot resume production"
+    );
+    Ok(scopes()
+        .lock()
+        .map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?
+        .get(path)
+        .and_then(Weak::upgrade))
 }
 
 pub(crate) struct SpoolLease {
@@ -63,7 +76,12 @@ pub(crate) struct SpoolLease {
 
 impl SpoolLease {
     pub(crate) fn new(path: Option<PathBuf>) -> Self {
-        Self { path, owner: None, identity: None, scope: None }
+        Self {
+            path,
+            owner: None,
+            identity: None,
+            scope: None,
+        }
     }
 
     pub(crate) fn acquire(path: &Path) -> Result<Self> {
@@ -76,10 +94,24 @@ impl SpoolLease {
         owner.try_lock().context("spool owner already held")?;
         // If another reclaimer won the lock before initialization, or the
         // directory was replaced, do not continue writing through a stale path.
-        ensure!(same_identity(&directory, &std::fs::symlink_metadata(path)?), "spool directory replaced");
-        ensure!(same_identity(&owner.metadata()?, &std::fs::symlink_metadata(path.join(OWNER_FILE))?), "spool lock replaced");
+        ensure!(
+            same_identity(&directory, &std::fs::symlink_metadata(path)?),
+            "spool directory replaced"
+        );
+        ensure!(
+            same_identity(
+                &owner.metadata()?,
+                &std::fs::symlink_metadata(path.join(OWNER_FILE))?
+            ),
+            "spool lock replaced"
+        );
         let identity = OwnerIdentity::of(&directory, &owner.metadata()?)?;
-        Ok(Self { path: Some(path.to_path_buf()), owner: Some(owner), identity: Some(identity), scope: None })
+        Ok(Self {
+            path: Some(path.to_path_buf()),
+            owner: Some(owner),
+            identity: Some(identity),
+            scope: None,
+        })
     }
 
     pub(crate) fn named(&self) -> Option<&Path> {
@@ -90,13 +122,24 @@ impl SpoolLease {
     /// transfers a scope handle, never ownership authority: the kernel lock and
     /// identity-bound marker remain the cross-process protocol.
     pub(crate) fn begin_producers(&mut self, runtime: Duration) -> Result<()> {
-        ensure!(self.scope.is_none() && self.owner.is_some(), "producer scope already initialized or unowned");
+        ensure!(
+            self.scope.is_none() && self.owner.is_some(),
+            "producer scope already initialized or unowned"
+        );
         let path = self.path.as_ref().context("no spool path")?;
-        ensure!(!path.join(SETTLED_FILE).exists() && !path.join(CLOSING_FILE).exists(), "closed spool cannot resume production");
+        ensure!(
+            !path.join(SETTLED_FILE).exists() && !path.join(CLOSING_FILE).exists(),
+            "closed spool cannot resume production"
+        );
         let identity = self.identity.clone().context("no producer identity")?;
         let scope = Arc::new(super::producer::EpochProducerScope::new(runtime)?.bind(identity));
-        let mut registry = scopes().lock().map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?;
-        ensure!(registry.get(path).and_then(Weak::upgrade).is_none(), "producer scope already registered");
+        let mut registry = scopes()
+            .lock()
+            .map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?;
+        ensure!(
+            registry.get(path).and_then(Weak::upgrade).is_none(),
+            "producer scope already registered"
+        );
         registry.insert(path.clone(), Arc::downgrade(&scope));
         self.scope = Some(scope);
         Ok(())
@@ -106,18 +149,27 @@ impl SpoolLease {
     /// An uncertain/pending family never creates a marker. Failed attempts are
     /// not resumable production: subsequent dispatch against a sealed path fails.
     pub(crate) async fn settle_for_reclaim(&mut self, deadline: Duration) -> Result<()> {
-        let scope = self.scope.take().context("producer containment was not established")?;
+        let scope = self
+            .scope
+            .take()
+            .context("producer containment was not established")?;
         let path = self.path.as_ref().context("no spool path")?;
         let mut closing_options = owner_options();
         closing_options.create_new(true);
         let mut closing = closing_options.open(path.join(CLOSING_FILE))?;
-        closing.write_all(&serde_json::to_vec(self.identity.as_ref().context("no spool identity")?)?)?;
+        closing.write_all(&serde_json::to_vec(
+            self.identity.as_ref().context("no spool identity")?,
+        )?)?;
         closing.sync_all()?;
         File::open(path)?.sync_all()?;
         if let Some(path) = &self.path {
-            scopes().lock().map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?.remove(path);
+            scopes()
+                .lock()
+                .map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?
+                .remove(path);
         }
-        let scope = Arc::try_unwrap(scope).map_err(|_| anyhow::anyhow!("producer scope still borrowed; retain spool"))?;
+        let scope = Arc::try_unwrap(scope)
+            .map_err(|_| anyhow::anyhow!("producer scope still borrowed; retain spool"))?;
         let proof = scope.settle(deadline).await?;
         self.seal(proof)?;
         self.release_for_reclaim();
@@ -127,13 +179,22 @@ impl SpoolLease {
     fn seal(&mut self, proof: super::producer::SettledProducer) -> Result<()> {
         let path = self.path.as_ref().context("no spool path")?;
         let identity = self.identity.as_ref().context("no spool identity")?;
-        ensure!(proof.into_identity().as_ref() == Some(identity), "settlement proof belongs to a different producer");
+        ensure!(
+            proof.into_identity().as_ref() == Some(identity),
+            "settlement proof belongs to a different producer"
+        );
         let directory = std::fs::symlink_metadata(path)?;
         ensure!(directory.is_dir(), "spool directory replaced");
-        let owner = self.owner.as_ref().context("producer no longer owns spool")?;
+        let owner = self
+            .owner
+            .as_ref()
+            .context("producer no longer owns spool")?;
         let named = std::fs::symlink_metadata(path.join(OWNER_FILE))?;
-        ensure!(same_identity(&owner.metadata()?, &named)
-            && OwnerIdentity::of(&directory, &named)? == *identity, "producer identity changed before sealing");
+        ensure!(
+            same_identity(&owner.metadata()?, &named)
+                && OwnerIdentity::of(&directory, &named)? == *identity,
+            "producer identity changed before sealing"
+        );
         let mut options = owner_options();
         options.create_new(true);
         let mut marker = options.open(path.join(SETTLED_FILE))?;
@@ -171,9 +232,18 @@ pub(super) struct ReclaimOwner {
 
 impl ReclaimOwner {
     pub(super) fn acquire(gitdir: &Path, spool: &Path) -> Result<Self> {
-        let name = spool.file_name().and_then(|n| n.to_str()).context("invalid spool name")?;
-        ensure!(name.starts_with("dracon-staging-") || name.starts_with("dracon-epoch-message-"), "not a spool");
-        ensure!(spool.parent().context("no spool parent")?.canonicalize()? == gitdir.canonicalize()?, "spool outside gitdir");
+        let name = spool
+            .file_name()
+            .and_then(|n| n.to_str())
+            .context("invalid spool name")?;
+        ensure!(
+            name.starts_with("dracon-staging-") || name.starts_with("dracon-epoch-message-"),
+            "not a spool"
+        );
+        ensure!(
+            spool.parent().context("no spool parent")?.canonicalize()? == gitdir.canonicalize()?,
+            "spool outside gitdir"
+        );
         let directory = std::fs::symlink_metadata(spool)?;
         ensure!(directory.is_dir(), "spool must not be a symlink");
         // Open only. Missing legacy metadata is uncertainty, not abandonment.
@@ -181,10 +251,21 @@ impl ReclaimOwner {
         validate_lock(&before)?;
         let file = owner_options().open(spool.join(OWNER_FILE))?;
         validate_lock(&file.metadata()?)?;
-        ensure!(same_identity(&before, &file.metadata()?), "spool lock changed during open");
+        ensure!(
+            same_identity(&before, &file.metadata()?),
+            "spool lock changed during open"
+        );
         file.try_lock().context("spool is still owned")?;
-        let held = Self { lock: file.metadata()?, _file: file, spool: spool.to_path_buf(), directory };
-        ensure!(held.still_owned(), "spool identity changed while acquiring ownership");
+        let held = Self {
+            lock: file.metadata()?,
+            _file: file,
+            spool: spool.to_path_buf(),
+            directory,
+        };
+        ensure!(
+            held.still_owned(),
+            "spool identity changed while acquiring ownership"
+        );
         Ok(held)
     }
 
@@ -197,7 +278,10 @@ impl ReclaimOwner {
             let named = std::fs::symlink_metadata(&path)?;
             validate_lock(&named)?;
             let marker = owner_options().open(&path)?;
-            ensure!(same_identity(&named, &marker.metadata()?), "settled marker replaced");
+            ensure!(
+                same_identity(&named, &marker.metadata()?),
+                "settled marker replaced"
+            );
             let mut bytes = Vec::new();
             marker.take(4097).read_to_end(&mut bytes)?;
             ensure!(bytes.len() <= 4096, "oversized settled marker");
@@ -208,9 +292,14 @@ impl ReclaimOwner {
     }
 
     pub(super) fn still_owned(&self) -> bool {
-        let Ok(directory) = std::fs::symlink_metadata(&self.spool) else { return false };
-        let Ok(lock) = std::fs::symlink_metadata(self.spool.join(OWNER_FILE)) else { return false };
-        directory.is_dir() && lock.is_file()
+        let Ok(directory) = std::fs::symlink_metadata(&self.spool) else {
+            return false;
+        };
+        let Ok(lock) = std::fs::symlink_metadata(self.spool.join(OWNER_FILE)) else {
+            return false;
+        };
+        directory.is_dir()
+            && validate_lock(&lock).is_ok()
             && same_identity(&self.directory, &directory)
             && same_identity(&self.lock, &lock)
     }
@@ -223,7 +312,9 @@ fn owner_options() -> OpenOptions {
     {
         use std::os::unix::fs::OpenOptionsExt;
         // NONBLOCK prevents an unexpected FIFO from hanging before validation.
-        options.mode(0o600).custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK);
+        options
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK);
     }
     options
 }
@@ -233,8 +324,12 @@ fn validate_lock(metadata: &Metadata) -> Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
-        ensure!(metadata.uid() == unsafe { libc::geteuid() } && metadata.nlink() == 1,
-            "spool lock must be operator-owned and not hard-linked");
+        ensure!(
+            metadata.uid() == unsafe { libc::geteuid() }
+                && metadata.nlink() == 1
+                && metadata.mode() & 0o022 == 0,
+            "spool protocol file must be operator-owned, non-shared and not externally writable"
+        );
     }
     Ok(())
 }
@@ -276,6 +371,55 @@ mod tests {
     }
 
     #[test]
+    fn unlocked_without_settlement_is_uncertain_and_marker_is_identity_bound() {
+        let (_root, gitdir, spool) = fixture();
+        let mut producer = SpoolLease::acquire(&spool).unwrap();
+        producer.release_for_reclaim();
+        let held = ReclaimOwner::acquire(&gitdir, &spool).unwrap();
+        assert!(
+            !held.is_settled(),
+            "process/FD exit alone never proves family completion"
+        );
+        drop(held);
+        let (_other_root, other_gitdir, other_spool) = fixture();
+        let mut other = SpoolLease::acquire(&other_spool).unwrap();
+        // No child exists in this ownership-protocol fixture. Real family
+        // settlement is separately exercised by the producer host fixture.
+        let proof =
+            super::super::producer::SettledProducer::empty_fixture(other.identity.clone().unwrap());
+        other.seal(proof).unwrap();
+        assert!(
+            producer_scope(&other_spool).is_err(),
+            "sealed production must not resume"
+        );
+        other.release_for_reclaim();
+        assert!(ReclaimOwner::acquire(&other_gitdir, &other_spool)
+            .unwrap()
+            .is_settled());
+        std::fs::copy(other_spool.join(SETTLED_FILE), spool.join(SETTLED_FILE)).unwrap();
+        assert!(
+            !ReclaimOwner::acquire(&gitdir, &spool).unwrap().is_settled(),
+            "copied marker must not authorize a different spool"
+        );
+    }
+
+    #[test]
+    fn wrong_producer_proof_and_closing_marker_cannot_seal_or_restart() {
+        let (_root, _gitdir, spool) = fixture();
+        let mut producer = SpoolLease::acquire(&spool).unwrap();
+        let (_other_root, _other_gitdir, other_spool) = fixture();
+        let other = SpoolLease::acquire(&other_spool).unwrap();
+        let wrong =
+            super::super::producer::SettledProducer::empty_fixture(other.identity.clone().unwrap());
+        assert!(producer.seal(wrong).is_err());
+        assert!(!spool.join(SETTLED_FILE).exists());
+        std::fs::write(spool.join(CLOSING_FILE), b"unsettled closing attempt").unwrap();
+        assert!(producer_scope(&spool).is_err());
+        assert!(producer.begin_producers(Duration::from_secs(5)).is_err());
+        assert!(!spool.join(SETTLED_FILE).exists());
+    }
+
+    #[test]
     fn settled_owner_handoff_and_two_reclaimers_are_exclusive() {
         let (_root, gitdir, spool) = fixture();
         let mut producer = SpoolLease::acquire(&spool).unwrap();
@@ -306,13 +450,18 @@ mod tests {
 
     #[test]
     fn child_holds_spool_owner_probe() {
-        let Some(path) = std::env::var_os("DRACON_SPOOL_OWNER_PROBE") else { return };
+        let Some(path) = std::env::var_os("DRACON_SPOOL_OWNER_PROBE") else {
+            return;
+        };
         let path = PathBuf::from(path);
         let _lease = SpoolLease::acquire(&path).unwrap();
         std::fs::write(path.join("probe-ready"), b"held").unwrap();
         let deadline = Instant::now() + Duration::from_secs(10);
         while !path.join("probe-exit").exists() {
-            assert!(Instant::now() < deadline, "parent did not release child probe");
+            assert!(
+                Instant::now() < deadline,
+                "parent did not release child probe"
+            );
             std::thread::sleep(Duration::from_millis(10));
         }
     }
@@ -328,24 +477,44 @@ mod tests {
     #[test]
     fn old_but_live_child_is_excluded_then_exit_releases_ownership() {
         let (_root, gitdir, spool) = fixture();
-        let mut child = OwnedChild(Command::new(std::env::current_exe().unwrap())
-            .args(["--exact", "git::epoch_spool::ownership::tests::child_holds_spool_owner_probe"])
-            .env("DRACON_SPOOL_OWNER_PROBE", &spool)
-            .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::inherit())
-            .spawn().unwrap());
+        let mut child = OwnedChild(
+            Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "git::epoch_spool::ownership::tests::child_holds_spool_owner_probe",
+                ])
+                .env("DRACON_SPOOL_OWNER_PROBE", &spool)
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::inherit())
+                .spawn()
+                .unwrap(),
+        );
         let deadline = Instant::now() + Duration::from_secs(5);
         while !spool.join("probe-ready").exists() {
             assert!(Instant::now() < deadline, "child did not acquire ownership");
-            assert!(child.0.try_wait().unwrap().is_none(), "child exited without ready signal");
+            assert!(
+                child.0.try_wait().unwrap().is_none(),
+                "child exited without ready signal"
+            );
             std::thread::sleep(Duration::from_millis(10));
         }
-        File::open(&spool).unwrap().set_modified(std::time::UNIX_EPOCH).unwrap();
-        assert!(ReclaimOwner::acquire(&gitdir, &spool).is_err(), "old age must not override a live owner");
+        File::open(&spool)
+            .unwrap()
+            .set_modified(std::time::UNIX_EPOCH)
+            .unwrap();
+        assert!(
+            ReclaimOwner::acquire(&gitdir, &spool).is_err(),
+            "old age must not override a live owner"
+        );
         std::fs::write(spool.join("probe-exit"), b"exit").unwrap();
         while child.0.try_wait().unwrap().is_none() {
             assert!(Instant::now() < deadline, "child did not settle");
             std::thread::sleep(Duration::from_millis(10));
         }
-        assert!(ReclaimOwner::acquire(&gitdir, &spool).is_ok(), "process exit must release kernel ownership");
+        assert!(
+            ReclaimOwner::acquire(&gitdir, &spool).is_ok(),
+            "process exit must release kernel ownership"
+        );
     }
 }

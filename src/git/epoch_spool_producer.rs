@@ -143,7 +143,9 @@ impl SettledProducer {
     }
     #[cfg(test)]
     pub(super) fn empty_fixture(identity: super::ownership::OwnerIdentity) -> Self {
-        Self { identity: Some(identity) }
+        Self {
+            identity: Some(identity),
+        }
     }
 }
 
