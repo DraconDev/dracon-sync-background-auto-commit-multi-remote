@@ -19,8 +19,10 @@ fn directory(path: &Path) -> Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
-        ensure!(metadata.uid() == unsafe { libc::geteuid() } && metadata.mode() & 0o022 == 0,
-            "CAS directory must be operator-owned and not externally writable");
+        ensure!(
+            metadata.uid() == unsafe { libc::geteuid() } && metadata.mode() & 0o022 == 0,
+            "CAS directory must be operator-owned and not externally writable"
+        );
     }
     Ok(())
 }
@@ -41,19 +43,28 @@ pub(super) async fn share(
     let packdir = store.join("objects/pack");
     let packed = work.join("complete.pack");
     fs::rename(packdir.join(format!("pack-{hash}.pack")), &packed)?;
-    fs::rename(packdir.join(format!("pack-{hash}.idx")), work.join("complete.idx"))?;
+    fs::rename(
+        packdir.join(format!("pack-{hash}.idx")),
+        work.join("complete.idx"),
+    )?;
     let count = pack_count(&packed)?;
     let unpacked = work.join("unpacked.git");
     init(&unpacked, format, timeout).await?;
     let mut command = git(&unpacked);
-    command.args(["unpack-objects", "--strict"])
+    command
+        .args(["unpack-objects", "--strict"])
         .stdin(File::open(&packed)?);
     run(command, timeout).await?;
     verify(&unpacked, &record.join("roots"), timeout).await?;
 
     let inventory = record.join("objects.tsv");
     let mut command = git(&unpacked);
-    command.args(["cat-file", "--batch-all-objects", "--batch-check=%(objectname) %(objecttype) %(objectsize)"])
+    command
+        .args([
+            "cat-file",
+            "--batch-all-objects",
+            "--batch-check=%(objectname) %(objecttype) %(objectsize)",
+        ])
         .stdout(File::create(&inventory)?);
     run(command, timeout).await?;
     let width = if format == "sha1" { 40 } else { 64 };
@@ -61,18 +72,31 @@ pub(super) async fn share(
     for line in BufReader::new(File::open(&inventory)?).lines() {
         let line = line?;
         let fields: Vec<_> = line.split_whitespace().collect();
-        ensure!(fields.len() == 3 && oid(fields[0], width)
-            && ["blob", "tree", "commit", "tag"].contains(&fields[1]), "invalid unpacked object inventory");
+        ensure!(
+            fields.len() == 3
+                && oid(fields[0], width)
+                && ["blob", "tree", "commit", "tag"].contains(&fields[1]),
+            "invalid unpacked object inventory"
+        );
         fields[2].parse::<u64>()?;
-        ensure!(objects.insert(fields[0].to_owned()), "duplicate unpacked object");
+        ensure!(
+            objects.insert(fields[0].to_owned()),
+            "duplicate unpacked object"
+        );
     }
-    ensure!(objects.len() == count, "complete pack/unpacked inventory mismatch");
+    ensure!(
+        objects.len() == count,
+        "complete pack/unpacked inventory mismatch"
+    );
     let cas = rescue.join("cas");
     directory(&cas)?;
     let cas_objects = cas.join("objects");
     directory(&cas_objects)?;
     for object in objects {
-        let source = unpacked.join("objects").join(&object[..2]).join(&object[2..]);
+        let source = unpacked
+            .join("objects")
+            .join(&object[..2])
+            .join(&object[2..]);
         regular(&source)?;
         let fanout = cas_objects.join(&object[..2]);
         directory(&fanout)?;
@@ -103,7 +127,9 @@ pub(super) async fn share(
         ensure!(oid(root, width), "invalid recovery root");
         refs.push_str(&format!("{root} refs/dracon-recovery/{root}\n"));
     }
-    let mut target = OpenOptions::new().write(true).create_new(true)
+    let mut target = OpenOptions::new()
+        .write(true)
+        .create_new(true)
         .open(store.join("packed-refs"))?;
     target.write_all(refs.as_bytes())?;
     target.sync_all()?;

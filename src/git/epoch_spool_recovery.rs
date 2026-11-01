@@ -595,7 +595,10 @@ async fn prepare_inner(
     #[cfg(test)]
     if matches!(_fault, Fault::CorruptBeforeVerify) {
         let inventory = fs::read_to_string(record.path().join("objects.tsv"))?;
-        let object = inventory.split_whitespace().next().context("fault fixture empty")?;
+        let object = inventory
+            .split_whitespace()
+            .next()
+            .context("fault fixture empty")?;
         let path = store.join("objects").join(&object[..2]).join(&object[2..]);
         let mut bytes = fs::read(&path)?;
         ensure!(bytes.len() > 15, "fault fixture object too short");
@@ -720,6 +723,79 @@ mod tests {
             assert!(!store.join("objects/info/alternates").exists());
             assert_eq!(text(&store, &["remote"], 10).await.unwrap(), "");
         }
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn shared_objects_are_independent_and_semantic_receipts_survive_record_gc() {
+        use std::os::unix::fs::MetadataExt;
+        let (_root, repo, spool, blob) = fixture("sha1").await;
+        let first = prepare_record(&repo, &spool, 20).await.unwrap();
+        let second = prepare_record(&repo, &spool, 20).await.unwrap();
+        let object = |record: &Path| {
+            record
+                .join("store.git/objects")
+                .join(&blob[..2])
+                .join(&blob[2..])
+        };
+        let left = fs::metadata(object(&first.record)).unwrap();
+        let right = fs::metadata(object(&second.record)).unwrap();
+        assert_eq!(
+            (left.dev(), left.ino()),
+            (right.dev(), right.ino()),
+            "identical objects must share physical storage"
+        );
+        let manifest = fs::read(first.record.join("manifest.sha256")).unwrap();
+        text(&first.record.join("store.git"), &["gc", "--prune=now"], 10)
+            .await
+            .unwrap();
+        assert_eq!(
+            fs::read(first.record.join("manifest.sha256")).unwrap(),
+            manifest
+        );
+        verify(
+            &first.record.join("store.git"),
+            &first.record.join("roots"),
+            10,
+        )
+        .await
+        .unwrap();
+        verify(
+            &second.record.join("store.git"),
+            &second.record.join("roots"),
+            10,
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            text(
+                &second.record.join("store.git"),
+                &["cat-file", "blob", &blob],
+                10
+            )
+            .await
+            .unwrap(),
+            "original recovery payload"
+        );
+    }
+
+    #[tokio::test]
+    async fn corrupt_existing_shared_object_is_not_overwritten_or_accepted() {
+        let (_root, repo, spool, blob) = fixture("sha1").await;
+        let _first = prepare_record(&repo, &spool, 20).await.unwrap();
+        let shared = repo
+            .join(".git/dracon-rescue/cas/objects")
+            .join(&blob[..2])
+            .join(&blob[2..]);
+        fs::write(&shared, b"corrupt shared object").unwrap();
+        let index = fs::read(spool.join("index")).unwrap();
+        assert!(prepare_record(&repo, &spool, 20).await.is_err());
+        assert_eq!(
+            fs::read(shared).unwrap(),
+            b"corrupt shared object",
+            "recovery must never repair by overwriting retained objects"
+        );
+        assert_eq!(fs::read(spool.join("index")).unwrap(), index);
     }
 
     #[tokio::test]
