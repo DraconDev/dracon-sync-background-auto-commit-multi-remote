@@ -20,11 +20,7 @@ mod reclaim;
 mod recovery;
 pub(crate) use dispatch::run_spool_git;
 pub(crate) use ownership::SpoolLease;
-#[allow(unused_imports)]
-pub(crate) use producer::{
-    epoch_producer_trampoline, producer_environment, EpochProducerCommand, EpochProducerScope,
-    ProducerExit, SettledProducer,
-};
+pub(crate) use producer::epoch_producer_trampoline;
 
 /// Whole-pass budget as well as a directory-count cap. Cancelling preparation
 /// retains its kernel fence until its own Git processes have joined; that

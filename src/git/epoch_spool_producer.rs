@@ -1,7 +1,6 @@
 //! Epoch-only producer containment, not a generic Command adapter or a reaper.
 //! Same-UID deliberate migration to another cgroup is outside this trust boundary.
 //! No source storage is deleted and no settled marker is written here.
-#![allow(dead_code)] // Deliberately disconnected until the ownership integration is reviewed.
 
 use anyhow::{bail, ensure, Context, Result};
 use std::collections::BTreeMap;
