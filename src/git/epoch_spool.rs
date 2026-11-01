@@ -8,6 +8,19 @@ use std::path::{Path, PathBuf};
 const MAX_SPOOLS_PER_PASS: usize = 64;
 const LOSSLESS_RECLAIM_QUALIFIED: bool = false;
 
+#[cfg(test)]
+#[path = "epoch_spool_fixture_gate.rs"]
+mod fixture_gate;
+#[cfg(test)]
+pub(crate) use fixture_gate::allow_reclaim_in_fixture;
+
+fn reclaim_is_qualified(repo: &Path) -> bool {
+    #[cfg(test)]
+    { LOSSLESS_RECLAIM_QUALIFIED || fixture_gate::permitted(repo) }
+    #[cfg(not(test))]
+    { let _ = repo; LOSSLESS_RECLAIM_QUALIFIED }
+}
+
 #[path = "epoch_spool_dispatch.rs"]
 mod dispatch;
 #[path = "epoch_spool_ownership.rs"]
@@ -30,7 +43,7 @@ pub(crate) async fn reap_abandoned_spools(
     max_age_secs: u64,
     op_timeout_secs: u64,
 ) -> usize {
-    if !LOSSLESS_RECLAIM_QUALIFIED {
+    if !reclaim_is_qualified(repo) {
         return 0;
     }
     let seconds = op_timeout_secs.clamp(30, 600);
@@ -61,7 +74,7 @@ pub(crate) async fn reap_abandoned_spools(
 /// after publication/empty candidates and by the automatic reaper. No branch
 /// treats a present object, an empty pack list or publication as a proof.
 pub(crate) async fn reclaim_spool_if_lossless(repo: &Path, spool: &Path, timeout: u64) -> bool {
-    if !LOSSLESS_RECLAIM_QUALIFIED {
+    if !reclaim_is_qualified(repo) {
         eprintln!(
             "⚠️ {}: epoch spool {} preserved; durable recovery qualification incomplete",
             repo.display(),
