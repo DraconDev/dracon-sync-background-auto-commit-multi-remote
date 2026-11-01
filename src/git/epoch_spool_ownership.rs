@@ -15,6 +15,7 @@ use std::time::Duration;
 const OWNER_FILE: &str = "reclaim-owner.lock";
 const SETTLED_FILE: &str = "reclaim-settled.json";
 const CLOSING_FILE: &str = "reclaim-closing.json";
+const RESCUE_DIR: &str = "dracon-rescue";
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -285,6 +286,7 @@ pub(super) struct ReclaimOwner {
     spool: PathBuf,
     directory: Metadata,
     lock: Metadata,
+    lock_path: PathBuf,
     inactivity: Inactivity,
 }
 
@@ -294,8 +296,9 @@ impl ReclaimOwner {
     /// A protocol spool carries the owner lock; its inactivity proof is the
     /// settled marker and a missing marker stays uncertainty. A legacy spool
     /// has no lease at all: it may only be fenced when it is older than the
-    /// scheduling floor and no process references it, and the fence is created
-    /// exclusively so two reclaimers cannot both claim it.
+    /// scheduling floor and no process references it. The legacy fence lives
+    /// outside the source, so a legacy spool never gains ownership metadata it
+    /// never had.
     pub(super) fn acquire(
         gitdir: &Path,
         spool: &Path,
@@ -319,10 +322,16 @@ impl ReclaimOwner {
         match std::fs::symlink_metadata(&lock_path) {
             Ok(before) => {
                 validate_lock(&before)?;
-                Self::acquire_locked(spool, directory, before, Inactivity::SettledMarker)
+                Self::acquire_locked(
+                    spool,
+                    directory,
+                    lock_path,
+                    before,
+                    Inactivity::SettledMarker,
+                )
             }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                Self::acquire_legacy(spool, directory, legacy_floor)
+                Self::acquire_legacy(gitdir, spool, directory, legacy_floor)
             }
             Err(error) => Err(error.into()),
         }
@@ -331,10 +340,11 @@ impl ReclaimOwner {
     fn acquire_locked(
         spool: &Path,
         directory: Metadata,
+        lock_path: PathBuf,
         before: Metadata,
         inactivity: Inactivity,
     ) -> Result<Self> {
-        let file = owner_options().open(spool.join(OWNER_FILE))?;
+        let file = owner_options().open(&lock_path)?;
         validate_lock(&file.metadata()?)?;
         ensure!(
             same_identity(&before, &file.metadata()?),
@@ -346,6 +356,7 @@ impl ReclaimOwner {
             _file: file,
             spool: spool.to_path_buf(),
             directory,
+            lock_path,
             inactivity,
         };
         ensure!(
@@ -360,6 +371,7 @@ impl ReclaimOwner {
     /// live epoch cannot reach, and an observation that no process references
     /// the source right now.
     fn acquire_legacy(
+        gitdir: &Path,
         spool: &Path,
         directory: Metadata,
         legacy_floor: std::time::Duration,
@@ -374,17 +386,34 @@ impl ReclaimOwner {
             age >= legacy_floor,
             "legacy spool is younger than the scheduling floor"
         );
-        let mut options = owner_options();
-        options.create_new(true);
-        let file = options.open(spool.join(OWNER_FILE))?;
+        let fences = gitdir.join(RESCUE_DIR).join("fences");
+        std::fs::create_dir_all(&fences).context("legacy fence directory")?;
+        let name = spool
+            .file_name()
+            .and_then(|n| n.to_str())
+            .context("invalid spool name")?;
+        let fence = fences.join(format!("{name}.lock"));
+        let file = match std::fs::symlink_metadata(&fence) {
+            Ok(before) => {
+                validate_lock(&before)?;
+                owner_options().open(&fence)?
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let mut options = owner_options();
+                options.create_new(true);
+                options.open(&fence)?
+            }
+            Err(error) => return Err(error.into()),
+        };
         validate_lock(&file.metadata()?)?;
         file.try_lock()
-            .context("legacy spool lease is already held")?;
+            .context("legacy spool fence is already held")?;
         let held = Self {
             lock: file.metadata()?,
             _file: file,
             spool: spool.to_path_buf(),
             directory,
+            lock_path: fence,
             inactivity: Inactivity::LegacyFence,
         };
         ensure!(
@@ -446,7 +475,7 @@ impl ReclaimOwner {
         let Ok(directory) = std::fs::symlink_metadata(&self.spool) else {
             return false;
         };
-        let Ok(lock) = std::fs::symlink_metadata(self.spool.join(OWNER_FILE)) else {
+        let Ok(lock) = std::fs::symlink_metadata(&self.lock_path) else {
             return false;
         };
         directory.is_dir()
