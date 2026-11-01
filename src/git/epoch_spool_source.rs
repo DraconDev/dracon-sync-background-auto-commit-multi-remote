@@ -92,6 +92,14 @@ fn recorded(record: &Path) -> Result<Snapshot> {
     let mut bytes = Vec::new();
     super::regular(&record.join("source-fingerprint.json"))?.take(16 * 1024 * 1024 + 1).read_to_end(&mut bytes)?;
     ensure!(bytes.len() <= 16 * 1024 * 1024, "oversized source fingerprint");
+    let manifest = super::regular(&record.join("manifest.sha256"))?;
+    let mut manifest_bytes = Vec::new();
+    manifest.take(16 * 1024 * 1024 + 1).read_to_end(&mut manifest_bytes)?;
+    ensure!(manifest_bytes.len() <= 16 * 1024 * 1024, "oversized recovery manifest");
+    let binding = format!("{:x} {}", Sha256::digest(&bytes),
+        serde_json::to_string(&b"source-fingerprint.json".as_slice())?);
+    ensure!(std::str::from_utf8(&manifest_bytes)?.lines().any(|line| line == binding),
+        "source fingerprint is not receipt-bound");
     let snapshot: Snapshot = serde_json::from_slice(&bytes)?;
     ensure!(snapshot.version == 1 && snapshot.files.len() <= 4096, "unsupported source fingerprint");
     Ok(snapshot)

@@ -15,6 +15,8 @@ use tokio::process::Command;
 
 #[path = "epoch_spool_cas.rs"]
 mod cas;
+#[path = "epoch_spool_source.rs"]
+mod source;
 
 #[derive(Debug)]
 #[allow(dead_code)] // Read by the future qualified caller, not the current reaper.
@@ -145,6 +147,7 @@ fn copy_regular(from: &Path, to: &Path) -> Result<()> {
     let mut source = regular(from)?;
     let mut target = OpenOptions::new().write(true).create_new(true).open(to)?;
     std::io::copy(&mut source, &mut target)?;
+    target.set_permissions(source.metadata()?.permissions())?;
     Ok(())
 }
 
@@ -499,6 +502,18 @@ pub(super) async fn prepare_owned_record(
     prepare_guarded(repo, spool, seconds, Fault::None, owner).await
 }
 
+pub(super) async fn verify_source_owned(
+    record: &Path,
+    spool: &Path,
+    owner: super::ownership::ReclaimOwner,
+) -> Result<super::ownership::ReclaimOwner> {
+    source::verify_owned(record, spool, owner).await
+}
+
+pub(super) fn final_source_check(record: &Path, spool: &Path) -> Result<()> {
+    source::final_check(record, spool)
+}
+
 async fn prepare_guarded<G: Send + 'static>(
     repo: &Path,
     spool: &Path,
@@ -540,6 +555,7 @@ async fn prepare_inner(
         !spool.join("preserve-rejected").exists() && !spool.join("original-index").exists(),
         "preservation marker"
     );
+    let source_snapshot = source::capture(spool).await?;
     let format = text(repo, &["rev-parse", "--show-object-format"], timeout).await?;
     let width = match format.as_str() {
         "sha1" => 40,
@@ -617,6 +633,8 @@ async fn prepare_inner(
             copy_regular(&entry.path(), &metadata.join(&name))?;
         }
     }
+    source::verify_copies(&source_snapshot, &metadata, &inputs).await?;
+    fs::write(record.path().join("source-fingerprint.json"), serde_json::to_vec(&source_snapshot)?)?;
     ensure!(metadata.join("index").is_file(), "spool index missing");
     supported_index(&metadata.join("index"), width)?;
     let build = work.path().join("build.git");
