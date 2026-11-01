@@ -1,0 +1,67 @@
+--- original/epoch_spool_unique.rs
++++ mutated/epoch_spool_unique.rs
+@@ -95,61 +95,9 @@
+     }
+     #[cfg(not(test))]
+     let _ = corrupt_after_write;
+-    let listing = work.join("unique-listing");
+-    let mut command = git(&isolated);
+-    command
+-        .args(["verify-pack", "-v"])
+-        .arg(pack.with_extension("idx"))
+-        .stdout(File::create(&listing)?);
+-    run(command, timeout).await?;
+-    ensure!(
+-        listed_objects(&listing, width, pack_count(&pack)?)? == missing,
+-        "unique rescue enumeration differs from requested objects"
+-    );
+-    // The isolated ODB has only the new sidecar and its index, no refs, source,
+-    // inherited/configured alternates, or main repository fallback.
+-    let target = isolated
+-        .join("objects/pack")
+-        .join(format!("pack-{hash}.pack"));
+-    fs::hard_link(&pack, &target)?;
+-    fs::hard_link(pack.with_extension("idx"), target.with_extension("idx"))?;
+-    let mut command = git(&isolated);
+-    command
+-        .args(["cat-file", "--batch"])
+-        .stdin(File::open(&missing_path)?)
+-        .stdout(Stdio::null());
+-    run(command, timeout).await?;
+-    let mut command = git(&isolated);
+-    command
+-        .args([
+-            "cat-file",
+-            "--batch-check=%(objectname) %(objecttype) %(objectsize)",
+-        ])
+-        .stdin(File::open(&missing_path)?);
+-    let readback = String::from_utf8(run(command, timeout).await?)?;
+-    let inventory = fs::read_to_string(record.join("objects.tsv"))?;
+-    let inventory: BTreeSet<_> = inventory.lines().collect();
+-    ensure!(
+-        readback.lines().count() == missing.len(),
+-        "incomplete isolated unique readback"
+-    );
+-    let mut uncompressed_bytes = 0u64;
+-    for (expected, actual) in missing.iter().zip(readback.lines()) {
+-        ensure!(
+-            actual.split_whitespace().next() == Some(expected.as_str())
+-                && inventory.contains(actual),
+-            "isolated unique object/content identity mismatch"
+-        );
+-        let size: u64 = actual
+-            .split_whitespace()
+-            .nth(2)
+-            .context("missing unique object size")?
+-            .parse()?;
+-        uncompressed_bytes = uncompressed_bytes
+-            .checked_add(size)
+-            .context("unique byte count overflow")?;
+-    }
+-    fs::write(record.join("unique-readback.tsv"), readback)?;
++    // MUTATION: accept the written sidecar without verification.
++    let uncompressed_bytes = 0u64;
++    fs::write(record.join("unique-readback.tsv"), b"")?;
+     Ok(Payload {
+         count: missing.len(),
+         uncompressed_bytes,

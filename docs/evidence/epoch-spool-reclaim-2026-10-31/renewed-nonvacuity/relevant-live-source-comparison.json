@@ -1,0 +1,98 @@
+[
+  {
+    "path": "dracon-sync/src/git/epoch_spool_ownership.rs",
+    "sha256": "5143333b654253bc2b002bf02c4adb0c2e2eeb961ac1d949c4cf56bdc3501c81",
+    "snapshot_sha256": "5143333b654253bc2b002bf02c4adb0c2e2eeb961ac1d949c4cf56bdc3501c81",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/git/epoch_spool_producer.rs",
+    "sha256": "3062bd0a75b91f131996f645074e292c958469cfddfe4b7fac06bbc1f7a9d550",
+    "snapshot_sha256": "3062bd0a75b91f131996f645074e292c958469cfddfe4b7fac06bbc1f7a9d550",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/git/epoch_spool_dispatch.rs",
+    "sha256": "59dda91e9831e260906dc30d49f659d2d8d38f3fb14f245b6b0772894799ff2d",
+    "snapshot_sha256": "59dda91e9831e260906dc30d49f659d2d8d38f3fb14f245b6b0772894799ff2d",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/git/epoch_spool.rs",
+    "sha256": "54007392329cf1d31af077da7bba05f8e7a27d8db0f506c3a8d250cb9b61056f",
+    "snapshot_sha256": "54007392329cf1d31af077da7bba05f8e7a27d8db0f506c3a8d250cb9b61056f",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/git/epoch_spool_source.rs",
+    "sha256": "d225d36c6dba6313c1ec8f30c2e48eca4e7448f338bcb1ac2ce530729c100a4a",
+    "snapshot_sha256": "d225d36c6dba6313c1ec8f30c2e48eca4e7448f338bcb1ac2ce530729c100a4a",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/git/epoch_spool_unique.rs",
+    "sha256": "a49faa896f81e6c721bd1b20c1ee9dff118efd9c18604b05ae5cca572e338c12",
+    "snapshot_sha256": "a49faa896f81e6c721bd1b20c1ee9dff118efd9c18604b05ae5cca572e338c12",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/git/epoch_spool_cas.rs",
+    "sha256": "97b27d5112a68a33509db8f7bf708e7aeff01371168af164d91279f33a3c21a3",
+    "snapshot_sha256": "97b27d5112a68a33509db8f7bf708e7aeff01371168af164d91279f33a3c21a3",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/git/epoch_spool_liveness.rs",
+    "sha256": "316a3c66718886fa2fdd2a67702e3828961baba989c99999e980bc95d02dca9d",
+    "snapshot_sha256": "316a3c66718886fa2fdd2a67702e3828961baba989c99999e980bc95d02dca9d",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/git/epoch_spool_tests.rs",
+    "sha256": "bf402a2de129fe07dc9aabba82f52ae36c92057a2005146f3d3c553f281b57a9",
+    "snapshot_sha256": "bf402a2de129fe07dc9aabba82f52ae36c92057a2005146f3d3c553f281b57a9",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/git/epoch_spool_recovery.rs",
+    "sha256": "e7350600e0432f9818c72a5eb934987acda62b8dff66a123214f18e4d797cf72",
+    "snapshot_sha256": "e7350600e0432f9818c72a5eb934987acda62b8dff66a123214f18e4d797cf72",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/git/epoch_spool_fixture_gate.rs",
+    "sha256": "1754d424ba34fcdc1fc9f509fd42c5ca184850fe847bb8020e7f17287a56aeb0",
+    "snapshot_sha256": "1754d424ba34fcdc1fc9f509fd42c5ca184850fe847bb8020e7f17287a56aeb0",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/git/epoch_spool_reclaim.rs",
+    "sha256": "1ed091cd8662020ac07f6e1948a837dd8a8dcaf331bd7c73fa5bea4e1b781ecf",
+    "snapshot_sha256": "1ed091cd8662020ac07f6e1948a837dd8a8dcaf331bd7c73fa5bea4e1b781ecf",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/sync/staged_epoch.rs",
+    "sha256": "ce48fe17068c3a02b659fdbcb29c146c72aa111aeb57ff6182ca1200aa6772dc",
+    "snapshot_sha256": "ce48fe17068c3a02b659fdbcb29c146c72aa111aeb57ff6182ca1200aa6772dc",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/src/main.rs",
+    "sha256": "02df791d71dd58e1e96e24de7c80392b5a8e2cd4d148bcc753852c88cfac0b6d",
+    "snapshot_sha256": "02df791d71dd58e1e96e24de7c80392b5a8e2cd4d148bcc753852c88cfac0b6d",
+    "matches": true
+  },
+  {
+    "path": "dracon-sync/build.rs",
+    "sha256": "3e2f94117d4d5ead4596cf18aad96ed2adca0d13179c063d31094e0c5ae8d63b",
+    "snapshot_sha256": "3e2f94117d4d5ead4596cf18aad96ed2adca0d13179c063d31094e0c5ae8d63b",
+    "matches": true
+  },
+  {
+    "path": "Cargo.lock",
+    "sha256": "194d063fb474bb24563faf460e81fa3a2bcedbabf586cfc6402f457c9f265a48",
+    "snapshot_sha256": "194d063fb474bb24563faf460e81fa3a2bcedbabf586cfc6402f457c9f265a48",
+    "matches": true
+  }
+]

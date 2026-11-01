@@ -1,0 +1,9 @@
+test_git_worktree_common_and_nested_module_discovery (test_inventory_strict.InventoryTests.test_git_worktree_common_and_nested_module_discovery) ... ok
+test_hardlinks_are_counted_logically_but_allocation_once (test_inventory_strict.InventoryTests.test_hardlinks_are_counted_logically_but_allocation_once) ... ok
+test_marker_type_identity_and_legacy_classification (test_inventory_strict.InventoryTests.test_marker_type_identity_and_legacy_classification) ... ok
+test_read_error_and_symlink_are_not_silent_zeroes (test_inventory_strict.InventoryTests.test_read_error_and_symlink_are_not_silent_zeroes) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.553s
+
+OK

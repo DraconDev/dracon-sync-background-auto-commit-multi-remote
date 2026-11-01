@@ -1,0 +1,62 @@
+    Blocking waiting for file lock on build directory
+warning: function `continuation_lines` is never used
+     --> dracon-sync/src/report.rs:17149:8
+      |
+17149 |     fn continuation_lines(rendered: &str) -> Vec<String> {
+      |        ^^^^^^^^^^^^^^^^^^
+      |
+      = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `dracon-sync` (bin "dracon-sync" test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.82s
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 12 tests
+test report::current_health::tests::rich_rendered_states_keep_complete_activity_and_single_line_rows ... FAILED
+test report::tests::rich_ab_cell_compacts_hostile_ahead_counts ... ok
+test report::tests::rich_activity_does_not_clip_duplicate_counts ... ok
+test report::tests::rich_footer_surfaces_reasons_without_healthy_noise ... ok
+test report::tests::rich_table_renders_single_line_rows_at_supported_widths ... FAILED
+test report::tests::test_repos_legend_covers_all_rich_columns ... ok
+test report::tests::test_rich_hint_link_out ... ok
+test report::tests::test_rich_table_fits_narrow_terminal ... ok
+test report::tests::test_rich_table_headers_fit_columns ... ok
+test report::v011321_tests::failed_push_age_fits_rich_cell_without_losing_failure_or_age ... FAILED
+test report::v011321_tests::rich_table_does_not_wrap_publishing_status ... ok
+test report::v011321_tests::status_labels_fit_the_rich_column ... ok
+
+failures:
+
+---- report::current_health::tests::rich_rendered_states_keep_complete_activity_and_single_line_rows stdout ----
+
+thread 'report::current_health::tests::rich_rendered_states_keep_complete_activity_and_single_line_rows' (3887159) panicked at dracon-sync/src/current_health_tests.rs:404:13:
+assertion `left == right` failed: ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  left: 167
+ right: 165
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- report::tests::rich_table_renders_single_line_rows_at_supported_widths stdout ----
+
+thread 'report::tests::rich_table_renders_single_line_rows_at_supported_widths' (3887165) panicked at dracon-sync/src/report.rs:13371:17:
+assertion `left == right` failed
+  left: 167
+ right: 165
+
+---- report::v011321_tests::failed_push_age_fits_rich_cell_without_losing_failure_or_age stdout ----
+
+thread 'report::v011321_tests::failed_push_age_fits_rich_cell_without_losing_failure_or_age' (3887171) panicked at dracon-sync/src/report.rs:17332:13:
+╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│  #   STATUS          REPO               ACTIVITY          📝    📦    🆕    🚫   A/B       PUSH          REM         1H      6H     24H    GIT SIZE   TOUCHED       │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│  1   ✅ CLEAN                           ⚪ idle            —     —     —     —   —         ❌ FAIL 22m   🐙           0       0       0           ?   -             │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+failures:
+    report::current_health::tests::rich_rendered_states_keep_complete_activity_and_single_line_rows
+    report::tests::rich_table_renders_single_line_rows_at_supported_widths
+    report::v011321_tests::failed_push_age_fits_rich_cell_without_losing_failure_or_age
+
+test result: FAILED. 9 passed; 3 failed; 0 ignored; 0 measured; 1587 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

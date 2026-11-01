@@ -1,0 +1,138 @@
+{
+  "operation": "read-only observation interval; NO corrected drain executed",
+  "before": "2026-11-01T13:59:06.588952+00:00",
+  "after": "2026-11-01T14:00:47.899582+00:00",
+  "scope_matches": true,
+  "before_gitdirs": 59,
+  "after_gitdirs": 59,
+  "before_spools": 334,
+  "after_spools": 330,
+  "before_spool_bytes": 852015697,
+  "after_spool_bytes": 865202057,
+  "before_recovery_logical_bytes": 1945215904,
+  "after_recovery_logical_bytes": 1945215904,
+  "before_recovery_allocated_bytes_inode_dedup": 1933897728,
+  "after_recovery_allocated_bytes_inode_dedup": 1933897728,
+  "before_categories": {
+    "ownership_uncertain_legacy": 327,
+    "active_fresh": 7
+  },
+  "after_categories": {
+    "ownership_uncertain_legacy": 327,
+    "active_fresh": 3
+  },
+  "new_sources": [],
+  "missing_sources": [
+    {
+      "path": "/home/dracon/Dev/dracon-platform/.git/modules/web-games-capture-anime-girls/dracon-epoch-message-c04Q0Y",
+      "gitdir": "/home/dracon/Dev/dracon-platform/.git/modules/web-games-capture-anime-girls",
+      "category": "active_fresh",
+      "preservation_markers": [],
+      "reason": "below scheduling floor; age is not inactivity proof",
+      "source_identity": {
+        "device": 66306,
+        "inode": 10497434
+      },
+      "logical_bytes_observed": 69,
+      "logical_bytes": 69,
+      "regular_files": 1,
+      "pack_files": 0,
+      "errors": []
+    },
+    {
+      "path": "/home/dracon/Dev/dracon-platform/.git/modules/web-games-capture-anime-girls/dracon-staging-KnfUOI",
+      "gitdir": "/home/dracon/Dev/dracon-platform/.git/modules/web-games-capture-anime-girls",
+      "category": "active_fresh",
+      "preservation_markers": [],
+      "reason": "below scheduling floor; age is not inactivity proof",
+      "source_identity": {
+        "device": 66306,
+        "inode": 10497261
+      },
+      "logical_bytes_observed": 324333,
+      "logical_bytes": 324333,
+      "regular_files": 4,
+      "pack_files": 1,
+      "errors": []
+    },
+    {
+      "path": "/home/dracon/Dev/dracon-platform/.git/modules/web-games-junk-runner/dracon-epoch-message-gfzLLZ",
+      "gitdir": "/home/dracon/Dev/dracon-platform/.git/modules/web-games-junk-runner",
+      "category": "active_fresh",
+      "preservation_markers": [],
+      "reason": "below scheduling floor; age is not inactivity proof",
+      "source_identity": {
+        "device": 66306,
+        "inode": 10497431
+      },
+      "logical_bytes_observed": 114,
+      "logical_bytes": 114,
+      "regular_files": 1,
+      "pack_files": 0,
+      "errors": []
+    },
+    {
+      "path": "/home/dracon/Dev/dracon-platform/.git/modules/web-games-junk-runner/dracon-staging-MEyvZK",
+      "gitdir": "/home/dracon/Dev/dracon-platform/.git/modules/web-games-junk-runner",
+      "category": "active_fresh",
+      "preservation_markers": [],
+      "reason": "below scheduling floor; age is not inactivity proof",
+      "source_identity": {
+        "device": 66306,
+        "inode": 10497429
+      },
+      "logical_bytes_observed": 403910,
+      "logical_bytes": 403910,
+      "regular_files": 4,
+      "pack_files": 1,
+      "errors": []
+    }
+  ],
+  "missing_legacy_sources": 0,
+  "by_gitdir": {
+    "/home/dracon/Dev/browser-extensions-shared/.git": {
+      "before_count": 63,
+      "before_bytes": 110103028,
+      "after_count": 63,
+      "after_bytes": 110103028
+    },
+    "/home/dracon/Dev/dracon-platform/.git": {
+      "before_count": 132,
+      "before_bytes": 243129285,
+      "after_count": 132,
+      "after_bytes": 243129285
+    },
+    "/home/dracon/Dev/dracon-platform/.git/modules/web-games-capture-anime-girls": {
+      "before_count": 2,
+      "before_bytes": 324402,
+      "after_count": 0,
+      "after_bytes": 0
+    },
+    "/home/dracon/Dev/dracon-platform/.git/modules/web-games-junk-runner": {
+      "before_count": 3,
+      "before_bytes": 807725,
+      "after_count": 1,
+      "after_bytes": 403701
+    },
+    "/home/dracon/Dev/dracon-platform/.git/modules/web-games-polis": {
+      "before_count": 126,
+      "before_bytes": 414269065,
+      "after_count": 126,
+      "after_bytes": 414269065
+    },
+    "/home/dracon/Dev/dracon-strategy/ai-auto-writer/.git": {
+      "before_count": 7,
+      "before_bytes": 83285881,
+      "after_count": 7,
+      "after_bytes": 97200667
+    },
+    "/home/dracon/Dev/empire/.git": {
+      "before_count": 1,
+      "before_bytes": 96311,
+      "after_count": 1,
+      "after_bytes": 96311
+    }
+  },
+  "attributable_qualified_net_reclamation_bytes": null,
+  "attribution_note": "Missing fresh sources have no established removal provenance in this observer. Do not count them as corrected reaper removals or infer zero live-owner removals."
+}

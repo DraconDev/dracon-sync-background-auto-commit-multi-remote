@@ -1,0 +1,38 @@
+   Compiling dracon-sync v0.113.96 (/home/dracon/.cache/space-hygiene/epoch-corrected-nonvacuity-yxn55gg3/workspace/dracon-sync)
+warning: unused import: `Read`
+  --> dracon-sync/src/git/epoch_spool_ownership.rs:10:15
+   |
+10 | use std::io::{Read, Write};
+   |               ^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `dracon-sync` (bin "dracon-sync") generated 1 warning
+warning: `dracon-sync` (bin "dracon-sync" test) generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4m 24s
+     Running unittests src/lib.rs (/home/dracon/.cache/space-hygiene/epoch-corrected-nonvacuity-yxn55gg3/target/debug/deps/dracon_sync-5bb17364e8db6e79)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 157 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/home/dracon/.cache/space-hygiene/epoch-corrected-nonvacuity-yxn55gg3/target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 1 test
+test git::epoch_spool::tests::old_but_live_owner_cannot_be_reclaimed ... FAILED
+
+failures:
+
+---- git::epoch_spool::tests::old_but_live_owner_cannot_be_reclaimed stdout ----
+
+thread 'git::epoch_spool::tests::old_but_live_owner_cannot_be_reclaimed' (3673046) panicked at dracon-sync/src/git/epoch_spool_tests.rs:416:5:
+assertion failed: attempt(&f, reclaim::Fault::None).await.is_err()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    git::epoch_spool::tests::old_but_live_owner_cannot_be_reclaimed
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1597 filtered out; finished in 0.47s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

@@ -1,0 +1,11 @@
+--- original/epoch_spool_unique.rs
++++ mutated/epoch_spool_unique.rs
+@@ -36,7 +36,7 @@
+             oid(object, width) && fields.len() == 2 && fields[0] == object,
+             "invalid main classification row"
+         );
+-        if fields[1] == "missing" {
++        if true { // MUTATION: classify all source objects as main-missing
+             missing.insert(object.to_owned());
+         } else {
+             ensure!(

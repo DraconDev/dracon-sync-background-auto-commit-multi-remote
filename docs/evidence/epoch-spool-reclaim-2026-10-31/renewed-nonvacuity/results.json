@@ -1,0 +1,177 @@
+[
+  {
+    "label": "duplicate-baseline",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "dracon-sync",
+      "git::epoch_spool::tests::duplicate_spool_is_reaped",
+      "--",
+      "--exact"
+    ],
+    "exit": 0,
+    "duration_seconds": 101.137,
+    "log": "duplicate-baseline.log"
+  },
+  {
+    "label": "duplicate-broken",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "dracon-sync",
+      "git::epoch_spool::tests::duplicate_spool_is_reaped",
+      "--",
+      "--exact"
+    ],
+    "exit": 101,
+    "duration_seconds": 27.148,
+    "log": "duplicate-broken.log"
+  },
+  {
+    "label": "duplicate-restored",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "dracon-sync",
+      "git::epoch_spool::tests::duplicate_spool_is_reaped",
+      "--",
+      "--exact"
+    ],
+    "exit": 0,
+    "duration_seconds": 34.173,
+    "log": "duplicate-restored.log"
+  },
+  {
+    "label": "rescue-verification-baseline",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "dracon-sync",
+      "git::epoch_spool::tests::post_write_rescue_verification_failure_preserves_original",
+      "--",
+      "--exact"
+    ],
+    "exit": 0,
+    "duration_seconds": 1.371,
+    "log": "rescue-verification-baseline.log"
+  },
+  {
+    "label": "rescue-verification-broken",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "dracon-sync",
+      "git::epoch_spool::tests::post_write_rescue_verification_failure_preserves_original",
+      "--",
+      "--exact"
+    ],
+    "exit": 101,
+    "duration_seconds": 28.442,
+    "log": "rescue-verification-broken.log"
+  },
+  {
+    "label": "rescue-verification-restored",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "dracon-sync",
+      "git::epoch_spool::tests::post_write_rescue_verification_failure_preserves_original",
+      "--",
+      "--exact"
+    ],
+    "exit": 0,
+    "duration_seconds": 46.227,
+    "log": "rescue-verification-restored.log"
+  },
+  {
+    "label": "ownership-baseline",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "dracon-sync",
+      "git::epoch_spool::tests::old_but_live_owner_cannot_be_reclaimed",
+      "--",
+      "--exact"
+    ],
+    "exit": 0,
+    "duration_seconds": 2.033,
+    "log": "ownership-baseline.log"
+  },
+  {
+    "label": "ownership-broken",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "dracon-sync",
+      "git::epoch_spool::tests::old_but_live_owner_cannot_be_reclaimed",
+      "--",
+      "--exact"
+    ],
+    "exit": 101,
+    "duration_seconds": 265.24,
+    "log": "ownership-broken.log"
+  },
+  {
+    "label": "ownership-restored",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "dracon-sync",
+      "git::epoch_spool::tests::old_but_live_owner_cannot_be_reclaimed",
+      "--",
+      "--exact"
+    ],
+    "exit": 0,
+    "duration_seconds": 464.149,
+    "log": "ownership-restored.log"
+  },
+  {
+    "label": "restored-helper-build",
+    "command": [
+      "cargo",
+      "build",
+      "--locked",
+      "-p",
+      "dracon-sync",
+      "--bin",
+      "dracon-sync"
+    ],
+    "exit": 0,
+    "duration_seconds": 116.887,
+    "log": "restored-helper-build.log"
+  },
+  {
+    "label": "restored-epoch-spool",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "dracon-sync",
+      "epoch_spool",
+      "--",
+      "--include-ignored"
+    ],
+    "exit": 0,
+    "duration_seconds": 27.993,
+    "log": "restored-epoch-spool.log"
+  }
+]
