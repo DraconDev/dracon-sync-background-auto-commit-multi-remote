@@ -13,14 +13,20 @@ import time
 
 SKIP = {'node_modules', 'target', '.cargo', '.rustup', 'vendor', '.cache', '.local',
         'dist', 'build', 'archives', 'Trash', '.npm', '.venv', 'venv', '__pycache__',
-        '.gradle', '.m2', '.nix-profile', '.git'}
+        '.gradle', '.m2', '.nix-profile', 'objects', 'logs', 'refs', 'hooks', 'info',
+        'worktrees', 'modules'}
 ROOTS = ['/home/dracon/.dracon', '/home/dracon/Dev', '/home/dracon/dracon/bridge-fixture']
+
+
+def is_gitdir(path):
+    return (path / 'HEAD').is_file() and (path / 'objects').is_dir()
 
 
 def spools(root):
     found = []
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
         current = pathlib.Path(dirpath)
+        inside_gitdir = is_gitdir(current)
         names = [n for n in dirnames if n.startswith('dracon-staging-') or n.startswith('dracon-epoch-message-')]
         for name in names:
             path = current / name
@@ -47,9 +53,19 @@ def spools(root):
                               'original_index': (path / 'original-index').exists()})
             except OSError as error:
                 found.append({'gitdir': str(current), 'spool': name, 'path': str(path), 'error': str(error)})
-        dirnames[:] = [n for n in dirnames
-                       if n not in SKIP and not n.startswith('dracon-staging-')
-                       and not n.startswith('dracon-epoch-message-')]
+        keep = []
+        for name in dirnames:
+            if name.startswith('dracon-staging-') or name.startswith('dracon-epoch-message-'):
+                continue
+            if inside_gitdir:
+                # Inside a git directory only nested git directories matter.
+                if is_gitdir(current / name):
+                    keep.append(name)
+                continue
+            if name in SKIP:
+                continue
+            keep.append(name)
+        dirnames[:] = keep
     return found
 
 
