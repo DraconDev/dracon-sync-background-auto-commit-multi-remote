@@ -95,8 +95,10 @@ pub(crate) fn epoch_producer_trampoline() -> Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
-        ensure!(args.get(2).and_then(|arg| arg.to_str()) == Some(env!("DRACON_EPOCH_SOURCE_ID")),
-            "epoch producer helper source identity mismatch");
+        ensure!(
+            args.get(2).and_then(|arg| arg.to_str()) == Some(env!("DRACON_EPOCH_SOURCE_ID")),
+            "epoch producer helper source identity mismatch"
+        );
         let count: usize = args
             .get(3)
             .and_then(|s| s.to_str())
@@ -151,11 +153,16 @@ struct Manager {
 
 fn producer_helper() -> Result<PathBuf> {
     #[cfg(test)]
-    let path = PathBuf::from(std::env::var_os("DRACON_EPOCH_TEST_HELPER")
-        .context("matching revision-qualified epoch test helper is required")?);
+    let path = PathBuf::from(
+        std::env::var_os("DRACON_EPOCH_TEST_HELPER")
+            .context("matching revision-qualified epoch test helper is required")?,
+    );
     #[cfg(not(test))]
     let path = std::env::current_exe()?;
-    ensure!(path.is_absolute() && path.is_file(), "epoch producer helper must be an absolute executable");
+    ensure!(
+        path.is_absolute() && path.is_file(),
+        "epoch producer helper must be an absolute executable"
+    );
     Ok(path)
 }
 
@@ -610,7 +617,7 @@ mod tests {
         // A separate fixture observes leader status while closed-stdio setsid child
         // remains populated, then proves numeric exit 1 is not a wrapper error.
         let mut scope = EpochProducerScope::new(Duration::from_secs(12))?;
-        scope.manager.helper = helper;
+        scope.manager.helper = helper.clone();
         let recipe = EpochProducerCommand {
             executable: shell, cwd: directory.path().to_owned(),
             argv: vec!["-c".into(), format!("printf '%s:%s' \"$KEEP\" \"${{GIT_DIR-unset}}\"; '{}' /bin/sh -c 'exec sleep 1' </dev/null >/dev/null 2>&1 & exit 1", setsid.display())],
@@ -627,6 +634,30 @@ mod tests {
             "escaped descendant lifetime"
         );
         assert_eq!(std::fs::read_to_string(output)?, "$HOME literal:unset");
+        // A mismatched helper must reject BEFORE executing its target, not
+        // merely report a version string after running unqualified code.
+        let scope = EpochProducerScope::new(Duration::from_secs(12))?;
+        let recipe = EpochProducerCommand {
+            executable: helper,
+            cwd: directory.path().to_owned(),
+            argv: vec![
+                TRAMPOLINE.into(),
+                "not-this-source".into(),
+                "0".into(),
+                "/bin/sh".into(),
+                "-c".into(),
+                "printf ran > should-not-exist".into(),
+            ],
+            environment: BTreeMap::from([("PATH".into(), std::env::var("PATH")?)]),
+            stdin: None,
+            stdout: None,
+            stderr: None,
+        };
+        let exit = scope.run(recipe)?.await;
+        let settled = scope.settle(Duration::from_secs(20)).await;
+        assert_eq!(exit?, ProducerExit::Code(1));
+        settled?;
+        assert!(!directory.path().join("should-not-exist").exists());
         Ok(())
     }
 
