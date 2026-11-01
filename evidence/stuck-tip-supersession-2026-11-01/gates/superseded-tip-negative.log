@@ -1,0 +1,33 @@
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: unused variable: `current_tip`
+    --> dracon-sync/src/daemon.rs:1829:5
+     |
+1829 |     current_tip: Option<&str>,
+     |     ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_current_tip`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `dracon-sync` (bin "dracon-sync" test) generated 1 warning (run `cargo fix --bin "dracon-sync" -p dracon-sync --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 41.64s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 1 test
+test daemon::tests::exhausted_budget_on_a_superseded_tip_does_not_pause_the_current_one ... FAILED
+
+failures:
+
+---- daemon::tests::exhausted_budget_on_a_superseded_tip_does_not_pause_the_current_one stdout ----
+
+thread 'daemon::tests::exhausted_budget_on_a_superseded_tip_does_not_pause_the_current_one' (3163533) panicked at dracon-sync/src/daemon.rs:4046:9:
+assertion `left == right` failed
+  left: Exhausted
+ right: Retry
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    daemon::tests::exhausted_budget_on_a_superseded_tip_does_not_pause_the_current_one
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1600 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
