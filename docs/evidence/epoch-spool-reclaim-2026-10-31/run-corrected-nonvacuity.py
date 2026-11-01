@@ -164,10 +164,6 @@ def main():
         try:
             changed = mutation(original.decode()).encode()
             path.write_bytes(changed)
-            (report / (label + '-mutation.patch')).write_bytes(subprocess.check_output(
-                ['diff', '-u', '--label', 'original/' + filename, '--label', 'mutated/' + filename,
-                 str(source / 'dracon-sync/src/git' / filename), str(path)])
-                if False else b'')
             # diff's exit 1 means differences, not an operational failure.
             diff = subprocess.run(['diff', '-u', '--label', 'original/' + filename,
                 '--label', 'mutated/' + filename,
