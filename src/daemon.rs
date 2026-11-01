@@ -5828,6 +5828,7 @@ fn stuck_entry(
         last_error: "boom".to_string(),
         last_error_at,
         last_retry_at,
+        failed_tip: None,
     }
 }
 
