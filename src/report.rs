@@ -7339,7 +7339,7 @@ fn build_repos_rich_table(
     // 13 content columns, so a fixed 13 wrapped it onto a second line and
     // the row read like two rows. `status_labels_fit_the_rich_column` and
     // `rich_table_does_not_wrap_publishing_status` pin this.
-    let status_col = status_column_width();
+    let status_col = 13usize; // NEGATIVE CONTROL: pre-fix hand-tuned width
     // CHANGED 2026-07-29 (v0.113.15): REPO narrowed 22 → 20 and
     // ACTIVITY narrowed 28 → 24 to fund the new REM column (+9 cols
     // incl. border+padding) within the 165-col rich-tier budget
