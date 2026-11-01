@@ -17164,27 +17164,6 @@ mod v011321_tests {
         row
     }
 
-    fn continuation_lines(rendered: &str) -> Vec<String> {
-        // A wrapped cell shows up as a body line whose first token is a
-        // continuation of the previous cell's text (no row number).
-        rendered
-            .lines()
-            .filter(|line| line.starts_with('│') || line.starts_with('|'))
-            .filter(|line| {
-                let body = line
-                    .trim_start_matches('│')
-                    .trim_start_matches('|')
-                    .trim_start();
-                !body.is_empty()
-                    && !body.starts_with('#')
-                    && !body.starts_with("STATUS")
-                    && !body.starts_with('─')
-                    && !body.starts_with('-')
-            })
-            .map(|line| line.to_string())
-            .collect()
-    }
-
     /// Count body lines belonging to data rows. A wrapped cell adds a body
     /// line that does NOT start with a row number, which is exactly what made
     /// `📤 PUBLISHING` look like an extra row.
