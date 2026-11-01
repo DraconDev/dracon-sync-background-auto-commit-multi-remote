@@ -6467,7 +6467,7 @@ fn build_repos_full_table(
             } else {
                 Color::White
             }),
-            Cell::new(row.untracked),
+            Cell::new(format_compact_count(row.untracked)),
             Cell::new(format_compact_count(row.ahead)).fg(if row.ahead > 0 {
                 Color::Yellow
             } else {
@@ -6485,7 +6485,7 @@ fn build_repos_full_table(
                 row.codeberg_skip_reason.as_deref(),
             ),
             Cell::new(commit_summary),
-            Cell::new(shorten_when(&row.last_push)),
+            Cell::new(truncate_unicode_width(&shorten_when(&row.last_push), 9)),
             // R3-L34: ACTIVITY is Absolute(13), truncate to 11 to leave padding room
             Cell::new(truncate_unicode_width(&current_health::label(row), 11)),
             // F30v2: AUTHOR is Absolute(11), truncate to 9 to leave padding room
