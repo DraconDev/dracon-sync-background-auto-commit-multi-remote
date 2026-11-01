@@ -8594,7 +8594,30 @@ pub(crate) async fn run_daemon(
             // never happened).
             let mut stamp_retry = false;
             if let Some(info) = stuck_push_repos.get(&repo).cloned() {
-                match stuck_decision(&info, timestamp_secs(), policy.push_max_retries, 300) {
+                let live_tip = crate::git::head_tip(&repo);
+                let decision = stuck_decision(
+                    &info,
+                    timestamp_secs(),
+                    policy.push_max_retries,
+                    300,
+                    live_tip.as_deref(),
+                );
+                // A superseded tip starts a fresh budget: persist the reset so
+                // the next failure counts 1, not (previous + 1).
+                if stuck_tip_is_superseded(&info, live_tip.as_deref()) {
+                    let mut reset = info.clone();
+                    reset.consecutive_failures = 0;
+                    reset.failed_tip = live_tip.clone();
+                    stuck_push_repos.insert(repo.clone(), reset);
+                    save_stuck_push_repos(&stuck_push_repos);
+                    eprintln!(
+                        "🔄 {} was stuck on a superseded revision ({} → {}) — retrying with a fresh budget",
+                        repo.display(),
+                        info.failed_tip.as_deref().unwrap_or("-"),
+                        live_tip.as_deref().unwrap_or("-"),
+                    );
+                }
+                match decision {
                     StuckDecision::Backoff => {
                         // CHANGED 2026-09-18 (v0.113.69,
                         // commit-despite-paused-push): no longer `continue`.
