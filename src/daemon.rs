@@ -2915,6 +2915,89 @@ mod tests {
         assert!(lock.exists(), "fresh lock must survive the sweep");
     }
 
+    /// REGRESSION (2026-11-01): the sweep must also reclaim REF locks.
+    ///
+    /// The janitor originally handled only `index.lock`. dracon-platform was
+    /// then wedged for 6.3 hours by `refs/heads/main.lock`, and immediately
+    /// after by `HEAD.lock`, while the sweep reported nothing to do. Those are
+    /// exactly what a killed `git push`/`commit` leaves behind.
+    #[test]
+    fn test_stale_lock_sweep_reclaims_ref_and_head_locks() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let gitdir = temp.path().join(".git");
+        std::fs::create_dir_all(gitdir.join("refs/heads")).unwrap();
+        std::fs::create_dir_all(gitdir.join("refs/remotes/origin")).unwrap();
+        let old = std::time::SystemTime::now() - std::time::Duration::from_secs(22_000);
+        let mut locks = Vec::new();
+        for rel in [
+            "index.lock",
+            "HEAD.lock",
+            "refs/heads/main.lock",
+            "refs/remotes/origin/main.lock",
+        ] {
+            let path = gitdir.join(rel);
+            std::fs::write(&path, b"stale").unwrap();
+            std::fs::File::options()
+                .write(true)
+                .open(&path)
+                .unwrap()
+                .set_modified(old)
+                .unwrap();
+            locks.push(path);
+        }
+        let repo_set = [temp.path().to_path_buf()]
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+        let removed = remove_stale_index_locks(&repo_set, |_| Ok(false));
+        assert_eq!(
+            removed,
+            locks.len(),
+            "every stale lock kind must be reclaimed"
+        );
+        for lock in &locks {
+            assert!(!lock.exists(), "{} survived the sweep", lock.display());
+        }
+    }
+
+    /// Safety controls must hold for the new candidates too: a fresh ref lock
+    /// and an in-use ref lock both survive, and a planted symlink is never
+    /// followed or removed.
+    #[test]
+    fn test_stale_lock_sweep_retains_fresh_and_in_use_ref_locks() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let gitdir = temp.path().join(".git");
+        std::fs::create_dir_all(gitdir.join("refs/heads")).unwrap();
+        let fresh = gitdir.join("refs/heads/main.lock");
+        std::fs::write(&fresh, b"fresh").unwrap();
+        let held = gitdir.join("HEAD.lock");
+        std::fs::write(&held, b"held").unwrap();
+        std::fs::File::options()
+            .write(true)
+            .open(&held)
+            .unwrap()
+            .set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(22_000))
+            .unwrap();
+        let outside = temp.path().join("outside-target");
+        std::fs::write(&outside, b"do not delete").unwrap();
+        let link = gitdir.join("refs/heads/planted.lock");
+        std::os::unix::fs::symlink(&outside, &link).unwrap();
+        let repo_set = [temp.path().to_path_buf()]
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+
+        let removed = remove_stale_index_locks(&repo_set, |p| {
+            Ok(p == held.as_path()) // report the HEAD lock as in use
+        });
+
+        assert_eq!(removed, 0, "no candidate is safely removable");
+        assert!(fresh.exists(), "fresh ref lock must survive the age floor");
+        assert!(held.exists(), "in-use lock must survive the fuser verdict");
+        assert!(
+            outside.exists(),
+            "a planted symlink target must never be removed"
+        );
+    }
+
     /// A stale lock whose holder is still alive must survive even
     /// though its age is past the floor: age gates the fuser call,
     /// fuser decides liveness.
