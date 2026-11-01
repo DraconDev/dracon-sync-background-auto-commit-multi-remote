@@ -2873,10 +2873,20 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
 /// The caller supplies an already-redacted error; never echo stored credentials.
 /// Re-enabling one retry budget is not the broad concerns repair/push/rewrite path.
 pub(crate) fn push_stuck_hint(repo: &Path, failures: u32, redacted_error: &str) -> String {
+    // CHANGED 2026-11-01 (T1): the cause is now front-loaded
+    // ("<ws>/<GATE> failed; logs <dir>"), so a 60-char cut would truncate the
+    // very information the HINT exists to show.
+    const ERROR_BUDGET: usize = 160;
     let summary = if redacted_error.is_empty() {
         "publication budget exhausted".to_owned()
-    } else if redacted_error.chars().count() > 60 {
-        format!("{}...", redacted_error.chars().take(57).collect::<String>())
+    } else if redacted_error.chars().count() > ERROR_BUDGET {
+        format!(
+            "{}...",
+            redacted_error
+                .chars()
+                .take(ERROR_BUDGET - 3)
+                .collect::<String>()
+        )
     } else {
         redacted_error.to_owned()
     };
