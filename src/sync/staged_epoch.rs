@@ -1312,6 +1312,7 @@ mod tests {
     #[tokio::test]
     async fn empty_candidate_does_not_install_or_require_foreign_index_admission() {
         let (root, policy) = fixture().await;
+        let _qualified_fixture = crate::git::allow_reclaim_in_fixture(&root).unwrap();
         let repo = root.path();
         let baseline = Epoch::capture(repo, 60).await.unwrap();
         let staging = Staging::new(repo, baseline).await.unwrap();
@@ -1665,6 +1666,7 @@ mod tests {
     async fn published_epoch_deadline_is_pending_not_a_failed_commit() {
         use std::os::unix::fs::PermissionsExt;
         let (root, mut policy) = fixture().await;
+        let _qualified_fixture = crate::git::allow_reclaim_in_fixture(&root).unwrap();
         let repo = root.path();
         policy.auto_commit = true;
         policy.watch_roots = vec![repo.to_string_lossy().into_owned()];
@@ -1739,6 +1741,7 @@ mod tests {
     #[tokio::test]
     async fn published_epoch_releases_its_spool_and_unpublished_release_requires_proof() {
         let (root, mut policy) = fixture().await;
+        let _qualified_fixture = crate::git::allow_reclaim_in_fixture(&root).unwrap();
         let repo = root.path();
         policy.auto_commit = true;
         policy.watch_roots = vec![repo.to_string_lossy().into_owned()];
@@ -1888,9 +1891,10 @@ mod tests {
         // A deadline is not a refusal: nothing was rejected, and the next epoch
         // re-stages the same worktree. Retention "for diagnosis" is what let the
         // spools reach ~15 GiB, so an unpublished epoch releases its spool once
-        // the contents are provably still in the object database — and doing so
-        // must not cost the staged content.
+        // independently durable recovery preserves the staged content and
+        // index, not merely because the main object database has them now.
         let (root, mut policy) = fixture().await;
+        let _qualified_fixture = crate::git::allow_reclaim_in_fixture(&root).unwrap();
         let repo = root.path();
         policy.auto_commit = true;
         policy.watch_roots = vec![repo.to_string_lossy().into_owned()];
