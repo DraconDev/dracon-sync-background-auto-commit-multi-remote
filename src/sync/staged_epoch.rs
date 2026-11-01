@@ -1921,6 +1921,8 @@ mod tests {
             .finish(repo, &policy, &BTreeSet::new(), false, false)
             .await
             .unwrap();
+        let archived_index = std::fs::read(released.join("index")).unwrap();
+        let head_before = git(repo, &["rev-parse", "HEAD"], None).await.unwrap().stdout;
         expired.deadline = tokio::time::Instant::now();
         let result = expired
             .commit(repo, "must not publish", &policy, &BTreeSet::new(), None)
@@ -1928,7 +1930,7 @@ mod tests {
         assert!(result.is_err(), "an expired deadline cannot publish");
         assert!(
             !released.exists(),
-            "an UNPUBLISHED epoch whose contents are provably in the object database must \
+            "an UNPUBLISHED epoch with independently durable recovery must \
              release its spool: {} still exists",
             released.display()
         );
@@ -1940,6 +1942,22 @@ mod tests {
                 .success(),
             "releasing the spool must not cost the staged content: {staged_blob} is gone"
         );
+        assert_eq!(git(repo, &["rev-parse", "HEAD"], None).await.unwrap().stdout, head_before);
+        let record = std::fs::read_dir(repo.join(".git/dracon-rescue")).unwrap()
+            .filter_map(|entry| {
+                let path = entry.ok()?.path();
+                let source = std::fs::read(path.join("source.json")).ok()?;
+                let source: serde_json::Value = serde_json::from_slice(&source).ok()?;
+                (source["spool_path_bytes"] == serde_json::json!(released.as_os_str().as_encoded_bytes())).then_some(path)
+            }).next().expect("deadline release must leave a source-bound recovery record");
+        assert!(record.join("receipt").is_file());
+        assert!(record.join("reclaimed.json").is_file());
+        assert_eq!(std::fs::read(record.join("metadata/index")).unwrap(), archived_index);
+        let store = record.join("store.git");
+        assert!(!store.join("objects/info/alternates").exists());
+        git(&store, &["gc", "--prune=now"], None).await.unwrap();
+        assert_eq!(git(&store, &["cat-file", "-p", &staged_blob], None).await.unwrap().stdout,
+            b"released but preserved\n", "deadline recovery must survive ordinary GC without main/spool fallback");
     }
 }
 

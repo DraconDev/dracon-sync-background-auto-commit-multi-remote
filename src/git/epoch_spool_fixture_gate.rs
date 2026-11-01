@@ -37,6 +37,23 @@ pub(super) fn permitted(repo: &Path) -> bool {
     let Ok(identity) = identity(repo) else { return false };
     permits().lock().ok().is_some_and(|permits| permits.get(&identity).copied().unwrap_or(0) > 0)
 }
+#[test]
+fn fixture_permission_is_identity_scoped_and_revoked_on_drop() {
+    let one = tempfile::tempdir().unwrap();
+    let other = tempfile::tempdir().unwrap();
+    assert!(!permitted(one.path()));
+    {
+        let permit = allow_reclaim_in_fixture(&one).unwrap();
+        assert!(permitted(one.path()));
+        assert!(!permitted(other.path()));
+        let nested = allow_reclaim_in_fixture(&one).unwrap();
+        drop(nested);
+        assert!(permitted(one.path()));
+        drop(permit);
+    }
+    assert!(!permitted(one.path()));
+}
+
 impl Drop for ReclaimFixturePermit<'_> {
     fn drop(&mut self) {
         if let Ok(mut permits) = permits().lock() {
