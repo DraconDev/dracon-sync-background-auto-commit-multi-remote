@@ -6,7 +6,12 @@ use anyhow::{ensure, Result};
 use std::path::{Path, PathBuf};
 
 const MAX_SPOOLS_PER_PASS: usize = 64;
-const LOSSLESS_RECLAIM_QUALIFIED: bool = false;
+// QUALIFIED 2026-11-01: the corrected transaction (durable independent
+// recovery, identity-bound producer settlement, legacy inactivity fence,
+// final source checks) passed its regression, fault and mutation gates.
+// See docs/evidence/epoch-spool-reclaim-2026-10-31/. The age-only
+// `sweep_epoch_spools(apply = true)` refusal stays intact and independent.
+const LOSSLESS_RECLAIM_QUALIFIED: bool = true;
 
 #[cfg(test)]
 #[path = "epoch_spool_fixture_gate.rs"]
