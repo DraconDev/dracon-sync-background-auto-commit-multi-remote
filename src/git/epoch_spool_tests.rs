@@ -117,6 +117,8 @@ async fn duplicate_spool_is_reaped() {
         "classification must distinguish duplicates from mixed payloads"
     );
     assert!(receipt.rescue_pack.is_none());
+    assert_eq!(receipt.unique_uncompressed_bytes, 0);
+    assert_eq!(receipt.rescue_pack_bytes, 0);
     assert_eq!(
         fs::read(receipt.record.join("metadata/index")).unwrap(),
         index
@@ -146,12 +148,14 @@ async fn spool_with_unique_objects_is_rescued_then_reaped() {
     let receipt = attempt(&f, reclaim::Fault::None).await.unwrap();
     assert!(!f.spool.exists());
     assert_eq!(receipt.unique_objects, f.unique.len());
+    assert!(receipt.unique_uncompressed_bytes > 0);
     assert_eq!(
         fs::read(receipt.record.join("metadata/index")).unwrap(),
         index
     );
     let rescue = receipt.rescue_pack.as_ref().unwrap();
     assert!(rescue.is_file() && rescue.with_extension("idx").is_file());
+    assert_eq!(receipt.rescue_pack_bytes, fs::metadata(rescue).unwrap().len());
     let standalone = f._root.path().join("standalone");
     fs::create_dir(&standalone).unwrap();
     git(&standalone, &["init", "-q", "--bare", "--template="]);
