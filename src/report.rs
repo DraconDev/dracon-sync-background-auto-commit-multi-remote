@@ -17193,7 +17193,9 @@ mod v011321_tests {
                     .trim_start_matches('│')
                     .trim_start_matches('|')
                     .trim_start();
-                !body.is_empty() && !body.chars().next().is_some_and(|c| c.is_ascii_digit())
+                !body.is_empty()
+                    && !body.starts_with('#')
+                    && !body.chars().next().is_some_and(|c| c.is_ascii_digit())
             })
             .map(|line| line.trim_end().to_string())
             .collect()
