@@ -104,18 +104,11 @@ async fn inner(
     ensure!(!protected(spool), "preserve-marked source");
     let original_bytes = super::directory_bytes(spool)?;
     #[cfg(test)]
-    let (receipt, owner) = recovery::prepare_owned_fault(
-        repo,
-        spool,
-        seconds,
-        owner,
-        if matches!(_fault, Fault::CorruptUnique) {
-            recovery::Fault::CorruptUniqueBeforeVerify
-        } else {
-            recovery::Fault::None
-        },
-    )
-    .await?;
+    let (receipt, owner) = if matches!(_fault, Fault::CorruptUnique) {
+        recovery::prepare_owned_fault(repo, spool, seconds, owner, recovery::Fault::CorruptUniqueBeforeVerify).await?
+    } else {
+        recovery::prepare_owned_record(repo, spool, seconds, owner).await?
+    };
     #[cfg(not(test))]
     let (receipt, owner) = recovery::prepare_owned_record(repo, spool, seconds, owner).await?;
     #[cfg(test)]
@@ -140,6 +133,8 @@ async fn inner(
         "manifest_sha256": receipt.manifest_sha256,
         "original_logical_bytes": original_bytes,
         "unique_objects": receipt.unique_objects,
+        "unique_uncompressed_bytes": receipt.unique_uncompressed_bytes,
+        "rescue_pack_bytes": receipt.rescue_pack_bytes,
         "rescue_pack_path_bytes": receipt.rescue_pack.as_ref().map(|p| p.as_os_str().as_encoded_bytes()),
         "verified_unix_seconds": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_secs(),
     });

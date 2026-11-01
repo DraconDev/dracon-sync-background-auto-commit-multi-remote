@@ -21,11 +21,12 @@ mod source;
 mod unique;
 
 #[derive(Debug)]
-#[allow(dead_code)] // Read by the future qualified caller, not the current reaper.
 pub(super) struct DurableReceipt {
     pub record: PathBuf,
     pub manifest_sha256: String,
     pub unique_objects: usize,
+    pub unique_uncompressed_bytes: u64,
+    pub rescue_pack_bytes: u64,
     pub rescue_pack: Option<PathBuf>,
 }
 
@@ -332,7 +333,6 @@ async fn verify(store: &Path, roots: &Path, timeout: u64) -> Result<()> {
 
 /// Validate semantic retention after physical ODB layout changes (for example
 /// ordinary Git GC). Receipts never rely on obsolete pack/loose filenames.
-#[allow(dead_code)] // Integration remains interlocked.
 pub(super) async fn verify_receipt(record: &Path, expected: &str, timeout: u64) -> Result<()> {
     let mut receipt = String::new();
     regular(&record.join("receipt"))?.read_to_string(&mut receipt)?;
@@ -462,7 +462,7 @@ fn sync_tree(path: &Path, base: &Path, manifest: &mut String) -> Result<()> {
 /// and preservation checks. Cancellation detaches preparation, never destroys
 /// storage beneath a running Git process; an abandoned task may retain a record
 /// but NEVER removes its source. The caller has a whole-transaction deadline.
-#[allow(dead_code)] // Deliberately not connected to destructive reclamation.
+#[cfg(test)] // Direct component fixtures; production always transfers its fence.
 pub(super) async fn prepare_record(
     repo: &Path,
     spool: &Path,
@@ -486,6 +486,7 @@ pub(super) enum Fault {
     SlowBeforeVerify,
 }
 
+#[cfg(test)]
 async fn prepare_with_fault(
     repo: &Path,
     spool: &Path,
@@ -498,7 +499,6 @@ async fn prepare_with_fault(
 /// Preserve the actual kernel fence across requester cancellation too. Keeping
 /// only temporary storage alive would permit successive timed-out reapers to
 /// prepare the same source concurrently after their caller dropped its lock.
-#[allow(dead_code)] // Integrated reaper remains interlocked until qualified.
 pub(super) async fn prepare_owned_record(
     repo: &Path,
     spool: &Path,
@@ -783,6 +783,8 @@ async fn prepare_inner(
         record.path().join("classification.json"),
         serde_json::to_vec(&serde_json::json!({
             "version": 1, "main_missing_objects": payload.count,
+        "unique_uncompressed_bytes": payload.uncompressed_bytes,
+        "rescue_pack_bytes": payload.packed_bytes,
             "rescue_pack_name_bytes": payload.pack_name.as_ref().map(|path| path.as_os_str().as_encoded_bytes()),
             "classification_is_not_deletion_authority": true,
         }))?,
@@ -823,6 +825,8 @@ async fn prepare_inner(
         record,
         manifest_sha256,
         unique_objects: payload.count,
+        unique_uncompressed_bytes: payload.uncompressed_bytes,
+        rescue_pack_bytes: payload.packed_bytes,
         rescue_pack,
     })
 }
