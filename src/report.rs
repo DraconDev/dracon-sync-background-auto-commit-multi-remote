@@ -13377,7 +13377,9 @@ mod tests {
             ..Default::default()
         });
         let rows = [clean, stalled];
-        for width in [165, 200, 320] {
+        // CHANGED 2026-11-01: the floor is RICH_TIER_MIN_COLS (the derived
+        // STATUS column needs 2 more columns than the old hardcoded 165).
+        for width in [RICH_TIER_MIN_COLS, 200, 320] {
             let rendered = build_repos_rich_table(&rows, false, width).to_string();
             let lines: Vec<_> = rendered.lines().collect();
             assert_eq!(lines.len(), 6, "wrapped rows at {width}: {rendered}");
@@ -14356,12 +14358,14 @@ mod tests {
         // EVERYTHING ≥165 cols — the 242-314 Compact band and the
         // ≥315 Full band were removed (a maximized terminal silently
         // served the OLD compact table; "looks like the old table").
-        for w in [165, 180, 199, 219, 237, 241, 242, 300, 314, 315, 500] {
+        // CHANGED 2026-11-01: the Rich floor is RICH_TIER_MIN_COLS, not 165.
+        let floor = RICH_TIER_MIN_COLS;
+        for w in [floor, 180, 199, 219, 237, 241, 242, 300, 314, 315, 500] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
                 LayoutTier::Rich,
-                "width {} should be Rich (v0.113.8 default)",
+                "width {} should be Rich (>= RICH_TIER_MIN_COLS)",
                 w
             );
         }
