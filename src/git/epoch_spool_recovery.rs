@@ -904,11 +904,12 @@ mod tests {
     async fn cancelled_request_retains_storage_until_writer_is_joined() {
         let (_root, repo, spool, _) = fixture("sha1").await;
         let original = fs::read(spool.join("index")).unwrap();
+        let gitdir = repo.join(".git");
+        let owner = super::super::ownership::ReclaimOwner::acquire(&gitdir, &spool).unwrap();
         let (r, s) = (repo.clone(), spool.clone());
-        let request =
-            tokio::spawn(
-                async move { prepare_with_fault(&r, &s, 20, Fault::SlowBeforeVerify).await },
-            );
+        let request = tokio::spawn(async move {
+            prepare_guarded(&r, &s, 20, Fault::SlowBeforeVerify, owner).await
+        });
         let rescue = repo.join(".git/dracon-rescue");
         let record = tokio::time::timeout(std::time::Duration::from_secs(5), async {
             loop {
@@ -929,12 +930,14 @@ mod tests {
             .parse()
             .unwrap();
         request.abort();
-        assert!(request.await.unwrap_err().is_cancelled());
+        assert!(matches!(request.await, Err(error) if error.is_cancelled()));
         assert!(
             record.exists(),
             "cancelled requester must not clean beneath its writer"
         );
         assert!(!record.join("receipt").exists());
+        assert!(super::super::ownership::ReclaimOwner::acquire(&gitdir, &spool).is_err(),
+            "cancelled requester must not release its live preparation fence");
         // This PID came from this fixture's single writer, not a live daemon.
         assert_eq!(unsafe { libc::kill(pid, libc::SIGKILL) }, 0);
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
@@ -944,6 +947,14 @@ mod tests {
         })
         .await
         .unwrap();
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            loop {
+                if super::super::ownership::ReclaimOwner::acquire(&gitdir, &spool).is_ok() {
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        }).await.unwrap();
         assert_eq!(fs::read(spool.join("index")).unwrap(), original);
     }
 
