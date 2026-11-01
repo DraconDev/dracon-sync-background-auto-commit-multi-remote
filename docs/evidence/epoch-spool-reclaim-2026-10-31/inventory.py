@@ -58,8 +58,9 @@ def spools(root):
             if name.startswith('dracon-staging-') or name.startswith('dracon-epoch-message-'):
                 continue
             if inside_gitdir:
-                # Inside a git directory only nested git directories matter.
-                if is_gitdir(current / name):
+                # Inside a git directory only nested git directories matter
+                # (plus the modules container that holds them).
+                if is_gitdir(current / name) or name == 'modules':
                     keep.append(name)
                 continue
             if name in SKIP:
