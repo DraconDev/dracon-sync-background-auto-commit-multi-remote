@@ -293,7 +293,10 @@ fn child_holds_live_owner_probe() {
     };
     let path = PathBuf::from(path);
     let _owner = if std::env::var_os("DRACON_RECLAIM_PROBE_IS_REAPER").is_some() {
-        (None, Some(ownership::ReclaimOwner::acquire(path.parent().unwrap(), &path).unwrap()))
+        (
+            None,
+            Some(ownership::ReclaimOwner::acquire(path.parent().unwrap(), &path).unwrap()),
+        )
     } else {
         (Some(SpoolLease::acquire(&path).unwrap()), None)
     };
@@ -346,11 +349,18 @@ async fn old_but_live_owner_cannot_be_reclaimed() {
 #[tokio::test]
 async fn another_process_reclaimer_holds_source_through_proof() {
     let f = fixture(false, true);
-    let mut child = Child(Command::new(std::env::current_exe().unwrap())
-        .args(["--exact", "git::epoch_spool::tests::child_holds_live_owner_probe"])
-        .env("DRACON_RECLAIM_LIVE_PROBE", &f.spool)
-        .env("DRACON_RECLAIM_PROBE_IS_REAPER", "1")
-        .stdout(Stdio::null()).spawn().unwrap());
+    let mut child = Child(
+        Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "git::epoch_spool::tests::child_holds_live_owner_probe",
+            ])
+            .env("DRACON_RECLAIM_LIVE_PROBE", &f.spool)
+            .env("DRACON_RECLAIM_PROBE_IS_REAPER", "1")
+            .stdout(Stdio::null())
+            .spawn()
+            .unwrap(),
+    );
     let ready = f.spool.parent().unwrap().join("live-ready");
     let start = std::time::Instant::now();
     while !ready.exists() {
