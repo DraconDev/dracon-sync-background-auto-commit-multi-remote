@@ -5010,6 +5010,37 @@ static AUTO_GC_PROBES: std::sync::OnceLock<
 /// An old temporary pack can still belong to a stalled live producer. Its
 /// name, mtime, or absence from refs does not authorize unlinking it.
 /// Normal Git maintenance retains its ordinary prune grace.
+/// Interpret `fuser`'s result for a path. `fuser` exits 1 with no diagnostic
+/// when no process uses the path; every other non-zero result is an inability
+/// to establish staleness and must fail closed.
+///
+/// SHARED (2026-11-01): used by both the stale-lock janitor and the abandoned
+/// tmp_pack sweeper, so "is this held?" has exactly one answer.
+pub(crate) fn classify_fuser_status(exit_code: Option<i32>, stderr: &[u8]) -> anyhow::Result<bool> {
+    match exit_code {
+        Some(0) => Ok(true),
+        Some(1) if stderr.is_empty() => Ok(false),
+        Some(code) => {
+            let detail = String::from_utf8_lossy(stderr).trim().to_string();
+            if detail.is_empty() {
+                anyhow::bail!("fuser exited with status {code}");
+            }
+            anyhow::bail!("fuser exited with status {code}: {detail}");
+        }
+        None => anyhow::bail!("fuser terminated without an exit status"),
+    }
+}
+
+/// True when some process holds `path` open. Errors mean "cannot prove it is
+/// unheld", which callers must treat as still in use.
+pub(crate) fn fuser_path_in_use(path: &std::path::Path) -> anyhow::Result<bool> {
+    let output = std::process::Command::new("fuser")
+        .arg(path)
+        .output()
+        .map_err(|e| anyhow::anyhow!("failed to execute fuser: {e}"))?;
+    classify_fuser_status(output.status.code(), &output.stderr)
+}
+
 pub(crate) async fn sweep_stale_tmp_packs(
     repo: &std::path::Path,
     min_age_secs: u64,

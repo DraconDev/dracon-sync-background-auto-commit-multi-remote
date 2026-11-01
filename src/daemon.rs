@@ -870,34 +870,13 @@ fn drained_repo_set<H>(to_sync: &[(PathBuf, H)]) -> HashSet<PathBuf> {
 // force-clearing ever returns, this design needs rethinking (including
 // the PushPaused wedge semantics), not a revival of the marker.
 
-/// Interpret `fuser`'s result for an index lock. `fuser` exits 1 with no
-/// diagnostic when no process uses the path; every other non-zero result is
-/// an inability to establish that the lock is stale and must fail closed.
-fn classify_fuser_status(exit_code: Option<i32>, stderr: &[u8]) -> Result<bool> {
-    match exit_code {
-        Some(0) => Ok(true),
-        Some(1) if stderr.is_empty() => Ok(false),
-        Some(code) => {
-            let detail = String::from_utf8_lossy(stderr).trim().to_string();
-            if detail.is_empty() {
-                anyhow::bail!("fuser exited with status {code}");
-            }
-            anyhow::bail!("fuser exited with status {code}: {detail}");
-        }
-        None => anyhow::bail!("fuser terminated without an exit status"),
-    }
-}
+/// MOVED 2026-11-01 to `crate::git` so the lock janitor and the abandoned
+/// tmp_pack sweeper share ONE verdict. Kept as a thin re-export so the
+/// existing daemon tests keep exercising the same behaviour.
+use crate::git::classify_fuser_status;
 
 fn fuser_lock_is_in_use(lock: &Path) -> Result<bool> {
-    fuser_lock_is_in_use_with_command("fuser", lock)
-}
-
-fn fuser_lock_is_in_use_with_command(command: &str, lock: &Path) -> Result<bool> {
-    let output = std::process::Command::new(command)
-        .arg(lock)
-        .output()
-        .context("failed to execute fuser")?;
-    classify_fuser_status(output.status.code(), &output.stderr)
+    crate::git::fuser_path_in_use(lock)
 }
 
 /// Minimum lock age before the index-lock sweeps may remove a
@@ -2881,7 +2860,7 @@ mod tests {
         std::fs::write(&lock, b"active").unwrap();
 
         let result =
-            fuser_lock_is_in_use_with_command("/definitely/missing/dracon-sync-fuser-test", &lock);
+            crate::git::fuser_path_in_use_with_command("/definitely/missing/dracon-sync-fuser-test", &lock);
         assert!(result.is_err());
         assert!(
             !matches!(result, Ok(false)),
