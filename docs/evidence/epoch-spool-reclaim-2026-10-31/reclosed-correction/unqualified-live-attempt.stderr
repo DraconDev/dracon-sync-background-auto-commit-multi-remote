@@ -1,0 +1,3 @@
+⚠️ /home/dracon/Dev/dracon-strategy/ai-auto-writer: epoch reclaim /home/dracon/Dev/dracon-strategy/ai-auto-writer/.git/dracon-staging-KparNU failed; inspect source and retained recovery: reclamation transaction deadline; no removal authority: deadline has elapsed
+♻️ /home/dracon/Dev/pi-plugins: durable epoch recovery /home/dracon/Dev/pi-plugins/.git/dracon-rescue/record-KOIXM1 before removal of /home/dracon/Dev/pi-plugins/.git/dracon-staging-h9ugk7; 0 main-missing objects
+♻️ /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit: durable epoch recovery /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit/.git/dracon-rescue/record-10gNgM before removal of /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit/.git/dracon-staging-bHd8Xb; 0 main-missing objects
