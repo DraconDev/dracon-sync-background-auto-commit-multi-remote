@@ -3285,7 +3285,7 @@ pub(crate) enum LayoutTier {
 /// second line, so a 165-166 col terminal got a malformed table; those
 /// widths now fall back to Compact. `test_rich_table_fits_narrow_terminal`
 /// pins the total against this constant so the two cannot drift.
-pub(crate) const RICH_TIER_MIN_COLS: u16 = 167;
+pub(crate) const RICH_TIER_MIN_COLS: u16 = 168;
 
 pub(crate) fn choose_layout_tier() -> LayoutTier {
     let w = terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16);
