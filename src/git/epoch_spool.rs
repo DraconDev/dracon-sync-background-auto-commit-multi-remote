@@ -68,7 +68,7 @@ pub(crate) async fn reap_abandoned_spools(
             .await
             .unwrap_or_default();
         for spool in candidates.into_iter().take(MAX_SPOOLS_PER_PASS) {
-            if reclaim_spool_if_lossless(repo, &spool, seconds).await {
+            if reclaim_spool_if_lossless(repo, &spool, seconds, floor).await {
                 reaped += 1;
             }
         }
@@ -80,7 +80,12 @@ pub(crate) async fn reap_abandoned_spools(
 /// Exactly the same transaction is used after a settled-unpublished deadline,
 /// after publication/empty candidates and by the automatic reaper. No branch
 /// treats a present object, an empty pack list or publication as a proof.
-pub(crate) async fn reclaim_spool_if_lossless(repo: &Path, spool: &Path, timeout: u64) -> bool {
+pub(crate) async fn reclaim_spool_if_lossless(
+    repo: &Path,
+    spool: &Path,
+    timeout: u64,
+    legacy_floor: std::time::Duration,
+) -> bool {
     if !reclaim_is_qualified(repo) {
         eprintln!(
             "⚠️ {}: epoch spool {} preserved; durable recovery qualification incomplete",
@@ -89,7 +94,7 @@ pub(crate) async fn reclaim_spool_if_lossless(repo: &Path, spool: &Path, timeout
         );
         return false;
     }
-    match reclaim::attempt(repo, spool, timeout, reclaim::Fault::None).await {
+    match reclaim::attempt(repo, spool, timeout, legacy_floor, reclaim::Fault::None).await {
         Ok(receipt) => {
             eprintln!(
                 "♻️ {}: durable epoch recovery {} before removal of {}; {} main-missing objects",

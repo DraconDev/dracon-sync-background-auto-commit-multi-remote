@@ -710,7 +710,17 @@ impl Epoch {
             eprintln!("⚠️ {}: spool producer settlement uncertain; retained {}: {error:#}", repo.display(), path.display());
             return;
         }
-        if !crate::git::reclaim_spool_if_lossless(repo, &path, SPOOL_RELEASE_TIMEOUT_SECS).await {
+        // A source this epoch just produced is never legacy; the legacy fence
+        // floor is passed anyway so an unexpected source cannot be treated as
+        // abandoned by age.
+        if !crate::git::reclaim_spool_if_lossless(
+            repo,
+            &path,
+            SPOOL_RELEASE_TIMEOUT_SECS,
+            std::time::Duration::from_secs(3600),
+        )
+        .await
+        {
             return;
         }
         // The directory is already gone; drop the references without re-removing.

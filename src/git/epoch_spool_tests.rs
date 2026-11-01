@@ -103,7 +103,7 @@ fn backdate(spool: &Path) {
         .unwrap();
 }
 async fn attempt(f: &Fixture, fault: reclaim::Fault) -> anyhow::Result<recovery::DurableReceipt> {
-    reclaim::attempt(&f.repo, &f.spool, 30, fault).await
+    reclaim::attempt(&f.repo, &f.spool, 30, std::time::Duration::from_secs(0), fault).await
 }
 
 #[tokio::test]
@@ -294,7 +294,7 @@ async fn preserve_marked_spool_is_never_deleted() {
         fs::write(f.spool.join(marker), b"deliberate evidence").unwrap();
         backdate(&f.spool);
         assert!(attempt(&f, reclaim::Fault::None).await.is_err());
-        assert!(!reclaim_spool_if_lossless(&f.repo, &f.spool, 30).await);
+        assert!(!reclaim_spool_if_lossless(&f.repo, &f.spool, 30, std::time::Duration::from_secs(0)).await);
         assert_eq!(reap_abandoned_spools(&f.repo, 1, 30).await, 0);
         assert_eq!(sweep_epoch_spools(&f.repo, 1, true).await, (0, 0));
         assert_eq!(
@@ -446,10 +446,56 @@ async fn rescue_storage_failure_preserves_original_bytes() {
 }
 
 #[tokio::test]
+async fn legacy_source_is_fenced_by_age_and_absence_of_live_references() {
+    // No protocol lock and no settled marker: a legacy source.
+    let f = fixture(false, false);
+    assert!(!f.spool.join("reclaim-owner.lock").exists());
+    backdate(&f.spool);
+    let receipt = attempt(&f, reclaim::Fault::None).await.unwrap();
+    assert!(!f.spool.exists(), "a fenced legacy source must be reclaimed");
+    assert!(receipt.record.join("receipt").is_file());
+    assert!(receipt.record.join("reclaimed.json").is_file());
+    recovery::verify_receipt(&receipt.record, &receipt.manifest_sha256, 10).await.unwrap();
+}
+#[tokio::test]
+async fn legacy_source_younger_than_the_floor_is_preserved() {
+    let f = fixture(false, false);
+    let error = reclaim::attempt(&f.repo, &f.spool, 30, std::time::Duration::from_secs(3600), reclaim::Fault::None)
+        .await
+        .unwrap_err();
+    assert!(format!("{error:#}").contains("scheduling floor"), "{error:#}");
+    assert!(f.spool.exists());
+    assert!(!f.spool.join("reclaim-owner.lock").exists(), "a refused legacy source must not be marked");
+}
+#[tokio::test]
+async fn legacy_source_with_a_live_reference_is_preserved() {
+    let f = fixture(false, false);
+    backdate(&f.spool);
+    // A process that holds the source open is a live writer, whatever its age.
+    let holder = std::fs::File::open(f.spool.join("index")).unwrap();
+    let error = attempt(&f, reclaim::Fault::None).await.unwrap_err();
+    assert!(format!("{error:#}").contains("live references"), "{error:#}");
+    assert!(f.spool.exists());
+    drop(holder);
+    attempt(&f, reclaim::Fault::None).await.unwrap();
+    assert!(!f.spool.exists());
+}
+#[tokio::test]
+async fn protocol_source_without_a_settled_marker_stays_uncertain() {
+    let f = fixture(false, false);
+    backdate(&f.spool);
+    // The producer lease exists, so this is not legacy: no marker means unknown.
+    let mut owner = SpoolLease::acquire(&f.spool).unwrap();
+    owner.release_for_reclaim();
+    let error = attempt(&f, reclaim::Fault::None).await.unwrap_err();
+    assert!(format!("{error:#}").contains("settled marker"), "{error:#}");
+    assert!(f.spool.exists());
+}
+#[tokio::test]
 async fn qualification_interlock_preserves_valid_recovery_spool() {
     let f = fixture(false, true);
     assert_eq!(
-        reclaim_spool_if_lossless(&f.repo, &f.spool, 30).await,
+        reclaim_spool_if_lossless(&f.repo, &f.spool, 30, std::time::Duration::from_secs(0)).await,
         LOSSLESS_RECLAIM_QUALIFIED
     );
     assert_eq!(f.spool.exists(), !LOSSLESS_RECLAIM_QUALIFIED);
