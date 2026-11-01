@@ -15,7 +15,6 @@ use std::time::Duration;
 const OWNER_FILE: &str = "reclaim-owner.lock";
 const SETTLED_FILE: &str = "reclaim-settled.json";
 const CLOSING_FILE: &str = "reclaim-closing.json";
-const RESCUE_DIR: &str = "dracon-rescue";
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -270,16 +269,6 @@ impl Drop for SpoolLease {
     }
 }
 
-/// How inactivity was established for one source.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(super) enum Inactivity {
-    /// The protocol owner published an identity-bound settled marker.
-    SettledMarker,
-    /// A legacy source without the protocol: inactivity was observed through an
-    /// exclusive lease plus a live-writer scan, never assumed from age alone.
-    LegacyFence,
-}
-
 /// Holds ownership and the identities against which final deletion is checked.
 pub(super) struct ReclaimOwner {
     _file: File,
@@ -287,22 +276,18 @@ pub(super) struct ReclaimOwner {
     directory: Metadata,
     lock: Metadata,
     lock_path: PathBuf,
-    inactivity: Inactivity,
 }
 
 impl ReclaimOwner {
     /// Acquire the source fence.
     ///
-    /// A protocol spool carries the owner lock; its inactivity proof is the
-    /// settled marker and a missing marker stays uncertainty. A legacy spool
-    /// has no lease at all: it may only be fenced when it is older than the
-    /// scheduling floor and no process references it. The legacy fence lives
-    /// outside the source, so a legacy spool never gains ownership metadata it
-    /// never had.
+    /// Only a producer-compatible lock can fence writers. A newly created
+    /// reclaimer lock and a /proc snapshot cannot fence a legacy producer
+    /// between operations. Missing legacy metadata therefore stays uncertainty.
     pub(super) fn acquire(
         gitdir: &Path,
         spool: &Path,
-        legacy_floor: std::time::Duration,
+        _legacy_floor: std::time::Duration,
     ) -> Result<Self> {
         let name = spool
             .file_name()
@@ -327,11 +312,10 @@ impl ReclaimOwner {
                     directory,
                     lock_path,
                     before,
-                    Inactivity::SettledMarker,
                 )
             }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                Self::acquire_legacy(gitdir, spool, directory, legacy_floor)
+                anyhow::bail!("legacy ownership uncertain: no producer-compatible fence")
             }
             Err(error) => Err(error.into()),
         }
@@ -342,7 +326,6 @@ impl ReclaimOwner {
         directory: Metadata,
         lock_path: PathBuf,
         before: Metadata,
-        inactivity: Inactivity,
     ) -> Result<Self> {
         let file = owner_options().open(&lock_path)?;
         validate_lock(&file.metadata()?)?;
@@ -357,7 +340,6 @@ impl ReclaimOwner {
             spool: spool.to_path_buf(),
             directory,
             lock_path,
-            inactivity,
         };
         ensure!(
             held.still_owned(),
@@ -366,86 +348,9 @@ impl ReclaimOwner {
         Ok(held)
     }
 
-    /// Legacy sources have no lease. Establish a real fence instead: an
-    /// exclusive lease every later reclaimer must respect, an age floor that a
-    /// live epoch cannot reach, and an observation that no process references
-    /// the source right now.
-    fn acquire_legacy(
-        gitdir: &Path,
-        spool: &Path,
-        directory: Metadata,
-        legacy_floor: std::time::Duration,
-    ) -> Result<Self> {
-        let modified = directory
-            .modified()
-            .context("legacy spool has no readable mtime")?;
-        let age = modified
-            .elapsed()
-            .context("legacy spool mtime is in the future")?;
-        ensure!(
-            age >= legacy_floor,
-            "legacy spool is younger than the scheduling floor"
-        );
-        let fences = gitdir.join(RESCUE_DIR).join("fences");
-        std::fs::create_dir_all(&fences).context("legacy fence directory")?;
-        let name = spool
-            .file_name()
-            .and_then(|n| n.to_str())
-            .context("invalid spool name")?;
-        let fence = fences.join(format!("{name}.lock"));
-        let file = match std::fs::symlink_metadata(&fence) {
-            Ok(before) => {
-                validate_lock(&before)?;
-                owner_options().open(&fence)?
-            }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                let mut options = owner_options();
-                options.create_new(true);
-                options.open(&fence)?
-            }
-            Err(error) => return Err(error.into()),
-        };
-        validate_lock(&file.metadata()?)?;
-        file.try_lock()
-            .context("legacy spool fence is already held")?;
-        let held = Self {
-            lock: file.metadata()?,
-            _file: file,
-            spool: spool.to_path_buf(),
-            directory,
-            lock_path: fence,
-            inactivity: Inactivity::LegacyFence,
-        };
-        ensure!(
-            held.still_owned(),
-            "legacy spool identity changed while acquiring the fence"
-        );
-        let handles = super::liveness::live_handles(spool)?;
-        ensure!(
-            handles.is_empty(),
-            "legacy spool still has live references: {handles:?}"
-        );
-        Ok(held)
-    }
-
     /// The proof that the source may be inspected and eventually removed.
     pub(super) fn proves_inactivity(&self) -> Result<()> {
-        match self.inactivity {
-            Inactivity::SettledMarker => {
-                ensure!(
-                    self.is_settled(),
-                    "producer quiescence uncertain: no matching settled marker"
-                )
-            }
-            Inactivity::LegacyFence => {
-                ensure!(self.still_owned(), "legacy fence identity changed");
-                let handles = super::liveness::live_handles(&self.spool)?;
-                ensure!(
-                    handles.is_empty(),
-                    "legacy spool gained live references: {handles:?}"
-                );
-            }
-        }
+        ensure!(self.is_settled(), "producer quiescence uncertain: no matching settled marker");
         Ok(())
     }
 
