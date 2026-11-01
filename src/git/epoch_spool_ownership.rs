@@ -307,12 +307,7 @@ impl ReclaimOwner {
         match std::fs::symlink_metadata(&lock_path) {
             Ok(before) => {
                 validate_lock(&before)?;
-                Self::acquire_locked(
-                    spool,
-                    directory,
-                    lock_path,
-                    before,
-                )
+                Self::acquire_locked(spool, directory, lock_path, before)
             }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                 anyhow::bail!("legacy ownership uncertain: no producer-compatible fence")
@@ -350,7 +345,10 @@ impl ReclaimOwner {
 
     /// The proof that the source may be inspected and eventually removed.
     pub(super) fn proves_inactivity(&self) -> Result<()> {
-        ensure!(self.is_settled(), "producer quiescence uncertain: no matching settled marker");
+        ensure!(
+            self.is_settled(),
+            "producer quiescence uncertain: no matching settled marker"
+        );
         Ok(())
     }
 
@@ -510,7 +508,10 @@ mod tests {
             assert!(ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(floor)).is_err());
         }
         assert!(!spool.join(OWNER_FILE).exists());
-        assert!(!gitdir.join("dracon-rescue").exists(), "refusal must not manufacture a fence");
+        assert!(
+            !gitdir.join("dracon-rescue").exists(),
+            "refusal must not manufacture a fence"
+        );
     }
 
     #[test]

@@ -529,7 +529,10 @@ async fn legacy_source_with_a_live_reference_is_preserved() {
     fs::write(f.spool.parent().unwrap().join("reference-exit"), b"exit").unwrap();
     assert!(child.0.wait().unwrap().success());
     assert!(attempt(&f, reclaim::Fault::None).await.is_err());
-    assert!(f.spool.exists(), "no compatible producer fence appeared after the descriptor closed");
+    assert!(
+        f.spool.exists(),
+        "no compatible producer fence appeared after the descriptor closed"
+    );
 }
 
 #[test]
