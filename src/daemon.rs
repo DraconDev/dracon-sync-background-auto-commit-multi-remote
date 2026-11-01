@@ -929,7 +929,7 @@ where
 {
     let mut locks_removed = 0u64;
     for repo in repo_set {
-        let lock = index_lock_path(repo);
+        for lock in stale_lock_candidates(repo) {
         if lock.exists() {
             let age_secs = std::fs::metadata(&lock)
                 .and_then(|m| m.modified())
@@ -946,7 +946,8 @@ where
                 continue;
             }
             eprintln!(
-                "🧹 index.lock sweep: found index.lock in {} (checking fuser...)",
+                "🧹 index.lock sweep: found {} in {} (checking fuser...)",
+                lock.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
                 repo.display()
             );
             match fuser_check(&lock) {
@@ -959,7 +960,8 @@ where
                         );
                     } else {
                         eprintln!(
-                            "🧹 index.lock sweep: removed stale lock in {} (fuser-clean, age over {}s)",
+                            "🧹 index.lock sweep: removed stale lock {} in {} (fuser-clean, age over {}s)",
+                            lock.display(),
                             repo.display(),
                             STALE_INDEX_LOCK_AGE_SECS
                         );
@@ -981,8 +983,52 @@ where
                 }
             }
         }
+        }
     }
     locks_removed
+}
+
+/// Lock files the janitor may consider, in gitdir-relative form.
+///
+/// ADDED 2026-11-01: the sweep originally handled ONLY `index.lock`, so a
+/// 6.3-hour-old `refs/heads/main.lock` and then `HEAD.lock` wedged
+/// dracon-platform with `cannot lock ref` while the janitor reported nothing
+/// to do. A crashed or killed `git push`/`commit` leaves exactly these files.
+/// Each candidate is still gated by the age floor and by `fuser`, so a live
+/// ref update (which holds these for milliseconds) is never interrupted.
+fn stale_lock_candidates(repo: &Path) -> Vec<PathBuf> {
+    let gitdir = crate::git::path_gitdir(repo).unwrap_or_else(|| repo.join(".git"));
+    let mut candidates = vec![gitdir.join("index.lock"), gitdir.join("HEAD.lock"), gitdir.join("packed-refs.lock")];
+    for sub in ["refs/heads", "refs/tags", "refs/remotes"] {
+        collect_lock_files(&gitdir.join(sub), &mut candidates, 0);
+    }
+    candidates
+}
+
+fn collect_lock_files(dir: &Path, out: &mut Vec<PathBuf>, depth: usize) {
+    // Bounded depth: refs are shallow; refuse to walk an unexpected tree.
+    if depth > 4 {
+        return;
+    }
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let Ok(meta) = std::fs::symlink_metadata(&path) else {
+            continue;
+        };
+        // Symlinks are never lock files git created here; skip them so a
+        // planted link cannot make the janitor delete something else.
+        if meta.file_type().is_symlink() {
+            continue;
+        }
+        if meta.is_dir() {
+            collect_lock_files(&path, out, depth + 1);
+        } else if path.extension().is_some_and(|e| e == "lock") {
+            out.push(path);
+        }
+    }
 }
 
 /// ADDED 2026-07-27 (v0.113.5, audit M4): the canonical
