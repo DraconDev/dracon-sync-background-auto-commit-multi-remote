@@ -74,7 +74,9 @@ assert target.is_file() and not target.is_symlink()
 
 # The two repairs must actually be present in the artifact being shipped.
 strings = subprocess.check_output(['strings', str(candidate)], text=True)
-for marker in ('status_column_width', 'RICH_TIER_MIN_COLS'):
+# 'status_column_width' is a surviving symbol; 'PUBLISHING' is the status
+# label whose wrap this release fixes. Consts are inlined and cannot be used.
+for marker in ('status_column_width', 'PUBLISHING'):
     assert marker in strings, f'candidate lacks repaired marker {marker!r}'
 
 # ── backup ──────────────────────────────────────────────────────────────────
