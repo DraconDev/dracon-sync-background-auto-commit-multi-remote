@@ -598,7 +598,7 @@ async fn prepare_inner(
             .as_os_str()
             .as_encoded_bytes()
             .iter()
-            .any(|b| [b':', b'\n', b'"'].contains(b)),
+            .any(|b| b":\n\"".contains(b)),
         "unsupported object directory path"
     );
     let rescue = gitdir.join("dracon-rescue");

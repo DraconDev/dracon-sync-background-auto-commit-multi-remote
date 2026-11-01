@@ -124,7 +124,7 @@ pub(crate) fn epoch_producer_trampoline() -> Result<()> {
             .env_clear()
             .envs(env)
             .exec();
-        return Err(error.into());
+        Err(error.into())
     }
     #[cfg(not(unix))]
     bail!("epoch producer trampoline requires Unix");
