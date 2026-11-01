@@ -13030,7 +13030,7 @@ mod tests {
         // it doesn't panic on a populated row and produces output.
         // The visual rendering is verified by the manual test
         // script (see release-notes-v0.112.27.md).
-        print_repos_summary(&rows, &filter, false, false);
+        build_repos_summary(&rows, &filter, false, false);
     }
 
     #[test]
@@ -17167,7 +17167,6 @@ mod v011321_tests {
             .collect()
     }
 
-    #[test]
     /// Count body lines belonging to data rows. A wrapped cell adds a body
     /// line that does NOT start with a row number, which is exactly what made
     /// `📤 PUBLISHING` look like an extra row.
@@ -17186,6 +17185,7 @@ mod v011321_tests {
             .collect()
     }
 
+    #[test]
     fn every_table_tier_renders_single_line_rows() {
         let rows = vec![worst_case_row("/watch/one"), worst_case_row("/watch/two")];
         let filter = RepoFilter::All;
