@@ -5033,6 +5033,24 @@ pub(crate) fn classify_fuser_status(exit_code: Option<i32>, stderr: &[u8]) -> an
 
 /// True when some process holds `path` open. Errors mean "cannot prove it is
 /// unheld", which callers must treat as still in use.
+/// Current `HEAD` of `repo`, or `None` when it cannot be read.
+///
+/// SYNC on purpose: `record_push_failure` runs on the blocking path, and the
+/// stuck-push budget only needs the tip identity, not a full status.
+pub(crate) fn head_tip(repo: &std::path::Path) -> Option<String> {
+    let output = crate::policy::std_git_command()
+        .args(["--no-optional-locks", "rev-parse", "HEAD"])
+        .current_dir(repo)
+        .env("GIT_OPTIONAL_LOCKS", "0")
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let tip = String::from_utf8(output.stdout).ok()?.trim().to_string();
+    (!tip.is_empty()).then_some(tip)
+}
+
 pub(crate) fn fuser_path_in_use(path: &std::path::Path) -> anyhow::Result<bool> {
     fuser_path_in_use_with_command("fuser", path)
 }
