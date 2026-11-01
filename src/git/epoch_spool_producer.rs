@@ -95,17 +95,19 @@ pub(crate) fn epoch_producer_trampoline() -> Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
+        ensure!(args.get(2).and_then(|arg| arg.to_str()) == Some(env!("DRACON_EPOCH_SOURCE_ID")),
+            "epoch producer helper source identity mismatch");
         let count: usize = args
-            .get(2)
+            .get(3)
             .and_then(|s| s.to_str())
             .context("missing environment count")?
             .parse()?;
         ensure!(
-            count <= args.len().saturating_sub(4),
+            count <= args.len().saturating_sub(5),
             "invalid environment count"
         );
         let mut env = BTreeMap::new();
-        for key in &args[3..3 + count] {
+        for key in &args[4..4 + count] {
             let key = key.to_str().context("non-UTF8 environment name")?;
             let value = std::env::var(key).context("forwarded environment missing")?;
             ensure!(
@@ -114,10 +116,10 @@ pub(crate) fn epoch_producer_trampoline() -> Result<()> {
             );
         }
         validate_environment(&env)?;
-        let target = Path::new(&args[3 + count]);
+        let target = Path::new(&args[4 + count]);
         absolute_text(target)?;
         let error = std::process::Command::new(target)
-            .args(&args[4 + count..])
+            .args(&args[5 + count..])
             .env_clear()
             .envs(env)
             .exec();
@@ -147,6 +149,16 @@ struct Manager {
     helper: PathBuf,
 }
 
+fn producer_helper() -> Result<PathBuf> {
+    #[cfg(test)]
+    let path = PathBuf::from(std::env::var_os("DRACON_EPOCH_TEST_HELPER")
+        .context("matching revision-qualified epoch test helper is required")?);
+    #[cfg(not(test))]
+    let path = std::env::current_exe()?;
+    ensure!(path.is_absolute() && path.is_file(), "epoch producer helper must be an absolute executable");
+    Ok(path)
+}
+
 impl Manager {
     fn new() -> Result<Self> {
         #[cfg(target_os = "linux")]
@@ -165,7 +177,7 @@ impl Manager {
             uid,
             runner: locate("systemd-run")?,
             control: locate("systemctl")?,
-            helper: std::env::current_exe()?,
+            helper: producer_helper()?,
         })
     }
     fn command(&self, executable: &Path) -> Command {
@@ -403,6 +415,7 @@ async fn launch(manager: Manager, recipe: EpochProducerCommand, runtime: Duratio
         .arg("--")
         .arg(&manager.helper)
         .arg(TRAMPOLINE)
+        .arg(env!("DRACON_EPOCH_SOURCE_ID"))
         .arg(recipe.environment.len().to_string())
         .args(recipe.environment.keys())
         .arg(&recipe.executable)
