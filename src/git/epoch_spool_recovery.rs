@@ -655,7 +655,6 @@ async fn prepare_inner(
         record.path().join("source-fingerprint.json"),
         serde_json::to_vec(&source_snapshot)?,
     )?;
-    cas::share_metadata(record.path(), &rescue)?;
     ensure!(metadata.join("index").is_file(), "spool index missing");
     supported_index(&metadata.join("index"), width)?;
     let build = work.path().join("build.git");
@@ -767,6 +766,9 @@ async fn prepare_inner(
         fs::write(path, bytes)?;
     }
     verify(&store, &roots_path, timeout).await?;
+    // Share repeated metadata bytes only after the record verified: a failed
+    // preparation must leave no shared artifact behind either.
+    cas::share_metadata(record.path(), &rescue)?;
     #[cfg(test)]
     let corrupt_unique = matches!(_fault, Fault::CorruptUniqueBeforeVerify);
     #[cfg(not(test))]
