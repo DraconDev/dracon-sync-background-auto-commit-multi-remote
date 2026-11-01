@@ -4121,6 +4121,25 @@ fn row_is_pending_work(row: &RepoReportRow) -> bool {
     !row_is_converged(row) && !row.active && !warn_filter_retains(row) && !row.concern
 }
 
+/// Width of the rich table's STATUS column, derived from the labels rather
+/// than hand-tuned.
+///
+/// ADDED 2026-11-01: the column was `Fixed(13)` while `📤 PUBLISHING` is
+/// exactly 13 display columns, so the rich tier wrapped the word onto a
+/// second line — which reads like an extra table row. Previous hand-tuned
+/// widths (`'🚫 unowned' = 11`) had already drifted after that label was
+/// removed. Deriving from `ALL_STATUS_LABELS` means a future label cannot
+/// silently wrap; `status_labels_fit_the_rich_column` fails instead.
+fn status_column_width() -> usize {
+    crate::current_health::ALL_STATUS_LABELS
+        .iter()
+        .map(|label| unicode_width::UnicodeWidthStr::width(*label))
+        // +2 keeps comfy-table's own cell padding inside the fixed width.
+        .max()
+        .unwrap_or(0)
+        .saturating_add(2)
+}
+
 /// Bucket rows into (ok, active, warn, concern, pending) summary counts.
 /// Precedence is concern > active > warn > pending > ok: a warn&&concern
 /// row counts ONLY as concern (FIXED 2026-10-03, audit R3-L09 — the old
@@ -6139,7 +6158,7 @@ fn print_repos_compact_table(
         // to the cell content before passing to comfy-table. Column
         // sum drops from 232 → 217, so the table now fits at 220+ cols.
         ColumnConstraint::Absolute(Width::Fixed(4)), // # (R3-L39: fits up to 99 repos; 100+ wraps the index cell, never clips — probed on comfy-table 7.2.2)
-        ColumnConstraint::Absolute(Width::Fixed(13)), // STATUS (header 7 + 2 + 4 buffer for '🚫 unowned' = 11 cols + 2 padding)
+        ColumnConstraint::Absolute(Width::Fixed(status_column_width() as u16)), // STATUS (derived: widest label + padding)
         ColumnConstraint::Absolute(Width::Fixed(18)), // REPO (truncate to 16 cols of content; fits 'browser-extensions-shared' = 24 chars as 'browser-extensions…')
         ColumnConstraint::Absolute(Width::Fixed(14)), // ROLE (was LowerBoundary(7); was bug — 7 < min content 'standalone' = 10 chars, wraps; now fits 'parent·10' = 9, 'wip/hegemon' = 11, 'released/one-mil-girls' = 22 → truncate to 12)
         ColumnConstraint::Absolute(Width::Fixed(11)), // BRANCH (header 7 + 2 + 2 buffer)

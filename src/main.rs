@@ -1499,7 +1499,9 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     }
                     println!(
                         "\n📦 Before-pass inventory: {} dir(s), {} (age floor {}s)",
-                        total_dirs, git::human_bytes(total_bytes), max_age
+                        total_dirs,
+                        git::human_bytes(total_bytes),
+                        max_age
                     );
                     if apply {
                         println!("Verified removals: {reclaimed_total} dir(s). Recovery-store growth is separate; inventory bytes are not net savings.");

@@ -113,19 +113,49 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
     Current::Unknown
 }
 
+// Status labels are named once and reused by `status()`, the layout width
+// calculation and the drift test. Hand-tuned column widths had already
+// drifted twice: the STATUS cell was `Fixed(13)` while `📤 PUBLISHING` is
+// exactly 13 display columns, so the rich table wrapped the word
+// PUBLISHING onto a second line and the row looked like two rows.
+pub(super) const LABEL_CLEAN: &str = "✅ CLEAN";
+pub(super) const LABEL_EXCLUDED: &str = "🚫 EXCLUDED";
+pub(super) const LABEL_QUEUED: &str = "🟡 QUEUED";
+pub(super) const LABEL_WORKING: &str = "🔄 WORKING";
+pub(super) const LABEL_PUBLISHING: &str = "📤 PUBLISHING";
+pub(super) const LABEL_RETRYING: &str = "⏳ RETRYING";
+pub(super) const LABEL_STALLED: &str = "🔴 STALLED";
+pub(super) const LABEL_BLOCKED: &str = "🚫 BLOCKED";
+pub(super) const LABEL_PAUSED: &str = "⏸️ PAUSED";
+pub(super) const LABEL_UNKNOWN: &str = "❔ UNKNOWN";
+
+/// Every label `status()` can return. Single source for layout sizing.
+pub(super) const ALL_STATUS_LABELS: [&str; 10] = [
+    LABEL_CLEAN,
+    LABEL_EXCLUDED,
+    LABEL_QUEUED,
+    LABEL_WORKING,
+    LABEL_PUBLISHING,
+    LABEL_RETRYING,
+    LABEL_STALLED,
+    LABEL_BLOCKED,
+    LABEL_PAUSED,
+    LABEL_UNKNOWN,
+];
+
 pub(super) fn status(row: &RepoReportRow) -> (&'static str, Color) {
     match classify(row) {
-        Current::Converged => ("✅ CLEAN", Color::Green),
-        Current::Excluded => ("🚫 EXCLUDED", Color::DarkGrey),
-        Current::Queued => ("🟡 QUEUED", Color::Cyan),
-        Current::Working => ("🔄 WORKING", Color::Cyan),
+        Current::Converged => (LABEL_CLEAN, Color::Green),
+        Current::Excluded => (LABEL_EXCLUDED, Color::DarkGrey),
+        Current::Queued => (LABEL_QUEUED, Color::Cyan),
+        Current::Working => (LABEL_WORKING, Color::Cyan),
         // Named separately from WORKING: the tip is not on the remotes yet.
-        Current::Publishing => ("📤 PUBLISHING", Color::Cyan),
-        Current::Retrying => ("⏳ RETRYING", Color::Yellow),
-        Current::Stalled => ("🔴 STALLED", Color::Red),
-        Current::Blocked => ("🚫 BLOCKED", Color::Red),
-        Current::Paused => ("⏸️ PAUSED", Color::Yellow),
-        Current::Unknown => ("❔ UNKNOWN", Color::Yellow),
+        Current::Publishing => (LABEL_PUBLISHING, Color::Cyan),
+        Current::Retrying => (LABEL_RETRYING, Color::Yellow),
+        Current::Stalled => (LABEL_STALLED, Color::Red),
+        Current::Blocked => (LABEL_BLOCKED, Color::Red),
+        Current::Paused => (LABEL_PAUSED, Color::Yellow),
+        Current::Unknown => (LABEL_UNKNOWN, Color::Yellow),
     }
 }
 /// Rich tables have dedicated ahead and excluded columns. Keep the entire
