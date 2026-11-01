@@ -68,6 +68,16 @@ A kernel lock released by a cancelled producer is not a descendant-completion pr
 
 Evidence is `producer-qualified-tests.txt` and `producer-helper-build.txt` in the recovery evidence directory; the initial failed host run is retained in `producer-host-initial-failure.txt`. This establishes component behavior only. Staging/epoch integration, source-bound settled markers, stop-timeout/fault coverage and final independent review remain unfinished; destructive reclaim is still disabled.
 
+## Staging integration checkpoint
+
+Private-index initialization/add/read-tree and private write-tree/retention-pack operations now dispatch through the registered producer scope. The adapter uses an explicit Git-factory environment recipe and spool-owned captured endpoints; cancellation does not delete endpoint files beneath a live service. Unsupported containment retains the historical staging behavior but cannot produce a settled marker. A closing marker prevents resuming a source whose settlement started but could not be proven.
+
+Settlement proofs are bound to the original directory and lock device/inode identity. Under the still-held producer lock, settlement syncs source files and writes a create-only synced `reclaim-settled.json`; only then is the lock released. A copied marker or wrong producer proof is rejected. An available lock without a valid marker remains uncertain. The actual reclaimer must still check that marker before proving recovery/removal; that body is not integrated yet.
+
+Published, empty-candidate and settled-unpublished cleanup now share `release_spool_if_lossless`; the previous direct `remove_dir_all` publication bypass is removed. The root reaper interlock is still false, so these paths cannot delete a live spool. No completed implementation/drain claim follows from the routing change.
+
+Current bounded checks: ownership suite 8 passed including an explicitly enabled real-host private-Git -> cgroup-settlement -> identity-bound handoff fixture; protected original-index/preserve-rejected release test 1 passed; age-only refusal test 1 passed; recovery suite 11 passed; producer suite 4 passed including host fixture. Evidence: `lifecycle-tests.txt`, `protected-release-tests.txt`, `age-refusal-tests.txt`, `lifecycle-helper-build.txt`, `recovery-shared-tests.txt`, and `producer-qualified-tests.txt`. These are focused component/integration observations, not full workspace gates. Remaining immediate work is the strong reclaimer body, source fingerprints/final checks and compact unique rescue; then comprehensive fault/non-vacuity/gates and safe live accounting.
+
 ## Required qualification
 
 Real-process fixtures must demonstrate old-but-live owner exclusion, owner death and safe release, settled-owner reclaim without self-lock, concurrent reapers, and legacy refusal. Real Git fixtures must demonstrate index/metadata reconstruction, mixed rescue, corruption after pack write preserving the original, unsupported index preservation, ordinary GC survival and failure at each durable-install boundary.

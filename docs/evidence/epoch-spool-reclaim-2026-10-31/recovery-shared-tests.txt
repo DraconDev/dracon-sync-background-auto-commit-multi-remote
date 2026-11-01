@@ -1,5 +1,4 @@
-   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.13s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.32s
      Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-283f9da73a741e4c)
 
 running 11 tests
@@ -15,5 +14,5 @@ test git::epoch_spool::recovery::tests::shared_objects_are_independent_and_seman
 test git::epoch_spool::recovery::tests::split_index_and_missing_index_object_refuse_preserving_sources ... ok
 test git::epoch_spool::recovery::tests::symlink_metadata_is_refused_without_following_it ... ok
 
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 1565 filtered out; finished in 3.73s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 1568 filtered out; finished in 1.11s
 

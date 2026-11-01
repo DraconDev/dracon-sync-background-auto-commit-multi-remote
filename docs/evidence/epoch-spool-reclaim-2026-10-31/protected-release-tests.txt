@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.72s
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 1 test
+test sync::staged_epoch::tests::settled_epoch_preserves_original_conflicts_and_rejected_bytes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1578 filtered out; finished in 0.06s
+
