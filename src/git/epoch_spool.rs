@@ -45,6 +45,9 @@ mod ownership;
 mod recovery;
 #[path = "epoch_spool_producer.rs"]
 mod producer;
+#[path = "epoch_spool_dispatch.rs"]
+mod dispatch;
+pub(crate) use dispatch::run_spool_git;
 #[allow(unused_imports)] // Producer integration is intentionally a separate review.
 pub(crate) use producer::{epoch_producer_trampoline, producer_environment, EpochProducerCommand, EpochProducerScope, ProducerExit, SettledProducer};
 pub(crate) use ownership::SpoolLease;
