@@ -17,12 +17,16 @@ use tokio::process::Command;
 mod cas;
 #[path = "epoch_spool_source.rs"]
 mod source;
+#[path = "epoch_spool_unique.rs"]
+mod unique;
 
 #[derive(Debug)]
 #[allow(dead_code)] // Read by the future qualified caller, not the current reaper.
 pub(super) struct DurableReceipt {
     pub record: PathBuf,
     pub manifest_sha256: String,
+    pub unique_objects: usize,
+    pub rescue_pack: Option<PathBuf>,
 }
 
 fn git(repo: &Path) -> Command {
@@ -468,10 +472,12 @@ pub(super) async fn prepare_record(
 }
 
 #[derive(Clone, Copy)]
-enum Fault {
+pub(super) enum Fault {
     None,
     #[cfg(test)]
     CorruptBeforeVerify,
+    #[cfg(test)]
+    CorruptUniqueBeforeVerify,
     #[cfg(test)]
     BeforeReceipt,
     #[cfg(test)]
@@ -512,6 +518,14 @@ pub(super) async fn verify_source_owned(
 
 pub(super) fn final_source_check(record: &Path, spool: &Path) -> Result<()> {
     source::final_check(record, spool)
+}
+
+#[cfg(test)]
+pub(super) async fn prepare_owned_fault(
+    repo: &Path, spool: &Path, seconds: u64,
+    owner: super::ownership::ReclaimOwner, fault: Fault,
+) -> Result<(DurableReceipt, super::ownership::ReclaimOwner)> {
+    prepare_guarded(repo, spool, seconds, fault, owner).await
 }
 
 async fn prepare_guarded<G: Send + 'static>(
@@ -684,6 +698,7 @@ async fn prepare_inner(
             roots.insert(fields[1].to_owned());
         }
     }
+    fs::write(record.path().join("source-oids"), roots.iter().map(|oid| oid.clone() + "\n").collect::<String>())?;
     let mut c = git(&build);
     c.arg("write-tree")
         .env("GIT_INDEX_FILE", &index)
@@ -739,6 +754,16 @@ async fn prepare_inner(
         fs::write(path, bytes)?;
     }
     verify(&store, &roots_path, timeout).await?;
+    #[cfg(test)]
+    let corrupt_unique = matches!(_fault, Fault::CorruptUniqueBeforeVerify);
+    #[cfg(not(test))]
+    let corrupt_unique = false;
+    let payload = unique::prepare(repo, work.path(), record.path(), width, timeout, corrupt_unique).await?;
+    fs::write(record.path().join("classification.json"), serde_json::to_vec(&serde_json::json!({
+        "version": 1, "main_missing_objects": payload.count,
+        "rescue_pack_name_bytes": payload.pack_name.as_ref().map(|path| path.as_os_str().as_encoded_bytes()),
+        "classification_is_not_deletion_authority": true,
+    }))?)?;
     let mut manifest = String::from("dracon-epoch-recovery-v2\n");
     sync_tree(record.path(), record.path(), &mut manifest)?;
     let manifest_sha256 = format!("{:x}", Sha256::digest(manifest.as_bytes()));
@@ -770,9 +795,12 @@ async fn prepare_inner(
     // Hard-link publication is create-only and exposes only complete bytes.
     fs::hard_link(record.join("receipt.pending"), record.join("receipt"))?;
     File::open(&record)?.sync_all()?;
+    let rescue_pack = payload.pack_name.map(|name| record.join(name));
     Ok(DurableReceipt {
         record,
         manifest_sha256,
+        unique_objects: payload.count,
+        rescue_pack,
     })
 }
 
