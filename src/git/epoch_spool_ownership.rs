@@ -395,6 +395,61 @@ mod tests {
         (root, gitdir, spool)
     }
 
+    #[tokio::test]
+    #[ignore = "requires user bus/cgroup v2 and a rebuilt DRACON_EPOCH_TEST_HELPER; disposable own service only"]
+    async fn host_private_git_settles_before_identity_bound_handoff() {
+        let root = tempfile::tempdir().unwrap();
+        assert!(crate::git::git_cmd()
+            .args(["init", "--template="])
+            .current_dir(root.path())
+            .status()
+            .unwrap()
+            .success());
+        let gitdir = root.path().join(".git");
+        let spool = gitdir.join("dracon-staging-lifecycle");
+        std::fs::create_dir(&spool).unwrap();
+        let mut producer = SpoolLease::acquire(&spool).unwrap();
+        producer.begin_producers(Duration::from_secs(10)).unwrap();
+        let result = crate::git::run_spool_git(
+            root.path(),
+            &spool,
+            &["read-tree", "--empty"],
+            None,
+            Some(&spool.join("index")),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert!(result.status.success());
+        assert!(spool.join("index").is_file());
+        assert!(!spool.join(SETTLED_FILE).exists());
+        assert!(ReclaimOwner::acquire(&gitdir, &spool).is_err());
+        producer
+            .settle_for_reclaim(Duration::from_secs(15))
+            .await
+            .unwrap();
+        let reclaimer = ReclaimOwner::acquire(&gitdir, &spool).unwrap();
+        assert!(reclaimer.is_settled());
+        assert!(
+            crate::git::run_spool_git(
+                root.path(),
+                &spool,
+                &["write-tree"],
+                None,
+                Some(&spool.join("index"))
+            )
+            .await
+            .is_err(),
+            "sealed production must not restart"
+        );
+        drop(reclaimer);
+        // Retry checks an existing valid marker; it never manufactures one.
+        producer
+            .settle_for_reclaim(Duration::from_secs(1))
+            .await
+            .unwrap();
+    }
+
     #[test]
     fn legacy_owner_metadata_is_not_manufactured() {
         let (_root, gitdir, spool) = fixture();
