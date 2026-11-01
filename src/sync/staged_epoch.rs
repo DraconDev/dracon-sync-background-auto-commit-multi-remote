@@ -89,6 +89,14 @@ pub(super) async fn git(
     args: &[&str],
     input: Option<&[u8]>,
 ) -> Result<std::process::Output> {
+    if args.first() == Some(&"pack-objects") {
+        if let Some(spool) = args.last().and_then(|prefix| Path::new(prefix).parent()) {
+            if let Some(output) = crate::git::run_spool_git(repo, spool, args, input, None).await? {
+                ensure!(output.status.success(), "scoped retention refused: {}", String::from_utf8_lossy(&output.stderr));
+                return Ok(output);
+            }
+        }
+    }
     let mut command = crate::policy::tokio_git_command();
     for (key, _) in std::env::vars_os() {
         if key.to_string_lossy().starts_with("GIT_") {
@@ -226,36 +234,10 @@ impl Epoch {
         .context("empty epoch follow-up deadline expired")?
     }
 
-    /// Release the retained spool. Idempotent and best-effort.
-    ///
-    /// ADDED 2026-10-26 (disk-exhaustion incident). Only call this once the
-    /// candidate's future is SETTLED: it is published (so normal history
-    /// makes the objects reachable), or it is an empty candidate with
-    /// nothing to commit. A refusal, deadline or unpublished error leaves
-    /// the spool on disk for diagnosis. There is no age-based deletion:
-    /// recovery retention is intentionally unbounded pending a safe policy.
-    /// Original conflicts and rejected payloads remain retained even after
-    /// publication of the selected candidate.
-    pub(super) fn release_spool(&mut self) {
-        // Conflict recovery retains original stages which need not be in the
-        // selected commit. Never discard that evidence on commit success.
-        if self.retained.as_ref().is_some_and(|path| path.join("original-index").exists() || path.join("preserve-rejected").exists()) {
-            return;
-        }
-        let directory = self.retained.take();
-        // Clear the diagnostic path before removing this owned directory.
-        self.spool_lease = crate::git::SpoolLease::new(None);
-        if let Some(directory) = directory {
-            if let Err(error) = std::fs::remove_dir_all(&directory) {
-                // Best-effort: preserve and diagnose any removal failure.
-                if error.kind() != std::io::ErrorKind::NotFound {
-                    eprintln!(
-                        "⚠️ cannot release epoch spool {}: {error}",
-                        directory.display()
-                    );
-                }
-            }
-        }
+    /// Publication and an empty candidate are not metadata-recovery waivers.
+    /// Every removal uses the same family-settlement and durable-recovery gate.
+    pub(super) async fn release_spool(&mut self, repo: &Path) {
+        self.release_spool_if_lossless(repo).await;
     }
 
     pub(super) fn entries(&self) -> Result<Vec<dracon_git::types::DiffFile>> {
@@ -663,23 +645,22 @@ impl Epoch {
         // cycle (~875 MiB on browser-extensions-shared; 9 GiB in 4 minutes
         // measured after 0.113.96 shipped the age-only sweep).
         //
-        // ONLY a published commit releases the spool. A refusal, conflict or
-        // deadline leaves it for diagnosis; age alone never permits deletion.
+        // Publication is not an independent removal authority. A published or
+        // deadline-settled candidate uses the same stronger recovery predicate.
+        // Refusals and conflicts retain their diagnostic source.
         //
         // `pending` deliberately does NOT block the release: an unstaged
         // edit, untracked file or post-commit hook failure is follow-up work
         // for the NEXT epoch, which allocates its own fresh spool.
+        if published || result.is_err() {
+            self.release_spool_if_lossless(repo).await;
+        }
         match result {
-            Ok(Ok(pending)) => {
-                if published {
-                    self.release_spool();
-                }
-                Ok(pending)
-            }
+            Ok(Ok(pending)) => Ok(pending),
             Ok(Err(error)) => {
                 if published {
-                    // The commit is on the ref; only its follow-up failed.
-                    self.release_spool();
+                    // Recovery cleanup was independently gated above; a
+                    // published ref does not bypass that preservation check.
                     eprintln!(
                         "\u{26a0}\u{fe0f} {} epoch was published; follow-up remains unverified: {error:#}",
                         repo.display()
@@ -691,7 +672,6 @@ impl Epoch {
             }
             Err(error) => {
                 if published {
-                    self.release_spool();
                     eprintln!(
                         "\u{26a0}\u{fe0f} {} epoch was published; deadline cancelled post-publication follow-up",
                         repo.display()
@@ -702,9 +682,8 @@ impl Epoch {
                     // next epoch re-stages the same worktree from the same files.
                     // Holding a multi-gigabyte spool "for diagnosis" is what let
                     // the spools reach ~15 GiB. Release only when the contents are
-                    // provably preserved elsewhere (already in the object database,
-                    // or rescued into a verified pack); otherwise keep it.
-                    self.release_spool_if_lossless(repo).await;
+                    // durably preserved with recovery semantics after verified
+                    // producer settlement. Otherwise the source remains.
                     Err(error)
                         .context("staged epoch deadline expired; ref outcome may require inspection")
                 }
@@ -727,6 +706,10 @@ impl Epoch {
             return;
         }
         let Some(path) = self.retained.clone() else { return };
+        if let Err(error) = self.spool_lease.settle_for_reclaim(Duration::from_secs(30)).await {
+            eprintln!("⚠️ {}: spool producer settlement uncertain; retained {}: {error:#}", repo.display(), path.display());
+            return;
+        }
         if !crate::git::reclaim_spool_if_lossless(repo, &path, SPOOL_RELEASE_TIMEOUT_SECS).await {
             return;
         }
@@ -840,6 +823,14 @@ pub(super) async fn run_index_git(
     label: &str,
     index: Option<&Path>,
 ) -> Result<()> {
+    if let Some(index) = index {
+        if let Some(spool) = index.parent() {
+            if let Some(output) = crate::git::run_spool_git(repo, spool, args, None, Some(index)).await? {
+                ensure!(output.status.success(), "{label} refused: {}", String::from_utf8_lossy(&output.stderr));
+                return Ok(());
+            }
+        }
+    }
     let mut command = crate::policy::tokio_git_command();
     for (key, _) in std::env::vars_os() {
         if key.to_string_lossy().starts_with("GIT_") {
@@ -891,7 +882,14 @@ impl Staging {
             builder.permissions(std::fs::Permissions::from_mode(0o700));
         }
         let directory = builder.tempdir_in(directory)?.keep();
-        let spool_lease = crate::git::SpoolLease::acquire(&directory)?;
+        let mut spool_lease = crate::git::SpoolLease::acquire(&directory)?;
+        let runtime = baseline.deadline.saturating_duration_since(Instant::now()).as_secs().clamp(1, 3600);
+        if let Err(error) = spool_lease.begin_producers(Duration::from_secs(runtime)) {
+            // Unsupported containment must not invent a completion proof. The
+            // historical staging runner may proceed, but this source remains
+            // ineligible for cleanup and reports why at settlement.
+            eprintln!("⚠️ private epoch containment unavailable; spool remains protected: {error:#}");
+        }
         let index = directory.join("index");
         let staging = Self {
             baseline,
@@ -972,13 +970,12 @@ impl Staging {
                 .args(["write-tree"])
                 .current_dir(repo)
                 .env("GIT_INDEX_FILE", &self.index);
-            let output = crate::git::run_command_captured_output(
-                command.into_tokio(),
-                3600,
-                "private staged tree",
-                None,
-            )
-            .await?;
+            let output = match crate::git::run_spool_git(repo, &self.directory, &["write-tree"], None, Some(&self.index)).await? {
+                Some(output) => output,
+                None => crate::git::run_command_captured_output(
+                    command.into_tokio(), 3600, "private staged tree", None,
+                ).await?,
+            };
             ensure!(
                 output.status.success(),
                 "cannot close private staging epoch"
@@ -1113,7 +1110,7 @@ impl Staging {
                 // Release only a genuinely empty original candidate.
                 // release_spool preserves preserve-rejected candidates, whose
                 // original pack may still contain unpublished bytes.
-                epoch.release_spool();
+                epoch.release_spool(repo).await;
                 return Ok(epoch);
             }
             // Persist typed artifact intent before installing an index that a
@@ -1220,7 +1217,7 @@ mod tests {
             let directory = tempfile::tempdir_in(root.path().join(".git")).unwrap();
             std::fs::write(directory.path().join(marker), b"unpublished evidence").unwrap();
             epoch.retained = Some(directory.path().to_owned());
-            epoch.release_spool();
+            epoch.release_spool(root.path()).await;
             assert_eq!(std::fs::read(directory.path().join(marker)).unwrap(), b"unpublished evidence");
         }
     }
