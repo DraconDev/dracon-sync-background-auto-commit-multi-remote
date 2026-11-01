@@ -64,3 +64,42 @@ started at 2026-11-01T03:17:41Z against d11d686b685790db0aedcd690abe37ad6319f020
 At capture it was running with no failed gates yet; this is NOT a publication
 success claim. No manual recovery push, history rewrite, producer stop, or
 security-policy relaxation was performed during this repair.
+
+## Root-cause ledger (2026-11-01, verified against the running daemon)
+
+| # | Demonstrated cause | Status |
+|---|---|---|
+| 1 | `ok` was a residual, so DIRTY/AHEAD/PENDING rows counted as clean | **Fixed + deployed** (`row_is_converged` present in the loaded binary) |
+| 2 | `auto_gc` blind to unreachable-inside-pack bloat (6.53 GiB with `garbage: 0`) | **Fixed + deployed** (`auto_gc_pack_growth_bytes` present in the loaded binary) |
+| 3 | A test wrote `/tmp` fixtures into the LIVE push-stuck ledger | **Fixed** (private state dir; negative control reproduced the leak) |
+| 4 | Stale **ref/HEAD** locks wedge a repo; janitor only handled `index.lock` | **Fixed in source** (see below). Not deployed. |
+| 5 | Browser gate retries repeated completed work | **Fixed**; live proof: attempt `5Du94a` passed with 4 reused gates and GitHub advanced |
+| 6 | Three real product-lint failures behind the retry churn | **Fixed**; all four gates pass for markdown-reader, modern-4chan, web-time-tracker-limiter |
+| 7 | UNKNOWN rows carried "healthy" / "push or rewrite" advice | **Fixed in source**. Not deployed. |
+| 8 | UNKNOWN is an evidence gap | **Not "fixed" by design** — reported honestly; platform now shows `inspecting` |
+| 9 | `polis` permanently over its own budget | Resolved by the operator-approved slimming (one-off, not a code change) |
+| 10 | `dracon-strategy` staging deadline too small for the Warden filter phase | **Mitigated** (60→300 s). The single shared deadline covering pre-staging phases is NOT restructured. |
+| 11 | Private-epoch spools accumulate | **Not fixed.** 8 GiB reclaimed by hand; 213 dirs / 0.77 GiB have already re-accumulated. `LOSSLESS_RECLAIM_QUALIFIED = false`; the durable-recovery redesign is still incomplete and must not be bypassed. |
+
+### Item 4 — ref-lock reaping
+
+`remove_stale_index_locks` now considers `index.lock`, `HEAD.lock`,
+`packed-refs.lock` and every `*.lock` under `refs/{heads,tags,remotes}` (bounded
+depth, symlinks skipped). The existing safeguards are unchanged: a 120 s age
+floor, then a `fuser` verdict, and an unverifiable lock is retained.
+
+Two regressions added:
+`test_stale_lock_sweep_reclaims_ref_and_head_locks` and
+`test_stale_lock_sweep_retains_fresh_and_in_use_ref_locks` (fresh lock, in-use
+lock and a planted symlink target all survive). **Negative control**: restoring
+the pre-fix index-only candidate list made the first test fail with
+`left: 2, right: 4`.
+
+### Deployment is deliberately blocked
+
+The loaded binary predates items 4 and 7. `cargo test --workspace` and strict
+Clippy are currently RED because `src/git/epoch_spool_ownership.rs` is being
+edited concurrently (18 compile errors in its test module, then type errors).
+The daemon is auto-committing that in-progress work. Publishing a release from a
+red workspace is not a gate I will weaken, so items 4 and 7 stay source-only
+until the sibling work is green.
