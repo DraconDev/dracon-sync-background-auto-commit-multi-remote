@@ -871,10 +871,7 @@ fn drained_repo_set<H>(to_sync: &[(PathBuf, H)]) -> HashSet<PathBuf> {
 // the PushPaused wedge semantics), not a revival of the marker.
 
 /// MOVED 2026-11-01 to `crate::git` so the lock janitor and the abandoned
-/// tmp_pack sweeper share ONE verdict. Kept as a thin re-export so the
-/// existing daemon tests keep exercising the same behaviour.
-use crate::git::classify_fuser_status;
-
+/// tmp_pack sweeper share ONE verdict; daemon tests call it via that path.
 fn fuser_lock_is_in_use(lock: &Path) -> Result<bool> {
     crate::git::fuser_path_in_use(lock)
 }
