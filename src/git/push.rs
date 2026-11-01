@@ -879,6 +879,84 @@ fn gate_refusal_markers(lower: &str) -> bool {
         || lower.contains("pre-commit:")
 }
 
+/// Extract a SHORT, actionable cause from a pre-push hook's captured output.
+///
+/// ADDED 2026-11-01 (T1 of the self-healing list). `classify_push_failure`
+/// returns a static string, so the ledger stored
+/// "local pre-push hook failed (inspect retained hook output, …)" and the real
+/// cause was only discoverable by reading
+/// `~/.local/state/dracon/sync/gates/<repo>/dracon-pre-push.*/manifest.json`
+/// by hand. Two live incidents required exactly that archaeology:
+///   - `bun install` → `Workspace not found "…minimalist-new-tab"`
+///   - `virtual-pet-new-tab TEST` failing
+///
+/// The hook already prints the failing gate and the attempt directory, and
+/// `ops.rs` appends its stdout to the error text, so this only has to pick the
+/// useful lines out. Front-loaded and bounded so the HINT column stays readable.
+pub(crate) fn hook_failure_summary(raw: &str) -> Option<String> {
+    if !is_local_hook_rejection(raw) {
+        return None;
+    }
+    let mut failed: Vec<String> = Vec::new();
+    let mut attempt: Option<String> = None;
+    let mut reason: Option<String> = None;
+    for line in raw.lines() {
+        let line = line.trim();
+        // "  - extensions/standalones/x TEST exited 1 (see /path/log)"
+        if let Some(rest) = line.strip_prefix("- ") {
+            if failed.len() < 3 && rest.contains(" exited ") {
+                let label = rest.split(" exited ").next().unwrap_or(rest).trim();
+                if !label.is_empty() && !failed.iter().any(|f| f == label) {
+                    failed.push(label.to_string());
+                }
+            }
+            continue;
+        }
+        if attempt.is_none() {
+            if let Some(rest) = line.strip_prefix("🧾 Pre-push attempt logs:") {
+                attempt = Some(rest.trim().to_string());
+            }
+        }
+        if reason.is_none() {
+            if let Some(rest) = line.split("4-gate FAILED:").nth(1) {
+                reason = Some(rest.trim().to_string());
+            } else if line.contains("Workspace not found") {
+                reason = Some(line.to_string());
+            } else if line.contains("snapshot dependency installation exited") {
+                reason = Some(line.to_string());
+            }
+        }
+    }
+    let mut parts: Vec<String> = Vec::new();
+    if !failed.is_empty() {
+        parts.push(failed.join(", "));
+    }
+    if let Some(reason) = reason {
+        let reason = if reason.chars().count() > 80 {
+            format!("{}…", reason.chars().take(79).collect::<String>())
+        } else {
+            reason
+        };
+        if !parts.iter().any(|p| p.contains(&reason)) {
+            parts.push(reason);
+        }
+    }
+    if let Some(dir) = attempt {
+        // Only the basename: the full state path is noise in a HINT cell.
+        let base = dir.rsplit('/').next().unwrap_or(&dir).to_string();
+        parts.push(format!("logs {base}"));
+    }
+    if parts.is_empty() {
+        return None;
+    }
+    let summary = parts.join("; ");
+    Some(if summary.chars().count() > 200 {
+        format!("{}…", summary.chars().take(199).collect::<String>())
+    } else {
+        summary
+    })
+}
+
 /// Markers that identify a SUCCESSFUL gate. Their presence in an error text
 /// means the hook ran and PASSED, so the failure is downstream of the hook.
 fn gate_passed_markers(lower: &str) -> bool {
