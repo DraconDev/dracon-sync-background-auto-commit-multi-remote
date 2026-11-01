@@ -601,8 +601,15 @@ mod tests {
     #[test]
     fn legacy_owner_metadata_is_not_manufactured() {
         let (_root, gitdir, spool) = fixture();
-        assert!(ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).is_err());
+        // A young legacy source is not fenced at all: age is a floor, not proof.
+        assert!(ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(3600)).is_err());
         assert!(!spool.join(OWNER_FILE).exists());
+        // A legacy source is fenced OUTSIDE itself: it never gains owner
+        // metadata it never had.
+        let held = ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).unwrap();
+        assert!(!spool.join(OWNER_FILE).exists());
+        assert!(gitdir.join(RESCUE_DIR).join("fences").is_dir());
+        drop(held);
     }
 
     #[test]
@@ -628,12 +635,16 @@ mod tests {
             "sealed production must not resume"
         );
         other.release_for_reclaim();
-        assert!(ReclaimOwner::acquire(&other_gitdir, &other_spool, Duration::from_secs(0))
-            .unwrap()
-            .is_settled());
+        assert!(
+            ReclaimOwner::acquire(&other_gitdir, &other_spool, Duration::from_secs(0))
+                .unwrap()
+                .is_settled()
+        );
         std::fs::copy(other_spool.join(SETTLED_FILE), spool.join(SETTLED_FILE)).unwrap();
         assert!(
-            !ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).unwrap().is_settled(),
+            !ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0))
+                .unwrap()
+                .is_settled(),
             "copied marker must not authorize a different spool"
         );
     }
@@ -680,7 +691,9 @@ mod tests {
         std::os::unix::fs::symlink(&spool, &alias).unwrap();
         assert!(ReclaimOwner::acquire(root.path(), &alias, Duration::from_secs(0)).is_err());
         assert!(ReclaimOwner::acquire(root.path(), &spool, Duration::from_secs(0)).is_err());
-        assert!(ReclaimOwner::acquire(&gitdir, &spool.join("nested"), Duration::from_secs(0)).is_err());
+        assert!(
+            ReclaimOwner::acquire(&gitdir, &spool.join("nested"), Duration::from_secs(0)).is_err()
+        );
     }
 
     #[test]
