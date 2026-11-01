@@ -1602,6 +1602,18 @@ pub(crate) struct StuckRepoEntry {
     /// Now the entry persists and this field throttles attempts.
     #[serde(default)]
     pub(crate) last_retry_at: u64,
+    /// Tip (`HEAD`) that was being pushed when the failure was recorded.
+    ///
+    /// ADDED 2026-11-01: the retry budget counts consecutive failures for ONE
+    /// revision. Live incident: browser-extensions-shared exhausted its budget
+    /// on commit `2cf8c70e`, which declared bun workspaces whose directories
+    /// were not yet committed — `bun install` refused with "Workspace not
+    /// found". The daemon then committed 36 more commits, every one of which
+    /// made the snapshot installable again, but the repo stayed paused forever
+    /// because the ledger could not tell that the failing revision was gone.
+    /// Auto-push only resumed after a manual `repair stuck-unstuck`.
+    #[serde(default)]
+    pub(crate) failed_tip: Option<String>,
 }
 
 /// ADDED 2026-08-09 (v0.113.50, pi-goal-loop-audit divergence
@@ -1797,14 +1809,36 @@ pub(crate) fn push_failure_is_persistent(consecutive_failures: u32, max_retries:
 /// ADDED 2026-07-21 (v0.112.31, audit H5/F1.2): pure decision —
 /// extracted so the stuck-push state machine is unit-testable without
 /// spinning up the daemon loop.
+/// True when the failures recorded in `info` belong to a revision that is no
+/// longer the repo's tip, so they say nothing about the current push.
+///
+/// A missing recorded tip (legacy entries, or a repo whose HEAD cannot be
+/// read) is NOT treated as superseded: the budget stays in force.
+pub(crate) fn stuck_tip_is_superseded(info: &StuckRepoEntry, current_tip: Option<&str>) -> bool {
+    match (info.failed_tip.as_deref(), current_tip) {
+        (Some(failed), Some(current)) => failed != current,
+        _ => false,
+    }
+}
+
 pub(crate) fn stuck_decision(
     info: &StuckRepoEntry,
     now_secs: u64,
     max_retries: u32,
     backoff_secs: u64,
+    current_tip: Option<&str>,
 ) -> StuckDecision {
-    if push_failure_is_persistent(info.consecutive_failures, max_retries) {
+    // A new tip is a new attempt series: an exhausted budget earned on a
+    // superseded revision must not pause publication of a different one.
+    if push_failure_is_persistent(info.consecutive_failures, max_retries)
+        && !stuck_tip_is_superseded(info, current_tip)
+    {
         return StuckDecision::Exhausted;
+    }
+    if push_failure_is_persistent(info.consecutive_failures, max_retries) {
+        // Superseded: retry immediately rather than waiting out a backoff
+        // earned by a revision that no longer exists.
+        return StuckDecision::Retry;
     }
     let last_activity = info
         .last_retry_at
@@ -6120,6 +6154,7 @@ pub(crate) fn record_push_transient_outage(repo: &Path, error: &str) {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
+            failed_tip: None,
         });
     entry.last_error = crate::ownership::redact_url_credentials(error);
     entry.last_error_at = now;
@@ -6140,7 +6175,17 @@ pub(crate) fn record_push_failure(repo: &Path, error: &str) {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
+            failed_tip: None,
         });
+    // A failure belongs to the revision that was being pushed. When the tip
+    // has moved since the last recorded failure, the series restarts at 1 so
+    // an exhausted budget earned by a superseded revision cannot pause
+    // publication of a different one.
+    let current_tip = crate::git::head_tip(repo);
+    if stuck_tip_is_superseded(entry, current_tip.as_deref()) {
+        entry.consecutive_failures = 0;
+    }
+    entry.failed_tip = current_tip;
     entry.consecutive_failures = entry.consecutive_failures.saturating_add(1);
     // CHANGED 2026-08-11 (audit LOW): redact embedded URL credentials
     // before the error lands in the ledger — a push_url with userinfo
