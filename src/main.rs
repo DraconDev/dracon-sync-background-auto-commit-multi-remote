@@ -1498,16 +1498,12 @@ async fn run_cli(cli: Cli) -> Result<()> {
                         );
                     }
                     println!(
-                        "{} {} dir(s), {} (age floor {}s)",
-                        if apply {
-                            "\n🗑️ Reclaimed"
-                        } else {
-                            "\n📦 Abandoned"
-                        },
-                        total_dirs,
-                        git::human_bytes(total_bytes),
-                        max_age
+                        "\n📦 Before-pass inventory: {} dir(s), {} (age floor {}s)",
+                        total_dirs, git::human_bytes(total_bytes), max_age
                     );
+                    if apply {
+                        println!("Verified removals: {reclaimed_total} dir(s). Recovery-store growth is separate; inventory bytes are not net savings.");
+                    }
                     if !apply && total_dirs > 0 {
                         println!("\n🔧 Run 'dracon-sync repair spools --apply' to reclaim them");
                     }
