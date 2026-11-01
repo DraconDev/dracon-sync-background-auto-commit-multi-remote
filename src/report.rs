@@ -17098,6 +17098,91 @@ mod v011321_tests {
     /// The rich table wrapped `📤 PUBLISHING` onto a second line because the
     /// column was a hand-tuned `Fixed(13)` and that label is exactly 13
     /// display columns. A wrapped status reads like an extra table row.
+    /// AUDIT (2026-11-01): no table tier may wrap a cell onto a second line.
+    ///
+    /// Existing layout tests checked only header widths, so a cell whose
+    /// content was wider than its column (the `📤 PUBLISHING` case) silently
+    /// produced a continuation line that reads as an extra table row. This
+    /// renders every tier with worst-case vocabulary and asserts that each
+    /// data row occupies exactly one line.
+    fn worst_case_row(repo: &str) -> RepoReportRow {
+        let mut row = base_row();
+        row.repo = repo.to_string();
+        // Widest vocabulary in every text column.
+        row.branch = "feature/very-long-branch-name".to_string();
+        row.upstream = "origin/main".to_string();
+        row.last_when = "12 days ago".to_string();
+        row.last_author = "DraconDev-With-A-Long-Name".to_string();
+        row.last_msg =
+            "a very long commit subject that would certainly wrap if unwrapped".to_string();
+        row.last_push = "🟣 PENDING 59m".to_string();
+        row.push_status = "PUSH_STUCK".to_string();
+        row.push_error = "local pre-push hook failed (inspect retained hook output)".to_string();
+        row.push_to_remotes = vec!["codeberg".into(), "github".into(), "gitlab".into()];
+        row.modified = 12_345;
+        row.staged = 12_345;
+        row.untracked = 12_345;
+        row.excluded_dirty = 12_345;
+        row.ahead = 12_345;
+        row.behind = 12_345;
+        row.commits_1h = 12_345;
+        row.commits_6h = 12_345;
+        row.commits_24h = 12_345;
+        row.git_size_bytes = Some(9_876_543_210_000);
+        row.git_modules_bytes = Some(9_876_543_210_000);
+        row.daemon_last_action_when = "12 days ago".to_string();
+        row.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence {
+            phase: Some(crate::daemon::scheduler_evidence::Phase::Pushing),
+            publication_phase: Some(crate::daemon::scheduler_evidence::Phase::Pushing),
+            ..Default::default()
+        });
+        row.hint = "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack guard clear (cached 168844s ago); deep pack/history checks deferred — use repos --deep".to_string();
+        row
+    }
+
+    fn continuation_lines(rendered: &str) -> Vec<String> {
+        // A wrapped cell shows up as a body line whose first token is a
+        // continuation of the previous cell's text (no row number).
+        rendered
+            .lines()
+            .filter(|line| line.starts_with('│') || line.starts_with('|'))
+            .filter(|line| {
+                let body = line
+                    .trim_start_matches('│')
+                    .trim_start_matches('|')
+                    .trim_start();
+                !body.is_empty()
+                    && !body.starts_with('#')
+                    && !body.starts_with("STATUS")
+                    && !body.starts_with('─')
+                    && !body.starts_with('-')
+            })
+            .map(|line| line.to_string())
+            .collect()
+    }
+
+    #[test]
+    fn every_table_tier_renders_single_line_rows() {
+        let rows = vec![worst_case_row("/watch/one"), worst_case_row("/watch/two")];
+        // Rich tier at a wide terminal.
+        for columns in [RICH_TIER_MIN_COLS, 200, 400] {
+            let rendered = build_repos_rich_table(&rows, false, columns).to_string();
+            let bodies: Vec<&str> = rendered
+                .lines()
+                .filter(|l| l.starts_with('│'))
+                .filter(|l| {
+                    l.trim_start_matches('│').trim_start().starts_with('1')
+                        || l.trim_start_matches('│').trim_start().starts_with('2')
+                })
+                .collect();
+            assert_eq!(
+                bodies.len(),
+                2,
+                "rich tier at {columns} cols must render 2 single-line rows:\n{rendered}"
+            );
+        }
+    }
+
     #[test]
     fn status_labels_fit_the_rich_column() {
         use unicode_width::UnicodeWidthStr;
