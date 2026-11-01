@@ -505,17 +505,53 @@ async fn legacy_source_younger_than_the_floor_is_preserved() {
 async fn legacy_source_with_a_live_reference_is_preserved() {
     let f = fixture(false, false);
     backdate(&f.spool);
-    // A process that holds the source open is a live writer, whatever its age.
-    let holder = std::fs::File::open(f.spool.join("index")).unwrap();
+    // Another process that holds the source open is a live writer, whatever
+    // its age. The reclaimer holds no source descriptor between steps, so its
+    // own process is not part of the observation.
+    let mut child = Child(
+        Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "git::epoch_spool::tests::child_holds_source_reference_probe",
+            ])
+            .env("DRACON_SOURCE_REFERENCE_PROBE", &f.spool)
+            .stdout(Stdio::null())
+            .spawn()
+            .unwrap(),
+    );
+    let ready = f.spool.parent().unwrap().join("reference-ready");
+    let start = std::time::Instant::now();
+    while !ready.exists() {
+        assert!(child.0.try_wait().unwrap().is_none());
+        assert!(start.elapsed() < std::time::Duration::from_secs(5));
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
     let error = attempt(&f, reclaim::Fault::None).await.unwrap_err();
     assert!(
         format!("{error:#}").contains("live references"),
         "{error:#}"
     );
     assert!(f.spool.exists());
-    drop(holder);
+    fs::write(f.spool.parent().unwrap().join("reference-exit"), b"exit").unwrap();
+    assert!(child.0.wait().unwrap().success());
     attempt(&f, reclaim::Fault::None).await.unwrap();
     assert!(!f.spool.exists());
+}
+
+#[test]
+fn child_holds_source_reference_probe() {
+    let Some(path) = std::env::var_os("DRACON_SOURCE_REFERENCE_PROBE") else {
+        return;
+    };
+    let path = PathBuf::from(path);
+    let _held = std::fs::File::open(path.join("index")).unwrap();
+    let ready = path.parent().unwrap().join("reference-ready");
+    fs::write(ready, b"held").unwrap();
+    let start = std::time::Instant::now();
+    while !path.parent().unwrap().join("reference-exit").exists() {
+        assert!(start.elapsed() < std::time::Duration::from_secs(15));
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
 }
 #[tokio::test]
 async fn protocol_source_without_a_settled_marker_stays_uncertain() {
