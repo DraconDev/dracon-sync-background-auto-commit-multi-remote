@@ -130,7 +130,7 @@ pub(super) const LABEL_PAUSED: &str = "⏸️ PAUSED";
 pub(super) const LABEL_UNKNOWN: &str = "❔ UNKNOWN";
 
 /// Every label `status()` can return. Single source for layout sizing.
-pub(super) const ALL_STATUS_LABELS: [&str; 10] = [
+pub(crate) const ALL_STATUS_LABELS: [&str; 10] = [
     LABEL_CLEAN,
     LABEL_EXCLUDED,
     LABEL_QUEUED,

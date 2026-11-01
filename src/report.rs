@@ -4131,7 +4131,7 @@ fn row_is_pending_work(row: &RepoReportRow) -> bool {
 /// removed. Deriving from `ALL_STATUS_LABELS` means a future label cannot
 /// silently wrap; `status_labels_fit_the_rich_column` fails instead.
 fn status_column_width() -> usize {
-    crate::current_health::ALL_STATUS_LABELS
+    current_health::ALL_STATUS_LABELS
         .iter()
         .map(|label| unicode_width::UnicodeWidthStr::width(*label))
         // +2 keeps comfy-table's own cell padding inside the fixed width.
