@@ -14,6 +14,7 @@ use std::time::Duration;
 
 const OWNER_FILE: &str = "reclaim-owner.lock";
 const SETTLED_FILE: &str = "reclaim-settled.json";
+const CLOSING_FILE: &str = "reclaim-closing.json";
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -48,7 +49,7 @@ fn scopes() -> &'static Mutex<Scopes> {
 }
 
 pub(super) fn producer_scope(path: &Path) -> Result<Option<Arc<super::producer::EpochProducerScope>>> {
-    ensure!(!path.join(SETTLED_FILE).exists(), "settled spool cannot resume production");
+    ensure!(!path.join(SETTLED_FILE).exists() && !path.join(CLOSING_FILE).exists(), "closed spool cannot resume production");
     Ok(scopes().lock().map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?
         .get(path).and_then(Weak::upgrade))
 }
@@ -91,7 +92,7 @@ impl SpoolLease {
     pub(crate) fn begin_producers(&mut self, runtime: Duration) -> Result<()> {
         ensure!(self.scope.is_none() && self.owner.is_some(), "producer scope already initialized or unowned");
         let path = self.path.as_ref().context("no spool path")?;
-        ensure!(!path.join(SETTLED_FILE).exists(), "settled spool cannot resume production");
+        ensure!(!path.join(SETTLED_FILE).exists() && !path.join(CLOSING_FILE).exists(), "closed spool cannot resume production");
         let identity = self.identity.clone().context("no producer identity")?;
         let scope = Arc::new(super::producer::EpochProducerScope::new(runtime)?.bind(identity));
         let mut registry = scopes().lock().map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?;
@@ -106,6 +107,13 @@ impl SpoolLease {
     /// not resumable production: subsequent dispatch against a sealed path fails.
     pub(crate) async fn settle_for_reclaim(&mut self, deadline: Duration) -> Result<()> {
         let scope = self.scope.take().context("producer containment was not established")?;
+        let path = self.path.as_ref().context("no spool path")?;
+        let mut closing_options = owner_options();
+        closing_options.create_new(true);
+        let mut closing = closing_options.open(path.join(CLOSING_FILE))?;
+        closing.write_all(&serde_json::to_vec(self.identity.as_ref().context("no spool identity")?)?)?;
+        closing.sync_all()?;
+        File::open(path)?.sync_all()?;
         if let Some(path) = &self.path {
             scopes().lock().map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?.remove(path);
         }

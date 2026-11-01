@@ -134,7 +134,17 @@ pub(crate) fn epoch_producer_trampoline() -> Result<()> {
 /// Opaque, noncloneable completion proof. The lease-owning caller may consume it;
 /// merely dropping a scope, timing out, or signalling a unit never produces one.
 pub(crate) struct SettledProducer {
-    _private: (),
+    identity: Option<super::ownership::OwnerIdentity>,
+}
+
+impl SettledProducer {
+    pub(super) fn into_identity(self) -> Option<super::ownership::OwnerIdentity> {
+        self.identity
+    }
+    #[cfg(test)]
+    pub(super) fn empty_fixture(identity: super::ownership::OwnerIdentity) -> Self {
+        Self { identity: Some(identity) }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -480,6 +490,7 @@ struct ScopeState {
 pub(crate) struct EpochProducerScope {
     manager: Manager,
     runtime: Duration,
+    identity: Option<super::ownership::OwnerIdentity>,
     state: Mutex<ScopeState>,
 }
 
@@ -492,12 +503,18 @@ impl EpochProducerScope {
         Ok(Self {
             manager: Manager::new()?,
             runtime,
+            identity: None,
             state: Mutex::new(ScopeState {
                 closed: false,
                 launches: Vec::new(),
             }),
         })
     }
+    pub(super) fn bind(mut self, identity: super::ownership::OwnerIdentity) -> Self {
+        self.identity = Some(identity);
+        self
+    }
+
     /// Registration happens synchronously BEFORE returning the cancellable request.
     pub(crate) fn run(
         &self,
@@ -532,6 +549,7 @@ impl EpochProducerScope {
             .into_inner()
             .map_err(|_| anyhow::anyhow!("producer state poisoned"))?;
         state.closed = true;
+        let identity = self.identity;
         let task = tokio::spawn(async move {
             let mut uncertain = Vec::new();
             for launch in state.launches {
@@ -549,7 +567,7 @@ impl EpochProducerScope {
                 "producer settlement unqualified: {}",
                 uncertain.join("; ")
             );
-            Ok(SettledProducer { _private: () })
+            Ok(SettledProducer { identity })
         });
         tokio::time::timeout(deadline, task)
             .await
