@@ -1,6 +1,8 @@
 //! Create-only, shared physical storage; each record remains independently usable.
 //! No CAS pruning, alternate dependencies or main-repository refs are introduced.
 use super::*;
+use sha2::{Digest, Sha256};
+use std::io::Read;
 
 fn directory(path: &Path) -> Result<()> {
     let mut builder = fs::DirBuilder::new();
