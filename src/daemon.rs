@@ -1830,10 +1830,8 @@ pub(crate) fn stuck_decision(
 ) -> StuckDecision {
     // A new tip is a new attempt series: an exhausted budget earned on a
     // superseded revision must not pause publication of a different one.
-    if push_failure_is_persistent(info.consecutive_failures, max_retries)
-        && !stuck_tip_is_superseded(info, current_tip)
-    {
-        return StuckDecision::Exhausted;
+    if push_failure_is_persistent(info.consecutive_failures, max_retries) {
+        return StuckDecision::Exhausted; // NEGATIVE CONTROL: pre-fix, tip-blind
     }
     if push_failure_is_persistent(info.consecutive_failures, max_retries) {
         // Superseded: retry immediately rather than waiting out a backoff
