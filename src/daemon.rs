@@ -2951,7 +2951,7 @@ mod tests {
         let removed = remove_stale_index_locks(&repo_set, |_| Ok(false));
         assert_eq!(
             removed,
-            locks.len(),
+            locks.len() as u64,
             "every stale lock kind must be reclaimed"
         );
         for lock in &locks {
