@@ -17118,13 +17118,27 @@ mod v011321_tests {
             "fixture must actually classify as PUBLISHING"
         );
         let rendered = build_repos_rich_table(&[row], false, 220).to_string();
-        let rows = rendered
+        // The rich tier uses space-separated cells (UTF8_BORDERS_ONLY), so a
+        // data row is any '│' line whose first token is the row number.
+        let body: Vec<&str> = rendered
             .lines()
-            .filter(|line| line.starts_with('│') && line.contains('┆'))
-            .count();
-        assert_eq!(rows, 1, "exactly one data row must render:\n{rendered}");
+            .filter(|line| line.starts_with('│'))
+            .filter(|line| line.trim_start_matches('│').trim_start().starts_with('1'))
+            .collect();
+        assert_eq!(
+            body.len(),
+            1,
+            "exactly one data row must render:\n{rendered}"
+        );
+        assert!(
+            body[0].contains(current_health::LABEL_PUBLISHING),
+            "the whole status label must sit on the row's own line:\n{rendered}"
+        );
+        // A wrapped label becomes its own '│ PUBLISHING …' line.
         let wrapped = rendered.lines().any(|line| {
-            line.starts_with('│') && !line.contains('┆') && line.contains("PUBLISHING")
+            line.trim_start_matches('│')
+                .trim_start()
+                .starts_with("PUBLISHING")
         });
         assert!(
             !wrapped,
