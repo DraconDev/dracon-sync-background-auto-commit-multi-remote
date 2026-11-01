@@ -463,21 +463,16 @@ async fn rescue_storage_failure_preserves_original_bytes() {
 }
 
 #[tokio::test]
-async fn legacy_source_is_fenced_by_age_and_absence_of_live_references() {
+async fn old_legacy_source_without_visible_handles_remains_uncertain() {
     // No protocol lock and no settled marker: a legacy source.
     let f = fixture(false, false);
     assert!(!f.spool.join("reclaim-owner.lock").exists());
     backdate(&f.spool);
-    let receipt = attempt(&f, reclaim::Fault::None).await.unwrap();
-    assert!(
-        !f.spool.exists(),
-        "a fenced legacy source must be reclaimed"
-    );
-    assert!(receipt.record.join("receipt").is_file());
-    assert!(receipt.record.join("reclaimed.json").is_file());
-    recovery::verify_receipt(&receipt.record, &receipt.manifest_sha256, 10)
-        .await
-        .unwrap();
+    let index = fs::read(f.spool.join("index")).unwrap();
+    let error = attempt(&f, reclaim::Fault::None).await.unwrap_err();
+    assert!(format!("{error:#}").contains("legacy ownership uncertain"));
+    assert_eq!(fs::read(f.spool.join("index")).unwrap(), index);
+    assert!(!f.repo.join(".git/dracon-rescue").exists());
 }
 #[tokio::test]
 async fn legacy_source_younger_than_the_floor_is_preserved() {
@@ -492,7 +487,7 @@ async fn legacy_source_younger_than_the_floor_is_preserved() {
     .await
     .unwrap_err();
     assert!(
-        format!("{error:#}").contains("scheduling floor"),
+        format!("{error:#}").contains("legacy ownership uncertain"),
         "{error:#}"
     );
     assert!(f.spool.exists());
@@ -505,9 +500,8 @@ async fn legacy_source_younger_than_the_floor_is_preserved() {
 async fn legacy_source_with_a_live_reference_is_preserved() {
     let f = fixture(false, false);
     backdate(&f.spool);
-    // Another process that holds the source open is a live writer, whatever
-    // its age. The reclaimer holds no source descriptor between steps, so its
-    // own process is not part of the observation.
+    // An observed live reference forbids removal. Its later absence is still
+    // not producer quiescence: the writer could reopen the source.
     let mut child = Child(
         Command::new(std::env::current_exe().unwrap())
             .args([
@@ -528,14 +522,14 @@ async fn legacy_source_with_a_live_reference_is_preserved() {
     }
     let error = attempt(&f, reclaim::Fault::None).await.unwrap_err();
     assert!(
-        format!("{error:#}").contains("live references"),
+        format!("{error:#}").contains("legacy ownership uncertain"),
         "{error:#}"
     );
     assert!(f.spool.exists());
     fs::write(f.spool.parent().unwrap().join("reference-exit"), b"exit").unwrap();
     assert!(child.0.wait().unwrap().success());
-    attempt(&f, reclaim::Fault::None).await.unwrap();
-    assert!(!f.spool.exists());
+    assert!(attempt(&f, reclaim::Fault::None).await.is_err());
+    assert!(f.spool.exists(), "no compatible producer fence appeared after the descriptor closed");
 }
 
 #[test]

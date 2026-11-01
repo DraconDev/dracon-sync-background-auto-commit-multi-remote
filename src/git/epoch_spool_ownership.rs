@@ -506,15 +506,11 @@ mod tests {
     #[test]
     fn legacy_owner_metadata_is_not_manufactured() {
         let (_root, gitdir, spool) = fixture();
-        // A young legacy source is not fenced at all: age is a floor, not proof.
-        assert!(ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(3600)).is_err());
+        for floor in [3600, 0] {
+            assert!(ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(floor)).is_err());
+        }
         assert!(!spool.join(OWNER_FILE).exists());
-        // A legacy source is fenced OUTSIDE itself: it never gains owner
-        // metadata it never had.
-        let held = ReclaimOwner::acquire(&gitdir, &spool, Duration::from_secs(0)).unwrap();
-        assert!(!spool.join(OWNER_FILE).exists());
-        assert!(gitdir.join(RESCUE_DIR).join("fences").is_dir());
-        drop(held);
+        assert!(!gitdir.join("dracon-rescue").exists(), "refusal must not manufacture a fence");
     }
 
     #[test]
