@@ -410,7 +410,11 @@ pub(super) async fn prepare_owned_record(
 }
 
 async fn prepare_guarded<G: Send + 'static>(
-    repo: &Path, spool: &Path, seconds: u64, fault: Fault, guard: G,
+    repo: &Path,
+    spool: &Path,
+    seconds: u64,
+    fault: Fault,
+    guard: G,
 ) -> Result<(DurableReceipt, G)> {
     let (repo, spool) = (repo.to_path_buf(), spool.to_path_buf());
     let preparation = tokio::spawn(async move {
@@ -418,7 +422,8 @@ async fn prepare_guarded<G: Send + 'static>(
         Ok((receipt, guard))
     });
     tokio::time::timeout(std::time::Duration::from_secs(seconds), preparation)
-        .await.context("recovery transaction deadline; source preserved")?
+        .await
+        .context("recovery transaction deadline; source preserved")?
         .context("recovery preparation task failed")?
 }
 
@@ -936,8 +941,10 @@ mod tests {
             "cancelled requester must not clean beneath its writer"
         );
         assert!(!record.join("receipt").exists());
-        assert!(super::super::ownership::ReclaimOwner::acquire(&gitdir, &spool).is_err(),
-            "cancelled requester must not release its live preparation fence");
+        assert!(
+            super::super::ownership::ReclaimOwner::acquire(&gitdir, &spool).is_err(),
+            "cancelled requester must not release its live preparation fence"
+        );
         // This PID came from this fixture's single writer, not a live daemon.
         assert_eq!(unsafe { libc::kill(pid, libc::SIGKILL) }, 0);
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
@@ -954,7 +961,9 @@ mod tests {
                 }
                 tokio::time::sleep(std::time::Duration::from_millis(10)).await;
             }
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
         assert_eq!(fs::read(spool.join("index")).unwrap(), original);
     }
 
