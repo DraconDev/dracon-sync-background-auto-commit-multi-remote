@@ -17351,14 +17351,20 @@ mod v011321_tests {
                 attempted_at: timestamp_secs() - seconds,
                 succeeded: false,
             });
-            let table = build_repos_rich_table(&[row], false, 165).to_string();
+            // CHANGED 2026-11-01: render at the current floor, not the old 165.
+            let table = build_repos_rich_table(&[row], false, RICH_TIER_MIN_COLS).to_string();
             assert!(
                 table
                     .lines()
                     .any(|line| line.contains(&format!("❌ FAIL {age}"))),
                 "{table}"
             );
-            assert!(table.lines().all(|line| line.width() <= 165), "{table}");
+            assert!(
+                table
+                    .lines()
+                    .all(|line| line.width() <= usize::from(RICH_TIER_MIN_COLS)),
+                "{table}"
+            );
             assert_eq!(
                 table.lines().filter(|line| line.contains('│')).count(),
                 2,
