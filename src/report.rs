@@ -7114,12 +7114,14 @@ fn print_repos_summary(
     // `#` fits row numbers up to 99 (R3-L39: 100+ wraps the index
     // cell, never clips — see the rich-tier note; fleet is ~35).
     const NUM_COL: usize = 4;
-    const STATUS_COL: usize = 12;
+    // Derived, not hand-tuned: this table renders the full status label too,
+    // so a fixed 12 wrapped `📤 PUBLISHING` exactly as the rich tier did.
+    let status_col = status_column_width();
     const REPO_COL: usize = 24;
     const BORDER_OVERHEAD: usize = 5; // box-drawing chars + leading separator
     const CELL_PADDING: usize = 6; // 3 padded cells × 2 chars each
     let what_col = width
-        .saturating_sub(NUM_COL + STATUS_COL + REPO_COL + BORDER_OVERHEAD + CELL_PADDING)
+        .saturating_sub(NUM_COL + status_col + REPO_COL + BORDER_OVERHEAD + CELL_PADDING)
         .max(20);
 
     let mut table = Table::new();
@@ -7159,7 +7161,7 @@ fn print_repos_summary(
     table
         .column_mut(1)
         .expect("STATUS column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(STATUS_COL as u16)));
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(status_col as u16)));
     table
         .column_mut(2)
         .expect("REPO column")
@@ -15308,7 +15310,9 @@ mod tests {
         // Mirror the constants in print_repos_rich_table. If you bump a
         // column width, also bump this test and re-check on 165-col terminals.
         const NUM_COL: usize = 4;
-        const STATUS_COL: usize = 12;
+        // Mirrors the derived value in build_repos_rich_table; a hand-tuned
+        // mirror silently stopped describing the real table.
+        let status_col = status_column_width();
         // v0.113.15: REPO 22→20, ACTIVITY 28→24 fund the REM column (+9
         // with border+padding) inside the same 165-col budget.
         const REPO_COL: usize = 20;
@@ -15335,7 +15339,7 @@ mod tests {
         // the CHANGES column AND added a bogus cell_padding term; the
         // two errors cancelled and it passed ≤165 by coincidence.
         let fixed = NUM_COL
-            + STATUS_COL
+            + status_col
             + REPO_COL
             + ACTIVITY_COL
             + CHG_MOD_COL
