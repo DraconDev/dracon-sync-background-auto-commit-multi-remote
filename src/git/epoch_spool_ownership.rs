@@ -153,7 +153,7 @@ impl SpoolLease {
             let path = self.path.as_ref().context("no spool path")?;
             let parent = path.parent().context("no originating gitdir")?;
             ensure!(
-                ReclaimOwner::acquire(parent, path)?.is_settled(),
+                ReclaimOwner::acquire(parent, path, Duration::from_secs(0))?.is_settled(),
                 "source has no valid settled marker"
             );
             return Ok(());
