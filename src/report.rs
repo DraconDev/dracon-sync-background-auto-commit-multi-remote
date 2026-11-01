@@ -17100,12 +17100,21 @@ mod v011321_tests {
     /// which is what made one row look like two.
     #[test]
     fn rich_table_does_not_wrap_publishing_status() {
+        // classify() derives Publishing from pending work + a Pushing phase,
+        // so build the evidence rather than assigning the verdict.
         let mut row = base_row();
-        row.active = true;
         row.ahead = 3;
         row.push_status = "PENDING".to_string();
-        row.health.current = current_health::Current::Publishing;
-        row.hint = "run dracon-sync repair concerns --apply".to_string();
+        row.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence {
+            phase: Some(crate::daemon::scheduler_evidence::Phase::Pushing),
+            publication_phase: Some(crate::daemon::scheduler_evidence::Phase::Pushing),
+            ..Default::default()
+        });
+        assert_eq!(
+            current_health::status(&row).0,
+            current_health::LABEL_PUBLISHING,
+            "fixture must actually classify as PUBLISHING"
+        );
         let rendered = build_repos_rich_table(&[row], false, 220).to_string();
         let rows = rendered
             .lines()
