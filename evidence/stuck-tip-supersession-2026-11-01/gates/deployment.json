@@ -1,0 +1,16 @@
+{
+  "started_unix": 1793569070.337515,
+  "old_pid": 2049908,
+  "old_loaded_sha256": "35e3f1ab369ecffb5aed89ab7c90df926dfa26ca56d56a6eed559253679058db",
+  "expected_sha256": "72e12cb5c70da4a5d84d91c50774c6a033e890eed80a603d14c3c373017737af",
+  "gated_revision": "b3cc82810609a5f6d75c04750bad75e32cca7636",
+  "deployed_from_revision": "b3cc82810609a5f6d75c04750bad75e32cca7636",
+  "backup": "/home/dracon/.local/state/dracon/deployments/20261101T213750Z-stuck-tip-supersession",
+  "service_stop_used": false,
+  "method": "atomic binary replacement; pidfd SIGTERM; Restart=always",
+  "new_pid": 1732513,
+  "loaded_sha256": "72e12cb5c70da4a5d84d91c50774c6a033e890eed80a603d14c3c373017737af",
+  "installed_sha256": "72e12cb5c70da4a5d84d91c50774c6a033e890eed80a603d14c3c373017737af",
+  "verified_unix": 1793569084.668331,
+  "ok": true
+}

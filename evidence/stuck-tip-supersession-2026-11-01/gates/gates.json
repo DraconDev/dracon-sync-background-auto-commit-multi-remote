@@ -1,0 +1,29 @@
+{
+  "created": "2026-11-01",
+  "purpose": "Stuck-push budget is per-revision: a superseded failing tip must not pause publication.",
+  "assembly": {
+    "dracon_sync_head": "b3cc82810609a5f6d75c04750bad75e32cca7636",
+    "src_tree_sha": "6441124fc4ca957b259450db2689662f61adbfa8"
+  },
+  "gates": {
+    "workspace_tests": {
+      "exit": 0,
+      "suites": 44,
+      "passed": 3016,
+      "failed": 0
+    },
+    "clippy_all_targets_strict": {
+      "exit": 0
+    },
+    "release_build": {
+      "exit": 0
+    },
+    "cargo_deny": {
+      "exit": 0
+    }
+  },
+  "negative_controls": [
+    "reverting the supersession check failed the regression with left: Exhausted, right: Retry"
+  ],
+  "note": "three runs were needed: at load 54-90 two different timing tests flaked (each green in isolation); the load-48 run is 0 failed with the gate unchanged"
+}
