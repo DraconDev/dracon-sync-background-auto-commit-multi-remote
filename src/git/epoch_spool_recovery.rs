@@ -1080,7 +1080,12 @@ mod tests {
         let (_root, repo, spool, _) = fixture("sha1").await;
         let original = fs::read(spool.join("index")).unwrap();
         let gitdir = repo.join(".git");
-        let owner = super::super::ownership::ReclaimOwner::acquire(&gitdir, &spool, std::time::Duration::from_secs(0)).unwrap();
+        let owner = super::super::ownership::ReclaimOwner::acquire(
+            &gitdir,
+            &spool,
+            std::time::Duration::from_secs(0),
+        )
+        .unwrap();
         let (r, s) = (repo.clone(), spool.clone());
         let request = tokio::spawn(async move {
             prepare_guarded(&r, &s, 20, Fault::SlowBeforeVerify, owner).await
@@ -1112,7 +1117,12 @@ mod tests {
         );
         assert!(!record.join("receipt").exists());
         assert!(
-            super::super::ownership::ReclaimOwner::acquire(&gitdir, &spool, std::time::Duration::from_secs(0)).is_err(),
+            super::super::ownership::ReclaimOwner::acquire(
+                &gitdir,
+                &spool,
+                std::time::Duration::from_secs(0)
+            )
+            .is_err(),
             "cancelled requester must not release its live preparation fence"
         );
         // This PID came from this fixture's single writer, not a live daemon.
@@ -1126,7 +1136,13 @@ mod tests {
         .unwrap();
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             loop {
-                if super::super::ownership::ReclaimOwner::acquire(&gitdir, &spool, std::time::Duration::from_secs(0)).is_ok() {
+                if super::super::ownership::ReclaimOwner::acquire(
+                    &gitdir,
+                    &spool,
+                    std::time::Duration::from_secs(0),
+                )
+                .is_ok()
+                {
                     break;
                 }
                 tokio::time::sleep(std::time::Duration::from_millis(10)).await;

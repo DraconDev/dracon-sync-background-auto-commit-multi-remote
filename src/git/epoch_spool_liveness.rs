@@ -53,7 +53,10 @@ pub(super) fn live_handles(spool: &Path) -> Result<Vec<String>> {
         // while its descriptors are momentarily closed.
         if let Ok(bytes) = std::fs::read(process.join("environ")) {
             for variable in bytes.split(|byte| *byte == 0) {
-                if variable.windows(needle.len()).any(|window| window == needle) {
+                if variable
+                    .windows(needle.len())
+                    .any(|window| window == needle)
+                {
                     found.push(format!("{name}/environ"));
                     break;
                 }

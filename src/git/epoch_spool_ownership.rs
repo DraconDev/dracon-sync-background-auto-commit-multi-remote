@@ -296,7 +296,11 @@ impl ReclaimOwner {
     /// has no lease at all: it may only be fenced when it is older than the
     /// scheduling floor and no process references it, and the fence is created
     /// exclusively so two reclaimers cannot both claim it.
-    pub(super) fn acquire(gitdir: &Path, spool: &Path, legacy_floor: std::time::Duration) -> Result<Self> {
+    pub(super) fn acquire(
+        gitdir: &Path,
+        spool: &Path,
+        legacy_floor: std::time::Duration,
+    ) -> Result<Self> {
         let name = spool
             .file_name()
             .and_then(|n| n.to_str())
@@ -360,8 +364,12 @@ impl ReclaimOwner {
         directory: Metadata,
         legacy_floor: std::time::Duration,
     ) -> Result<Self> {
-        let modified = directory.modified().context("legacy spool has no readable mtime")?;
-        let age = modified.elapsed().context("legacy spool mtime is in the future")?;
+        let modified = directory
+            .modified()
+            .context("legacy spool has no readable mtime")?;
+        let age = modified
+            .elapsed()
+            .context("legacy spool mtime is in the future")?;
         ensure!(
             age >= legacy_floor,
             "legacy spool is younger than the scheduling floor"
@@ -370,7 +378,8 @@ impl ReclaimOwner {
         options.create_new(true);
         let file = options.open(spool.join(OWNER_FILE))?;
         validate_lock(&file.metadata()?)?;
-        file.try_lock().context("legacy spool lease is already held")?;
+        file.try_lock()
+            .context("legacy spool lease is already held")?;
         let held = Self {
             lock: file.metadata()?,
             _file: file,
@@ -394,7 +403,10 @@ impl ReclaimOwner {
     pub(super) fn proves_inactivity(&self) -> Result<()> {
         match self.inactivity {
             Inactivity::SettledMarker => {
-                ensure!(self.is_settled(), "producer quiescence uncertain: no matching settled marker")
+                ensure!(
+                    self.is_settled(),
+                    "producer quiescence uncertain: no matching settled marker"
+                )
             }
             Inactivity::LegacyFence => {
                 ensure!(self.still_owned(), "legacy fence identity changed");
