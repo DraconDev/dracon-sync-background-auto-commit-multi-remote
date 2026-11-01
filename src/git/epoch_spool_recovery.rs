@@ -393,12 +393,32 @@ async fn prepare_with_fault(
     seconds: u64,
     fault: Fault,
 ) -> Result<DurableReceipt> {
+    Ok(prepare_guarded(repo, spool, seconds, fault, ()).await?.0)
+}
+
+/// Preserve the actual kernel fence across requester cancellation too. Keeping
+/// only temporary storage alive would permit successive timed-out reapers to
+/// prepare the same source concurrently after their caller dropped its lock.
+#[allow(dead_code)] // Integrated reaper remains interlocked until qualified.
+pub(super) async fn prepare_owned_record(
+    repo: &Path,
+    spool: &Path,
+    seconds: u64,
+    owner: super::ownership::ReclaimOwner,
+) -> Result<(DurableReceipt, super::ownership::ReclaimOwner)> {
+    prepare_guarded(repo, spool, seconds, Fault::None, owner).await
+}
+
+async fn prepare_guarded<G: Send + 'static>(
+    repo: &Path, spool: &Path, seconds: u64, fault: Fault, guard: G,
+) -> Result<(DurableReceipt, G)> {
     let (repo, spool) = (repo.to_path_buf(), spool.to_path_buf());
-    let preparation =
-        tokio::spawn(async move { prepare_inner(&repo, &spool, seconds, fault).await });
+    let preparation = tokio::spawn(async move {
+        let receipt = prepare_inner(&repo, &spool, seconds, fault).await?;
+        Ok((receipt, guard))
+    });
     tokio::time::timeout(std::time::Duration::from_secs(seconds), preparation)
-        .await
-        .context("recovery transaction deadline; source preserved")?
+        .await.context("recovery transaction deadline; source preserved")?
         .context("recovery preparation task failed")?
 }
 
