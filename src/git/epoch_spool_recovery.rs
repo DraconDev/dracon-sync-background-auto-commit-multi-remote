@@ -522,8 +522,11 @@ pub(super) fn final_source_check(record: &Path, spool: &Path) -> Result<()> {
 
 #[cfg(test)]
 pub(super) async fn prepare_owned_fault(
-    repo: &Path, spool: &Path, seconds: u64,
-    owner: super::ownership::ReclaimOwner, fault: Fault,
+    repo: &Path,
+    spool: &Path,
+    seconds: u64,
+    owner: super::ownership::ReclaimOwner,
+    fault: Fault,
 ) -> Result<(DurableReceipt, super::ownership::ReclaimOwner)> {
     prepare_guarded(repo, spool, seconds, fault, owner).await
 }
@@ -648,7 +651,10 @@ async fn prepare_inner(
         }
     }
     source::verify_copies(&source_snapshot, &metadata, &inputs).await?;
-    fs::write(record.path().join("source-fingerprint.json"), serde_json::to_vec(&source_snapshot)?)?;
+    fs::write(
+        record.path().join("source-fingerprint.json"),
+        serde_json::to_vec(&source_snapshot)?,
+    )?;
     ensure!(metadata.join("index").is_file(), "spool index missing");
     supported_index(&metadata.join("index"), width)?;
     let build = work.path().join("build.git");
@@ -698,7 +704,13 @@ async fn prepare_inner(
             roots.insert(fields[1].to_owned());
         }
     }
-    fs::write(record.path().join("source-oids"), roots.iter().map(|oid| oid.clone() + "\n").collect::<String>())?;
+    fs::write(
+        record.path().join("source-oids"),
+        roots
+            .iter()
+            .map(|oid| oid.clone() + "\n")
+            .collect::<String>(),
+    )?;
     let mut c = git(&build);
     c.arg("write-tree")
         .env("GIT_INDEX_FILE", &index)
@@ -758,12 +770,23 @@ async fn prepare_inner(
     let corrupt_unique = matches!(_fault, Fault::CorruptUniqueBeforeVerify);
     #[cfg(not(test))]
     let corrupt_unique = false;
-    let payload = unique::prepare(repo, work.path(), record.path(), width, timeout, corrupt_unique).await?;
-    fs::write(record.path().join("classification.json"), serde_json::to_vec(&serde_json::json!({
-        "version": 1, "main_missing_objects": payload.count,
-        "rescue_pack_name_bytes": payload.pack_name.as_ref().map(|path| path.as_os_str().as_encoded_bytes()),
-        "classification_is_not_deletion_authority": true,
-    }))?)?;
+    let payload = unique::prepare(
+        repo,
+        work.path(),
+        record.path(),
+        width,
+        timeout,
+        corrupt_unique,
+    )
+    .await?;
+    fs::write(
+        record.path().join("classification.json"),
+        serde_json::to_vec(&serde_json::json!({
+            "version": 1, "main_missing_objects": payload.count,
+            "rescue_pack_name_bytes": payload.pack_name.as_ref().map(|path| path.as_os_str().as_encoded_bytes()),
+            "classification_is_not_deletion_authority": true,
+        }))?,
+    )?;
     let mut manifest = String::from("dracon-epoch-recovery-v2\n");
     sync_tree(record.path(), record.path(), &mut manifest)?;
     let manifest_sha256 = format!("{:x}", Sha256::digest(manifest.as_bytes()));

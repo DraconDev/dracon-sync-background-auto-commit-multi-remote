@@ -9,31 +9,63 @@ pub(super) struct Payload {
 }
 
 pub(super) async fn prepare(
-    repo: &Path, work: &Path, record: &Path, width: usize, timeout: u64,
+    repo: &Path,
+    work: &Path,
+    record: &Path,
+    width: usize,
+    timeout: u64,
     corrupt_after_write: bool,
 ) -> Result<Payload> {
     let requested = fs::read_to_string(record.join("source-oids"))?;
     let mut command = git(repo);
-    command.args(["cat-file", "--batch-check=%(objectname) %(objecttype)"])
+    command
+        .args(["cat-file", "--batch-check=%(objectname) %(objecttype)"])
         .stdin(File::open(record.join("source-oids"))?);
     let output = String::from_utf8(run(command, timeout).await?)?;
     let rows: Vec<_> = output.lines().collect();
-    ensure!(rows.len() == requested.lines().count(), "incomplete main ODB classification");
+    ensure!(
+        rows.len() == requested.lines().count(),
+        "incomplete main ODB classification"
+    );
     let mut missing = BTreeSet::new();
     for (object, row) in requested.lines().zip(rows) {
         let fields: Vec<_> = row.split_whitespace().collect();
-        ensure!(oid(object, width) && fields.len() == 2 && fields[0] == object, "invalid main classification row");
-        if fields[1] == "missing" { missing.insert(object.to_owned()); }
-        else { ensure!(["blob", "tree", "commit", "tag"].contains(&fields[1]), "unreadable main ODB classification"); }
+        ensure!(
+            oid(object, width) && fields.len() == 2 && fields[0] == object,
+            "invalid main classification row"
+        );
+        if fields[1] == "missing" {
+            missing.insert(object.to_owned());
+        } else {
+            ensure!(
+                ["blob", "tree", "commit", "tag"].contains(&fields[1]),
+                "unreadable main ODB classification"
+            );
+        }
     }
     let missing_path = record.join("missing-oids");
-    fs::write(&missing_path, missing.iter().map(|oid| oid.clone() + "\n").collect::<String>())?;
-    if missing.is_empty() { return Ok(Payload { count: 0, pack_name: None }); }
+    fs::write(
+        &missing_path,
+        missing
+            .iter()
+            .map(|oid| oid.clone() + "\n")
+            .collect::<String>(),
+    )?;
+    if missing.is_empty() {
+        return Ok(Payload {
+            count: 0,
+            pack_name: None,
+        });
+    }
     let store = record.join("store.git");
     let mut command = git(&store);
-    command.args(["pack-objects", "--no-reuse-object", "--no-reuse-delta"])
-        .arg(record.join("rescue")).stdin(File::open(&missing_path)?);
-    let hash = String::from_utf8(run(command, timeout).await?)?.trim().to_owned();
+    command
+        .args(["pack-objects", "--no-reuse-object", "--no-reuse-delta"])
+        .arg(record.join("rescue"))
+        .stdin(File::open(&missing_path)?);
+    let hash = String::from_utf8(run(command, timeout).await?)?
+        .trim()
+        .to_owned();
     ensure!(oid(&hash, width), "invalid unique pack name");
     let name = PathBuf::from(format!("rescue-{hash}.pack"));
     let pack = record.join(&name);
@@ -49,7 +81,11 @@ pub(super) async fn prepare(
         ensure!(bytes.len() > 20, "empty corruption fixture pack");
         bytes[12] ^= 0x55;
         let mut permissions = fs::metadata(&pack)?.permissions();
-        #[cfg(unix)] { use std::os::unix::fs::PermissionsExt; permissions.set_mode(0o600); }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            permissions.set_mode(0o600);
+        }
         fs::set_permissions(&pack, permissions)?;
         fs::write(&pack, bytes)?;
     }
@@ -57,31 +93,52 @@ pub(super) async fn prepare(
     let _ = corrupt_after_write;
     let listing = work.join("unique-listing");
     let mut command = git(&isolated);
-    command.args(["verify-pack", "-v"]).arg(pack.with_extension("idx"))
+    command
+        .args(["verify-pack", "-v"])
+        .arg(pack.with_extension("idx"))
         .stdout(File::create(&listing)?);
     run(command, timeout).await?;
-    ensure!(listed_objects(&listing, width, pack_count(&pack)?)? == missing,
-        "unique rescue enumeration differs from requested objects");
+    ensure!(
+        listed_objects(&listing, width, pack_count(&pack)?)? == missing,
+        "unique rescue enumeration differs from requested objects"
+    );
     // The isolated ODB has only the new sidecar and its index, no refs, source,
     // inherited/configured alternates, or main repository fallback.
-    let target = isolated.join("objects/pack").join(format!("pack-{hash}.pack"));
+    let target = isolated
+        .join("objects/pack")
+        .join(format!("pack-{hash}.pack"));
     fs::hard_link(&pack, &target)?;
     fs::hard_link(pack.with_extension("idx"), target.with_extension("idx"))?;
     let mut command = git(&isolated);
-    command.args(["cat-file", "--batch"]).stdin(File::open(&missing_path)?)
+    command
+        .args(["cat-file", "--batch"])
+        .stdin(File::open(&missing_path)?)
         .stdout(Stdio::null());
     run(command, timeout).await?;
     let mut command = git(&isolated);
-    command.args(["cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"])
+    command
+        .args([
+            "cat-file",
+            "--batch-check=%(objectname) %(objecttype) %(objectsize)",
+        ])
         .stdin(File::open(&missing_path)?);
     let readback = String::from_utf8(run(command, timeout).await?)?;
     let inventory = fs::read_to_string(record.join("objects.tsv"))?;
     let inventory: BTreeSet<_> = inventory.lines().collect();
-    ensure!(readback.lines().count() == missing.len(), "incomplete isolated unique readback");
+    ensure!(
+        readback.lines().count() == missing.len(),
+        "incomplete isolated unique readback"
+    );
     for (expected, actual) in missing.iter().zip(readback.lines()) {
-        ensure!(actual.split_whitespace().next() == Some(expected.as_str()) && inventory.contains(actual),
-            "isolated unique object/content identity mismatch");
+        ensure!(
+            actual.split_whitespace().next() == Some(expected.as_str())
+                && inventory.contains(actual),
+            "isolated unique object/content identity mismatch"
+        );
     }
     fs::write(record.join("unique-readback.tsv"), readback)?;
-    Ok(Payload { count: missing.len(), pack_name: Some(name) })
+    Ok(Payload {
+        count: missing.len(),
+        pack_name: Some(name),
+    })
 }
