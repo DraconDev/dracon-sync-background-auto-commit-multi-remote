@@ -5050,10 +5050,29 @@ pub(crate) fn fuser_path_in_use_with_command(
     classify_fuser_status(output.status.code(), &output.stderr)
 }
 
-pub(crate) async fn sweep_stale_tmp_packs(
+/// Reap abandoned `tmp_pack_*` producers with an explicit abandonment proof.
+///
+/// CHANGED 2026-11-01: this was a deliberate NO-OP. It detected aged temp packs
+/// and then preserved every one of them ("an old mtime does not prove the
+/// writer is dead"), so `removed` was permanently 0. Live cost: one repo
+/// carried **12.60 GiB** across three temp packs aged 17 h / 17 h / 1 h, and
+/// the daemon would never reclaim them.
+///
+/// The original objection is still honoured — age alone is NOT proof. The
+/// missing half is ownership, which the stale-lock janitor already solves: a
+/// candidate is removed only when it is old AND `fuser` reports no holder.
+/// An unverifiable `fuser` (missing binary, permission error, crash) is
+/// treated as "still held" and preserved, so a blind spot can never cost a
+/// live writer its pack. A live `pack-objects` holds the file for seconds;
+/// the caller's age floor is an hour.
+pub(crate) async fn sweep_stale_tmp_packs<F>(
     repo: &std::path::Path,
     min_age_secs: u64,
-) -> (usize, u64) {
+    fuser_check: F,
+) -> (usize, u64)
+where
+    F: Fn(&std::path::Path) -> anyhow::Result<bool>,
+{
     let mut command = crate::policy::tokio_git_command();
     for (key, _) in std::env::vars_os() {
         if key.to_string_lossy().starts_with("GIT_") {
@@ -5087,8 +5106,8 @@ pub(crate) async fn sweep_stale_tmp_packs(
     };
     let max_age = std::time::Duration::from_secs(min_age_secs);
     let now = std::time::SystemTime::now();
-    let removed = 0usize;
-    let freed = 0u64;
+    let mut removed = 0usize;
+    let mut freed = 0u64;
     for entry in entries.flatten() {
         let name = entry.file_name();
         let Some(name) = name.to_str() else {
@@ -5116,10 +5135,38 @@ pub(crate) async fn sweep_stale_tmp_packs(
             continue;
         }
         let size = meta.len();
-        // An old mtime does not prove the writer is dead: pack producers
-        // may stall while still owning this file. Preserve it until an
-        // exclusive cross-process maintenance protocol proves abandonment.
-        let _ = size;
+        // Age alone does not prove the writer is dead. Ask the kernel.
+        match fuser_check(&entry.path()) {
+            Ok(false) => {
+                if let Err(error) = std::fs::remove_file(entry.path()) {
+                    eprintln!(
+                        "⚠️ tmp_pack sweep: failed to remove {}: {error}",
+                        entry.path().display()
+                    );
+                    continue;
+                }
+                eprintln!(
+                    "🧹 tmp_pack sweep: removed abandoned {} ({:.1} MiB, aged {}s, fuser-clean)",
+                    entry.path().display(),
+                    size as f64 / 1048576.0,
+                    age.as_secs()
+                );
+                removed += 1;
+                freed = freed.saturating_add(size);
+            }
+            Ok(true) => {
+                eprintln!(
+                    "⏳ tmp_pack sweep: retaining {} (fuser reports a live holder)",
+                    entry.path().display()
+                );
+            }
+            Err(error) => {
+                eprintln!(
+                    "⚠️ tmp_pack sweep: retaining {} (cannot verify abandonment: {error})",
+                    entry.path().display()
+                );
+            }
+        }
     }
     (removed, freed)
 }
