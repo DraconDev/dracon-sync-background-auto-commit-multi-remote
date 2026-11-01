@@ -1,7 +1,8 @@
 //! Independent, complete recovery records. The caller must hold spool ownership
 //! across this call and any later removal. This module NEVER removes a spool.
-//! One full closure pack per record is intentional: this is retention, not a
-//! claim of net space savings. Unsupported recovery semantics fail closed.
+//! Records share immutable loose-object inodes, without alternates. Each has
+//! independent GC roots and complete metadata; physical savings are measured,
+//! not assumed. Unsupported recovery semantics fail closed.
 
 use anyhow::{bail, ensure, Context, Result};
 use sha2::{Digest, Sha256};
@@ -11,6 +12,9 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::process::Command;
+
+#[path = "epoch_spool_cas.rs"]
+mod cas;
 
 #[derive(Debug)]
 #[allow(dead_code)] // Read by the future qualified caller, not the current reaper.
@@ -338,12 +342,18 @@ fn sync_tree(path: &Path, base: &Path, manifest: &mut String) -> Result<()> {
                 hash.update(&buf[..n]);
             }
             file.sync_all()?;
-            // JSON escaping makes arbitrary metadata names unambiguous.
-            manifest.push_str(&format!(
-                "{:x} {}\n",
-                hash.finalize(),
-                serde_json::to_string(&path.strip_prefix(base)?.as_os_str().as_encoded_bytes())?
-            ));
+            let relative = path.strip_prefix(base)?;
+            // ODB layouts/packed refs may change under ordinary record GC.
+            // Version 2 receipts bind immutable metadata plus semantic roots
+            // and objects.tsv, not mutable physical Git filenames. Final
+            // isolated fsck verifies those object contents before publication.
+            if !relative.starts_with("store.git") {
+                manifest.push_str(&format!(
+                    "{:x} {}\n",
+                    hash.finalize(),
+                    serde_json::to_string(&relative.as_os_str().as_encoded_bytes())?
+                ));
+            }
         }
     }
     File::open(path)?.sync_all()?;
@@ -568,10 +578,7 @@ async fn prepare_inner(
     .stdin(File::open(&roots_path)?);
     let hash = String::from_utf8(run(c, timeout).await?)?.trim().to_owned();
     ensure!(oid(&hash, width), "invalid output pack identity");
-    fs::write(
-        store.join(format!("objects/pack/pack-{hash}.keep")),
-        b"Independent epoch recovery; do not prune\n",
-    )?;
+    cas::share(work.path(), record.path(), &rescue, &format, &hash, timeout).await?;
     #[cfg(test)]
     if matches!(_fault, Fault::SlowBeforeVerify) {
         let mut probe = Command::new(std::env::current_exe()?);
@@ -587,14 +594,16 @@ async fn prepare_inner(
     }
     #[cfg(test)]
     if matches!(_fault, Fault::CorruptBeforeVerify) {
-        let pack = store.join(format!("objects/pack/pack-{hash}.pack"));
-        let mut bytes = fs::read(&pack)?;
-        ensure!(bytes.len() > 15, "fault fixture pack too short");
+        let inventory = fs::read_to_string(record.path().join("objects.tsv"))?;
+        let object = inventory.split_whitespace().next().context("fault fixture empty")?;
+        let path = store.join("objects").join(&object[..2]).join(&object[2..]);
+        let mut bytes = fs::read(&path)?;
+        ensure!(bytes.len() > 15, "fault fixture object too short");
         bytes[15] ^= 0x55;
-        fs::write(pack, bytes)?;
+        fs::write(path, bytes)?;
     }
     verify(&store, &roots_path, timeout).await?;
-    let mut manifest = String::from("dracon-epoch-recovery-v1\n");
+    let mut manifest = String::from("dracon-epoch-recovery-v2\n");
     sync_tree(record.path(), record.path(), &mut manifest)?;
     let manifest_sha256 = format!("{:x}", Sha256::digest(manifest.as_bytes()));
     let mut file = OpenOptions::new()
@@ -607,7 +616,7 @@ async fn prepare_inner(
         .create_new(true)
         .write(true)
         .open(record.path().join("receipt.pending"))?;
-    writeln!(receipt, "dracon-epoch-recovery-v1 {manifest_sha256}")?;
+    writeln!(receipt, "dracon-epoch-recovery-v2 {manifest_sha256}")?;
     receipt.sync_all()?;
     File::open(record.path())?.sync_all()?;
     #[cfg(test)]
@@ -859,15 +868,11 @@ mod tests {
 
     #[tokio::test]
     async fn isolated_verification_rejects_corrupt_pack_with_source_intact() {
-        let (_root, repo, spool, _) = fixture("sha1").await;
+        let (_root, repo, spool, blob) = fixture("sha1").await;
         let source = fs::read(spool.join("index")).unwrap();
         let receipt = prepare_record(&repo, &spool, 10).await.unwrap();
         let store = receipt.record.join("store.git");
-        let pack = fs::read_dir(store.join("objects/pack"))
-            .unwrap()
-            .map(|e| e.unwrap().path())
-            .find(|p| p.extension().is_some_and(|e| e == "pack"))
-            .unwrap();
+        let pack = store.join("objects").join(&blob[..2]).join(&blob[2..]);
         let mut bytes = fs::read(&pack).unwrap();
         bytes[15] ^= 0x55;
         let mut permissions = fs::metadata(&pack).unwrap().permissions();
