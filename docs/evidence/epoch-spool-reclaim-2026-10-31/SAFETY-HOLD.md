@@ -20,8 +20,12 @@ The epoch-spool goal is unfinished. No further live drain is authorized by the c
 
 `baseline-before-drain.txt` and `baseline-after-drain.txt` have bounded discovery scope and are not a complete fleet accounting. The disappearance of ai-auto-writer's old largest spool remains unexplained; the speculative filter-repo diagnosis was not supported by timestamps. Do not attribute those bytes to this reaper.
 
-## Contract correction needed
+## Approved contract correction
 
-The adopted goal explicitly treats dangling-object presence as deletion authority. That premise was unsafe. The requirement that no duplicate survivor remain also conflicts with preserving fresh/in-flight spools while the daemon keeps running, and with preserving legacy spools whose ownership cannot be proven. Qualify the post-drain criterion to eligible, demonstrably inactive spools and classify all other survivors rather than deleting them to meet a count.
+The operator-approved revised objective supersedes the original unsafe presence-only premise. It requires durable recovery closure and index/metadata preservation, cross-process exclusion through deletion, isolated verification and a durable receipt. The no-removable-duplicates criterion applies only to eligible, demonstrably inactive spools; active/fresh, marked, legacy-uncertain and failed-proof cases remain preserved and classified. The historical drain is not retroactively qualified.
 
-Recommended revised invariants: durable recovery closure and index/metadata preservation before deletion; cross-process exclusion throughout proof and deletion; isolated rescue verification; atomic durable receipt before deletion; preserve all uncertain/active/legacy cases. Do not weaken the quality gates or claim completion on the interlock.
+## Disconnected component evidence
+
+The independent recovery engine now uses immutable shared-object storage with separate GC-rooted recovery records and semantic receipts. Eleven focused recovery tests pass, including cancellation preserving the kernel fence, source/index reconstruction, GC survival and corruption refusal. Four producer-containment tests pass when explicitly including the disposable host fixture and using a rebuilt source-qualified helper. They exercise registered-launch cancellation, closed-stdio setsid descendants, exact environment forwarding and source mismatch rejection. See `recovery-shared-tests.txt`, `producer-qualified-tests.txt` and `producer-helper-build.txt`.
+
+These components are not yet integrated into staging settlement or the guarded removal path. Unique-payload compact rescue/readback, final source checks, marker integration, full fault/non-vacuity/workspace gates and corrected live accounting remain unfinished. Keep the interlock disabled; no live reclamation follows from these component results.

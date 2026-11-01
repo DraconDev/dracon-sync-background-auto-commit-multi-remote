@@ -1,0 +1,19 @@
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.13s
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 11 tests
+test git::epoch_spool::recovery::tests::cancelled_request_retains_storage_until_writer_is_joined ... ok
+test git::epoch_spool::recovery::tests::corrupt_existing_shared_object_is_not_overwritten_or_accepted ... ok
+test git::epoch_spool::recovery::tests::corrupt_input_and_unknown_directories_refuse_without_receipt ... ok
+test git::epoch_spool::recovery::tests::index_only_reconstructs_exact_bytes_and_paths_without_main_or_spool ... ok
+test git::epoch_spool::recovery::tests::isolated_verification_rejects_corrupt_pack_with_source_intact ... ok
+test git::epoch_spool::recovery::tests::mixed_overlapping_packs_keep_dangling_objects_after_main_gc ... ok
+test git::epoch_spool::recovery::tests::post_write_corruption_and_publication_faults_preserve_source ... ok
+test git::epoch_spool::recovery::tests::recovery_writer_probe ... ok
+test git::epoch_spool::recovery::tests::shared_objects_are_independent_and_semantic_receipts_survive_record_gc ... ok
+test git::epoch_spool::recovery::tests::split_index_and_missing_index_object_refuse_preserving_sources ... ok
+test git::epoch_spool::recovery::tests::symlink_metadata_is_refused_without_following_it ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 1565 filtered out; finished in 3.73s
+
