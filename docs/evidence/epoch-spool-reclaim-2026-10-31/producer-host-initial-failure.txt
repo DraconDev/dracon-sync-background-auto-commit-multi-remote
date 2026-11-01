@@ -1,0 +1,15 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.20s
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 1 test
+test git::epoch_spool::producer::tests::host_descendants_pending_cancellation_and_exact_environment ... Error: No such file or directory (os error 2)
+FAILED
+
+failures:
+
+failures:
+    git::epoch_spool::producer::tests::host_descendants_pending_cancellation_and_exact_environment
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1572 filtered out; finished in 1.20s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

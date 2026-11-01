@@ -1,0 +1,11 @@
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 57s
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 3 tests
+test git::epoch_spool::producer::tests::cgroup_binding_rejects_other_owners_and_traversal ... ok
+test git::epoch_spool::producer::tests::environment_removals_and_literals ... ok
+test git::epoch_spool::producer::tests::host_descendants_pending_cancellation_and_exact_environment ... ignored, requires user bus, cgroup v2 and prebuilt DRACON_EPOCH_TEST_HELPER; only disposable own units
+
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 1570 filtered out; finished in 0.03s
+
