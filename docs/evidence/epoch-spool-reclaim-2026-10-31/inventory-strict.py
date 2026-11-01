@@ -63,7 +63,10 @@ def measure(root):
                 failure(errors, p, 'changed during observation')
         except OSError as e:
             failure(errors, p, e)
-    return {'logical_bytes_observed': logical, 'logical_bytes': logical if not errors else None,
+    root_stat = observed.get(Path(root))
+    identity = dict(device=root_stat[0], inode=root_stat[1]) if root_stat else None
+    return {'source_identity': identity,
+            'logical_bytes_observed': logical, 'logical_bytes': logical if not errors else None,
             'regular_files': files, 'pack_files': packs, 'errors': errors}, inodes
 
 
@@ -208,7 +211,7 @@ def inventory(manifest, age_floor):
                 stores.append(dict(path=str(path), gitdir=str(directory), **footprint))
     categories = dict(collections.Counter(row['category'] for row in rows))
     complete = not errors and not any(r['errors'] for r in rows + stores)
-    return dict(schema_version=1, started_utc=started, ended_utc=utc(), manifest=manifest,
+    return dict(schema_version=2, started_utc=started, ended_utc=utc(), manifest=manifest,
                 age_floor_secs=age_floor, deletion_authority=False, complete=complete,
                 discovery_errors=errors, gitdirs=[str(p) for p in directories],
                 spool_count=len(rows), categories=categories,
