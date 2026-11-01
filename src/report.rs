@@ -3277,9 +3277,19 @@ pub(crate) enum LayoutTier {
 /// (v0.112.38); 165-col Rich minimum since v0.113.8 (added USED +
 /// COMMITS + SIZE + TOUCHED columns grew the table from ~120 to
 /// ~165 cols).
+/// Minimum terminal width at which the Rich tier renders correctly.
+///
+/// CHANGED 2026-11-01 (165 -> 167): the STATUS column is now derived from
+/// the widest status label instead of a hand-tuned 13, and `📤 PUBLISHING`
+/// needs 15 columns. At the old 165 floor the STATUS cell wrapped onto a
+/// second line, so a 165-166 col terminal got a malformed table; those
+/// widths now fall back to Compact. `test_rich_table_fits_narrow_terminal`
+/// pins the total against this constant so the two cannot drift.
+pub(crate) const RICH_TIER_MIN_COLS: u16 = 167;
+
 pub(crate) fn choose_layout_tier() -> LayoutTier {
     let w = terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16);
-    if w < 165 {
+    if w < RICH_TIER_MIN_COLS {
         LayoutTier::Compact
     } else {
         LayoutTier::Rich
@@ -15356,8 +15366,8 @@ mod tests {
             + TOUCHED_COL;
         let total = fixed + border_overhead;
         assert_eq!(
-            total, 165,
-            "rich table total width drifted from the measured 165 — re-check the 165-col rich-tier floor"
+            total as u16, RICH_TIER_MIN_COLS,
+            "rich table total width drifted from the rich-tier floor — update RICH_TIER_MIN_COLS deliberately"
         );
         assert!(
             total <= 165,
