@@ -5,6 +5,8 @@ use super::*;
 
 pub(super) struct Payload {
     pub count: usize,
+    pub uncompressed_bytes: u64,
+    pub packed_bytes: u64,
     pub pack_name: Option<PathBuf>,
 }
 
@@ -54,6 +56,8 @@ pub(super) async fn prepare(
     if missing.is_empty() {
         return Ok(Payload {
             count: 0,
+            uncompressed_bytes: 0,
+            packed_bytes: 0,
             pack_name: None,
         });
     }
@@ -129,16 +133,21 @@ pub(super) async fn prepare(
         readback.lines().count() == missing.len(),
         "incomplete isolated unique readback"
     );
+    let mut uncompressed_bytes = 0u64;
     for (expected, actual) in missing.iter().zip(readback.lines()) {
         ensure!(
             actual.split_whitespace().next() == Some(expected.as_str())
                 && inventory.contains(actual),
             "isolated unique object/content identity mismatch"
         );
+        let size: u64 = actual.split_whitespace().nth(2).context("missing unique object size")?.parse()?;
+        uncompressed_bytes = uncompressed_bytes.checked_add(size).context("unique byte count overflow")?;
     }
     fs::write(record.join("unique-readback.tsv"), readback)?;
     Ok(Payload {
         count: missing.len(),
+        uncompressed_bytes,
+        packed_bytes: fs::metadata(&pack)?.len(),
         pack_name: Some(name),
     })
 }
