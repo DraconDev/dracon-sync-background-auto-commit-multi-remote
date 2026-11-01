@@ -6090,7 +6090,7 @@ fn human_bytes(b: u64) -> String {
 // HINT. CORRECTED 2026-10-03 (audit R3-L37): was "120-200 cols,
 // 14 columns" with a stale keeps/drops list.
 // ---------------------------------------------------------------------------
-fn print_repos_compact_table(
+fn build_repos_compact_table(
     rows: &[RepoReportRow],
     _filter: &RepoFilter,
     _concern_count_all: usize,
@@ -6291,8 +6291,7 @@ fn print_repos_compact_table(
             Cell::new(hint_text).fg(hint_color),
         ]);
     }
-
-    println!("{table}");
+    table
 }
 
 // ---------------------------------------------------------------------------
@@ -6301,7 +6300,7 @@ fn print_repos_compact_table(
 // 315 cols (see the width-floor comment at the constraints). CORRECTED
 // 2026-10-03 (audit R3-L37): was ">= 200 cols, 22-column, fits >= 220".
 // ---------------------------------------------------------------------------
-fn print_repos_full_table(
+fn build_repos_full_table(
     rows: &[RepoReportRow],
     _filter: &RepoFilter,
     _concern_count_all: usize,
@@ -6502,8 +6501,7 @@ fn print_repos_full_table(
             Cell::new(truncate_unicode_width(&row.hint, 13)).fg(status_color),
         ]);
     }
-
-    println!("{table}");
+    table
 }
 
 // ---------------------------------------------------------------------------
@@ -7092,7 +7090,7 @@ fn summary_what(row: &RepoReportRow, budget: usize) -> String {
 /// ANSI color codes (each emoji-colored STATUS ate a variable
 /// number of visible chars). R1 switches to `comfy-table` which
 /// handles unicode width + ANSI correctly.
-fn print_repos_summary(
+fn build_repos_summary(
     rows: &[RepoReportRow],
     _filter: &RepoFilter,
     full_path: bool,
@@ -7200,8 +7198,7 @@ fn print_repos_summary(
             Cell::new(what).fg(Color::White),
         ]);
     }
-
-    println!("{table}");
+    table
 }
 
 /// ADDED 2026-10-03 (audit L19): compact count for the 3-content
