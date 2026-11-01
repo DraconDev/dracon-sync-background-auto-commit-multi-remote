@@ -387,7 +387,9 @@ fn rich_rendered_states_keep_complete_activity_and_single_line_rows() {
         assert_eq!(classify(&row), state);
         rows.push(row);
     }
-    for width in [165, 200, 240, 320] {
+    // CHANGED 2026-11-01: the Rich floor is RICH_TIER_MIN_COLS, not the old
+    // hardcoded 165 (the derived STATUS column needs 2 more columns).
+    for width in [super::super::RICH_TIER_MIN_COLS, 200, 240, 320] {
         let output = super::super::build_repos_rich_table(&rows, false, width).to_string();
         assert_eq!(
             output.lines().count(),

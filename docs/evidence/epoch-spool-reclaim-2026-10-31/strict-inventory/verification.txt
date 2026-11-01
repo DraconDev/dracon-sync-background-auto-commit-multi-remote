@@ -1,0 +1,3 @@
+scope, identity sets, totals, category accounting and net-attribution limits: PASS
+renewed mutation results, restored 47-case result and captured source binding: PASS
+local evidence citations: PASS
