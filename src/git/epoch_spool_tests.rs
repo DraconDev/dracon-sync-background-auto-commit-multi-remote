@@ -354,7 +354,7 @@ fn child_holds_live_owner_probe() {
     let _owner = if std::env::var_os("DRACON_RECLAIM_PROBE_IS_REAPER").is_some() {
         (
             None,
-            Some(ownership::ReclaimOwner::acquire(path.parent().unwrap(), &path).unwrap()),
+            Some(ownership::ReclaimOwner::acquire(path.parent().unwrap(), &path, std::time::Duration::from_secs(0)).unwrap()),
         )
     } else {
         (Some(SpoolLease::acquire(&path).unwrap()), None)
