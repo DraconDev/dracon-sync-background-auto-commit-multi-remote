@@ -280,18 +280,30 @@ impl Unit {
         // Removal is accepted only here, never during pending start/collection.
         loop {
             match populated(&self.cgroup) {
-                Ok(false) => return Ok(()),
+                Ok(false) => break,
                 Err(error)
                     if error
                         .downcast_ref::<std::io::Error>()
                         .is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound) =>
                 {
-                    return Ok(())
+                    break
                 }
                 Err(error) => return Err(error),
                 Ok(true) => tokio::time::sleep(POLL).await,
             }
         }
+        // A legitimate target exit 1 leaves a failed service object. Clear only
+        // this never-reused, already-stopped unit so each ordinary Git refusal
+        // does not introduce another unbounded manager-retention leak. The
+        // journal is retained; this does not operate on any daemon service.
+        let cleanup = self.manager.command(&self.manager.control)
+            .args(["--user", "reset-failed", &self.name]).output().await?;
+        if !cleanup.status.success() {
+            // A successful stopped unit may already have been collected. This
+            // bookkeeping failure cannot invalidate observed family emptiness.
+            eprintln!("epoch producer unit cleanup: {}", String::from_utf8_lossy(&cleanup.stderr));
+        }
+        Ok(())
     }
 }
 
