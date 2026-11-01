@@ -5431,7 +5431,10 @@ pub(crate) async fn run_repos_report(
     // is for "is anything broken?" health checks. Always uses the Vertical
     // tier so the WHAT column can be as wide as the terminal allows.
     if summary {
-        print_repos_summary(&rows, &filter, full_path, summary_by_severity);
+        println!(
+            "{}",
+            build_repos_summary(&rows, &filter, full_path, summary_by_severity)
+        );
         return Ok(());
     }
     match tier {
@@ -5466,23 +5469,29 @@ pub(crate) async fn run_repos_report(
             );
         }
         LayoutTier::Compact => {
-            print_repos_compact_table(
-                &rows,
-                &filter,
-                concern_count_all,
-                warn_count_all,
-                ok_count_all,
-                full_path,
+            println!(
+                "{}",
+                build_repos_compact_table(
+                    &rows,
+                    &filter,
+                    concern_count_all,
+                    warn_count_all,
+                    ok_count_all,
+                    full_path,
+                )
             );
         }
         LayoutTier::Full => {
-            print_repos_full_table(
-                &rows,
-                &filter,
-                concern_count_all,
-                warn_count_all,
-                ok_count_all,
-                full_path,
+            println!(
+                "{}",
+                build_repos_full_table(
+                    &rows,
+                    &filter,
+                    concern_count_all,
+                    warn_count_all,
+                    ok_count_all,
+                    full_path,
+                )
             );
         }
     }
@@ -6097,7 +6106,7 @@ fn build_repos_compact_table(
     _warn_count_all: usize,
     _ok_count_all: usize,
     full_path: bool,
-) {
+) -> comfy_table::Table {
     use comfy_table::{
         presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ColumnConstraint, ContentArrangement,
         Table, Width,
@@ -6307,7 +6316,7 @@ fn build_repos_full_table(
     _warn_count_all: usize,
     _ok_count_all: usize,
     full_path: bool,
-) {
+) -> comfy_table::Table {
     use comfy_table::{
         presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ColumnConstraint, ContentArrangement,
         Table, Width,
@@ -7095,7 +7104,7 @@ fn build_repos_summary(
     _filter: &RepoFilter,
     full_path: bool,
     by_severity: bool,
-) {
+) -> comfy_table::Table {
     use comfy_table::{
         presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement, Table,
         Width,
