@@ -1,0 +1,78 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.94s
+     Running unittests src/lib.rs (/home/dracon/.cache/space-hygiene/epoch-corrected-nonvacuity-6gt9ibr7/target/debug/deps/dracon_sync-5bb17364e8db6e79)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 157 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/home/dracon/.cache/space-hygiene/epoch-corrected-nonvacuity-6gt9ibr7/target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 40 tests
+test git::epoch_spool::ownership::tests::child_holds_spool_owner_probe ... ok
+test git::epoch_spool::ownership::tests::host_private_git_settles_before_identity_bound_handoff ... Initialized empty Git repository in /tmp/.tmp4hm8fU/.git/
+ok
+test git::epoch_spool::ownership::tests::legacy_owner_metadata_is_not_manufactured ... ok
+test git::epoch_spool::ownership::tests::old_but_live_child_is_excluded_then_exit_releases_ownership ... ok
+test git::epoch_spool::ownership::tests::replaced_lock_and_symlink_directory_fail_closed ... ok
+test git::epoch_spool::ownership::tests::settled_owner_handoff_and_two_reclaimers_are_exclusive ... ok
+test git::epoch_spool::ownership::tests::unlocked_without_settlement_is_uncertain_and_marker_is_identity_bound ... ok
+test git::epoch_spool::ownership::tests::wrong_producer_proof_and_closing_marker_cannot_seal_or_restart ... ok
+test git::epoch_spool::producer::tests::cgroup_binding_rejects_other_owners_and_traversal ... ok
+test git::epoch_spool::producer::tests::environment_removals_and_literals ... ok
+test git::epoch_spool::producer::tests::host_descendants_pending_cancellation_and_exact_environment ... ok
+test git::epoch_spool::producer::tests::missing_cgroup_is_not_completion_of_a_pending_or_running_unit ... ok
+test git::epoch_spool::recovery::tests::cancelled_request_retains_storage_until_writer_is_joined ... ok
+test git::epoch_spool::recovery::tests::corrupt_existing_shared_object_is_not_overwritten_or_accepted ... ok
+test git::epoch_spool::recovery::tests::corrupt_input_and_unknown_directories_refuse_without_receipt ... ok
+test git::epoch_spool::recovery::tests::index_only_reconstructs_exact_bytes_and_paths_without_main_or_spool ... ok
+test git::epoch_spool::recovery::tests::isolated_verification_rejects_corrupt_pack_with_source_intact ... ok
+test git::epoch_spool::recovery::tests::mixed_overlapping_packs_keep_dangling_objects_after_main_gc ... ok
+test git::epoch_spool::recovery::tests::post_write_corruption_and_publication_faults_preserve_source ... ok
+test git::epoch_spool::recovery::tests::recovery_writer_probe ... ok
+test git::epoch_spool::recovery::tests::shared_objects_are_independent_and_semantic_receipts_survive_record_gc ... ok
+test git::epoch_spool::recovery::tests::split_index_and_missing_index_object_refuse_preserving_sources ... ok
+test git::epoch_spool::recovery::tests::symlink_metadata_is_refused_without_following_it ... ok
+test git::epoch_spool::tests::another_process_reclaimer_holds_source_through_proof ... ok
+test git::epoch_spool::tests::changed_source_after_receipt_is_not_removed ... ok
+test git::epoch_spool::tests::child_holds_live_owner_probe ... ok
+test git::epoch_spool::tests::concurrent_reapers_remove_only_once ... ok
+test git::epoch_spool::tests::crash_boundaries_and_ledger_failure_preserve_source ... ok
+test git::epoch_spool::tests::duplicate_spool_is_reaped ... ok
+test git::epoch_spool::tests::fresh_spool_is_protected_by_the_age_floor ... ok
+test git::epoch_spool::tests::old_but_live_owner_cannot_be_reclaimed ... ok
+test git::epoch_spool::tests::packless_valid_index_is_recovered_but_invalid_or_unknown_layout_is_preserved ... ok
+test git::epoch_spool::tests::post_write_rescue_verification_failure_preserves_original ... ok
+test git::epoch_spool::tests::preserve_marked_spool_is_never_deleted ... ok
+test git::epoch_spool::tests::qualification_interlock_preserves_valid_recovery_spool ... ok
+test git::epoch_spool::tests::recovered_index_preserves_raw_paths_executable_and_symlink_modes ... ok
+test git::epoch_spool::tests::rescue_storage_failure_preserves_original_bytes ... ok
+test git::epoch_spool::tests::spool_with_unique_objects_is_rescued_then_reaped ... ok
+test git::epoch_spool::tests::sweep_apply_still_refuses_age_only_deletion ... ok
+test git::epoch_spool::tests::unlocked_legacy_spool_is_not_assumed_abandoned ... ok
+
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 1547 filtered out; finished in 10.63s
+
+     Running tests/excluded_recovery_report.rs (/home/dracon/.cache/space-hygiene/epoch-corrected-nonvacuity-6gt9ibr7/target/debug/deps/excluded_recovery_report-bb02329da851bdae)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/integration_test.rs (/home/dracon/.cache/space-hygiene/epoch-corrected-nonvacuity-6gt9ibr7/target/debug/deps/integration_test-05f1e4f42bfb56df)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/report_json_detail.rs (/home/dracon/.cache/space-hygiene/epoch-corrected-nonvacuity-6gt9ibr7/target/debug/deps/report_json_detail-f38c2fb3831f3acf)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/storage_clean.rs (/home/dracon/.cache/space-hygiene/epoch-corrected-nonvacuity-6gt9ibr7/target/debug/deps/storage_clean-e938839218f0e231)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+

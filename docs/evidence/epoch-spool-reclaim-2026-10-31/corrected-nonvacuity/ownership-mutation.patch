@@ -1,0 +1,36 @@
+--- original/epoch_spool_ownership.rs
++++ mutated/epoch_spool_ownership.rs
+@@ -302,7 +302,7 @@
+             same_identity(&before, &file.metadata()?),
+             "spool lock changed during open"
+         );
+-        file.try_lock().context("spool is still owned")?;
++        // MUTATION: ignore the live producer/reclaimer kernel fence.
+         let held = Self {
+             lock: file.metadata()?,
+             _file: file,
+@@ -319,23 +319,7 @@
+     /// An unlocked crash-abandoned producer is not settled. Never manufacture
+     /// this marker in the sweeper, including for legacy directories.
+     pub(super) fn is_settled(&self) -> bool {
+-        let checked = || -> Result<bool> {
+-            ensure!(self.still_owned(), "spool identity changed");
+-            let path = self.spool.join(SETTLED_FILE);
+-            let named = std::fs::symlink_metadata(&path)?;
+-            validate_lock(&named)?;
+-            let marker = owner_options().open(&path)?;
+-            ensure!(
+-                same_identity(&named, &marker.metadata()?),
+-                "settled marker replaced"
+-            );
+-            let mut bytes = Vec::new();
+-            marker.take(4097).read_to_end(&mut bytes)?;
+-            ensure!(bytes.len() <= 4096, "oversized settled marker");
+-            let identity: OwnerIdentity = serde_json::from_slice(&bytes)?;
+-            Ok(identity == OwnerIdentity::of(&self.directory, &self.lock)?)
+-        };
+-        checked().unwrap_or(false)
++        true // MUTATION: treat a live, unsealed producer as settled.
+     }
+ 
+     pub(super) fn still_owned(&self) -> bool {

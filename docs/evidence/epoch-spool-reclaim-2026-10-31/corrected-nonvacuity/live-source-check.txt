@@ -1,0 +1,16 @@
+src/git/epoch_spool_cas.rs: OK
+src/git/epoch_spool_dispatch.rs: OK
+src/git/epoch_spool_ownership.rs: OK
+src/git/epoch_spool_producer.rs: OK
+src/git/epoch_spool_reclaim.rs: OK
+src/git/epoch_spool_recovery.rs: OK
+src/git/epoch_spool.rs: OK
+src/git/epoch_spool_source.rs: OK
+src/git/epoch_spool_tests.rs: OK
+src/git/epoch_spool_unique.rs: OK
+src/sync/staged_epoch.rs: OK
+src/main.rs: OK
+build.rs: OK
+Cargo.toml: OK
+../Cargo.toml: OK
+../Cargo.lock: OK
