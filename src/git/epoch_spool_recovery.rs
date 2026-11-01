@@ -787,6 +787,13 @@ mod tests {
             .join(".git/dracon-rescue/cas/objects")
             .join(&blob[..2])
             .join(&blob[2..]);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            // Deliberate fault injection into a disposable fixture; Git's
+            // normal read-only object mode prevents accidental overwrites.
+            fs::set_permissions(&shared, fs::Permissions::from_mode(0o600)).unwrap();
+        }
         fs::write(&shared, b"corrupt shared object").unwrap();
         let index = fs::read(spool.join("index")).unwrap();
         assert!(prepare_record(&repo, &spool, 20).await.is_err());
