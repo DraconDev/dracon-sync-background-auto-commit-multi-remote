@@ -236,6 +236,16 @@ impl SpoolLease {
         Ok(())
     }
 
+    /// The real-Git fixtures run only hook/filter-free plumbing, join those
+    /// processes, then attest an empty child family. Never compiled in production.
+    #[cfg(test)]
+    pub(super) fn settle_empty_fixture(&mut self) -> Result<()> {
+        ensure!(self.scope.is_none(), "fixture must have no registered child family");
+        self.seal(super::producer::SettledProducer::empty_fixture(self.identity.clone().context("no fixture owner")?))?;
+        self.release_for_reclaim();
+        Ok(())
+    }
+
     /// Hand ownership back to the kernel before invoking the ordinary reclaimer;
     /// independently opening a lock we still hold would self-contend.
     pub(crate) fn release_for_reclaim(&mut self) {
