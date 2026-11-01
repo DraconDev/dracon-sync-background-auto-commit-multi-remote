@@ -105,7 +105,14 @@ async fn inner(
     let original_bytes = super::directory_bytes(spool)?;
     #[cfg(test)]
     let (receipt, owner) = if matches!(_fault, Fault::CorruptUnique) {
-        recovery::prepare_owned_fault(repo, spool, seconds, owner, recovery::Fault::CorruptUniqueBeforeVerify).await?
+        recovery::prepare_owned_fault(
+            repo,
+            spool,
+            seconds,
+            owner,
+            recovery::Fault::CorruptUniqueBeforeVerify,
+        )
+        .await?
     } else {
         recovery::prepare_owned_record(repo, spool, seconds, owner).await?
     };

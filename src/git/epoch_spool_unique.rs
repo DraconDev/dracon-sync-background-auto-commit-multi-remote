@@ -140,8 +140,14 @@ pub(super) async fn prepare(
                 && inventory.contains(actual),
             "isolated unique object/content identity mismatch"
         );
-        let size: u64 = actual.split_whitespace().nth(2).context("missing unique object size")?.parse()?;
-        uncompressed_bytes = uncompressed_bytes.checked_add(size).context("unique byte count overflow")?;
+        let size: u64 = actual
+            .split_whitespace()
+            .nth(2)
+            .context("missing unique object size")?
+            .parse()?;
+        uncompressed_bytes = uncompressed_bytes
+            .checked_add(size)
+            .context("unique byte count overflow")?;
     }
     fs::write(record.join("unique-readback.tsv"), readback)?;
     Ok(Payload {

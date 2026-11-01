@@ -155,7 +155,10 @@ async fn spool_with_unique_objects_is_rescued_then_reaped() {
     );
     let rescue = receipt.rescue_pack.as_ref().unwrap();
     assert!(rescue.is_file() && rescue.with_extension("idx").is_file());
-    assert_eq!(receipt.rescue_pack_bytes, fs::metadata(rescue).unwrap().len());
+    assert_eq!(
+        receipt.rescue_pack_bytes,
+        fs::metadata(rescue).unwrap().len()
+    );
     let standalone = f._root.path().join("standalone");
     fs::create_dir(&standalone).unwrap();
     git(&standalone, &["init", "-q", "--bare", "--template="]);
@@ -175,6 +178,58 @@ async fn spool_with_unique_objects_is_rescued_then_reaped() {
         .await
         .unwrap();
 }
+#[cfg(unix)]
+#[tokio::test]
+async fn recovered_index_preserves_raw_paths_executable_and_symlink_modes() {
+    use std::os::unix::{ffi::OsStringExt, fs::PermissionsExt};
+    let f = fixture(false, false);
+    fs::set_permissions(
+        f.repo.join("path with spaces"),
+        fs::Permissions::from_mode(0o755),
+    )
+    .unwrap();
+    std::os::unix::fs::symlink("relative-target", f.repo.join("link")).unwrap();
+    let raw_name = std::ffi::OsString::from_vec(b"raw-\xff-name".to_vec());
+    fs::write(f.repo.join(&raw_name), b"raw path payload").unwrap();
+    assert!(command(&f.repo)
+        .env("GIT_INDEX_FILE", f.spool.join("index"))
+        .args(["add", "--all"])
+        .status()
+        .unwrap()
+        .success());
+    let mapping = command(&f.repo)
+        .env("GIT_INDEX_FILE", f.spool.join("index"))
+        .args(["ls-files", "--stage", "-z"])
+        .output()
+        .unwrap();
+    assert!(mapping.status.success());
+    assert!(mapping.stdout.windows(7).any(|part| part == b"100755 "));
+    assert!(mapping.stdout.windows(7).any(|part| part == b"120000 "));
+    assert!(mapping
+        .stdout
+        .windows(10)
+        .any(|part| part == b"raw-\xff-name"));
+    let metadata_name = std::ffi::OsString::from_vec(b"metadata-\xfe".to_vec());
+    fs::write(f.spool.join(&metadata_name), b"opaque metadata").unwrap();
+    let mut owner = SpoolLease::acquire(&f.spool).unwrap();
+    owner.settle_empty_fixture().unwrap();
+    let receipt = attempt(&f, reclaim::Fault::None).await.unwrap();
+    let restored = command(&receipt.record.join("store.git"))
+        .env("GIT_INDEX_FILE", receipt.record.join("metadata/index"))
+        .args(["ls-files", "--stage", "-z"])
+        .output()
+        .unwrap();
+    assert!(restored.status.success());
+    assert_eq!(restored.stdout, mapping.stdout);
+    assert_eq!(
+        fs::read(receipt.record.join("metadata").join(metadata_name)).unwrap(),
+        b"opaque metadata"
+    );
+    recovery::verify_receipt(&receipt.record, &receipt.manifest_sha256, 10)
+        .await
+        .unwrap();
+}
+
 #[tokio::test]
 async fn post_write_rescue_verification_failure_preserves_original() {
     let f = fixture(true, true);
