@@ -296,12 +296,19 @@ impl Unit {
         // this never-reused, already-stopped unit so each ordinary Git refusal
         // does not introduce another unbounded manager-retention leak. The
         // journal is retained; this does not operate on any daemon service.
-        let cleanup = self.manager.command(&self.manager.control)
-            .args(["--user", "reset-failed", &self.name]).output().await?;
+        let cleanup = self
+            .manager
+            .command(&self.manager.control)
+            .args(["--user", "reset-failed", &self.name])
+            .output()
+            .await?;
         if !cleanup.status.success() {
             // A successful stopped unit may already have been collected. This
             // bookkeeping failure cannot invalidate observed family emptiness.
-            eprintln!("epoch producer unit cleanup: {}", String::from_utf8_lossy(&cleanup.stderr));
+            eprintln!(
+                "epoch producer unit cleanup: {}",
+                String::from_utf8_lossy(&cleanup.stderr)
+            );
         }
         Ok(())
     }
