@@ -5,19 +5,64 @@
 //! A reclaimer never creates a missing lock for a legacy directory.
 
 use anyhow::{ensure, Context, Result};
+use std::collections::HashMap;
 use std::fs::{File, Metadata, OpenOptions};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, OnceLock, Weak};
+use std::time::Duration;
 
 const OWNER_FILE: &str = "reclaim-owner.lock";
+const SETTLED_FILE: &str = "reclaim-settled.json";
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct OwnerIdentity {
+    version: u8,
+    directory_device: u64,
+    directory_inode: u64,
+    lock_device: u64,
+    lock_inode: u64,
+}
+
+impl OwnerIdentity {
+    fn of(directory: &Metadata, lock: &Metadata) -> Result<Self> {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            Ok(Self { version: 1, directory_device: directory.dev(), directory_inode: directory.ino(),
+                lock_device: lock.dev(), lock_inode: lock.ino() })
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = (directory, lock);
+            anyhow::bail!("qualified spool identities require Unix")
+        }
+    }
+}
+
+type Scopes = HashMap<PathBuf, Weak<super::producer::EpochProducerScope>>;
+fn scopes() -> &'static Mutex<Scopes> {
+    static SCOPES: OnceLock<Mutex<Scopes>> = OnceLock::new();
+    SCOPES.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub(super) fn producer_scope(path: &Path) -> Result<Option<Arc<super::producer::EpochProducerScope>>> {
+    ensure!(!path.join(SETTLED_FILE).exists(), "settled spool cannot resume production");
+    Ok(scopes().lock().map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?
+        .get(path).and_then(Weak::upgrade))
+}
 
 pub(crate) struct SpoolLease {
     path: Option<PathBuf>,
     owner: Option<File>,
+    identity: Option<OwnerIdentity>,
+    scope: Option<Arc<super::producer::EpochProducerScope>>,
 }
 
 impl SpoolLease {
     pub(crate) fn new(path: Option<PathBuf>) -> Self {
-        Self { path, owner: None }
+        Self { path, owner: None, identity: None, scope: None }
     }
 
     pub(crate) fn acquire(path: &Path) -> Result<Self> {
@@ -32,14 +77,64 @@ impl SpoolLease {
         // directory was replaced, do not continue writing through a stale path.
         ensure!(same_identity(&directory, &std::fs::symlink_metadata(path)?), "spool directory replaced");
         ensure!(same_identity(&owner.metadata()?, &std::fs::symlink_metadata(path.join(OWNER_FILE))?), "spool lock replaced");
-        Ok(Self { path: Some(path.to_path_buf()), owner: Some(owner) })
+        let identity = OwnerIdentity::of(&directory, &owner.metadata()?)?;
+        Ok(Self { path: Some(path.to_path_buf()), owner: Some(owner), identity: Some(identity), scope: None })
     }
 
     pub(crate) fn named(&self) -> Option<&Path> {
         self.path.as_deref()
     }
 
-    /// The settled owner has finished writing and terminated owned helpers.
+    /// Register only once, before the first private-index/pack child. The map
+    /// transfers a scope handle, never ownership authority: the kernel lock and
+    /// identity-bound marker remain the cross-process protocol.
+    pub(crate) fn begin_producers(&mut self, runtime: Duration) -> Result<()> {
+        ensure!(self.scope.is_none() && self.owner.is_some(), "producer scope already initialized or unowned");
+        let path = self.path.as_ref().context("no spool path")?;
+        ensure!(!path.join(SETTLED_FILE).exists(), "settled spool cannot resume production");
+        let identity = self.identity.clone().context("no producer identity")?;
+        let scope = Arc::new(super::producer::EpochProducerScope::new(runtime)?.bind(identity));
+        let mut registry = scopes().lock().map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?;
+        ensure!(registry.get(path).and_then(Weak::upgrade).is_none(), "producer scope already registered");
+        registry.insert(path.clone(), Arc::downgrade(&scope));
+        self.scope = Some(scope);
+        Ok(())
+    }
+
+    /// Call outside the producer timeout, after that future can no longer spawn.
+    /// An uncertain/pending family never creates a marker. Failed attempts are
+    /// not resumable production: subsequent dispatch against a sealed path fails.
+    pub(crate) async fn settle_for_reclaim(&mut self, deadline: Duration) -> Result<()> {
+        let scope = self.scope.take().context("producer containment was not established")?;
+        if let Some(path) = &self.path {
+            scopes().lock().map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?.remove(path);
+        }
+        let scope = Arc::try_unwrap(scope).map_err(|_| anyhow::anyhow!("producer scope still borrowed; retain spool"))?;
+        let proof = scope.settle(deadline).await?;
+        self.seal(proof)?;
+        self.release_for_reclaim();
+        Ok(())
+    }
+
+    fn seal(&mut self, proof: super::producer::SettledProducer) -> Result<()> {
+        let path = self.path.as_ref().context("no spool path")?;
+        let identity = self.identity.as_ref().context("no spool identity")?;
+        ensure!(proof.into_identity().as_ref() == Some(identity), "settlement proof belongs to a different producer");
+        let directory = std::fs::symlink_metadata(path)?;
+        ensure!(directory.is_dir(), "spool directory replaced");
+        let owner = self.owner.as_ref().context("producer no longer owns spool")?;
+        let named = std::fs::symlink_metadata(path.join(OWNER_FILE))?;
+        ensure!(same_identity(&owner.metadata()?, &named)
+            && OwnerIdentity::of(&directory, &named)? == *identity, "producer identity changed before sealing");
+        let mut options = owner_options();
+        options.create_new(true);
+        let mut marker = options.open(path.join(SETTLED_FILE))?;
+        marker.write_all(&serde_json::to_vec(identity)?)?;
+        marker.sync_all()?;
+        File::open(path)?.sync_all()?;
+        Ok(())
+    }
+
     /// Hand ownership back to the kernel before invoking the ordinary reclaimer;
     /// independently opening a lock we still hold would self-contend.
     pub(crate) fn release_for_reclaim(&mut self) {
@@ -49,6 +144,11 @@ impl SpoolLease {
 
 impl Drop for SpoolLease {
     fn drop(&mut self) {
+        if self.scope.is_some() {
+            if let (Some(path), Ok(mut registry)) = (&self.path, scopes().lock()) {
+                registry.remove(path);
+            }
+        }
         self.release_for_reclaim();
     }
 }
@@ -78,6 +178,25 @@ impl ReclaimOwner {
         let held = Self { lock: file.metadata()?, _file: file, spool: spool.to_path_buf(), directory };
         ensure!(held.still_owned(), "spool identity changed while acquiring ownership");
         Ok(held)
+    }
+
+    /// An unlocked crash-abandoned producer is not settled. Never manufacture
+    /// this marker in the sweeper, including for legacy directories.
+    pub(super) fn is_settled(&self) -> bool {
+        let checked = || -> Result<bool> {
+            ensure!(self.still_owned(), "spool identity changed");
+            let path = self.spool.join(SETTLED_FILE);
+            let named = std::fs::symlink_metadata(&path)?;
+            validate_lock(&named)?;
+            let marker = owner_options().open(&path)?;
+            ensure!(same_identity(&named, &marker.metadata()?), "settled marker replaced");
+            let mut bytes = Vec::new();
+            marker.take(4097).read_to_end(&mut bytes)?;
+            ensure!(bytes.len() <= 4096, "oversized settled marker");
+            let identity: OwnerIdentity = serde_json::from_slice(&bytes)?;
+            Ok(identity == OwnerIdentity::of(&self.directory, &self.lock)?)
+        };
+        checked().unwrap_or(false)
     }
 
     pub(super) fn still_owned(&self) -> bool {
