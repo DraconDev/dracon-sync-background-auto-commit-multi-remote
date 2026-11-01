@@ -6457,23 +6457,23 @@ fn build_repos_full_table(
             Cell::new(branch_cell_content(&row.branch)).fg(branch_color_for(&row.branch)),
             Cell::new(publish_cell_label(&row.upstream, row.publish_state, 15))
                 .fg(publish_state_color(row.publish_state)),
-            Cell::new(row.modified).fg(if row.modified > 0 {
+            Cell::new(format_compact_count(row.modified)).fg(if row.modified > 0 {
                 Color::Yellow
             } else {
                 Color::White
             }),
-            Cell::new(row.staged).fg(if row.staged > 0 {
+            Cell::new(format_compact_count(row.staged)).fg(if row.staged > 0 {
                 Color::Cyan
             } else {
                 Color::White
             }),
-            Cell::new(row.untracked),
-            Cell::new(row.ahead).fg(if row.ahead > 0 {
+            Cell::new(format_compact_count(row.untracked)),
+            Cell::new(format_compact_count(row.ahead)).fg(if row.ahead > 0 {
                 Color::Yellow
             } else {
                 Color::White
             }),
-            Cell::new(row.behind).fg(if row.behind > 0 {
+            Cell::new(format_compact_count(row.behind)).fg(if row.behind > 0 {
                 Color::Red
             } else {
                 Color::White
@@ -6485,14 +6485,14 @@ fn build_repos_full_table(
                 row.codeberg_skip_reason.as_deref(),
             ),
             Cell::new(commit_summary),
-            Cell::new(shorten_when(&row.last_push)),
+            Cell::new(truncate_unicode_width(&shorten_when(&row.last_push), 9)),
             // R3-L34: ACTIVITY is Absolute(13), truncate to 11 to leave padding room
             Cell::new(truncate_unicode_width(&current_health::label(row), 11)),
             // F30v2: AUTHOR is Absolute(11), truncate to 9 to leave padding room
             Cell::new(truncate_unicode_width(&row.last_author, 9)),
-            Cell::new(row.commits_1h),
-            Cell::new(row.commits_6h),
-            Cell::new(row.commits_24h),
+            Cell::new(format_compact_count(row.commits_1h)),
+            Cell::new(format_compact_count(row.commits_6h)),
+            Cell::new(format_compact_count(row.commits_24h)),
             Cell::new(truncate_unicode_width(&current_health::label(row), 13)).fg(status_color),
             Cell::new(truncate_unicode_width(
                 &format!("{} {}", row.daemon_last_action_when, row.daemon_last_action),
@@ -17185,8 +17185,16 @@ mod v011321_tests {
     /// line that does NOT start with a row number, which is exactly what made
     /// `📤 PUBLISHING` look like an extra row.
     fn wrapped_body_lines(rendered: &str) -> Vec<String> {
+        // Only inspect the data region: the header row legitimately wraps on
+        // narrow tiers, and a separator line marks the boundary.
+        let body_start = rendered
+            .lines()
+            .position(|line| line.starts_with('╞') || line.starts_with('├'))
+            .map(|i| i + 1)
+            .unwrap_or(0);
         rendered
             .lines()
+            .skip(body_start)
             .filter(|line| line.starts_with('│') || line.starts_with('|'))
             .filter(|line| {
                 let body = line
