@@ -1,0 +1,31 @@
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 14s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 6 tests
+test git::status::tests::test_is_stable_empty_repo_tmp_pack_blocks ... ok
+test git::tmp_pack_sweep_tests::aged_tmp_pack_is_preserved_without_producer_ownership_proof ... ok
+test git::tmp_pack_sweep_tests::aged_unheld_tmp_pack_is_reaped_and_reports_freed_bytes ... FAILED
+test git::tmp_pack_sweep_tests::fresh_tmp_pack_survives_because_it_may_still_be_writing ... ok
+test git::tmp_pack_sweep_tests::non_repo_path_is_a_silent_no_op ... ok
+test git::tmp_pack_sweep_tests::real_packs_and_other_object_files_are_never_touched ... ok
+
+failures:
+
+---- git::tmp_pack_sweep_tests::aged_unheld_tmp_pack_is_reaped_and_reports_freed_bytes stdout ----
+⚠️ tmp_pack sweep: retaining /tmp/.tmph044Mq/.git/objects/pack/tmp_pack_REAPME (cannot verify abandonment: n/a)
+⚠️ tmp_pack sweep: retaining /tmp/.tmph044Mq/.git/objects/pack/tmp_pack_KEEPHELD (cannot verify abandonment: n/a)
+
+thread 'git::tmp_pack_sweep_tests::aged_unheld_tmp_pack_is_reaped_and_reports_freed_bytes' (610206) panicked at dracon-sync/src/git/mod.rs:5738:9:
+assertion `left == right` failed: only the provably unheld pack is removed
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    git::tmp_pack_sweep_tests::aged_unheld_tmp_pack_is_reaped_and_reports_freed_bytes
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 1594 filtered out; finished in 1.05s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

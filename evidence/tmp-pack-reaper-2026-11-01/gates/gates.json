@@ -1,0 +1,29 @@
+{
+  "created": "2026-11-01",
+  "purpose": "Reap abandoned tmp_pack_* producers with fuser proof (was a permanent no-op; 12.60 GiB stranded).",
+  "assembly": {
+    "dracon_sync_head": "fcbcc7900836893e7bfafaa1d935cc05c904e39d",
+    "src_tree_sha": "a74c5c2ebffec62aa7a11c65fa9cf3dc46cb2d48"
+  },
+  "gates": {
+    "workspace_tests": {
+      "exit": 0,
+      "suites": 44,
+      "passed": 3001,
+      "failed": 0
+    },
+    "clippy_all_targets_strict": {
+      "exit": 0
+    },
+    "release_build": {
+      "exit": 0
+    },
+    "cargo_deny": {
+      "exit": 0
+    }
+  },
+  "negative_controls": [
+    "restoring the permanent no-op made aged_unheld_tmp_pack_is_reaped_and_reports_freed_bytes FAIL (left: 0, right: 1)"
+  ],
+  "note": "a prior run failed storage_core::security::tests::deadline_kills_child_and_retry_respects_backoff under load average ~30; it passes in isolation (lib target) and the unchanged re-run is 0 failed"
+}

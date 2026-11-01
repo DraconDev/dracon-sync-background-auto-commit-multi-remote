@@ -1,0 +1,16 @@
+{
+  "started_unix": 1793554256.960503,
+  "old_pid": 1096850,
+  "old_loaded_sha256": "0089887df155187b84d651a7cc9fe9ea29ef866b364a37f1ad4b97f5b0037d67",
+  "expected_sha256": "35e3f1ab369ecffb5aed89ab7c90df926dfa26ca56d56a6eed559253679058db",
+  "gated_revision": "fcbcc7900836893e7bfafaa1d935cc05c904e39d",
+  "deployed_from_revision": "fcbcc7900836893e7bfafaa1d935cc05c904e39d",
+  "backup": "/home/dracon/.local/state/dracon/deployments/20261101T173056Z-tmp-pack-reaper",
+  "service_stop_used": false,
+  "method": "atomic binary replacement; pidfd SIGTERM; Restart=always",
+  "new_pid": 2049908,
+  "loaded_sha256": "35e3f1ab369ecffb5aed89ab7c90df926dfa26ca56d56a6eed559253679058db",
+  "installed_sha256": "35e3f1ab369ecffb5aed89ab7c90df926dfa26ca56d56a6eed559253679058db",
+  "verified_unix": 1793554263.520884,
+  "ok": true
+}
