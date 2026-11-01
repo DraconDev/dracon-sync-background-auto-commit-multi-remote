@@ -17168,25 +17168,49 @@ mod v011321_tests {
     }
 
     #[test]
+    /// Count body lines belonging to data rows. A wrapped cell adds a body
+    /// line that does NOT start with a row number, which is exactly what made
+    /// `📤 PUBLISHING` look like an extra row.
+    fn wrapped_body_lines(rendered: &str) -> Vec<String> {
+        rendered
+            .lines()
+            .filter(|line| line.starts_with('│') || line.starts_with('|'))
+            .filter(|line| {
+                let body = line
+                    .trim_start_matches('│')
+                    .trim_start_matches('|')
+                    .trim_start();
+                !body.is_empty() && !body.chars().next().is_some_and(|c| c.is_ascii_digit())
+            })
+            .map(|line| line.trim_end().to_string())
+            .collect()
+    }
+
     fn every_table_tier_renders_single_line_rows() {
         let rows = vec![worst_case_row("/watch/one"), worst_case_row("/watch/two")];
-        // Rich tier at a wide terminal.
+        let filter = RepoFilter::All;
         for columns in [RICH_TIER_MIN_COLS, 200, 400] {
             let rendered = build_repos_rich_table(&rows, false, columns).to_string();
-            let bodies: Vec<&str> = rendered
-                .lines()
-                .filter(|l| l.starts_with('│'))
-                .filter(|l| {
-                    l.trim_start_matches('│').trim_start().starts_with('1')
-                        || l.trim_start_matches('│').trim_start().starts_with('2')
-                })
-                .collect();
-            assert_eq!(
-                bodies.len(),
-                2,
-                "rich tier at {columns} cols must render 2 single-line rows:\n{rendered}"
+            assert!(
+                wrapped_body_lines(&rendered).is_empty(),
+                "rich tier at {columns} cols wrapped a cell:\n{rendered}"
             );
         }
+        let compact = build_repos_compact_table(&rows, &filter, 0, 0, 0, false).to_string();
+        assert!(
+            wrapped_body_lines(&compact).is_empty(),
+            "compact tier wrapped a cell:\n{compact}"
+        );
+        let full = build_repos_full_table(&rows, &filter, 0, 0, 0, false).to_string();
+        assert!(
+            wrapped_body_lines(&full).is_empty(),
+            "full tier wrapped a cell:\n{full}"
+        );
+        let summary = build_repos_summary(&rows, &filter, false, false).to_string();
+        assert!(
+            wrapped_body_lines(&summary).is_empty(),
+            "summary tier wrapped a cell:\n{summary}"
+        );
     }
 
     #[test]
