@@ -17202,6 +17202,44 @@ mod v011321_tests {
     }
 
     #[test]
+    fn probe_full_tier_wrap_source() {
+        let filter = RepoFilter::All;
+        type Mut = fn(&mut RepoReportRow);
+        let cases: Vec<(&str, Mut)> = vec![
+            ("last_msg", |r| r.last_msg = "x".repeat(200)),
+            ("last_author", |r| r.last_author = "A".repeat(60)),
+            ("last_push", |r| r.last_push = "🟣 PENDING 59m".into()),
+            ("hint", |r| r.hint = "h".repeat(200)),
+            ("daemon_when", |r| {
+                r.daemon_last_action_when = "9".repeat(40)
+            }),
+            ("push_error", |r| r.push_error = "e".repeat(200)),
+            ("branch", |r| r.branch = "b".repeat(60)),
+            ("upstream", |r| r.upstream = "u".repeat(60)),
+            ("counts", |r| {
+                r.modified = 999_999;
+                r.staged = 999_999;
+                r.untracked = 999_999;
+                r.ahead = 999_999;
+                r.behind = 999_999;
+            }),
+            ("size", |r| {
+                r.git_size_bytes = Some(9_876_543_210_000);
+                r.git_modules_bytes = Some(9_876_543_210_000);
+            }),
+        ];
+        for (name, mutate) in cases {
+            let mut row = base_row();
+            row.repo = "/watch/probe".into();
+            row.push_status = "PENDING".into();
+            mutate(&mut row);
+            let rendered = build_repos_full_table(&[row], &filter, 0, 0, 0, false).to_string();
+            let extra = wrapped_body_lines(&rendered);
+            println!("{name:12} wrapped_lines={}", extra.len());
+        }
+    }
+
+    #[test]
     fn every_table_tier_renders_single_line_rows() {
         let rows = vec![worst_case_row("/watch/one"), worst_case_row("/watch/two")];
         let filter = RepoFilter::All;
