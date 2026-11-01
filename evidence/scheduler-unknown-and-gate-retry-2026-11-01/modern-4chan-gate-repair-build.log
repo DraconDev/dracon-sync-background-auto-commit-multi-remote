@@ -1,0 +1,28 @@
+$ wxt build
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G[modern-4chan] Fixed paths in popup.html
+✔ Built extension in 2.429 s
+  ├─ .output/chrome-mv3/manifest.json                      1.04 kB  
+  ├─ .output/chrome-mv3/options.html                       743 B    
+  ├─ .output/chrome-mv3/popup.html                         547 B    
+  ├─ .output/chrome-mv3/background.js                      18.86 kB 
+  ├─ .output/chrome-mv3/chunks/options-B08_9fUh.js         8.72 kB  
+  ├─ .output/chrome-mv3/chunks/popup-BQCs4PqF.js           4.64 kB  
+  ├─ .output/chrome-mv3/chunks/store-B5t1S6NX.js           219.84 kB
+  ├─ .output/chrome-mv3/content-scripts/captcha-bridge.js  2.97 kB  
+  ├─ .output/chrome-mv3/content-scripts/content.js         294.98 kB
+  ├─ .output/chrome-mv3/assets/options-Bgy4EOL2.css        25.3 kB  
+  ├─ .output/chrome-mv3/assets/popup-biSJjf3j.css          25.31 kB 
+  ├─ .output/chrome-mv3/content-scripts/content.css        25.25 kB 
+  ├─ .output/chrome-mv3/_locales/en/messages.json          593 B    
+  ├─ .output/chrome-mv3/_locales/README.md                 1.41 kB  
+  ├─ .output/chrome-mv3/icon/128.png                       3.94 kB  
+  ├─ .output/chrome-mv3/icon/16.png                        669 B    
+  ├─ .output/chrome-mv3/icon/32.png                        1.36 kB  
+  ├─ .output/chrome-mv3/icon/48.png                        1.95 kB  
+  └─ .output/chrome-mv3/icon/96.png                        3.77 kB  
+Σ Total size: 641.89 kB                                  
+✔ Finished in 2.581 s

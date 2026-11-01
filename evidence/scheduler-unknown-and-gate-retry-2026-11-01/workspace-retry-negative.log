@@ -1,0 +1,31 @@
+✖ retry reuses only completed leaf gate sets for the exact revision (3542.010105ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3668.167666
+
+✖ failing tests:
+
+test at scripts/git-hooks/run-push-gates.test.mjs:41:1
+✖ retry reuses only completed leaf gate sets for the exact revision (3542.010105ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - '/tmp/pinned-gate-fixture-AjRLXs/attempts/dracon-pre-push.aJ1hjJ'
+  
+      at TestContext.<anonymous> (file:///home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/run-push-gates.test.mjs:53:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: '/tmp/pinned-gate-fixture-AjRLXs/attempts/dracon-pre-push.aJ1hjJ',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

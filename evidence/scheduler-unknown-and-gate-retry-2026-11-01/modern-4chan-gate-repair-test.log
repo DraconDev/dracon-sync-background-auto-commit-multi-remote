@@ -1,0 +1,32 @@
+$ vitest run --passWithNoTests
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/modern-4chan
+
+DOMException [NotSupportedError]: Failed to load script "http://127.0.0.1:9/tcaptcha.min.7.js". JavaScript file loading is disabled.
+    at HTMLScriptElement.#loadScript (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/happy-dom@20.14.6/node_modules/happy-dom/lib/nodes/html-script-element/HTMLScriptElement.js:549:31)
+    at HTMLScriptElement.[connectedToDocument] (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/happy-dom@20.14.6/node_modules/happy-dom/lib/nodes/html-script-element/HTMLScriptElement.js:315:33)
+    at HTMLScriptElement.[connectedToNode] (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/happy-dom@20.14.6/node_modules/happy-dom/lib/nodes/node/Node.js:801:53)
+    at HTMLHeadElement.[appendChild] (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/happy-dom@20.14.6/node_modules/happy-dom/lib/nodes/node/Node.js:421:45)
+    at HTMLHeadElement.[appendChild] (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/happy-dom@20.14.6/node_modules/happy-dom/lib/nodes/element/Element.js:1102:62)
+    at HTMLHeadElement.appendChild (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/happy-dom@20.14.6/node_modules/happy-dom/lib/nodes/node/Node.js:314:48)
+    at /home/dracon/Dev/browser-extensions-shared/extensions/standalones/modern-4chan/tests/captcha-bridge.test.ts:243:19
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+DOMException [NotSupportedError]: Failed to load script "http://127.0.0.1:9/tcaptcha.min.7.js". JavaScript file loading is disabled.
+    at HTMLScriptElement.#loadScript (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/happy-dom@20.14.6/node_modules/happy-dom/lib/nodes/html-script-element/HTMLScriptElement.js:549:31)
+    at HTMLScriptElement.[connectedToDocument] (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/happy-dom@20.14.6/node_modules/happy-dom/lib/nodes/html-script-element/HTMLScriptElement.js:315:33)
+    at HTMLScriptElement.[connectedToNode] (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/happy-dom@20.14.6/node_modules/happy-dom/lib/nodes/node/Node.js:801:53)
+    at HTMLHeadElement.[appendChild] (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/happy-dom@20.14.6/node_modules/happy-dom/lib/nodes/node/Node.js:421:45)
+    at HTMLHeadElement.[appendChild] (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/happy-dom@20.14.6/node_modules/happy-dom/lib/nodes/element/Element.js:1102:62)
+    at HTMLHeadElement.appendChild (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/happy-dom@20.14.6/node_modules/happy-dom/lib/nodes/node/Node.js:314:48)
+    at /home/dracon/Dev/browser-extensions-shared/extensions/standalones/modern-4chan/tests/captcha-fallback.test.ts:291:19
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+
+ Test Files  17 passed (17)
+      Tests  217 passed (217)
+   Start at  03:13:53
+   Duration  3.94s (transform 543ms, setup 0ms, import 477ms, tests 2.24s, environment 3.36s)
+

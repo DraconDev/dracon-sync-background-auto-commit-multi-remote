@@ -1,0 +1,10 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.76s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 3 tests
+test daemon::scheduler_evidence::tests::eligible_and_admitted_repos_survive_without_activity_entries ... ok
+test report::v011321_tests::unknown_hints_do_not_promise_unobserved_convergence ... ok
+test report::v011321_tests::unknown_hints_reject_healthy_and_speculative_rewrite_advice ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1573 filtered out; finished in 0.02s
+

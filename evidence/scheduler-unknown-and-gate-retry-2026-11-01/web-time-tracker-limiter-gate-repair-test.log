@@ -1,0 +1,14 @@
+$ vitest run --passWithNoTests
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter
+
+
+Rebuilding...
+
+Done in 264ms.
+
+ Test Files  21 passed (21)
+      Tests  470 passed (470)
+   Start at  03:14:05
+   Duration  10.57s (transform 1.10s, setup 170ms, import 2.34s, tests 2.78s, environment 3.40s)
+

@@ -1,0 +1,66 @@
+$ eslint .
+(node:305037) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/dracon/Dev/browser-extensions-shared/eslint.config.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/dracon/Dev/browser-extensions-shared/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter/entrypoints/background.ts
+   85:3   warning  'DashboardData' is defined but never used            @typescript-eslint/no-unused-vars
+   89:3   warning  'Settings' is defined but never used                 @typescript-eslint/no-unused-vars
+   92:10  warning  'clampCalendarWeekOffset' is defined but never used  @typescript-eslint/no-unused-vars
+   92:46  warning  'STORAGE_KEYS' is defined but never used             @typescript-eslint/no-unused-vars
+  512:11  warning  'rule' is assigned a value but never used            @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter/entrypoints/dashboard/charts/LeadPieChart.svelte
+  120:9  warning  'CENTER' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter/entrypoints/dashboard/charts/trend.ts
+  180:51  warning  'unit' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter/entrypoints/dashboard/components/DashboardView.svelte
+  23:10  warning  'RecentHour' is defined but never used  @typescript-eslint/no-unused-vars
+  48:12  warning  'hourClock' is defined but never used   @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter/entrypoints/dashboard/components/extension-svelte-ui.d.ts
+   50:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   65:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   66:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   77:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  106:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  137:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  138:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  144:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  151:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter/lib/aggregate.ts
+  30:3  warning  'Settings' is defined but never used       @typescript-eslint/no-unused-vars
+  52:3  warning  'getRawBuckets' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter/lib/storage.ts
+   27:3   warning  'CategoryTotal' is defined but never used           @typescript-eslint/no-unused-vars
+   34:3   warning  'HostTotal' is defined but never used               @typescript-eslint/no-unused-vars
+  203:34  warning  '_legacyMarker' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  838:11  warning  'host' is assigned a value but never used           @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter/tests/aggregate.test.ts
+   24:3   warning  'buildRangeTimeline' is defined but never used  @typescript-eslint/no-unused-vars
+   41:15  warning  'HourBuckets' is defined but never used         @typescript-eslint/no-unused-vars
+  552:84  warning  'shiftKey' is defined but never used            @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter/tests/range-views.test.ts
+  17:43  warning  'vi' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter/tests/rules.test.ts
+  310:27  warning  '_stamped' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter/tools/icon-candidates.mjs
+   20:21  warning  'writeFileSync' is defined but never used                                @typescript-eslint/no-unused-vars
+   33:7   warning  'LIGHT' is assigned a value but never used                               @typescript-eslint/no-unused-vars
+   51:10  warning  'weights' is defined but never used                                      @typescript-eslint/no-unused-vars
+  130:16  warning  'scale' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/web-time-tracker-limiter/tools/verify-dashboard.mjs
+  1156:16  warning  'pageFingerprint' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 34 problems (0 errors, 34 warnings)
+

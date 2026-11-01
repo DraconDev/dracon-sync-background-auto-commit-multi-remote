@@ -1,0 +1,19 @@
+$ vitest run
+
+ RUN  v2.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/markdown-reader
+
+ ✓ tests/scale-aware-geometry.test.ts (4 tests) 3ms
+ ✓ tests/frontmatter.test.ts (7 tests) 5ms
+ ✓ tests/settings-audit.test.ts (8 tests) 17ms
+ ✓ tests/downloads.test.ts (12 tests) 9ms
+ ✓ tests/settings.test.ts (23 tests) 11ms
+ ✓ tests/dialects.test.ts (21 tests) 8ms
+ ✓ tests/formats.test.ts (38 tests) 29ms
+ ✓ tests/markdown.test.ts (22 tests) 71ms
+ ✓ tests/epub.test.ts (19 tests) 247ms
+
+ Test Files  9 passed (9)
+      Tests  154 passed (154)
+   Start at  03:13:47
+   Duration  1.49s (transform 721ms, setup 0ms, collect 1.17s, tests 400ms, environment 7.11s, prepare 757ms)
+

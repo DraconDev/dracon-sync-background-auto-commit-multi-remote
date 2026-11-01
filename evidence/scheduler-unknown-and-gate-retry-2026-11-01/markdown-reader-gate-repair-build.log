@@ -1,0 +1,54 @@
+$ wxt build
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+[1G✔ Built extension in 1.459 s
+  ├─ .output/chrome-mv3/manifest.json                                1.65 kB  
+  ├─ .output/chrome-mv3/options.html                                 615 B    
+  ├─ .output/chrome-mv3/reader.html                                  404 B    
+  ├─ .output/chrome-mv3/background.js                                405.43 kB
+  ├─ .output/chrome-mv3/chunks/icons-142C8BQ3.js                     208.3 kB 
+  ├─ .output/chrome-mv3/chunks/options-BWQ0zyxQ.js                   21.57 kB 
+  ├─ .output/chrome-mv3/chunks/reader-Bc8RgRsN.js                    32.5 kB  
+  ├─ .output/chrome-mv3/content-scripts/markdown-reader.js           236.51 kB
+  ├─ .output/chrome-mv3/assets/options-DgK4jI2n.css                  14.18 kB 
+  ├─ .output/chrome-mv3/katex/katex.min.css                          23.83 kB 
+  ├─ .output/chrome-mv3/_locales/en/messages.json                    503 B    
+  ├─ .output/chrome-mv3/fonts/inter-latin.woff2                      48.26 kB 
+  ├─ .output/chrome-mv3/fonts/literata-latin.woff2                   110.08 kB
+  ├─ .output/chrome-mv3/fonts/README.md                              522 B    
+  ├─ .output/chrome-mv3/icon/128.png                                 14.85 kB 
+  ├─ .output/chrome-mv3/icon/16.png                                  812 B    
+  ├─ .output/chrome-mv3/icon/32.png                                  1.65 kB  
+  ├─ .output/chrome-mv3/icon/48.png                                  4.55 kB  
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_AMS-Regular.woff2          28.08 kB 
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Caligraphic-Bold.woff2     6.91 kB  
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Caligraphic-Regular.woff2  6.91 kB  
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Fraktur-Bold.woff2         11.35 kB 
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Fraktur-Regular.woff2      11.32 kB 
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Main-Bold.woff2            25.32 kB 
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Main-BoldItalic.woff2      16.78 kB 
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Main-Italic.woff2          16.99 kB 
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Main-Regular.woff2         26.27 kB 
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Math-BoldItalic.woff2      16.4 kB  
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Math-Italic.woff2          16.44 kB 
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_SansSerif-Bold.woff2       12.22 kB 
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_SansSerif-Italic.woff2     12.03 kB 
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_SansSerif-Regular.woff2    10.34 kB 
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Script-Regular.woff2       9.64 kB  
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Size1-Regular.woff2        5.47 kB  
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Size2-Regular.woff2        5.21 kB  
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Size3-Regular.woff2        3.62 kB  
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Size4-Regular.woff2        4.93 kB  
+  ├─ .output/chrome-mv3/katex/fonts/KaTeX_Typewriter-Regular.woff2   13.57 kB 
+  ├─ .output/chrome-mv3/licenses/dompurify-Apache-2.0.txt            11.36 kB 
+  ├─ .output/chrome-mv3/licenses/dompurify-MPL-2.0.txt               16.73 kB 
+  ├─ .output/chrome-mv3/licenses/highlight.js-BSD-3-Clause.txt       1.51 kB  
+  ├─ .output/chrome-mv3/licenses/katex-MIT.txt                       1.11 kB  
+  ├─ .output/chrome-mv3/licenses/markdown-it-MIT.txt                 1.07 kB  
+  ├─ .output/chrome-mv3/licenses/OFL-Inter.txt                       4.38 kB  
+  ├─ .output/chrome-mv3/licenses/OFL-Literata.txt                    4.39 kB  
+  └─ .output/chrome-mv3/licenses/THIRD_PARTY_NOTICES.txt             689 B    
+Σ Total size: 1.43 MB                                              
+✔ Finished in 1.604 s

@@ -1,0 +1,46 @@
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+error: can be more succinctly written as a byte str
+   --> dracon-sync/src/git/epoch_spool_recovery.rs:478:22
+    |
+478 |             .any(|b| [b':', b'\n', b'"'].contains(b)),
+    |                      ^^^^^^^^^^^^^^^^^^^ help: try: `b":\n\""`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#byte_char_slices
+    = note: `-D clippy::byte-char-slices` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::byte_char_slices)]`
+
+error: unneeded `return` statement
+   --> dracon-sync/src/git/epoch_spool_producer.rs:128:9
+    |
+128 |         return Err(error.into());
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_return
+    = note: `-D clippy::needless-return` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_return)]`
+help: remove `return`
+    |
+128 -         return Err(error.into());
+128 +         Err(error.into())
+    |
+
+error: could not compile `dracon-sync` (bin "dracon-sync") due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: `format!` in `assert!` args
+   --> dracon-sync/src/git/epoch_spool.rs:861:13
+    |
+861 | /             assert!(
+862 | |                 out.status.success(),
+863 | |                 "rescued object {oid} must read back from the rescue pack: {}{}",
+864 | |                 String::from_utf8_lossy(&out.stderr),
+865 | |                 format!(" [rescue_dir={:?}]", std::fs::read_dir(&rescue_dir).m...
+866 | |             );
+    | |_____________^
+    |
+    = help: combine the `format!(..)` arguments with the outer `assert!(..)` call
+    = help: or consider changing `format!` to `format_args!`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#format_in_format_args
+    = note: `-D clippy::format-in-format-args` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::format_in_format_args)]`
+
+error: could not compile `dracon-sync` (bin "dracon-sync" test) due to 3 previous errors

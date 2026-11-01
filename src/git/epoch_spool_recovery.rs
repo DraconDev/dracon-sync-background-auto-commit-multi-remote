@@ -323,6 +323,52 @@ async fn verify(store: &Path, roots: &Path, timeout: u64) -> Result<()> {
     Ok(())
 }
 
+/// Validate semantic retention after physical ODB layout changes (for example
+/// ordinary Git GC). Receipts never rely on obsolete pack/loose filenames.
+#[allow(dead_code)] // Integration remains interlocked.
+pub(super) async fn verify_receipt(record: &Path, expected: &str, timeout: u64) -> Result<()> {
+    let manifest = fs::read(record.join("manifest.sha256"))?;
+    ensure!(format!("{:x}", Sha256::digest(&manifest)) == expected, "receipt manifest digest mismatch");
+    let manifest = std::str::from_utf8(&manifest)?;
+    let mut lines = manifest.lines();
+    ensure!(lines.next() == Some("dracon-epoch-recovery-v2"), "unsupported recovery receipt");
+    let mut paths = BTreeSet::new();
+    for line in lines {
+        let (digest, encoded) = line.split_once(' ').context("invalid recovery manifest row")?;
+        ensure!(oid(digest, 64), "invalid metadata digest");
+        let bytes: Vec<u8> = serde_json::from_str(encoded)?;
+        #[cfg(unix)]
+        let path = {
+            use std::os::unix::ffi::OsStringExt;
+            PathBuf::from(std::ffi::OsString::from_vec(bytes))
+        };
+        #[cfg(not(unix))]
+        let path = PathBuf::from(String::from_utf8(bytes)?);
+        ensure!(!path.as_os_str().is_empty() && path.components().all(|part| matches!(part, std::path::Component::Normal(_))), "unsafe manifest path");
+        ensure!(!path.starts_with("store.git") && paths.insert(path.clone()), "invalid semantic manifest dependency");
+        let mut source = regular(&record.join(&path))?;
+        let mut hash = Sha256::new();
+        let mut buffer = [0; 65536];
+        loop {
+            let length = source.read(&mut buffer)?;
+            if length == 0 { break; }
+            hash.update(&buffer[..length]);
+        }
+        ensure!(format!("{:x}", hash.finalize()) == digest, "recovery metadata changed");
+    }
+    for required in ["source.json", "roots", "objects.tsv", "metadata/index"] {
+        ensure!(paths.contains(Path::new(required)), "required semantic retention dependency missing");
+    }
+    let store = record.join("store.git");
+    verify(&store, &record.join("roots"), timeout).await?;
+    let actual = text(&store, &["cat-file", "--batch-all-objects", "--batch-check=%(objectname) %(objecttype) %(objectsize)"], timeout).await?;
+    let actual: BTreeSet<_> = actual.lines().collect();
+    for required in fs::read_to_string(record.join("objects.tsv"))?.lines() {
+        ensure!(actual.contains(required), "recovery object/type/size missing");
+    }
+    Ok(())
+}
+
 fn sync_tree(path: &Path, base: &Path, manifest: &mut String) -> Result<()> {
     let mut entries = fs::read_dir(path)?.collect::<std::io::Result<Vec<_>>>()?;
     entries.sort_by_key(|e| e.file_name());
@@ -778,13 +824,7 @@ mod tests {
             fs::read(first.record.join("manifest.sha256")).unwrap(),
             manifest
         );
-        verify(
-            &first.record.join("store.git"),
-            &first.record.join("roots"),
-            10,
-        )
-        .await
-        .unwrap();
+        verify_receipt(&first.record, &first.manifest_sha256, 10).await.unwrap();
         verify(
             &second.record.join("store.git"),
             &second.record.join("roots"),

@@ -1,0 +1,30 @@
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 10s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 3 tests
+test daemon::scheduler_evidence::tests::eligible_and_admitted_repos_survive_without_activity_entries ... FAILED
+test report::v011321_tests::unknown_hints_do_not_promise_unobserved_convergence ... ok
+test report::v011321_tests::unknown_hints_reject_healthy_and_speculative_rewrite_advice ... FAILED
+
+failures:
+
+---- daemon::scheduler_evidence::tests::eligible_and_admitted_repos_survive_without_activity_entries stdout ----
+
+thread 'daemon::scheduler_evidence::tests::eligible_and_admitted_repos_survive_without_activity_entries' (2262878) panicked at dracon-sync/src/daemon/scheduler_evidence.rs:308:54:
+eligible evidence was dropped
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- report::v011321_tests::unknown_hints_reject_healthy_and_speculative_rewrite_advice stdout ----
+
+thread 'report::v011321_tests::unknown_hints_reject_healthy_and_speculative_rewrite_advice' (2262886) panicked at dracon-sync/src/report.rs:17080:13:
+healthy; GitHub pack guard clear; deep checks deferred
+
+
+failures:
+    daemon::scheduler_evidence::tests::eligible_and_admitted_repos_survive_without_activity_entries
+    report::v011321_tests::unknown_hints_reject_healthy_and_speculative_rewrite_advice
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 1564 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
