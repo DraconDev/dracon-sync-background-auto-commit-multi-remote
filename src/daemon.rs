@@ -1005,7 +1005,7 @@ fn stale_lock_candidates(repo: &Path) -> Vec<PathBuf> {
         gitdir.join("HEAD.lock"),
         gitdir.join("packed-refs.lock"),
     ];
-    for sub in [] as [&str; 0] {
+    for sub in ["refs/heads", "refs/tags", "refs/remotes"] {
         collect_lock_files(&gitdir.join(sub), &mut candidates, 0);
     }
     candidates
