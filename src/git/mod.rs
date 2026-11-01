@@ -5136,7 +5136,7 @@ where
         }
         let size = meta.len();
         // Age alone does not prove the writer is dead. Ask the kernel.
-        match { let _ = &fuser_check; Err::<bool, anyhow::Error>(anyhow::anyhow!("n/a")) } {
+        match fuser_check(&entry.path()) {
             Ok(false) => {
                 if let Err(error) = std::fs::remove_file(entry.path()) {
                     eprintln!(
