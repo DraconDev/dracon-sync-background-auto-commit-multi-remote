@@ -327,7 +327,11 @@ async fn verify(store: &Path, roots: &Path, timeout: u64) -> Result<()> {
 /// ordinary Git GC). Receipts never rely on obsolete pack/loose filenames.
 #[allow(dead_code)] // Integration remains interlocked.
 pub(super) async fn verify_receipt(record: &Path, expected: &str, timeout: u64) -> Result<()> {
-    let manifest = fs::read(record.join("manifest.sha256"))?;
+    let mut receipt = String::new();
+    regular(&record.join("receipt"))?.read_to_string(&mut receipt)?;
+    ensure!(receipt == format!("dracon-epoch-recovery-v2 {expected}\n"), "published receipt mismatch");
+    let mut manifest = Vec::new();
+    regular(&record.join("manifest.sha256"))?.read_to_end(&mut manifest)?;
     ensure!(format!("{:x}", Sha256::digest(&manifest)) == expected, "receipt manifest digest mismatch");
     let manifest = std::str::from_utf8(&manifest)?;
     let mut lines = manifest.lines();
