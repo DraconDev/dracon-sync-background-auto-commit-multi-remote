@@ -2733,6 +2733,7 @@ mod tests {
                 last_error: "boom".to_string(),
                 last_error_at: 1_000_001,
                 last_retry_at: 1_000_002,
+                failed_tip: None,
             },
         );
         let outcome = apply_outcome(
@@ -2813,6 +2814,7 @@ mod tests {
                 last_error: "boom".to_string(),
                 last_error_at: 1_000_001,
                 last_retry_at: 1_000_002,
+                failed_tip: None,
             },
         );
 
@@ -3646,6 +3648,7 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
+            failed_tip: None,
         };
         let json = serde_json::to_string(&entry).unwrap();
         assert!(json.contains("\"/test/repo\""));
@@ -3709,6 +3712,7 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
+            failed_tip: None,
         };
         let debug = format!("{:?}", entry);
         assert!(debug.contains("/test/repo"));
@@ -3724,6 +3728,7 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
+            failed_tip: None,
         };
         let cloned = entry.clone();
         assert_eq!(cloned.path, entry.path);
@@ -3739,6 +3744,7 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
+            failed_tip: None,
         };
         let entry2 = StuckRepoEntry {
             path: PathBuf::from("/test/repo"),
@@ -3747,6 +3753,7 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
+            failed_tip: None,
         };
         let entry3 = StuckRepoEntry {
             path: PathBuf::from("/other/repo"),
@@ -3755,6 +3762,7 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
+            failed_tip: None,
         };
         assert_eq!(entry1.path, entry2.path);
         assert_ne!(entry1.path, entry3.path);
@@ -3770,6 +3778,7 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
+            failed_tip: None,
         };
         assert_eq!(entry.path, path);
         assert_eq!(entry.path.to_string_lossy(), "/home/user/code/my-project");
@@ -3784,6 +3793,7 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
+            failed_tip: None,
         };
         let new = StuckRepoEntry {
             path: PathBuf::from("/new"),
@@ -3792,6 +3802,7 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
+            failed_tip: None,
         };
         assert!(old.stuck_since < new.stuck_since);
     }
