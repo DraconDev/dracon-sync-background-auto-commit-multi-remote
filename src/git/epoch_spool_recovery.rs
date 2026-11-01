@@ -618,6 +618,17 @@ async fn prepare_inner(
     let record = tempfile::Builder::new()
         .prefix("record-")
         .tempdir_in(&rescue)?;
+    // Inject the cancellation writer as soon as private storage exists. Its
+    // lifetime, not the speed of unrelated pack/unpack/fsync setup, is the
+    // invariant this fault fixture protects; retain the same readiness budgets.
+    #[cfg(test)]
+    if matches!(_fault, Fault::SlowBeforeVerify) {
+        let mut probe = Command::new(std::env::current_exe()?);
+        probe.args(["--exact", "git::epoch_spool::recovery::tests::recovery_writer_probe"])
+            .env("DRACON_RECOVERY_WRITER_PROBE", record.path())
+            .stdout(Stdio::piped()).stderr(Stdio::piped());
+        run(probe, timeout).await?;
+    }
     let metadata = record.path().join("metadata");
     fs::create_dir(&metadata)?;
     fs::write(
@@ -739,19 +750,6 @@ async fn prepare_inner(
     let hash = String::from_utf8(run(c, timeout).await?)?.trim().to_owned();
     ensure!(oid(&hash, width), "invalid output pack identity");
     cas::share(work.path(), record.path(), &rescue, &format, &hash, timeout).await?;
-    #[cfg(test)]
-    if matches!(_fault, Fault::SlowBeforeVerify) {
-        let mut probe = Command::new(std::env::current_exe()?);
-        probe
-            .args([
-                "--exact",
-                "git::epoch_spool::recovery::tests::recovery_writer_probe",
-            ])
-            .env("DRACON_RECOVERY_WRITER_PROBE", record.path())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-        run(probe, timeout).await?;
-    }
     #[cfg(test)]
     if matches!(_fault, Fault::CorruptBeforeVerify) {
         let inventory = fs::read_to_string(record.path().join("objects.tsv"))?;
