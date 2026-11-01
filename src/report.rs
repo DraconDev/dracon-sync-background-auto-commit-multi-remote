@@ -6885,16 +6885,30 @@ fn size_compact(bytes: u64) -> String {
 /// is what actually pushes per-push); the suffix is informational.
 fn size_cell_text(own: Option<u64>, modules: Option<u64>, pack_too_large: bool) -> (String, Color) {
     let (label, color) = size_label(own, pack_too_large);
-    match (own, modules) {
+    let combined = match (own, modules) {
         // v0.113.86: `own+?` = this repo has submodule gitdirs whose
         // size only `repos --deep` measures. Uses the compact own-size
         // form so the marker fits the same 9-content-cell budget as
         // the measured `own+mods` form (worst case `1024G+?` = 6).
-        (Some(b), None) => (format!("{}+?", size_compact(b)), color),
-        (Some(b), Some(m)) if m > 0 => (format!("{}+{}", size_compact(b), size_compact(m)), color),
-        _ => (label, color),
+        (Some(b), None) => Some(format!("{}+?", size_compact(b))),
+        (Some(b), Some(m)) if m > 0 => Some(format!("{}+{}", size_compact(b), size_compact(m))),
+        _ => None,
+    };
+    match combined {
+        Some(text) => (truncate_unicode_width(&text, SIZE_CELL_BUDGET), color),
+        None => (label, color),
     }
 }
+
+/// Content budget for the combined `own+mods` SIZE label.
+///
+/// FIXED 2026-11-01 (CLI layout audit): the label was built unconditionally,
+/// so a superproject with both a large own pack and large submodule gitdirs
+/// (e.g. `9198G+9198G`, 11 cols) exceeded the rich tier's 9-col content
+/// budget and wrapped onto a second line — the same "one row looks like two"
+/// defect as the wrapped STATUS label. Every SIZE column is at least 11
+/// columns wide (SIZE_COL) minus 2 padding.
+const SIZE_CELL_BUDGET: usize = 9;
 
 /// Render the `TOUCHED` column — last commit author.
 /// Answers "who last touched this?" at a glance.
