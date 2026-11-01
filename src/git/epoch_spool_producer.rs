@@ -240,8 +240,11 @@ impl Unit {
                 .parse::<i32>()?;
             let empty = match populated(&self.cgroup) {
                 Ok(value) => !value,
-                Err(error) if error.downcast_ref::<std::io::Error>()
-                    .is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound) => {
+                Err(error)
+                    if error
+                        .downcast_ref::<std::io::Error>()
+                        .is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound) =>
+                {
                     // The start is resolved and bound to this invocation. With
                     // ExitType=cgroup a terminal service (or RemainAfterExit's
                     // exited state) has no remaining family. Only THEN does a
@@ -293,8 +296,10 @@ impl Unit {
 }
 
 fn terminal(properties: &BTreeMap<String, String>) -> bool {
-    matches!(properties.get("ActiveState").map(String::as_str), Some("inactive" | "failed"))
-        || properties.get("SubState").is_some_and(|s| s == "exited")
+    matches!(
+        properties.get("ActiveState").map(String::as_str),
+        Some("inactive" | "failed")
+    ) || properties.get("SubState").is_some_and(|s| s == "exited")
 }
 
 async fn launch(manager: Manager, recipe: EpochProducerCommand, runtime: Duration) -> Result<Unit> {
@@ -320,7 +325,10 @@ async fn launch(manager: Manager, recipe: EpochProducerCommand, runtime: Duratio
     // lose its ControlGroup property before the launch client returns; it must
     // not be mistaken for an unresolved start or rely on a guessed slice.
     let slice = manager.show("app.slice").await?;
-    let base = bind_cgroup(manager.uid, slice.get("ControlGroup").context("missing app slice")?)?;
+    let base = bind_cgroup(
+        manager.uid,
+        slice.get("ControlGroup").context("missing app slice")?,
+    )?;
     let expected_cgroup = base.join(&name);
     let mut command = manager.command(&manager.runner);
     command.env_clear().envs(&recipe.environment);
@@ -401,13 +409,18 @@ async fn launch(manager: Manager, recipe: EpochProducerCommand, runtime: Duratio
         invocation.len() == 32 && invocation.bytes().all(|b| b.is_ascii_hexdigit()),
         "invalid invocation"
     );
-    let reported = properties.get("ControlGroup").context("missing control group")?;
+    let reported = properties
+        .get("ControlGroup")
+        .context("missing control group")?;
     let cgroup = if reported.is_empty() {
         ensure!(terminal(&properties), "unresolved producer cgroup");
         expected_cgroup
     } else {
         let observed = bind_cgroup(manager.uid, reported)?;
-        ensure!(observed == expected_cgroup, "producer cgroup does not match owned unit");
+        ensure!(
+            observed == expected_cgroup,
+            "producer cgroup does not match owned unit"
+        );
         observed
     };
     Ok(Unit {
@@ -583,6 +596,28 @@ mod tests {
         );
         assert_eq!(std::fs::read_to_string(output)?, "$HOME literal:unset");
         Ok(())
+    }
+
+    #[test]
+    fn missing_cgroup_is_not_completion_of_a_pending_or_running_unit() {
+        for substate in ["start", "start-pre", "running"] {
+            let properties = BTreeMap::from([
+                ("ActiveState".into(), "active".into()),
+                ("SubState".into(), substate.into()),
+            ]);
+            assert!(!terminal(&properties));
+        }
+        for (state, substate) in [
+            ("failed", "failed"),
+            ("inactive", "dead"),
+            ("active", "exited"),
+        ] {
+            let properties = BTreeMap::from([
+                ("ActiveState".into(), state.into()),
+                ("SubState".into(), substate.into()),
+            ]);
+            assert!(terminal(&properties));
+        }
     }
 
     #[test]
