@@ -3,7 +3,7 @@
 use anyhow::{ensure, Context, Result};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::fs::{self, File, Metadata};
+use std::fs::{self, Metadata};
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
