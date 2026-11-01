@@ -238,7 +238,19 @@ impl Unit {
                 .get("ExecMainCode")
                 .context("missing main code")?
                 .parse::<i32>()?;
-            if code != 0 && !populated(&self.cgroup)? {
+            let empty = match populated(&self.cgroup) {
+                Ok(value) => !value,
+                Err(error) if error.downcast_ref::<std::io::Error>()
+                    .is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound) => {
+                    // The start is resolved and bound to this invocation. With
+                    // ExitType=cgroup a terminal service (or RemainAfterExit's
+                    // exited state) has no remaining family. Only THEN does a
+                    // removed, previously bound cgroup establish completion.
+                    terminal(&p)
+                }
+                Err(error) => return Err(error),
+            };
+            if code != 0 && empty {
                 let status = p
                     .get("ExecMainStatus")
                     .context("missing main status")?
@@ -280,6 +292,11 @@ impl Unit {
     }
 }
 
+fn terminal(properties: &BTreeMap<String, String>) -> bool {
+    matches!(properties.get("ActiveState").map(String::as_str), Some("inactive" | "failed"))
+        || properties.get("SubState").is_some_and(|s| s == "exited")
+}
+
 async fn launch(manager: Manager, recipe: EpochProducerCommand, runtime: Duration) -> Result<Unit> {
     validate_environment(&recipe.environment)?;
     absolute_text(&recipe.executable)?;
@@ -299,6 +316,12 @@ async fn launch(manager: Manager, recipe: EpochProducerCommand, runtime: Duratio
             .map(|b| format!("{b:02x}"))
             .collect::<String>()
     );
+    // Bind the intended path before starting. A fast command can finish and
+    // lose its ControlGroup property before the launch client returns; it must
+    // not be mistaken for an unresolved start or rely on a guessed slice.
+    let slice = manager.show("app.slice").await?;
+    let base = bind_cgroup(manager.uid, slice.get("ControlGroup").context("missing app slice")?)?;
+    let expected_cgroup = base.join(&name);
     let mut command = manager.command(&manager.runner);
     command.env_clear().envs(&recipe.environment);
     for (key, value) in [
@@ -323,6 +346,7 @@ async fn launch(manager: Manager, recipe: EpochProducerCommand, runtime: Duratio
         &name,
     ]);
     command.args([
+        "--property=Slice=app.slice",
         "--property=ExitType=cgroup",
         "--property=RemainAfterExit=yes",
         "--property=KillMode=control-group",
@@ -377,12 +401,15 @@ async fn launch(manager: Manager, recipe: EpochProducerCommand, runtime: Duratio
         invocation.len() == 32 && invocation.bytes().all(|b| b.is_ascii_hexdigit()),
         "invalid invocation"
     );
-    let cgroup = bind_cgroup(
-        manager.uid,
-        properties
-            .get("ControlGroup")
-            .context("missing control group")?,
-    )?;
+    let reported = properties.get("ControlGroup").context("missing control group")?;
+    let cgroup = if reported.is_empty() {
+        ensure!(terminal(&properties), "unresolved producer cgroup");
+        expected_cgroup
+    } else {
+        let observed = bind_cgroup(manager.uid, reported)?;
+        ensure!(observed == expected_cgroup, "producer cgroup does not match owned unit");
+        observed
+    };
     Ok(Unit {
         manager,
         name,
