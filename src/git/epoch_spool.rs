@@ -16,9 +16,14 @@ pub(crate) use fixture_gate::allow_reclaim_in_fixture;
 
 fn reclaim_is_qualified(repo: &Path) -> bool {
     #[cfg(test)]
-    { LOSSLESS_RECLAIM_QUALIFIED || fixture_gate::permitted(repo) }
+    {
+        LOSSLESS_RECLAIM_QUALIFIED || fixture_gate::permitted(repo)
+    }
     #[cfg(not(test))]
-    { let _ = repo; LOSSLESS_RECLAIM_QUALIFIED }
+    {
+        let _ = repo;
+        LOSSLESS_RECLAIM_QUALIFIED
+    }
 }
 
 #[path = "epoch_spool_dispatch.rs"]
