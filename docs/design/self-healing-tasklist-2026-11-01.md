@@ -32,17 +32,23 @@ while the real cause was `bun install` → `Workspace not found` at `2cf8c70e`,
 then `virtual-pet-new-tab TEST failed`. The cause exists only inside a retained
 attempt directory.
 
-- [ ] **T1.1** Stuck-ledger `last_error` carries the failing **commit, workspace,
-      gate and log path**, not the generic "local pre-push hook failed".
-- [ ] **T1.2** The sync alert carries the same identity (first failure, not only
-      after budget exhaustion).
-- [ ] **T1.3** Durable machine-readable artifact per repo (e.g.
-      `<state>/gate-failures/<repo>.json`) that a producing loop can read
-      without knowing the attempt-directory layout.
-- [ ] **T1.4** `repos <name>` hint shows that cause instead of
-      "push or rewrite" (which is actively misleading for a gate failure).
-- [ ] **T1.5** Regression + negative control for each of T1.1–T1.4; four gates;
-      deploy with loaded == installed == built.
+- [x] **T1.1** Stuck-ledger `last_error` carries the failing **workspace, gate
+      and log directory** via `hook_failure_summary()` (pure, bounded to 200
+      chars, front-loaded). Done — deployed `679347be1104`.
+- [x] **T1.2** The alert/HINT inherit it: `push_stuck_hint` reads the ledger
+      error, and its budget was raised 60 → 160 chars so the cause survives.
+      Done.
+- [x] **T1.3** Durable artifact at `<state>/dracon/gate-failures/<repo>.json`
+      (atomic temp+rename, no credentials, `detail` names the gate + logs).
+      Done.
+- [x] **T1.4** HINT no longer says "push or rewrite" for a gate refusal once the
+      budget is exhausted — it names the gate. Done.
+- [x] **T1.5** Two regressions + negative controls (neutralising both made 3
+      assertions fail); four gates 3018 passed / 0 failed; deployed with
+      loaded == installed == built. Done.
+- [ ] **T1.6** *Residual:* live artifact population is unverified — no hook
+      refusal has happened since deployment. Confirm the first one writes
+      `gate-failures/<repo>.json` and that the ledger error names the gate.
 
 **Acceptance.** After a deliberately broken test in a fixture workspace, `repos`
 and the alert both name the workspace, the gate and the log path — verified with
