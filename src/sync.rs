@@ -2713,6 +2713,35 @@ fn classify_failing_remotes(
     }
 }
 
+/// ADDED 2026-11-02 (T1.8): one shared composer for the stuck-ledger push
+/// message so the commit path (`stage_commit_and_push`) and the backlog
+/// path (`handle_ahead_push`) mine hook detail identically. T1 wired only
+/// the commit path; backlog pushes — the common shape for a recovering
+/// repo — stayed generic (observed live 2026-11-02: two gate refusals
+/// recorded without detail while the extractor itself was proven correct).
+/// Returns the ledger message plus the mined detail (if any) so callers
+/// can also write the `gate-failures` artifact.
+fn push_failure_message(
+    names: &str,
+    cause: &str,
+    remote_failures: Option<&HashMap<String, crate::daemon::RemoteFailInfo>>,
+) -> (String, Option<String>) {
+    // T1 (2026-11-01): a hook refusal must say WHICH gate failed.
+    // The classifier is a static string, so the raw per-remote text
+    // (which carries the hook's own "- ws/GATE exited N" lines)
+    // is mined for a short cause instead of being discarded.
+    let hook_detail = remote_failures.and_then(|failures| {
+        failures
+            .values()
+            .find_map(|info| crate::git::hook_failure_summary(&info.last_error))
+    });
+    let msg = match hook_detail.as_deref() {
+        Some(detail) => format!("git push returned non-zero (remotes: {names}) — {cause}: {detail}"),
+        None => format!("git push returned non-zero (remotes: {names}) — {cause}"),
+    };
+    (msg, hook_detail)
+}
+
 /// ADDED 2026-07-21 (v0.112.33, audit M10/F0.3): whether the repo's
 /// effective committer identity is acceptable for an auto-commit.
 /// The daemon commits with whatever `user.email`/`user.name` the repo
@@ -4708,25 +4737,9 @@ async fn stage_commit_and_push(
                 // policy) so the HINT says WHY, not just WHO.
                 let names = failing_remote_names(ctx.remote_failures.as_deref());
                 let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
-                // T1 (2026-11-01): a hook refusal must say WHICH gate failed.
-                // The classifier is a static string, so the raw per-remote text
-                // (which carries the hook's own "  - ws/GATE exited N" lines)
-                // is mined for a short cause instead of being discarded.
-                let hook_detail = ctx.remote_failures.as_deref().and_then(|failures| {
-                    failures
-                        .values()
-                        .find_map(|info| crate::git::hook_failure_summary(&info.last_error))
-                });
-                let msg = match hook_detail.as_deref() {
-                    Some(detail) => format!(
-                        "git push returned non-zero (remotes: {}) — {}: {}",
-                        names, cause, detail
-                    ),
-                    None => format!(
-                        "git push returned non-zero (remotes: {}) — {}",
-                        names, cause
-                    ),
-                };
+                // T1.8: shared composer (was inline mining); behavior unchanged.
+                let (msg, hook_detail) =
+                    push_failure_message(&names, &cause, ctx.remote_failures.as_deref());
                 // v0.113.73 forge-degraded: fully incident-covered
                 // transient failures don't burn the stuck budget (and
                 // don't fire per-repo webhooks — the incident alert
@@ -6353,6 +6366,10 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                     names
                 );
                 let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
+                // T1.8: mine hook detail on the backlog path too (was
+                // generic-only; the commit path got it in T1).
+                let (msg, hook_detail) =
+                    push_failure_message(&names, &cause, ctx.remote_failures.as_deref());
                 // v0.113.73 forge-degraded: incident-covered transient
                 // failures propagate as AllPaused (caller maps to
                 // PushPaused: no budget burn, commits keep flowing)
@@ -6368,22 +6385,15 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                         ctx.repo.display(),
                         hosts.join(", ")
                     );
-                    crate::daemon::record_push_transient_outage(
-                        ctx.repo,
-                        &format!(
-                            "git push returned non-zero (remotes: {}) — {}",
-                            names, cause
-                        ),
-                    );
+                    crate::daemon::record_push_transient_outage(ctx.repo, &msg);
                     return Ok(PushReport::AllPaused);
                 }
-                crate::daemon::record_push_failure(
-                    ctx.repo,
-                    &format!(
-                        "git push returned non-zero (remotes: {}) — {}",
-                        names, cause
-                    ),
-                );
+                if let Some(detail) = hook_detail.as_deref() {
+                    // T1.3 record, same as the commit path: the repo's own
+                    // loop reads this instead of the attempt layout.
+                    crate::daemon::record_gate_failure_artifact(ctx.repo, &msg, Some(detail));
+                }
+                crate::daemon::record_push_failure(ctx.repo, &msg);
                 notify_webhook_persistent_push_failure(ctx.policy, ctx.repo, &names, &cause);
                 // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3):
                 // propagate the failure so the caller returns
