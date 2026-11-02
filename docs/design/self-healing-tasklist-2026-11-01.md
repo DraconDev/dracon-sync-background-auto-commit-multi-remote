@@ -70,8 +70,11 @@ attempt directory.
       warden secret refusals (`Possible plaintext secrets…` + the hook's
       `Run: dracon-warden once …` line), which legitimately mined to None
       before (empire, live). Tests: composer unit test + warden-shape
-      regression (live empire text). Pending at write time: gates,
-      deploy, live confirmation on the next refusal.
+      regression (live empire text). Gates: test workspace green on
+      5th run (runs 1–4 each flaked on different untouched timing
+      tests under load 60–73, every one green solo), release + clippy
+      + deny clean. Deployed 06:50Z (`239cfce7` loaded == installed
+      == built). Pending: live confirmation on the next refusal.
 
 **Acceptance.** After a deliberately broken test in a fixture workspace, `repos`
 and the alert both name the workspace, the gate and the log path — verified with
