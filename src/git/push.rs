@@ -902,15 +902,33 @@ pub(crate) fn hook_failure_summary(raw: &str) -> Option<String> {
     let mut reason: Option<String> = None;
     for line in raw.lines() {
         let line = line.trim();
-        // "  - extensions/standalones/x TEST exited 1 (see /path/log)"
-        if let Some(rest) = line.strip_prefix("- ") {
-            if failed.len() < 3 && rest.contains(" exited ") {
-                let label = rest.split(" exited ").next().unwrap_or(rest).trim();
-                if !label.is_empty() && !failed.iter().any(|f| f == label) {
-                    failed.push(label.to_string());
+        // "  - extensions/standalones/x/TEST exited 1 (see /path/log)".
+        // FIXED 2026-11-02: the marker is MID-LINE live, not at line start.
+        // `ops.rs::child_status_result` composes
+        // "{label} failed in {dir} with status {status}: {stderr}", so the
+        // hook's first stderr line lands after the prefix on the composed
+        // first line. Match the "- <label> exited <code>" shape anywhere
+        // on the line; the label must contain a workspace path ('/') so an
+        // install excerpt ("snapshot dependency installation exited 1")
+        // is never misread as a gate label (the reason arm owns those).
+        if failed.len() < 3 {
+            let mut search = line;
+            while let Some(exit_pos) = search.find(" exited ") {
+                let before = &search[..exit_pos];
+                if let Some(dash_pos) = before.rfind("- ") {
+                    let label = before[dash_pos + "- ".len()..].trim();
+                    if !label.is_empty()
+                        && label.contains('/')
+                        && !failed.iter().any(|f| f == label)
+                    {
+                        failed.push(label.to_string());
+                    }
                 }
+                if failed.len() >= 3 {
+                    break;
+                }
+                search = &search[exit_pos + " exited ".len()..];
             }
-            continue;
         }
         if attempt.is_none() {
             if let Some(rest) = line.strip_prefix("🧾 Pre-push attempt logs:") {
