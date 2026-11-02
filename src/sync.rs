@@ -4717,7 +4717,7 @@ async fn stage_commit_and_push(
                         .values()
                         .find_map(|info| crate::git::hook_failure_summary(&info.last_error))
                 });
-                let msg = match hook_detail {
+                let msg = match hook_detail.as_deref() {
                     Some(detail) => format!(
                         "git push returned non-zero (remotes: {}) — {}: {}",
                         names, cause, detail
