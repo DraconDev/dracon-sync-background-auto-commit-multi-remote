@@ -900,6 +900,7 @@ pub(crate) fn hook_failure_summary(raw: &str) -> Option<String> {
     let mut failed: Vec<String> = Vec::new();
     let mut attempt: Option<String> = None;
     let mut reason: Option<String> = None;
+    let mut remediation: Option<String> = None;
     for line in raw.lines() {
         let line = line.trim();
         // "  - extensions/standalones/x/TEST exited 1 (see /path/log)".
