@@ -943,6 +943,21 @@ pub(crate) fn hook_failure_summary(raw: &str) -> Option<String> {
                 || line.contains("snapshot dependency installation exited")
             {
                 reason = Some(line.to_string());
+            } else if let Some(pos) = line.find("Possible plaintext secrets") {
+                // ADDED 2026-11-02 (T1.8): warden secret refusals carry no
+                // gate line, so they mined to None and the ledger hid a
+                // security refusal behind the generic hook string (empire,
+                // live). Take from the marker: the composed line starts
+                // with git boilerplate that front-loaded truncation would
+                // otherwise keep instead of the cause.
+                reason = Some(line[pos..].trim().to_string());
+            }
+        }
+        if remediation.is_none() {
+            // The hook's own remediation ("Run: dracon-warden once …")
+            // rides along so the HINT is actionable, not just named.
+            if let Some(rest) = line.strip_prefix("Run: ") {
+                remediation = Some(format!("Run: {rest}"));
             }
         }
     }
@@ -959,6 +974,9 @@ pub(crate) fn hook_failure_summary(raw: &str) -> Option<String> {
         if !parts.iter().any(|p| p.contains(&reason)) {
             parts.push(reason);
         }
+    }
+    if let Some(action) = remediation {
+        parts.push(action);
     }
     if let Some(dir) = attempt {
         // Only the basename: the full state path is noise in a HINT cell.
@@ -2139,6 +2157,32 @@ mod tests {
         assert!(
             !summary.contains("installation exited 1,"),
             "install excerpt is a reason, not a gate label: {summary}"
+        );
+    }
+
+    /// REGRESSION (2026-11-02, T1.8): warden secret refusals carry no
+    /// gate line, so they mined to None and a security refusal hid
+    /// behind the generic hook string. Fixture is the live
+    /// 2026-11-02T04:30:27Z empire refusal.
+    #[test]
+    fn hook_failure_summary_names_warden_secret_refusal() {
+        let live = "git push failed in /home/dracon/Dev/empire with status exit status: 1: ⚠️  Possible plaintext secrets detected in push.\n\
+            The warden filter may have been bypassed.\n\
+            Run: dracon-warden once /home/dracon/Dev/empire\n\
+            error: failed to push some refs to 'github.com:DraconDev/empire.git'\n";
+        let summary =
+            super::hook_failure_summary(live).expect("secret refusal must yield a cause");
+        assert!(
+            summary.contains("Possible plaintext secrets"),
+            "must name the refusal: {summary}"
+        );
+        assert!(
+            summary.contains("Run: dracon-warden once"),
+            "must carry the remediation: {summary}"
+        );
+        assert!(
+            summary.chars().count() <= 200,
+            "must stay HINT-sized: {summary}"
         );
     }
 
