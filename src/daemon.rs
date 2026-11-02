@@ -6234,6 +6234,45 @@ pub(crate) fn record_push_transient_outage(repo: &Path, error: &str) {
     save_stuck_push_repos(&repos);
 }
 
+/// Durable, machine-readable gate-failure record for the repo's own loops.
+///
+/// ADDED 2026-11-01 (T1.3). A producing agent could previously only learn that
+/// its push was refused by reading the retained attempt directory, whose layout
+/// is an implementation detail. This writes one small file per repo that names
+/// the failing workspaces/gates and where the logs are, so a loop can react
+/// without knowing anything about `dracon-pre-push.*`.
+///
+/// Best effort: a failure to write this must never affect publication.
+pub(crate) fn record_gate_failure_artifact(repo: &Path, error: &str, detail: Option<&str>) {
+    let Some(detail) = detail else { return };
+    let Some(root) = dirs::state_dir() else {
+        return;
+    };
+    let directory = root.join("dracon/gate-failures");
+    if std::fs::create_dir_all(&directory).is_err() {
+        return;
+    }
+    let name = repo
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "repo".to_string());
+    let payload = serde_json::json!({
+        "repo": repo.display().to_string(),
+        "observed_at": timestamp_secs(),
+        "cause": crate::git::classify_push_failure(error),
+        "detail": detail,
+        // The raw text is retained separately; this field is a pointer, not a
+        // copy, so the artifact stays small and never holds credentials.
+        "hint": "grep the daemon journal for this repo, or read the retained attempt directory named in `detail`",
+    });
+    let path = directory.join(format!("{name}.json"));
+    let temp = directory.join(format!(".{name}.json.tmp"));
+    if std::fs::write(&temp, payload.to_string()).is_err() {
+        return;
+    }
+    let _ = std::fs::rename(&temp, &path);
+}
+
 pub(crate) fn record_push_failure(repo: &Path, error: &str) {
     let _guard = lock_stuck_ledger();
     push_history::record(repo, false); // R3-L11: serialize ledger RMW.
