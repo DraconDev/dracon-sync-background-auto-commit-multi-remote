@@ -244,10 +244,18 @@ index flags by design, and the producer set skip-worktree (`S`,
 0x40004000) on a 21MB session export whose worktree (51MB) differs
 wholly from its index blob (69MB) — every capture fails with
 "unmerged/uncertain entry retained". Clearing the bit would commit
-the producer's hidden swap, so the fix (pick a winner +
-`--no-skip-worktree`) sits with the live dracon-system session, which
-was messaged directly. Same round: tabmon producer messaged about
-its gate failures blocking browser publication.
+the producer's hidden swap, so the fix initially sat with the live
+dracon-system session (messaged; session later found dead).
+RESOLVED 2026-11-02 with operator approval: investigation showed
+HEAD held the warden-ENCRYPTED form (correct) and worktree its
+decrypted twin — but clearing the bit uncorked a churn storm (age's
+random nonce re-encrypts differently every round → perpetual `M` →
+a commit every round). Fix: `git rm --cached` + gitignore the export
+(blob stays in history, file on disk). Repo committed its backlog
+and went quiet. Follow-up for warden: randomized encryption defeats
+clean/smudge stability under commit-all (deterministic encryption
+or large-file stability needed). Same round: tabmon producer
+messaged about its gate failures blocking browser publication.
 
 ## Standing rules for this list
 
