@@ -4014,6 +4014,45 @@ mod tests {
         let _ = crate::daemon::unstuck_repo(&repo);
     }
 
+    /// REGRESSION (2026-11-01, T1.3): the gate-failure artifact is written,
+    /// atomically, and names the detail a producing loop needs.
+    #[test]
+    fn gate_failure_artifact_is_written_atomically_and_names_the_cause() {
+        let temp = tempfile::tempdir().unwrap();
+        let _guard = crate::test_helpers::EnvRestorer::new(
+            "XDG_STATE_HOME",
+            temp.path().to_string_lossy().as_ref(),
+        );
+        let repo = PathBuf::from("/tmp/artifact-repo");
+        let detail = "extensions/standalones/x TEST failed; logs dracon-pre-push.AbC";
+        record_gate_failure_artifact(
+            &repo,
+            "git push returned non-zero — local pre-push hook failed",
+            Some(detail),
+        );
+        let path = temp.path().join("dracon/gate-failures/artifact-repo.json");
+        let text = std::fs::read_to_string(&path).expect("artifact must exist");
+        let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(value["detail"], detail);
+        assert_eq!(value["repo"], "/tmp/artifact-repo");
+        assert!(value["observed_at"].is_number());
+        // No temp file is left behind.
+        let leftovers: Vec<_> = std::fs::read_dir(path.parent().unwrap())
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n.ends_with(".tmp"))
+            .collect();
+        assert!(leftovers.is_empty(), "atomic write left {leftovers:?}");
+        // A missing detail writes nothing (no empty artifacts).
+        let other = PathBuf::from("/tmp/artifact-repo-2");
+        record_gate_failure_artifact(&other, "x", None);
+        assert!(!temp
+            .path()
+            .join("dracon/gate-failures/artifact-repo-2.json")
+            .exists());
+    }
+
     /// REGRESSION (2026-11-01): an exhausted budget earned on a SUPERSEDED tip
     /// must not pause publication of the current one.
     ///
