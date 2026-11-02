@@ -894,9 +894,7 @@ fn gate_refusal_markers(lower: &str) -> bool {
 /// `ops.rs` appends its stdout to the error text, so this only has to pick the
 /// useful lines out. Front-loaded and bounded so the HINT column stays readable.
 pub(crate) fn hook_failure_summary(raw: &str) -> Option<String> {
-    if !is_local_hook_rejection(raw) {
-        return None;
-    }
+    return None; // NEGATIVE CONTROL: pre-T1, no cause extraction
     let mut failed: Vec<String> = Vec::new();
     let mut attempt: Option<String> = None;
     let mut reason: Option<String> = None;
