@@ -46,9 +46,21 @@ attempt directory.
 - [x] **T1.5** Two regressions + negative controls (neutralising both made 3
       assertions fail); four gates 3018 passed / 0 failed; deployed with
       loaded == installed == built. Done.
-- [ ] **T1.6** *Residual:* live artifact population is unverified — no hook
-      refusal has happened since deployment. Confirm the first one writes
-      `gate-failures/<repo>.json` and that the ledger error names the gate.
+- [x] **T1.6** *Residual, CLOSED 2026-11-02:* artifact populated live at
+      02:09:30Z (`gate-failures/browser-extensions-shared.json`) — but its
+      `detail` was only `logs dracon-pre-push.0WWc5A`. Cause below (T1.7).
+- [x] **T1.7** (found + fixed 2026-11-02) The gate marker is MID-LINE live:
+      `ops.rs::child_status_result` composes `"{label} failed …: {stderr}"`,
+      so `  - dir/GATE exited N` lands after the prefix on the composed
+      first line; the T1 extractor required line-start `- ` and missed it.
+      Fix matches `- <label> exited <code>` anywhere (label must contain
+      `/`, so install excerpts stay with the reason arm). Regression uses
+      the live 02:09:30Z error text; negative control pins the install
+      case. Product cause that night: virtual-pet-new-tab TEST refused by
+      `check-privacy-date.sh` (privacy.md stamped 2026-09-13, committed
+      2026-11-01) — re-stamped via the script's own `--fix`, committed
+      `c787888ddb` in browser-extensions-shared. Pending at write time:
+      deploy, `stuck-unstuck`, confirm the gate passes on the fixed tip.
 
 **Acceptance.** After a deliberately broken test in a fixture workspace, `repos`
 and the alert both name the workspace, the gate and the log path — verified with
@@ -73,6 +85,15 @@ while being unvalidatable. `bucket-sizes` therefore prints
       3/3 sampled covers still serve byte-exact after the rewrite.
 - [ ] **T2.3** Operator decision: leave `classification: legacy`, or promote to
       `declared` (a migration-state claim, not a mechanical change).
+      2026-11-02: T2 verified LANDED in platform HEAD (all three manifests
+      0 non-canonical keys), `bucket-sizes` prints
+      `books | 571.9 MiB; 952 keys; 0 unknown`, `check` shows only the 2
+      pre-existing errors (outpost-eden, web/jobs). Landing required a
+      manual explicit-path `git add` of the two private manifests: the
+      daemon would not stage `games-private.json` for 75 min, so every
+      epoch round died at `verify_staged` ("staged private manifest
+      differs…"). Follow-up: daemon-side staging/verify mismatch for
+      private-manifest updates (no code changed — needs its own task).
 
 **Acceptance.** `bucket-sizes` reports ~572 MB for books; `check` stays green.
 
@@ -106,6 +127,13 @@ disk — a red herring that cost me a wasted slimming run.
 
 - [ ] **T4.1** Operator classification: are `.epub` (built from `.md`) and
       `cover.png`/`.jpg` regenerable artifacts or shipped product?
+      2026-11-02 analysis: 1,555 tracked `.epub` ARE build artifacts —
+      `BookFormatter::to_epub_with_cover` (`src/output/book_formatter.rs`,
+      via `src/cli_handlers/convert.rs`) regenerates them from the book
+      sources. 3,093 jpg/png covers come from AI batch scripts
+      (`scripts/batch_covers_codex25.py`, …) with repair loops — plausible
+      curation, needs the product call. Coherent split: bucket+slim the
+      epubs now, decide covers separately.
 - [ ] **T4.2** If regenerable: manifest + move to the bucket, gitignore.
 - [ ] **T4.3** Sanctioned slimming with a verified bundle; tip tree must stay
       byte-identical where the class is history-only.
@@ -134,6 +162,8 @@ No other repo is affected.
 concurrent redesign with its own revision-pinned test helper.
 
 - [ ] **T6.1** Wait for that redesign to land and qualify.
+      (2026-11-02: still blocked — `LOSSLESS_RECLAIM_QUALIFIED = false`;
+      last spool-file commits Nov 1 12:49–12:53Z.)
 - [ ] **T6.2** Then reclaim with content proof (not age), preserving
       spool-only objects as was done for ai-auto-writer's 9 objects.
 
@@ -143,8 +173,18 @@ concurrent redesign with its own revision-pinned test helper.
 `capture-anime-girls — Sync Failures (backing off): 5 consecutive sync failures;
 probing every 15 min`. Not yet diagnosed.
 
-- [ ] **T7.1** Identify the failing phase from the journal and the retained
-      epoch/staging artifacts; decide whether it shares a root cause with T1.
+- [x] **T7.1** RESOLVED 2026-11-02 (no shared root cause with T1). The phase
+      is the forward-only guard: it flagged 12 staged card renames
+      (`char_250–261.png` → `char_5300–5311.png`) as `rename-away`. All 12
+      are R100 same-blob (zero new bytes), but the rule fires on the OLD
+      path alone by design, and the test suite pins retirement as the
+      escape hatch. Fix used the sanctioned mechanism, no logic touched:
+      added the 12 exact old paths to the `games/capture-anime-girls`
+      record's `retiredRoots` (freeport-fx precedent). Guard re-run:
+      `ok: true`, zero violations; inventory `check` still shows only the
+      2 pre-existing errors. Side note: more new (non-rename) `char_53xx`
+      cards are untracked — additions don't trip this guard, but they
+      grow the 1.93 GiB repo; bucket coverage for games is still open.
 
 ---
 
