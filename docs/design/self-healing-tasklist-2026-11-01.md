@@ -61,6 +61,17 @@ attempt directory.
       2026-11-01) — re-stamped via the script's own `--fix`, committed
       `c787888ddb` in browser-extensions-shared. Pending at write time:
       deploy, `stuck-unstuck`, confirm the gate passes on the fixed tip.
+- [x] **T1.8** (found + fixed 2026-11-02) T1 was wired only into the
+      COMMIT path (`stage_commit_and_push`); backlog pushes go through
+      `handle_ahead_push`, whose identical arm mined nothing — two live
+      gate refusals recorded generic while the extractor was proven
+      correct. Fix extracts a shared `push_failure_message` composer used
+      by BOTH arms (+ artifact write on both). Same change also mines
+      warden secret refusals (`Possible plaintext secrets…` + the hook's
+      `Run: dracon-warden once …` line), which legitimately mined to None
+      before (empire, live). Tests: composer unit test + warden-shape
+      regression (live empire text). Pending at write time: gates,
+      deploy, live confirmation on the next refusal.
 
 **Acceptance.** After a deliberately broken test in a fixture workspace, `repos`
 and the alert both name the workspace, the gate and the log path — verified with
@@ -187,6 +198,35 @@ probing every 15 min`. Not yet diagnosed.
       grow the 1.93 GiB repo; bucket coverage for games is still open.
 
 ---
+
+## Producer-owned product failures (2026-11-02, recorded for the game loops)
+
+Genuine TEST failures blocking browser-extensions-shared publication.
+Behavioral (intended-behavior calls), producer active in both areas —
+recorded, not fixed, per the T1 design (the loop sees the named gate
+and fixes it):
+
+- **tabmon** (`extensions/standalones/tabmon/tests/user-flows.test.ts:283`,
+  failed at tips 635c3830 + later): sound toggle flips the label to
+  "Off" but `tabmon_settings.soundMuted` is not `true` in storage.sync
+  — UI flips, persistence doesn't (or writes the wrong key/version).
+  1 failed / 1293 passed.
+- **clean-web** (failed at tip a2d46c46): 5 engine TEST failures —
+  forum-post node grouping, payload-block segments, byline/price/date
+  reach, desktop-twin byline, OPEN burst budget (`fails OPEN when the
+  burst carries more text than a scan can afford`, 68s — also slow).
+
+## Empire secret-scan wedge (2026-11-02, fixed via sanctioned hatch)
+
+`Possible plaintext secrets` refused empire's push (79 unpushed): the
+scan matched `password=hunter2` fixtures in `src/probe_tests.rs`
+(redaction regression suite — the test asserts those fakes get
+scrubbed) and `password=REDACTED` in `src/demo.rs` (demo scrubbed-
+output marker). False positives. Fixed with the established
+`.plaintext` sibling hatch (+ justification docs, self-verified
+scan-clean), platform precedent
+(`refresh_policy_test.rs.plaintext`). Hatches committed `8725c1a`;
+push recovery monitored, not yet confirmed at write time.
 
 ## Standing rules for this list
 
