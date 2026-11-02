@@ -2078,6 +2078,7 @@ mod tests {
         assert_eq!(super::hook_failure_summary("Connection timed out"), None);
     }
 
+    #[test]
     fn test_classify_push_failure_maps_every_mode() {
         // Divergence: non-fast-forward rejection (the 2026-08-09
         // pi-goal-loop-audit case).
