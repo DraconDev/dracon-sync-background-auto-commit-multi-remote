@@ -920,9 +920,9 @@ pub(crate) fn hook_failure_summary(raw: &str) -> Option<String> {
         if reason.is_none() {
             if let Some(rest) = line.split("4-gate FAILED:").nth(1) {
                 reason = Some(rest.trim().to_string());
-            } else if line.contains("Workspace not found") {
-                reason = Some(line.to_string());
-            } else if line.contains("snapshot dependency installation exited") {
+            } else if line.contains("Workspace not found")
+                || line.contains("snapshot dependency installation exited")
+            {
                 reason = Some(line.to_string());
             }
         }
@@ -2037,7 +2037,6 @@ mod tests {
     /// failure mode to the operator-actionable cause the alert and
     /// stuck-ledger will show. Divergence (non-fast-forward) is the
     /// headline case from the pi-goal-loop-audit incident.
-    #[test]
     /// REGRESSION (2026-11-01, T1): a hook refusal must name the failing gate.
     ///
     /// The ledger used to store only the static classifier string, so the cause
