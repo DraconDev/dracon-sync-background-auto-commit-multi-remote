@@ -4746,6 +4746,11 @@ async fn stage_commit_and_push(
                     return Ok(Some(SyncOutcome::PushPaused));
                 }
                 eprintln!("⚠️ push failed for {} (remotes: {})", repo.display(), names);
+                if let Some(detail) = hook_detail.as_deref() {
+                    // T1.3: leave a durable, machine-readable record so the
+                    // repo's own loop can see which gate refused its push.
+                    crate::daemon::record_gate_failure_artifact(repo, &msg, Some(detail));
+                }
                 crate::daemon::record_push_failure(repo, &msg);
                 notify_webhook_persistent_push_failure(policy, repo, &names, &cause);
                 push_failed = true;
