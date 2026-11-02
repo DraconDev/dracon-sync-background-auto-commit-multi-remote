@@ -225,8 +225,11 @@ scrubbed) and `password=REDACTED` in `src/demo.rs` (demo scrubbed-
 output marker). False positives. Fixed with the established
 `.plaintext` sibling hatch (+ justification docs, self-verified
 scan-clean), platform precedent
-(`refresh_policy_test.rs.plaintext`). Hatches committed `8725c1a`;
-push recovery monitored, not yet confirmed at write time.
+(`refresh_policy_test.rs.plaintext`). Hatches committed `8725c1a`; push recovered same hour (79 commits,
+0 ahead, ledger clear) — hatch confirmed working live. Same session:
+my own audit prose in this doc quoted those fixture shapes and wedged
+dracon-sync's own push the same way; hatched this file too
+(audit-doc precedent, `findings.md.plaintext`).
 
 ## Standing rules for this list
 
