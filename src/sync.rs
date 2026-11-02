@@ -9475,6 +9475,46 @@ auto_bump_versions = false
         );
     }
 
+    /// ADDED 2026-11-02 (T1.8): the shared ledger composer appends
+    /// mined hook detail when the raw per-remote text carries it, and
+    /// stays bare otherwise. Both push-failure arms (commit path and
+    /// backlog path) must produce the same message for the same input.
+    #[test]
+    fn test_push_failure_message_mines_hook_detail() {
+        let mut map: HashMap<String, crate::daemon::RemoteFailInfo> = HashMap::new();
+        map.insert(
+            "origin".to_string(),
+            crate::daemon::RemoteFailInfo {
+                last_error: "git push failed in /r with status exit status: 1:   - extensions/standalones/tabmon/TEST exited 1 (see /s/x.log)\n\
+                    🧾 Pre-push attempt logs: /s/gates/dracon-pre-push.Xx1\n\
+                    ❌ Pre-push: 4-gate FAILED\n"
+                    .to_string(),
+                ..Default::default()
+            },
+        );
+        let (msg, detail) = push_failure_message("origin", "hook cause", Some(&map));
+        let detail = detail.expect("gate refusal must yield detail");
+        assert!(detail.contains("tabmon/TEST"), "{detail}");
+        assert!(msg.contains(&detail), "{msg}");
+        assert!(msg.starts_with("git push returned non-zero (remotes: origin)"), "{msg}");
+
+        // A transport error carries no hook detail: bare message, None.
+        let mut plain: HashMap<String, crate::daemon::RemoteFailInfo> = HashMap::new();
+        plain.insert(
+            "origin".to_string(),
+            crate::daemon::RemoteFailInfo {
+                last_error: "ssh: Connection refused".to_string(),
+                ..Default::default()
+            },
+        );
+        let (msg, detail) = push_failure_message("origin", "transport cause", Some(&plain));
+        assert!(detail.is_none());
+        assert_eq!(
+            msg,
+            "git push returned non-zero (remotes: origin) — transport cause"
+        );
+    }
+
     /// ADDED 2026-07-21 (v0.112.31, audit M1/F3.9): after a mirror
     /// push failure, the stuck-push ledger's `last_error` names the
     /// failing remote — the pre-fix generic message ("git push
