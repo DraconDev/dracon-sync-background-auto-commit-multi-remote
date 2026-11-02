@@ -2038,6 +2038,47 @@ mod tests {
     /// stuck-ledger will show. Divergence (non-fast-forward) is the
     /// headline case from the pi-goal-loop-audit incident.
     #[test]
+    /// REGRESSION (2026-11-01, T1): a hook refusal must name the failing gate.
+    ///
+    /// The ledger used to store only the static classifier string, so the cause
+    /// was reachable only by hand-reading a retained attempt directory.
+    #[test]
+    fn hook_failure_summary_names_the_failing_gate_and_logs() {
+        let gate_failure = "error: failed to push some refs\n\
+            🧾 Pre-push attempt logs: /home/x/.local/state/dracon/sync/gates/repo/dracon-pre-push.AbC123\n\
+            🔍 Pre-push: 6 affected workspace(s) at deadbeef — running 4-gate.\n\
+              - extensions/standalones/virtual-pet-new-tab TEST exited 1 (see /logs/x.log)\n\
+            ❌ Pre-push: 4-gate FAILED\n";
+        let summary =
+            super::hook_failure_summary(gate_failure).expect("hook refusal must yield a cause");
+        assert!(summary.contains("virtual-pet-new-tab TEST"), "{summary}");
+        assert!(summary.contains("dracon-pre-push.AbC123"), "{summary}");
+        assert!(
+            summary.chars().count() <= 200,
+            "must stay HINT-sized: {summary}"
+        );
+
+        // The install-refusal shape (no per-gate line) still yields the reason.
+        let install = "🧾 Pre-push attempt logs: /s/gates/repo/dracon-pre-push.Zz9\n\
+            error: Workspace not found \"extensions/collections/new-tab/minimalist-new-tab\"\n\
+            ❌ Pre-push: 4-gate FAILED: snapshot dependency installation exited 1\n";
+        let summary =
+            super::hook_failure_summary(install).expect("install refusal must yield a cause");
+        assert!(
+            summary.contains("Workspace not found") || summary.contains("installation exited"),
+            "{summary}"
+        );
+        assert!(summary.contains("dracon-pre-push.Zz9"), "{summary}");
+
+        // A PASSING gate that merely travelled with a transport error yields
+        // nothing: there is no refusal to report.
+        let passed = "🧾 Pre-push attempt logs: /s/x\n✅ Pre-push: 4-gate passed for all affected workspaces.\n\
+            Connection to github.com closed by remote host.\n";
+        assert_eq!(super::hook_failure_summary(passed), None);
+        // Unrelated errors yield nothing.
+        assert_eq!(super::hook_failure_summary("Connection timed out"), None);
+    }
+
     fn test_classify_push_failure_maps_every_mode() {
         // Divergence: non-fast-forward rejection (the 2026-08-09
         // pi-goal-loop-audit case).
