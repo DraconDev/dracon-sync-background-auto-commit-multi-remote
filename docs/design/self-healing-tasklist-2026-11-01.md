@@ -237,6 +237,18 @@ my own audit prose in this doc quoted those fixture shapes and wedged
 dracon-sync's own push the same way; hatched this file too
 (audit-doc precedent, `findings.md.plaintext`).
 
+## Skip-worktree wedge (2026-11-02, diagnosed, with producer)
+
+dracon-system uncommittable 12h: `StagedIntentSnapshot` refuses nonzero
+index flags by design, and the producer set skip-worktree (`S`,
+0x40004000) on a 21MB session export whose worktree (51MB) differs
+wholly from its index blob (69MB) — every capture fails with
+"unmerged/uncertain entry retained". Clearing the bit would commit
+the producer's hidden swap, so the fix (pick a winner +
+`--no-skip-worktree`) sits with the live dracon-system session, which
+was messaged directly. Same round: tabmon producer messaged about
+its gate failures blocking browser publication.
+
 ## Standing rules for this list
 
 - Every fix ships with a regression **and** a negative control that fails when
