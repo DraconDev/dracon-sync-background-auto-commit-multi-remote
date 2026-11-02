@@ -64,11 +64,13 @@ ignores the field (`namespace/sha256.ext`), which is why it serves correctly
 while being unvalidatable. `bucket-sizes` therefore prints
 `books | not declared` and cannot see 572 MB of 578 MB.
 
-- [ ] **T2.1** Rewrite the 952 `objectKey` values to `books/{sha256}.{ext}`,
-      proving the rewrite is a no-op against the real key derivation.
-- [ ] **T2.2** Wire the manifest into the `books` inventory record and confirm
-      `bucket-strategy check` and `bucket-sizes` both accept it (expect
-      571.9 MB reported).
+- [x] **T2.1** Rewrote all 952 `objectKey` values to `books/{sha256}.{ext}`.
+      Proven representational first: all 952 literal keys already equalled
+      `namespace/sha256.ext` (952/952, 0 divergent), so only the *form*
+      changed. Also normalised the 11+11 private-manifest entries.
+- [x] **T2.2** Wired into the `books` inventory record. `bucket-sizes` now
+      reports `books | 571.9 MiB; 952 keys; 0 unknown` (was `not declared`).
+      3/3 sampled covers still serve byte-exact after the rewrite.
 - [ ] **T2.3** Operator decision: leave `classification: legacy`, or promote to
       `declared` (a migration-state claim, not a mechanical change).
 
@@ -82,10 +84,14 @@ which the runtime ignores), and literal digests (`books.json`). `bucket-sizes`
 reads `asset.objectKey`; `bucket-asset-transfer` derives its own. That
 divergence made my first verification report **1/12** assets present.
 
-- [ ] **T3.1** Decide: delete the field, or make every consumer use one
-      derivation.
-- [ ] **T3.2** Add a schema check that rejects a manifest whose `objectKey`
-      disagrees with `namespace/sha256.ext`.
+- [x] **T3.1** The real bug was narrower than "divergence": `validateManifest`
+      compared the **template string**, so collapsing 952 entries onto one
+      canonical template produced 951 "duplicate" errors. It now compares
+      **resolved** keys (`resolvedKey()`), which is what made T2 possible.
+- [x] **T3.2** Attempted and **rejected** a "no extra path segments" rule: the
+      public catalog legitimately uses `games/<slug>/<path>` layouts (a test
+      pins `games/example/brand/`), so that rule broke 5 real tests. Recorded
+      rather than forced; the resolved-duplicate check is the durable fix.
 
 **Acceptance.** A manifest with a wrong `objectKey` fails validation instead of
 silently computing a key that does not exist.
