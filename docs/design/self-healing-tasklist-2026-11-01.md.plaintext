@@ -1,0 +1,17 @@
+Intentionally-plaintext audit log (dracon-warden hatch).
+
+docs/design/self-healing-tasklist-2026-11-01.md is the fleet's
+self-healing incident record. It quotes the exact secret-shaped
+fixture strings that tripped the pre-push scan in other repos (fake
+test placeholders and scrub markers) as forensic evidence — those
+literals are the subject of the audit entries, not credentials, and
+quoting them precisely is the point of the log. No real credential
+material is stored here.
+
+The pre-push secret scan matches those quoted shapes, so without
+this hatch the commits carrying new audit entries are refused. The
+hatch exempts this one file from the scan.
+
+Hatched 2026-11-02 following the audit-doc precedent
+(findings.md.plaintext). Remove this hatch if real credential
+material is ever stored here.
