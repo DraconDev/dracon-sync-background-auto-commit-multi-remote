@@ -74,7 +74,10 @@ attempt directory.
       5th run (runs 1–4 each flaked on different untouched timing
       tests under load 60–73, every one green solo), release + clippy
       + deny clean. Deployed 06:50Z (`239cfce7` loaded == installed
-      == built). Pending: live confirmation on the next refusal.
+      == built). CONFIRMED live 07:12:28Z: the `7mRsF6` refusal wrote
+      `…clean-web/TEST, …/tabmon/TEST; logs dracon-pre-push.7mRsF6`
+      to both the ledger and the artifact — multi-gate capture works
+      on the backlog path.
 
 **Acceptance.** After a deliberately broken test in a fixture workspace, `repos`
 and the alert both name the workspace, the gate and the log path — verified with
