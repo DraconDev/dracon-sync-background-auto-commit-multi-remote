@@ -2078,6 +2078,51 @@ mod tests {
         assert_eq!(super::hook_failure_summary("Connection timed out"), None);
     }
 
+    /// REGRESSION (2026-11-02): the gate marker is MID-LINE live, not at
+    /// line start. `ops.rs::child_status_result` composes
+    /// `"{label} failed in {dir} with status {status}: {stderr}"`, so the
+    /// hook's first stderr line (`  - dir/GATE exited N (see …)`) lands
+    /// after the prefix on the composed first line. The T1 extractor only
+    /// accepted a trimmed line STARTING with "- ", so live it returned
+    /// just `logs <attempt>` and the ledger never named the gate.
+    /// Fixture is the 2026-11-02T02:09:30Z browser-extensions-shared
+    /// refusal (virtual-pet-new-tab TEST), trimmed to the load-bearing
+    /// lines.
+    #[test]
+    fn hook_failure_summary_finds_midline_gate_marker_in_composed_error() {
+        let live = "git push failed in /home/dracon/Dev/browser-extensions-shared with status exit status: 1:   - extensions/collections/new-tab/virtual-pet-new-tab/TEST exited 1 (see /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.0WWc5A/extensions_collections_new-tab_virtual-pet-new-tab-TEST.log)\n\
+            check-privacy-date: privacy.md last updated 2026-09-13 but file was committed on 2026-11-01 — re-stamp with --fix.\n\
+            Gate exited with status 1\n\
+            error: failed to push some refs to 'github.com:DraconDev/browser-extensions-shared.git'\n\
+            <hook/stdout diagnostics>\n\
+            🧾 Pre-push attempt logs: /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.0WWc5A\n\
+            ❌ Pre-push: 4-gate FAILED\n";
+        let summary =
+            super::hook_failure_summary(live).expect("composed refusal must yield a cause");
+        assert!(
+            summary.contains("virtual-pet-new-tab/TEST"),
+            "must name the failing workspace+gate: {summary}"
+        );
+        assert!(
+            summary.contains("dracon-pre-push.0WWc5A"),
+            "must keep the log pointer: {summary}"
+        );
+        assert!(
+            summary.chars().count() <= 200,
+            "must stay HINT-sized: {summary}"
+        );
+        // Negative control: an install-excerpt line must NOT be misread as
+        // a gate label (it has no workspace path); the reason arm owns it.
+        let install_midline = "git push failed in /r with status exit status: 1: snapshot dependency installation exited 1\n\
+            ❌ Pre-push: 4-gate FAILED: snapshot dependency installation exited 1\n";
+        let summary = super::hook_failure_summary(install_midline)
+            .expect("install refusal must still yield a cause");
+        assert!(
+            !summary.contains("installation exited 1,"),
+            "install excerpt is a reason, not a gate label: {summary}"
+        );
+    }
+
     #[test]
     fn test_classify_push_failure_maps_every_mode() {
         // Divergence: non-fast-forward rejection (the 2026-08-09
