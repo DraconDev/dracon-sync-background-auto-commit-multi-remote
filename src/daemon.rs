@@ -6283,8 +6283,7 @@ pub(crate) fn record_push_transient_outage(repo: &Path, error: &str) {
 ///
 /// Best effort: a failure to write this must never affect publication.
 pub(crate) fn record_gate_failure_artifact(repo: &Path, error: &str, detail: Option<&str>) {
-    let Some(_detail) = detail else { return };
-    return; // NEGATIVE CONTROL: pre-T1, no artifact
+    let Some(detail) = detail else { return };
     let Some(root) = dirs::state_dir() else {
         return;
     };
