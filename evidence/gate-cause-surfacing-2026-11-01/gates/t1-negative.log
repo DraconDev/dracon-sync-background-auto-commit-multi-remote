@@ -1,0 +1,93 @@
+   Compiling dracon-sync v0.113.96 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: duplicated attribute
+    --> dracon-sync/src/git/push.rs:2043:5
+     |
+2043 |     #[test]
+     |     ^^^^^^^
+     |
+     = note: `#[warn(duplicate_macro_attributes)]` on by default
+
+warning: unreachable statement
+    --> dracon-sync/src/daemon.rs:6288:5
+     |
+6287 |       return; // NEGATIVE CONTROL: pre-T1, no artifact
+     |       ------ any code following this expression is unreachable
+6288 | /     let Some(root) = dirs::state_dir() else {
+6289 | |         return;
+6290 | |     };
+     | |______^ unreachable statement
+     |
+     = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unreachable statement
+   --> dracon-sync/src/git/push.rs:898:5
+    |
+897 |     return None; // NEGATIVE CONTROL: pre-T1, no cause extraction
+    |     ----------- any code following this expression is unreachable
+898 |     let mut failed: Vec<String> = Vec::new();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+
+warning: unused variable: `repo`
+    --> dracon-sync/src/daemon.rs:6285:44
+     |
+6285 | pub(crate) fn record_gate_failure_artifact(repo: &Path, error: &str, detail: Option<&str>) {
+     |                                            ^^^^ help: if this is intentional, prefix it with an underscore: `_repo`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `error`
+    --> dracon-sync/src/daemon.rs:6285:57
+     |
+6285 | pub(crate) fn record_gate_failure_artifact(repo: &Path, error: &str, detail: Option<&str>) {
+     |                                                         ^^^^^ help: if this is intentional, prefix it with an underscore: `_error`
+
+warning: unused variable: `raw`
+   --> dracon-sync/src/git/push.rs:896:36
+    |
+896 | pub(crate) fn hook_failure_summary(raw: &str) -> Option<String> {
+    |                                    ^^^ help: if this is intentional, prefix it with an underscore: `_raw`
+
+warning: function `test_classify_push_failure_maps_every_mode` is never used
+    --> dracon-sync/src/git/push.rs:2080:8
+     |
+2080 |     fn test_classify_push_failure_maps_every_mode() {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `dracon-sync` (bin "dracon-sync" test) generated 7 warnings (run `cargo fix --bin "dracon-sync" -p dracon-sync --tests` to apply 3 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 50.13s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-283f9da73a741e4c)
+
+running 3 tests
+test daemon::tests::gate_failure_artifact_is_written_atomically_and_names_the_cause ... FAILED
+test git::push::tests::hook_failure_summary_names_the_failing_gate_and_logs ... FAILED
+test git::push::tests::hook_failure_summary_names_the_failing_gate_and_logs ... FAILED
+
+failures:
+
+---- daemon::tests::gate_failure_artifact_is_written_atomically_and_names_the_cause stdout ----
+
+thread 'daemon::tests::gate_failure_artifact_is_written_atomically_and_names_the_cause' (2822752) panicked at dracon-sync/src/daemon.rs:4034:51:
+artifact must exist: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- git::push::tests::hook_failure_summary_names_the_failing_gate_and_logs stdout ----
+
+thread 'git::push::tests::hook_failure_summary_names_the_failing_gate_and_logs' (2822753) panicked at dracon-sync/src/git/push.rs:2051:55:
+hook refusal must yield a cause
+
+---- git::push::tests::hook_failure_summary_names_the_failing_gate_and_logs stdout ----
+
+thread 'git::push::tests::hook_failure_summary_names_the_failing_gate_and_logs' (2822754) panicked at dracon-sync/src/git/push.rs:2051:55:
+hook refusal must yield a cause
+
+
+failures:
+    daemon::tests::gate_failure_artifact_is_written_atomically_and_names_the_cause
+    git::push::tests::hook_failure_summary_names_the_failing_gate_and_logs
+    git::push::tests::hook_failure_summary_names_the_failing_gate_and_logs
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 1600 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

@@ -1,0 +1,30 @@
+{
+  "created": "2026-11-01",
+  "task": "T1 of self-healing-tasklist-2026-11-01.md",
+  "purpose": "A hook refusal must name the failing workspace/gate/log in the stuck ledger, the HINT and a machine-readable artifact.",
+  "assembly": {
+    "dracon_sync_head": "561b33e4e3fdc112d8df768b90d812d9514ab5ce",
+    "src_tree_sha": "6e61df7be49eb107e6f9e0d62944935e2f64d53e"
+  },
+  "gates": {
+    "workspace_tests": {
+      "exit": 0,
+      "suites": 44,
+      "passed": 3018,
+      "failed": 0
+    },
+    "clippy_all_targets_strict": {
+      "exit": 0
+    },
+    "release_build": {
+      "exit": 0
+    },
+    "cargo_deny": {
+      "exit": 0
+    }
+  },
+  "negative_controls": [
+    "neutralising hook_failure_summary and the artifact writer failed both regressions (3 assertions)"
+  ],
+  "note": "two prior workspace runs each flaked one different process/timing test (each green in isolation); this run is 0 failed with the gate unchanged"
+}

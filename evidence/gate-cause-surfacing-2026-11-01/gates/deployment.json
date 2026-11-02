@@ -1,0 +1,16 @@
+{
+  "started_unix": 1793583602.6974714,
+  "old_pid": 1732513,
+  "old_loaded_sha256": "72e12cb5c70da4a5d84d91c50774c6a033e890eed80a603d14c3c373017737af",
+  "expected_sha256": "679347be1104a67023118662b6c822fafae92bd7421874ec2f2f007e253a654a",
+  "gated_revision": "561b33e4e3fdc112d8df768b90d812d9514ab5ce",
+  "deployed_from_revision": "561b33e4e3fdc112d8df768b90d812d9514ab5ce",
+  "backup": "/home/dracon/.local/state/dracon/deployments/20261102T014002Z-gate-cause-surfacing",
+  "service_stop_used": false,
+  "method": "atomic binary replacement; pidfd SIGTERM; Restart=always",
+  "new_pid": 1702870,
+  "loaded_sha256": "679347be1104a67023118662b6c822fafae92bd7421874ec2f2f007e253a654a",
+  "installed_sha256": "679347be1104a67023118662b6c822fafae92bd7421874ec2f2f007e253a654a",
+  "verified_unix": 1793583611.17226,
+  "ok": true
+}
