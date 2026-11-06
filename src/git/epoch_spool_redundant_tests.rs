@@ -603,20 +603,38 @@ async fn index_entry_with_unpublished_content_at_a_published_path_is_preserved()
 
 #[tokio::test]
 async fn index_entry_at_a_path_absent_from_published_is_preserved() {
-    // A brand-new file that was never published: real staged work.
+    // A PUBLISHED blob parked at a path that is not published. Reachability
+    // alone cannot catch this — the object is published — so only the per-entry
+    // path/mode/blob proof stands between it and deletion. This is the test
+    // that pins the per-entry rule rather than the object-universe rule.
     let f = fixture("new-path");
-    fs::write(f.repo.join("newfile.txt"), b"never published\n").unwrap();
-    git(&f.repo, &["add", "newfile.txt"]);
-    git(&f.repo, &["stash", "create"]);
-    let blob = git_text(&f.repo, &["rev-parse", ":newfile.txt"]).to_string();
+    let published_blob = git_text(&f.repo, &["rev-parse", ":dir/b.txt"]);
     let mut cmd = command(&f.repo);
     cmd.env("GIT_INDEX_FILE", &f.spool.join("index"))
-        .args(["update-index", "--add", "--cacheinfo", &format!("100644,{blob},newfile.txt")]);
+        .args(["update-index", "--add", "--cacheinfo", &format!("100644,{published_blob},relocated.txt")]);
     let out = cmd.output().unwrap();
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
     seal(&f.spool);
     backdate(&f.spool);
     assert_eq!(reap(&f.repo).await, 0, "a path not in published must preserve");
+    assert!(f.spool.exists());
+}
+
+#[tokio::test]
+async fn index_entry_using_a_published_blob_at_another_published_path_is_preserved() {
+    // Blob AND path are each published, just not together: `a.txt`'s content
+    // placed at `dir/b.txt`. Reachability passes, the path exists, only the
+    // (path, blob) pairing proves it wrong.
+    let f = fixture("crossed-pairing");
+    let blob_a = git_text(&f.repo, &["rev-parse", ":a.txt"]);
+    let mut cmd = command(&f.repo);
+    cmd.env("GIT_INDEX_FILE", &f.spool.join("index"))
+        .args(["update-index", "--cacheinfo", &format!("100644,{blob_a},dir/b.txt")]);
+    let out = cmd.output().unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0, "a crossed pairing must preserve");
     assert!(f.spool.exists());
 }
 
