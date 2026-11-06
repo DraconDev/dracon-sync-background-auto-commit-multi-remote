@@ -6041,6 +6041,24 @@ fn test_transient_dns_does_not_burn_stuck_budget() {
     assert!(entry.last_error_at > 0, "backoff anchor still stamped");
 }
 
+// ADDED 2026-11-06 (sync-stall fix): the per-commit "N unpushed commits"
+// alert must not repeat on every commit cycle. The first alert for a repo is
+// due; a repeat is only due after the repeat window.
+#[test]
+fn test_unpushed_alert_throttles_per_repo() {
+    let repo = std::path::PathBuf::from("/tmp/dracon-unpushed-alert-throttle-fixture");
+    let other = std::path::PathBuf::from("/tmp/dracon-unpushed-alert-throttle-fixture-other");
+    assert!(unpushed_alert_due(&repo), "the first alert for a repo is always due");
+    assert!(
+        !unpushed_alert_due(&repo),
+        "an immediate repeat must be suppressed"
+    );
+    assert!(
+        unpushed_alert_due(&other),
+        "the throttle is per repo, not fleet-wide"
+    );
+}
+
 #[test]
 fn test_stuck_ahead_threshold_follows_the_publication_budget() {
     // ADDED 2026-11-06 (sync-stall fix). A repo the daemon has granted 1800 s
@@ -6445,6 +6463,46 @@ pub(crate) fn get_stuck_push_info(repo: &Path) -> Option<StuckRepoEntry> {
 /// This helper returns `true` (and re-arms the cooldown) when a
 /// notification with `key` should be sent: either it was never sent,
 /// or the stored deadline has passed.
+/// ADDED 2026-11-06 (sync-stall fix): how often the per-commit "N unpushed
+/// commits" alert may repeat for one repo.
+///
+/// The alert fired on EVERY commit cycle while a repo stayed above the
+/// threshold — on a fast producer that is every ~30 seconds, each line
+/// saying "Something may be wrong with push" while the daemon was publishing
+/// normally and the queue was simply deep. That repetition is what agents
+/// read and acted on: a stale-but-true alarm, repeated constantly, reads as
+/// "the push is broken, go verify it".
+///
+/// The count is still reported; only the repetition is gone. The cadence
+/// matches the sustained-state notification, so one repo produces one
+/// unpushed-commits line per 30 minutes.
+pub(crate) const UNPUSHED_ALERT_REPEAT: Duration = Duration::from_secs(1800);
+
+static UNPUSHED_ALERT_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+static UNPUSHED_ALERT_SEEN: std::sync::Mutex<Option<HashMap<PathBuf, Instant>>> =
+    std::sync::Mutex::new(None);
+
+/// ADDED 2026-11-06 (sync-stall fix): whether the per-commit unpushed-commits
+/// alert is due for `repo` now. The first call for a repo is always due; a
+/// repeat is due only after [`UNPUSHED_ALERT_REPEAT`] has elapsed.
+pub(crate) fn unpushed_alert_due(repo: &Path) -> bool {
+    let _guard = UNPUSHED_ALERT_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut seen = UNPUSHED_ALERT_SEEN
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let map = seen.get_or_insert_with(HashMap::new);
+    let now = Instant::now();
+    let due = map
+        .get(repo)
+        .is_none_or(|last| now.duration_since(*last) >= UNPUSHED_ALERT_REPEAT);
+    if due {
+        map.insert(repo.to_path_buf(), now);
+    }
+    due
+}
+
 pub(crate) fn notify_throttled(
     map: &mut HashMap<String, Instant>,
     key: &str,

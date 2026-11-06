@@ -4644,10 +4644,18 @@ async fn stage_commit_and_push(
     // Failure after a known commit must not erase that fact or skip publication.
     match count_ahead_commits(repo).await {
         Ok(ahead) if ahead > policy.alert_unpushed_threshold as u64 => {
-            eprintln!(
-                "🚨 ALERT: {} has {} unpushed commits (threshold: {}). Something may be wrong with push.",
-                repo.display(), ahead, policy.alert_unpushed_threshold
-            );
+            // CHANGED 2026-11-06 (sync-stall fix): this fired on every commit
+            // cycle, so a repo with a deep queue produced the same
+            // "Something may be wrong with push" line every ~30 seconds while
+            // the daemon was publishing normally. Repetition is what turned a
+            // stale-but-true alarm into a reason to go and verify the push by
+            // hand. The count is still reported, once per 30 minutes.
+            if crate::daemon::unpushed_alert_due(repo) {
+                eprintln!(
+                    "🚨 ALERT: {} has {} unpushed commits (threshold: {}). Something may be wrong with push.",
+                    repo.display(), ahead, policy.alert_unpushed_threshold
+                );
+            }
         }
         Ok(_) => {}
         Err(error) => {
