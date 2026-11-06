@@ -469,7 +469,19 @@ fn known_payload_free(name: &str, spool: &Path) -> bool {
 ///
 /// Unknown payload must not be deleted. An empty file proves nothing, so it is
 /// accepted; anything else is a reason to preserve the whole spool.
-fn only_known_files(spool: &Path) -> Result<()> {
+///
+/// A producer endpoint (`producer-io-*`) is the daemon↔producer I/O channel:
+/// it carries the stdin payload or the captured stdout/stderr of one epoch
+/// Git command. Those files are usually empty (stderr) or hold a revision
+/// expression (a ref update's argument, a rev-parse/write-tree result).
+///
+/// Such a file is payload-free ONLY when every byte of it is part of an object
+/// id — optionally with Git's peel suffix — and EVERY id it names is already
+/// reachable from a published ref. Then the file names published objects and
+/// carries no unpublished bytes of its own. A file that holds anything else
+/// (a blob's content, a diagnostic, a partial write) is unknown payload and
+/// preserves the whole spool.
+fn only_known_files(spool: &Path, published: &Published, width: usize) -> Result<()> {
     for entry in fs::read_dir(spool)? {
         let entry = entry?;
         let name = entry.file_name();
@@ -484,12 +496,60 @@ fn only_known_files(spool: &Path) -> Result<()> {
         if known_payload_free(name, spool) {
             continue;
         }
-        ensure!(
-            metadata.len() == 0,
-            "spool holds unknown non-empty payload; spool preserved"
-        );
+        if metadata.len() == 0 {
+            continue;
+        }
+        if name.starts_with("producer-io-") {
+            let ids = named_object_ids(&entry.path(), width)
+                .context("producer endpoint holds payload that is not an object id")?;
+            for id in &ids {
+                ensure!(
+                    published.reachable.contains(id.as_str()),
+                    "producer endpoint names an object no published ref reaches"
+                );
+            }
+            continue;
+        }
+        anyhow::bail!("spool holds unknown non-empty payload; spool preserved");
     }
     Ok(())
+}
+
+/// Every object id named by a producer endpoint file.
+///
+/// The file must consist of nothing but whitespace-separated revision
+/// expressions built from an object id: an optional `^`, the id itself, and
+/// an optional Git peel suffix (`^{tree}`, `^{commit}`). Anything else means
+/// the file carries bytes of its own.
+fn named_object_ids(path: &Path, width: usize) -> Result<Vec<String>> {
+    const LIMIT: u64 = 1024 * 1024;
+    let file = fs::File::open(path)?;
+    ensure!(
+        file.metadata()?.len() <= LIMIT,
+        "producer endpoint exceeds the object-id limit"
+    );
+    let mut bytes = Vec::new();
+    std::io::Read::take(&mut { file }, LIMIT + 1).read_to_end(&mut bytes)?;
+    ensure!(
+        bytes.len() as u64 <= LIMIT,
+        "producer endpoint exceeds the object-id limit"
+    );
+    let text = std::str::from_utf8(&bytes).context("producer endpoint is not text")?;
+    let mut ids = Vec::new();
+    for token in text.split_whitespace() {
+        let token = token.strip_prefix('^').unwrap_or(token);
+        let token = token
+            .strip_suffix("^{tree}")
+            .or_else(|| token.strip_suffix("^{commit}"))
+            .unwrap_or(token);
+        ensure!(
+            is_object_id(token, width),
+            "producer endpoint holds a token that is not an object id"
+        );
+        ids.push(token.to_owned());
+    }
+    ensure!(!ids.is_empty(), "producer endpoint names no object id");
+    Ok(ids)
 }
 
 /// A preserve marker forbids removal.
@@ -583,7 +643,7 @@ async fn remove_if_redundant(
         .proves_inactivity()
         .context("source inactivity is not proven")?;
     ensure!(!protected(spool), "preserve-marked source");
-    only_known_files(spool)?;
+    only_known_files(spool, published, width)?;
 
     let index = spool.join("index");
     ensure!(index.is_file(), "spool has no index to compare");
