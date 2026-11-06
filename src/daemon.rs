@@ -820,6 +820,7 @@ fn book_provisional_activity(
                     changed_at: now,
                     dirty_since: if provisional_dirty { Some(now) } else { None },
                     ahead_since: None,
+                    ahead_count: 0,
                     behind_since: None,
                     mirror_consecutive_fails: HashMap::new(),
                     failure_count: 0,
@@ -1688,6 +1689,44 @@ pub(crate) fn sustained_threshold_met(
     }
 }
 
+/// ADDED 2026-11-06 (sync-stall fix): the floor for the "Stuck Ahead
+/// (Unpushed)" alert, independent of the repo's publication budget.
+pub(crate) const STUCK_AHEAD_FLOOR_SECS: u64 = 600;
+
+/// ADDED 2026-11-06 (sync-stall fix): grace added on top of the daemon's own
+/// publication budget, so a round that finishes exactly at its deadline is
+/// not reported as stuck.
+pub(crate) const STUCK_AHEAD_GRACE_SECS: u64 = 120;
+
+/// ADDED 2026-11-06 (sync-stall fix): how long a repo may stay ahead of its
+/// remotes before the daemon calls it stuck.
+///
+/// The daemon sizes every publication by the queue depth:
+/// [`crate::sync::scale_push_timeout`] gives a repo 13 commits ahead 1800 s
+/// at the live 900 s base, and 28 ahead 3600 s. The "Stuck Ahead" alert used
+/// to fire on a FLAT 600 s of "queue non-empty", so a round the daemon had
+/// explicitly permitted to run for half an hour was reported as "push may be
+/// failing" after ten minutes.
+///
+/// That mismatch is what dragged the coding agents into a babysitting loop:
+/// the alert said the push might be failing, the queue was visibly non-empty,
+/// and the agents began verifying the push by hand — polling `git ls-remote`
+/// and spawning duplicate test runs — while the daemon was publishing
+/// normally.
+///
+/// The threshold is therefore the daemon's own budget for this queue depth,
+/// plus a grace margin for the dispatch cycle around it. A genuinely broken
+/// push still alerts: its budget expires, the attempt fails, and the
+/// stuck-push ledger (`🛑 push-stuck`) takes over with the real cause.
+pub(crate) fn stuck_ahead_threshold(base_secs: u64, ahead: u64) -> Duration {
+    let permitted = crate::sync::scale_push_timeout(base_secs, ahead);
+    Duration::from_secs(
+        STUCK_AHEAD_FLOOR_SECS
+            .max(permitted)
+            .saturating_add(STUCK_AHEAD_GRACE_SECS),
+    )
+}
+
 /// ADDED 2026-07-21 (v0.112.31, audit H1/F0.2): how long an
 /// `Unowned`/`Unknown` verdict is cached before re-detection.
 /// 10 minutes balances remediation responsiveness against the
@@ -2522,6 +2561,7 @@ mod tests {
             changed_at: std::time::Instant::now(),
             dirty_since: None,
             ahead_since: None,
+                    ahead_count: 0,
             behind_since: None,
             mirror_consecutive_fails: HashMap::new(),
             failure_count: 0,
@@ -2713,6 +2753,7 @@ mod tests {
             changed_at: std::time::Instant::now(),
             dirty_since: None,
             ahead_since: None,
+                    ahead_count: 0,
             behind_since: None,
             mirror_consecutive_fails: HashMap::new(),
             failure_count: 0,
@@ -2794,6 +2835,7 @@ mod tests {
             changed_at: std::time::Instant::now(),
             dirty_since: None,
             ahead_since: None,
+                    ahead_count: 0,
             behind_since: None,
             mirror_consecutive_fails: paused.clone(),
             failure_count: 2,
@@ -4647,6 +4689,7 @@ mod tests {
                 changed_at: now,
                 dirty_since: Some(now),
                 ahead_since: None,
+                    ahead_count: 0,
                 behind_since: None,
                 mirror_consecutive_fails: HashMap::new(),
                 failure_count: 0,
@@ -7420,6 +7463,11 @@ pub(crate) struct RepoActivity {
     dirty_since: Option<Instant>,
     /// When the repo first became ahead of origin (unpushed commits).
     ahead_since: Option<Instant>,
+    /// How many commits the repo was ahead of its remotes when this was last
+    /// observed. The "Stuck Ahead" alert needs the depth, not just the age:
+    /// the daemon sizes a publication by the queue depth, so the depth is what
+    /// says how long the round is ALLOWED to take.
+    ahead_count: u64,
     /// When the repo first became behind origin (unpulled commits).
     behind_since: Option<Instant>,
     /// Which mirrors have failed consecutively (name → failure info).
@@ -8507,6 +8555,7 @@ pub(crate) async fn run_daemon(
                         changed_at: now,
                         dirty_since: None,
                         ahead_since: None,
+                    ahead_count: 0,
                         behind_since: None,
                         mirror_consecutive_fails: HashMap::new(),
                         failure_count: 0,
@@ -9811,6 +9860,7 @@ pub(crate) async fn run_daemon(
                         changed_at: now,
                         dirty_since: if effective_dirty { Some(now) } else { None },
                         ahead_since: if status.ahead > 0 { Some(now) } else { None },
+                        ahead_count: status.ahead,
                         behind_since: if status.behind > 0 { Some(now) } else { None },
                         mirror_consecutive_fails: HashMap::new(),
                         failure_count: 0,
@@ -9838,6 +9888,9 @@ pub(crate) async fn run_daemon(
             } else if status.ahead == 0 {
                 entry.ahead_since = None;
             }
+            // The alert below reads the depth, so keep the last observed value
+            // even when the repo is momentarily level with its remotes.
+            entry.ahead_count = status.ahead;
             if status.behind > 0 && entry.behind_since.is_none() {
                 entry.behind_since = Some(now);
             } else if status.behind == 0 {
@@ -10468,7 +10521,17 @@ pub(crate) async fn run_daemon(
 
         for (repo, entry) in &activity {
             // Repo stuck ahead (unpushed commits piling up)
-            if sustained_threshold_met(entry.ahead_since, notification_now, STUCK_AHEAD_THRESHOLD) {
+            //
+            // CHANGED 2026-11-06 (sync-stall fix): the threshold is the
+            // daemon's OWN publication budget for this queue depth, not a flat
+            // 10 minutes. The daemon grants a deep queue half an hour
+            // (`scale_push_timeout`), so warning after 10 minutes reported a
+            // permitted, in-progress round as a possible failure — and that
+            // alarm is what sent the coding agents into a hand-verification
+            // loop against a daemon that was publishing normally.
+            let ahead_threshold =
+                stuck_ahead_threshold(policy.push_op_timeout_secs, entry.ahead_count);
+            if sustained_threshold_met(entry.ahead_since, notification_now, ahead_threshold) {
                 // ADDED 2026-09-20 (v0.113.83): while the repo is
                 // Exhausted-paused the Push Stuck page (with repair
                 // command) is already in the tray — skip the duplicate.
@@ -10497,10 +10560,24 @@ pub(crate) async fn run_daemon(
                         &notify_key,
                         Duration::from_secs(1800),
                     ) {
+                        // CHANGED 2026-11-06: the details carry what a reader
+                        // needs to act — the depth, how long the queue has
+                        // been non-empty, and the budget the daemon gave this
+                        // round. "push may be failing" alone sent readers (and
+                        // agents) to re-verify a push that was merely slow.
+                        let queued = entry.ahead_count;
+                        let waited = entry
+                            .ahead_since
+                            .map(|since| notification_now.duration_since(since).as_secs())
+                            .unwrap_or(0);
                         crate::report::record_sync_alert(
                             repo,
                             "Stuck Ahead (Unpushed)",
-                            "commits not reaching origin for >10 min — push may be failing",
+                            &format!(
+                                "{queued} commits not reaching origin for {}m (this round is allowed {}s) — push may be failing",
+                                waited / 60,
+                                ahead_threshold.as_secs(),
+                            ),
                         );
                     }
                 }
