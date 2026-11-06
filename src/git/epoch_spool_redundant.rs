@@ -86,7 +86,6 @@ const LEDGER: &str = "dracon-redundant-reclaim.jsonl";
 /// The published tree of one ref, indexed by path for per-entry proof.
 struct PublishedRef {
     name: String,
-    entries: Vec<TreeEntry>,
     /// `path -> (mode, oid)` so a spool index entry can be proved against the
     /// path it actually occupies, not against a whole-tree digest.
     by_path: std::collections::BTreeMap<Vec<u8>, (String, String)>,
@@ -232,7 +231,6 @@ async fn published_set(repo: &Path, timeout: u64) -> Result<Published> {
             .collect();
         refs.push(PublishedRef {
             name: name.clone(),
-            entries,
             by_path,
         });
     }
