@@ -549,3 +549,89 @@ async fn a_pass_cools_the_repository_down() {
     assert_eq!(reap(&other.repo).await, 1, "an unrelated repository still reclaims");
     assert!(!other.spool.exists());
 }
+
+// ---------------------------------------------------------------------------
+// CHANGED 2026-11-06: the proof is per-entry, not whole-tree equality.
+//
+// A spool is written whenever an epoch stages a working tree, and a working
+// tree normally holds the daemon's own not-yet-pushed commits — so demanding
+// that the WHOLE index equal some published tree rejected ~98% of the backlog
+// even when every object was already published. What must hold instead is that
+// every entry is published at the SAME path with the SAME mode and blob.
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn index_that_is_a_subset_of_a_published_tree_is_redundant() {
+    // The shape the old whole-tree rule wrongly refused: a partial stage whose
+    // every entry is published verbatim.
+    let f = fixture("subset-of-published");
+    let published = git_text(&f.repo, &["rev-parse", "HEAD"]);
+    fs::write(f.spool.join("producer-io-head"), format!("{published}\n")).unwrap();
+    // Drop `dir/b.txt` from the spool index: the index now describes a strict
+    // subset of the published tree.
+    let index = f.spool.join("index");
+    let mut cmd = command(&f.repo);
+    cmd.env("GIT_INDEX_FILE", &index)
+        .args(["rm", "--cached", "-q", "dir/b.txt"]);
+    let out = cmd.output().unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 1);
+    assert!(!f.spool.exists());
+}
+
+#[tokio::test]
+async fn index_entry_with_unpublished_content_at_a_published_path_is_preserved() {
+    // Same path, different blob: the spool holds an edit that never shipped.
+    let f = fixture("diverged-blob");
+    fs::write(f.repo.join("a.txt"), b"edited but never published\n").unwrap();
+    git(&f.repo, &["add", "a.txt"]);
+    let blob = git_text(&f.repo, &["rev-parse", ":a.txt"]);
+    let mut cmd = command(&f.repo);
+    cmd.env("GIT_INDEX_FILE", &f.spool.join("index"))
+        .args(["update-index", "--cacheinfo", &format!("100644,{blob},a.txt")]);
+    let out = cmd.output().unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    // The blob is reachable (it is in the object store via hash-object -w above)
+    // so only the per-entry path/mode/blob check can catch this.
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0, "unpublished content must preserve");
+    assert!(f.spool.exists());
+}
+
+#[tokio::test]
+async fn index_entry_at_a_path_absent_from_published_is_preserved() {
+    // A brand-new file that was never published: real staged work.
+    let f = fixture("new-path");
+    fs::write(f.repo.join("newfile.txt"), b"never published\n").unwrap();
+    git(&f.repo, &["add", "newfile.txt"]);
+    git(&f.repo, &["stash", "create"]);
+    let blob = git_text(&f.repo, &["rev-parse", ":newfile.txt"]).to_string();
+    let mut cmd = command(&f.repo);
+    cmd.env("GIT_INDEX_FILE", &f.spool.join("index"))
+        .args(["update-index", "--add", "--cacheinfo", &format!("100644,{blob},newfile.txt")]);
+    let out = cmd.output().unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0, "a path not in published must preserve");
+    assert!(f.spool.exists());
+}
+
+#[tokio::test]
+async fn index_entry_with_a_changed_mode_is_preserved() {
+    // Same blob and path but a different mode is still a different state.
+    let f = fixture("mode-change");
+    let blob = git_text(&f.repo, &["rev-parse", ":a.txt"]);
+    let mut cmd = command(&f.repo);
+    cmd.env("GIT_INDEX_FILE", &f.spool.join("index"))
+        .args(["update-index", "--cacheinfo", &format!("100755,{blob},a.txt")]);
+    let out = cmd.output().unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0, "a mode change must preserve");
+    assert!(f.spool.exists());
+}
