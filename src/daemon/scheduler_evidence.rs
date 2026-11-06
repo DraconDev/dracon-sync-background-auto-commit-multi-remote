@@ -382,6 +382,7 @@ mod tests {
             changed_at: now,
             dirty_since: Some(age),
             ahead_since: None,
+            ahead_count: 0,
             behind_since: None,
             mirror_consecutive_fails: HashMap::new(),
             failure_count: 0,

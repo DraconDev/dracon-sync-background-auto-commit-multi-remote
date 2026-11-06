@@ -9884,7 +9884,7 @@ pub(crate) async fn run_daemon(
                         changed_at: now,
                         dirty_since: if effective_dirty { Some(now) } else { None },
                         ahead_since: if status.ahead > 0 { Some(now) } else { None },
-                        ahead_count: status.ahead,
+                        ahead_count: status.ahead as u64,
                         behind_since: if status.behind > 0 { Some(now) } else { None },
                         mirror_consecutive_fails: HashMap::new(),
                         failure_count: 0,
@@ -9914,7 +9914,7 @@ pub(crate) async fn run_daemon(
             }
             // The alert below reads the depth, so keep the last observed value
             // even when the repo is momentarily level with its remotes.
-            entry.ahead_count = status.ahead;
+            entry.ahead_count = status.ahead as u64;
             if status.behind > 0 && entry.behind_since.is_none() {
                 entry.behind_since = Some(now);
             } else if status.behind == 0 {
