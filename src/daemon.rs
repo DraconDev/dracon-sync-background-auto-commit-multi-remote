@@ -6042,6 +6042,30 @@ fn test_transient_dns_does_not_burn_stuck_budget() {
 }
 
 #[test]
+fn test_stuck_ahead_threshold_follows_the_publication_budget() {
+    // ADDED 2026-11-06 (sync-stall fix). A repo the daemon has granted 1800 s
+    // must not be reported as stuck after 600 s: the alert used to fire on a
+    // flat 10 minutes and called a permitted, in-progress round "push may be
+    // failing".
+    let base = 900;
+    // Shallow queue: the daemon's own budget is the base, and the floor plus
+    // grace applies.
+    assert_eq!(stuck_ahead_threshold(base, 1).as_secs(), 900 + 120);
+    // 13 commits ahead: the daemon scales the budget to 2x, and the alert
+    // follows it instead of the old flat 600 s.
+    assert_eq!(stuck_ahead_threshold(base, 13).as_secs(), 1800 + 120);
+    assert!(stuck_ahead_threshold(base, 13).as_secs() > 600);
+    // 28 ahead: 4x the base.
+    assert_eq!(stuck_ahead_threshold(base, 28).as_secs(), 3600 + 120);
+    // The floor still holds when the configured budget is tiny.
+    assert_eq!(stuck_ahead_threshold(60, 1).as_secs(), 600 + 120);
+    // The threshold never falls below the old flat floor.
+    for ahead in [0u64, 1, 5, 13, 28, 50, 500] {
+        assert!(stuck_ahead_threshold(base, ahead).as_secs() >= STUCK_AHEAD_FLOOR_SECS);
+    }
+}
+
+#[test]
 fn test_stuck_ahead_covered_by_pause_matrix() {
     // v0.113.83: Exhausted-paused repos skip the Stuck Ahead
     // duplicate; under-budget retries keep the early warning.
@@ -10512,7 +10536,10 @@ pub(crate) async fn run_daemon(
         // Check for repos that have been in a concerning state for too long.
         // These fire once per repo per sustained incident, rate-limited to 30 min.
         let notification_now = Instant::now();
-        const STUCK_AHEAD_THRESHOLD: Duration = Duration::from_secs(600); // 10 min
+        // CHANGED 2026-11-06 (sync-stall fix): the "Stuck Ahead" threshold is
+        // no longer a flat 10 minutes. It is derived per repo from the
+        // publication budget the daemon grants that queue depth — see
+        // `stuck_ahead_threshold`.
         const STUCK_BEHIND_THRESHOLD: Duration = Duration::from_secs(1800); // 30 min
         const MIRROR_DEGRADED_THRESHOLD: usize = 3; // 3 consecutive fails
                                                     // ADDED 2026-07-22 (v0.112.37): sustained needs-human states.
