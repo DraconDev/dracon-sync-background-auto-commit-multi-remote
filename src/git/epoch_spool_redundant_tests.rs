@@ -529,3 +529,23 @@ async fn producer_endpoint_with_a_path_is_preserved() {
     assert_eq!(reap(&f.repo).await, 0);
     assert!(f.spool.exists());
 }
+
+#[tokio::test]
+async fn a_pass_cools_the_repository_down() {
+    // The reachability walk is the most expensive thing this route does, and a
+    // pass that just ran cannot learn anything new about the same spools, so a
+    // second pass inside the cooldown must not even scan.
+    let f = fixture("cooldown");
+    seal(&f.spool);
+    backdate(&f.spool);
+    // Seed the cooldown as a completed pass would.
+    note_attempt(&f.repo);
+    assert_eq!(reap(&f.repo).await, 0, "a pass inside the cooldown is skipped");
+    assert!(f.spool.exists(), "the skipped pass removed nothing");
+    // A different repository is unaffected by this one's cooldown.
+    let other = fixture("cooldown-other");
+    seal(&other.spool);
+    backdate(&other.spool);
+    assert_eq!(reap(&other.repo).await, 1, "an unrelated repository still reclaims");
+    assert!(!other.spool.exists());
+}
