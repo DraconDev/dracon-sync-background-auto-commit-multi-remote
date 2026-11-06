@@ -225,9 +225,15 @@ async fn published_set(repo: &Path, timeout: u64) -> Result<Published> {
                 continue;
             }
         };
+        let entries = parse_tree(&tree)?;
+        let by_path = entries
+            .iter()
+            .map(|entry| (entry.path.clone(), (entry.mode.clone(), entry.oid.clone())))
+            .collect();
         refs.push(PublishedRef {
             name: name.clone(),
-            entries: parse_tree(&tree)?,
+            entries,
+            by_path,
         });
     }
     // Every ref failed to read: an empty proof, never a permissive one.
@@ -823,14 +829,43 @@ async fn remove_if_redundant(
         );
     }
 
-    // The index must describe exactly a published tree.
-    let matched = published
+    // The index must be PROVED against published state, entry by entry.
+    //
+    // CHANGED 2026-11-06: this used to demand that the whole index equal some
+    // published ref's tree, entry for entry. That is sound but far too strict:
+    // a spool is written whenever an epoch stages a WORKING TREE, and a working
+    // tree normally contains the daemon's own auto-commits that have not been
+    // pushed yet — so its index matched a published tree in roughly 1 spool out
+    // of 50 even though every object in it was already published. The rule
+    // rejected ~98% of a 86.8 GiB backlog while proving nothing extra.
+    //
+    // The invariant that actually matters is per-entry, not per-tree: a spool
+    // can be removed when every entry it holds is already published AT THE SAME
+    // PATH with the SAME mode and SAME blob. Then the spool describes a state
+    // that exists verbatim in published history, and its own copy is pure
+    // duplication. A path the published tree does not have, or has with a
+    // different blob or mode, is NOT proved — it is work that never shipped —
+    // and it preserves the spool. This is strictly narrower than "some objects
+    // are published": it demands a published identity for all three of
+    // (path, mode, blob), which is what makes the spool's bytes redundant.
+    //
+    // The object-universe reachability check above still runs first and still
+    // requires EVERY retained-pack object (not just index entries) to be
+    // published, so a pack holding unpublished bytes is refused even when the
+    // index itself looks published.
+    let reference = published
         .refs
         .iter()
-        .find(|reference| reference.entries == entries)
+        .find(|reference| {
+            entries
+                .iter()
+                .all(|entry| reference.by_path.get(&entry.path) == Some(&(entry.mode.clone(), entry.oid.clone())))
+        })
         .map(|reference| reference.name.clone());
-    let Some(reference) = matched else {
-        anyhow::bail!("spool index does not describe any published tree");
+    let Some(reference) = reference else {
+        anyhow::bail!(
+            "spool index holds a staged state that no published tree contains entry-for-entry"
+        );
     };
 
     // Final, no-await checks. The owner fence is held across the removal, so
