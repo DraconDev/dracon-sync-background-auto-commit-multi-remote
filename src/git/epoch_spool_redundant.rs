@@ -83,9 +83,13 @@ fn note_attempt(repo: &Path) {
 const LEDGER: &str = "dracon-redundant-reclaim.jsonl";
 
 /// A published remote-tracking ref and the tree it publishes.
+/// The published tree of one ref, indexed by path for per-entry proof.
 struct PublishedRef {
     name: String,
     entries: Vec<TreeEntry>,
+    /// `path -> (mode, oid)` so a spool index entry can be proved against the
+    /// path it actually occupies, not against a whole-tree digest.
+    by_path: std::collections::BTreeMap<Vec<u8>, (String, String)>,
 }
 
 /// Everything the published refs prove about this repository.
@@ -225,12 +229,6 @@ async fn published_set(repo: &Path, timeout: u64) -> Result<Published> {
             name: name.clone(),
             entries: parse_tree(&tree)?,
         });
-    }
-    // Every ref failed to read: an empty proof, never a permissive one.
-    if refs.is_empty() {
-        return Ok(Published { refs, reachable });
-    }
-
     let mut command = git(repo);
     command
         .args(["rev-list", "--objects", "--no-object-names"])
