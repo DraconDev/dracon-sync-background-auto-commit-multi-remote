@@ -456,3 +456,76 @@ async fn producer_endpoint_without_any_object_id_is_preserved() {
     assert_eq!(reap(&f.repo).await, 0);
     assert!(f.spool.exists());
 }
+
+/// The stem of the single retained pack a fixture spool holds.
+fn retained_stem_of(spool: &Path) -> String {
+    let mut stems = Vec::new();
+    for entry in fs::read_dir(spool).unwrap() {
+        let path = entry.unwrap().path();
+        if path.extension().is_some_and(|ext| ext == "pack") {
+            let name = path.file_name().unwrap().to_str().unwrap();
+            stems.push(name.trim_start_matches("retained-").trim_end_matches(".pack").to_owned());
+        }
+    }
+    assert_eq!(stems.len(), 1, "fixture spool must hold one retained pack");
+    stems.pop().unwrap()
+}
+
+#[tokio::test]
+async fn producer_endpoint_naming_its_own_retained_pack_is_redundant() {
+    let f = fixture("producer-own-pack");
+    // `git pack-objects <basename>` names its output after a content hash of the
+    // pack, so the producer endpoint records a pack NAME, not an object id. The
+    // pack's own objects are proven reachable separately, so naming it carries
+    // no unpublished bytes.
+    let stem = retained_stem_of(&f.spool);
+    fs::write(f.spool.join("producer-io-Stdin"), format!("{stem}\n")).unwrap();
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 1);
+    assert!(!f.spool.exists());
+}
+
+#[tokio::test]
+async fn producer_endpoint_naming_a_foreign_pack_stem_is_preserved() {
+    let f = fixture("producer-foreign-pack");
+    // A hash that is neither published nor one of this spool's own packs names
+    // something the proof never saw.
+    let foreign = dangling_blob(&f.repo, b"not a pack this spool owns");
+    assert_ne!(foreign, retained_stem_of(&f.spool));
+    fs::write(f.spool.join("producer-io-Stdin"), format!("{foreign}\n")).unwrap();
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0);
+    assert!(f.spool.exists());
+}
+
+#[tokio::test]
+async fn producer_endpoint_naming_an_unpaired_pack_stem_is_preserved() {
+    let f = fixture("producer-unpaired-pack");
+    // An index without its pack must not vouch for itself: only a pack AND
+    // index pair counts as a stem this spool owns.
+    let orphan = "0123456789abcdef0123456789abcdef01234567";
+    fs::copy(
+        f.spool.join(format!("retained-{}.idx", retained_stem_of(&f.spool))),
+        f.spool.join(format!("retained-{orphan}.idx")),
+    )
+    .unwrap();
+    fs::write(f.spool.join("producer-io-Stdin"), format!("{orphan}\n")).unwrap();
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0);
+    assert!(f.spool.exists());
+}
+
+#[tokio::test]
+async fn producer_endpoint_with_a_path_is_preserved() {
+    let f = fixture("producer-path");
+    // A `git rm --cached <path>`-style endpoint carries repository paths, which
+    // are not names the redundancy proof covers.
+    fs::write(f.spool.join("producer-io-Stdin"), b"rm 'cpu-leases/unit.json'\n").unwrap();
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0);
+    assert!(f.spool.exists());
+}

@@ -475,11 +475,16 @@ fn known_payload_free(name: &str, spool: &Path) -> bool {
 /// Git command. Those files are usually empty (stderr) or hold a revision
 /// expression (a ref update's argument, a rev-parse/write-tree result).
 ///
-/// Such a file is payload-free ONLY when every byte of it is part of an object
-/// id — optionally with Git's peel suffix — and EVERY id it names is already
-/// reachable from a published ref. Then the file names published objects and
-/// carries no unpublished bytes of its own. A file that holds anything else
-/// (a blob's content, a diagnostic, a partial write) is unknown payload and
+/// Such a file is payload-free ONLY when every token is either
+///
+/// - an object id — optionally with Git's peel suffix — that is already
+///   reachable from a published ref, or
+/// - the stem of a retained pack this spool owns, whose every object is
+///   separately proven reachable before removal.
+///
+/// Then the file names content that is itself proven redundant and carries no
+/// unpublished bytes of its own. A file that holds anything else (a blob's
+/// content, a diagnostic, a partial write, a path) is unknown payload and
 /// preserves the whole spool.
 fn only_known_files(spool: &Path, published: &Published, width: usize) -> Result<()> {
     for entry in fs::read_dir(spool)? {
@@ -500,12 +505,16 @@ fn only_known_files(spool: &Path, published: &Published, width: usize) -> Result
             continue;
         }
         if name.starts_with("producer-io-") {
-            let ids = named_object_ids(&entry.path(), width)
-                .context("producer endpoint holds payload that is not an object id")?;
-            for id in &ids {
+            let names = producer_names(&entry.path(), width)
+                .context("producer endpoint holds payload that is not a name")?;
+            let stems = retained_pack_stems(spool)?;
+            for producer_name in &names {
+                if published.reachable.contains(producer_name.as_str()) {
+                    continue;
+                }
                 ensure!(
-                    published.reachable.contains(id.as_str()),
-                    "producer endpoint names an object no published ref reaches"
+                    stems.contains(producer_name.as_str()),
+                    "producer endpoint names neither a published object nor this spool's own retained pack"
                 );
             }
             continue;
@@ -515,13 +524,45 @@ fn only_known_files(spool: &Path, published: &Published, width: usize) -> Result
     Ok(())
 }
 
-/// Every object id named by a producer endpoint file.
+/// The retained pack stems this spool owns.
+///
+/// `git pack-objects <basename>` writes `<basename>-<hash>.pack`, where the
+/// hash is a content hash of the pack itself. A producer endpoint that names
+/// the pack it wrote therefore holds a pack name, not an object id. Only a
+/// stem whose pack AND index are both present counts: an unpaired index is
+/// already a reason to preserve the spool, and must not become a name that
+/// vouches for itself.
+fn retained_pack_stems(spool: &Path) -> Result<BTreeSet<String>> {
+    let mut packs: BTreeSet<String> = BTreeSet::new();
+    let mut indexes: BTreeSet<String> = BTreeSet::new();
+    for entry in fs::read_dir(spool)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else {
+            continue;
+        };
+        let Some(stem) = retained_stem(name) else {
+            continue;
+        };
+        if name.ends_with(".pack") {
+            packs.insert(stem.to_owned());
+        } else if name.ends_with(".idx") {
+            indexes.insert(stem.to_owned());
+        }
+    }
+    packs.retain(|stem| indexes.contains(stem));
+    Ok(packs)
+}
+
+/// Every name a producer endpoint file holds.
 ///
 /// The file must consist of nothing but whitespace-separated revision
-/// expressions built from an object id: an optional `^`, the id itself, and
-/// an optional Git peel suffix (`^{tree}`, `^{commit}`). Anything else means
-/// the file carries bytes of its own.
-fn named_object_ids(path: &Path, width: usize) -> Result<Vec<String>> {
+/// expressions built from a full-width hash: an optional `^`, the hash itself,
+/// and an optional Git peel suffix (`^{tree}`, `^{commit}`, `^{tag}`,
+/// `^{blob}`). The same shape covers an object id and a retained pack stem, so
+/// the caller decides which of the two each name is. Anything else means the
+/// file carries bytes of its own.
+fn producer_names(path: &Path, width: usize) -> Result<Vec<String>> {
     const LIMIT: u64 = 1024 * 1024;
     let file = fs::File::open(path)?;
     ensure!(
@@ -535,21 +576,21 @@ fn named_object_ids(path: &Path, width: usize) -> Result<Vec<String>> {
         "producer endpoint exceeds the object-id limit"
     );
     let text = std::str::from_utf8(&bytes).context("producer endpoint is not text")?;
-    let mut ids = Vec::new();
+    let mut names = Vec::new();
     for token in text.split_whitespace() {
         let token = token.strip_prefix('^').unwrap_or(token);
-        let token = token
-            .strip_suffix("^{tree}")
-            .or_else(|| token.strip_suffix("^{commit}"))
+        let token = ["^{tree}", "^{commit}", "^{tag}", "^{blob}"]
+            .iter()
+            .find_map(|suffix| token.strip_suffix(suffix))
             .unwrap_or(token);
         ensure!(
             is_object_id(token, width),
-            "producer endpoint holds a token that is not an object id"
+            "producer endpoint holds a token that is not a full-width hash"
         );
-        ids.push(token.to_owned());
+        names.push(token.to_owned());
     }
-    ensure!(!ids.is_empty(), "producer endpoint names no object id");
-    Ok(ids)
+    ensure!(!names.is_empty(), "producer endpoint names nothing");
+    Ok(names)
 }
 
 /// A preserve marker forbids removal.
