@@ -38,6 +38,47 @@ use tokio::process::Command;
 /// every candidate rather than guessing at its object universe.
 const MAX_REACHABLE_OBJECTS: usize = 2_000_000;
 
+/// How long a repository is left alone after a redundant-reclaim pass.
+///
+/// The pass builds a full published-reachability set: one `rev-list --objects`
+/// walk PER published remote-tracking ref (a repo with origin+github+gitlab
+/// pays it three times) plus one `ls-tree -r` per ref. On the fleet's larger
+/// repos that is ~1.5M object lines per pass, and a pass that removes nothing
+/// still pays it in full — blocking a sync worker every cycle. Without this
+/// cooldown the route saturated the machine (load average 38-59, kswapd0
+/// thrashing) while proving zero spools, because the dominant blockers (a
+/// spool index that matches no published tree, a legacy spool with no
+/// producer fence) are properties of the SPOOL, not of the repository, and
+/// re-deriving them every cycle can never change the answer.
+///
+/// One hour matches the auto-gc cooldown: reclamation is housekeeping, and an
+/// hour of latency on a housekeeping decision costs nothing.
+const REDUNDANT_RECLAIM_COOLDOWN_SECS: u64 = 3600;
+
+/// Per-repository cooldown state for this route.
+static REDUNDANT_ATTEMPTS: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashMap<PathBuf, std::time::Instant>>,
+> = std::sync::OnceLock::new();
+
+/// Whether this repository is still inside its post-pass cooldown.
+fn cooling_down(repo: &Path) -> bool {
+    let attempts = REDUNDANT_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
+    attempts
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .get(repo)
+        .is_some_and(|last| last.elapsed().as_secs() < REDUNDANT_RECLAIM_COOLDOWN_SECS)
+}
+
+/// Record that a pass ran for this repository now.
+fn note_attempt(repo: &Path) {
+    let attempts = REDUNDANT_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
+    attempts
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .insert(repo.to_path_buf(), std::time::Instant::now());
+}
+
 /// The durable record of removals this route performs.
 const LEDGER: &str = "dracon-redundant-reclaim.jsonl";
 
@@ -151,57 +192,79 @@ fn remote_of(refname: &str) -> Option<&str> {
 }
 
 /// Collect the published trees and the objects reachable from them.
+///
+/// Reachability is walked ONCE for all refs (`rev-list --objects <ref>...`):
+/// the fleet's repos publish the same history to origin, github and gitlab, so
+/// walking per ref repeated an identical ~500k-object traversal three times for
+/// the same set. The union is identical — reachability is a union operation, so
+/// one walk over every ref yields exactly what the per-ref walks accumulated —
+/// and the proof never shrinks, only the work does.
 async fn published_set(repo: &Path, timeout: u64) -> Result<Published> {
     let names = published_refs(repo, timeout).await?;
     let mut refs = Vec::new();
     let mut reachable: HashSet<String> = HashSet::new();
-    for name in names {
-        let tree = match git_output(repo, &["ls-tree", "-r", "-z", &name], timeout, "published tree")
+
+    // Trees are still read per ref: the tree-match proof needs each ref's own
+    // entry list, and `ls-tree` is cheap (one tree read, no history walk).
+    for name in &names {
+        let tree = match git_output(repo, &["ls-tree", "-r", "-z", name], timeout, "published tree")
             .await
         {
             Ok(tree) => tree,
             Err(error) => {
                 // A ref that cannot be read proves nothing. Skipping it only
                 // shrinks the proof; it never widens it.
-                eprintln!("⚠️ {}: published ref {name} is unreadable; ignored: {error:#}", repo.display());
+                eprintln!(
+                    "⚠️ {}: published ref {name} is unreadable; ignored: {error:#}",
+                    repo.display()
+                );
                 continue;
             }
         };
-        let objects = match git_output(
-            repo,
-            &["rev-list", "--objects", "--no-object-names", &name],
-            timeout,
-            "published objects",
-        )
-        .await
-        {
-            Ok(objects) => objects,
-            Err(error) => {
-                eprintln!("⚠️ {}: published ref {name} has no readable closure; ignored: {error:#}", repo.display());
-                continue;
-            }
-        };
-        for line in objects.split(|byte| *byte == b'\n') {
-            let oid = std::str::from_utf8(line)
-                .context("invalid published object identity")?
-                .trim();
-            if oid.is_empty() {
-                continue;
-            }
-            ensure!(
-                crate::git::is_valid_object_id(oid),
-                "invalid published object identity"
-            );
-            ensure!(
-                reachable.len() < MAX_REACHABLE_OBJECTS,
-                "published object universe is too large to prove"
-            );
-            reachable.insert(oid.to_owned());
-        }
         refs.push(PublishedRef {
-            name,
+            name: name.clone(),
             entries: parse_tree(&tree)?,
         });
+    }
+    // Every ref failed to read: an empty proof, never a permissive one.
+    if refs.is_empty() {
+        return Ok(Published { refs, reachable });
+    }
+
+    let mut command = git(repo);
+    command
+        .args(["rev-list", "--objects", "--no-object-names"])
+        .args(&names);
+    let objects = crate::git::run_command_captured_output(
+        command,
+        timeout,
+        "published objects",
+        None,
+    )
+    .await?;
+    ensure!(
+        objects.status.success(),
+        "published reachability walk failed: {}",
+        String::from_utf8_lossy(&objects.stderr).trim()
+    );
+    let objects = objects.stdout;
+
+    for line in objects.split(|byte| *byte == b'\n') {
+        let oid = std::str::from_utf8(line)
+            .context("invalid published object identity")?
+            .trim();
+        if oid.is_empty() {
+            continue;
+        }
+        ensure!(
+            crate::git::is_valid_object_id(oid),
+            "invalid published object identity"
+        );
+        ensure!(
+            reachable.len() < MAX_REACHABLE_OBJECTS,
+            "published object universe is too large to prove"
+        );
+        reachable.insert(oid.to_owned());
     }
     Ok(Published { refs, reachable })
 }
@@ -811,6 +874,13 @@ pub(super) async fn reap(
     } else {
         max_age_secs
     });
+    // Housekeeping, not convergence: a pass that just ran cannot learn anything
+    // new about the same spools, and the reachability walk it needs is the most
+    // expensive thing this route does.
+    if cooling_down(repo) {
+        return 0;
+    }
+    note_attempt(repo);
     let mut removed = 0usize;
     let pass = async {
         let Some(gitdir) = super::absolute_git_dir(repo).await else {
