@@ -857,7 +857,7 @@ async fn remove_if_redundant(
         .find(|reference| {
             entries
                 .iter()
-                .all(|entry| reference.by_path.values().any(|(_, oid)| *oid == entry.oid))
+                .all(|entry| reference.by_path.get(&entry.path) == Some(&(entry.mode.clone(), entry.oid.clone())))
         })
         .map(|reference| reference.name.clone());
     let Some(reference) = reference else {
