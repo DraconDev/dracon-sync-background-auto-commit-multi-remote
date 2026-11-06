@@ -229,6 +229,11 @@ async fn published_set(repo: &Path, timeout: u64) -> Result<Published> {
             name: name.clone(),
             entries: parse_tree(&tree)?,
         });
+    }
+    // Every ref failed to read: an empty proof, never a permissive one.
+    if refs.is_empty() {
+        return Ok(Published { refs, reachable });
+    }
     let mut command = git(repo);
     command
         .args(["rev-list", "--objects", "--no-object-names"])
