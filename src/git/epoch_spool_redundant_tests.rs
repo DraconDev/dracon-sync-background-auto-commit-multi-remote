@@ -383,3 +383,76 @@ async fn concurrent_reapers_remove_only_once() {
     assert_eq!(a + b, 1);
     assert!(!f.spool.exists());
 }
+
+#[tokio::test]
+async fn producer_endpoint_naming_published_objects_is_redundant() {
+    let f = fixture("producer-published");
+    // The real producer endpoint holds a revision expression: an object id,
+    // here with Git's peel suffix and a leading `^` exclusion.
+    let head = git_text(&f.repo, &["rev-parse", "HEAD"]);
+    let tree = git_text(&f.repo, &["rev-parse", "HEAD^{tree}"]);
+    fs::write(
+        f.spool.join("producer-io-stdin"),
+        format!("{head}\n^{tree}\n{head}^{{commit}}\n"),
+    )
+    .unwrap();
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 1);
+    assert!(!f.spool.exists());
+}
+
+#[tokio::test]
+async fn producer_endpoint_naming_unpublished_object_is_preserved() {
+    let f = fixture("producer-dangling");
+    let dangling = dangling_blob(&f.repo, b"payload never published");
+    fs::write(f.spool.join("producer-io-stdin"), format!("{dangling}\n")).unwrap();
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0);
+    assert!(f.spool.exists());
+    assert_eq!(
+        fs::read(f.spool.join("producer-io-stdin")).unwrap(),
+        format!("{dangling}\n").as_bytes()
+    );
+}
+
+#[tokio::test]
+async fn producer_endpoint_holding_real_payload_is_preserved() {
+    // A file that mixes an object id with other bytes still carries payload.
+    let f = fixture("producer-mixed");
+    let head = git_text(&f.repo, &["rev-parse", "HEAD"]);
+    fs::write(
+        f.spool.join("producer-io-stdout"),
+        format!("{head}\nfatal: something went wrong\n"),
+    )
+    .unwrap();
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0);
+    assert!(f.spool.exists());
+}
+
+#[tokio::test]
+async fn producer_endpoint_that_is_not_text_is_preserved() {
+    let f = fixture("producer-binary");
+    fs::write(f.spool.join("producer-io-stdin"), [0xff, 0xfe, 0x00, 0x01]).unwrap();
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0);
+    assert!(f.spool.exists());
+    assert_eq!(
+        fs::read(f.spool.join("producer-io-stdin")).unwrap(),
+        [0xff, 0xfe, 0x00, 0x01]
+    );
+}
+
+#[tokio::test]
+async fn producer_endpoint_without_any_object_id_is_preserved() {
+    let f = fixture("producer-no-id");
+    fs::write(f.spool.join("producer-io-stderr"), b"   \n\t\n").unwrap();
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0);
+    assert!(f.spool.exists());
+}
