@@ -5468,6 +5468,19 @@ async fn sync_repo_local_with_ownership(
             policy.stage_op_timeout_secs,
         )
         .await;
+        // ADDED 2026-11-06: the qualified reclaim transaction above is still
+        // interlocked off, so it removes nothing. A spool whose content is
+        // PROVABLY REDUNDANT — every object it holds is reachable from a
+        // published remote-tracking ref, and its index describes exactly a
+        // published tree — carries no recovery data at all and can go. This
+        // is a separate route with its own entry point; it never widens
+        // age-only deletion authority.
+        crate::git::reap_redundant_spools(
+            repo,
+            policy.epoch_spool_max_age_secs,
+            policy.stage_op_timeout_secs,
+        )
+        .await;
     }
 
     if !is_repo_ready(repo) {

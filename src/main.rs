@@ -1458,6 +1458,7 @@ async fn run_cli(cli: Cli) -> Result<()> {
                 let mut total_bytes = 0u64;
                 let mut per_repo: Vec<(PathBuf, usize, u64)> = Vec::new();
                 let mut reclaimed_total = 0usize;
+                let mut redundant_total = 0usize;
                 for repo in repos {
                     let (dirs, bytes) = git::sweep_epoch_spools(&repo, max_age, false).await;
                     if dirs > 0 {
@@ -1467,6 +1468,17 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     }
                     if apply {
                         reclaimed_total += git::reap_abandoned_spools(
+                            &repo,
+                            policy.epoch_spool_max_age_secs,
+                            policy.stage_op_timeout_secs,
+                        )
+                        .await;
+                        // ADDED 2026-11-06: spools whose content is provably
+                        // redundant (every object reachable from a published
+                        // remote-tracking ref, index equal to a published
+                        // tree) are removed by their own route. The qualified
+                        // transaction above stays interlocked off.
+                        redundant_total += git::reap_redundant_spools(
                             &repo,
                             policy.epoch_spool_max_age_secs,
                             policy.stage_op_timeout_secs,
@@ -1485,7 +1497,7 @@ async fn run_cli(cli: Cli) -> Result<()> {
                         })
                         .collect();
                     println!(
-                        "{{\"applied\":{apply},\"max_age_secs\":{max_age},\"dirs\":{total_dirs},\"bytes\":{total_bytes},\"reclaimed\":{reclaimed_total},\"repos\":[{}]}}",
+                        "{{\"applied\":{apply},\"max_age_secs\":{max_age},\"dirs\":{total_dirs},\"bytes\":{total_bytes},\"reclaimed\":{reclaimed_total},\"redundant_removed\":{redundant_total},\"repos\":[{}]}}",
                         rows.join(",")
                     );
                 } else {
@@ -1505,6 +1517,7 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     );
                     if apply {
                         println!("Verified removals: {reclaimed_total} dir(s). Recovery-store growth is separate; inventory bytes are not net savings.");
+                        println!("Redundant removals: {redundant_total} dir(s) proven already published.");
                     }
                     if !apply && total_dirs > 0 {
                         println!("\n🔧 Run 'dracon-sync repair spools --apply' to reclaim them");

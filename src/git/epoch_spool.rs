@@ -39,6 +39,8 @@ mod producer;
 mod reclaim;
 #[path = "epoch_spool_recovery.rs"]
 mod recovery;
+#[path = "epoch_spool_redundant.rs"]
+mod redundant;
 pub(crate) use dispatch::run_spool_git;
 pub(crate) use ownership::SpoolLease;
 pub(crate) use producer::epoch_producer_trampoline;
@@ -76,6 +78,21 @@ pub(crate) async fn reap_abandoned_spools(
     };
     let _ = tokio::time::timeout(std::time::Duration::from_secs(seconds), pass).await;
     reaped
+}
+
+/// Remove epoch spools whose every byte is already durably published.
+///
+/// This is an ADDITIVE route with its own entry point. It never calls
+/// `reclaim_spool_if_lossless`, `reclaim::attempt` or an age-only apply: a
+/// spool is removed only when its content is provably redundant, so the
+/// qualified reclaim transaction's recovery closure is neither needed nor
+/// bypassed.
+pub(crate) async fn reap_redundant_spools(
+    repo: &Path,
+    max_age_secs: u64,
+    op_timeout_secs: u64,
+) -> usize {
+    redundant::reap(repo, max_age_secs, op_timeout_secs).await
 }
 
 /// Exactly the same transaction is used after a settled-unpublished deadline,
