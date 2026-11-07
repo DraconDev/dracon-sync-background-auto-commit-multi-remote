@@ -284,11 +284,12 @@ content survives verbatim.
 
 | Metric | Before | After |
 | --- | --- | --- |
-| `.git` | 31 GiB | 3.1 GiB (1.3 GiB after filter-repo's own gc; 3.1 GiB including the delivery pack) |
+| `.git` | 31 GiB | **1.3 GiB** |
+| in-pack (`git count-objects -vH`) | 18.19 GiB | 947.54 MiB |
 | history blobs | 35.89 GiB | 1.62 GiB |
 | pushable pack | ~25 GiB | **0.92 GiB** (993,184,971 bytes) |
 | `HEAD` tree | 0.43 GiB | 0.24 GiB |
-| commits | 4,861 | 4,372 + 2 new |
+| commits | 4,861 | 4,372 + 2 new = **4,374** |
 | commits ahead of `origin/main` | 395 | **0** |
 | `pi-session` paths reachable from any ref | 515 | **0** |
 
@@ -355,13 +356,13 @@ the reclaimer correctly refuses to delete anything it cannot prove
 redundant. Removing them would delete staged state, which is what fault 2
 exists to prevent.
 
-Disk: **≥120 GiB free** was reached by (a) the ai-auto-video rewrite
-releasing ~18 GiB of pack/loose objects, and (b) deleting the disposable
-`~/dracon/conv-work` filter-repo scratch tree (~26 GiB: an abandoned
-ai-auto-writer rewrite whose bare "slim" clone was still the full 7.24 GiB
-pack and whose tip was absent from the live repo, plus
-deathrun/cag/dracon-platform scratch). `~/dracon`'s audit/backup content and
-`~/Backups` were **not** touched.
+Disk: **≥120 GiB free** (121.08 GiB / 126,959,892 KiB at the time of
+writing) was reached by (a) the ai-auto-video rewrite releasing ~18 GiB of
+pack/loose objects and (b) deleting the disposable `~/dracon/conv-work`
+filter-repo scratch tree (~26 GiB: an abandoned ai-auto-writer rewrite
+whose bare "slim" clone was still the full 7.24 GiB pack and whose tip was
+absent from the live repo, plus deathrun/cag/dracon-platform scratch).
+`~/dracon`'s audit/backup content and `~/Backups` were **not** touched.
 
 ---
 
