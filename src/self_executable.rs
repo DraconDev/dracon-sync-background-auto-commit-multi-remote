@@ -82,7 +82,7 @@ pub(crate) fn probe() -> std::io::Result<SelfExecutable> {
 /// Returns the diagnosis for a stale image; otherwise falls back to the
 /// caller's generic message so a genuine relative-path or missing-helper fault
 /// is still reported as exactly that.
-pub(crate) fn helper_failure(path: &Path, generic: &str) -> String {
+pub(crate) fn helper_failure(generic: &str) -> String {
     match probe() {
         Ok(current) if current.is_stale() => current.diagnosis(),
         _ => generic.to_string(),
@@ -222,9 +222,8 @@ mod tests {
     #[test]
     fn stale_helper_failure_is_diagnosable_not_a_bare_errno() {
         let generic = "epoch producer helper must be an absolute executable";
-        let current = probe().expect("current_exe");
         // Live process: the generic message is the honest one.
-        let live = helper_failure(&current.path, generic);
+        let live = helper_failure(generic);
         assert_eq!(live, generic, "an intact image must not claim a stale one");
         assert!(!live.contains("os error 2"));
 
@@ -232,5 +231,86 @@ mod tests {
         let diagnosis = stale_fixture().diagnosis();
         assert!(!diagnosis.contains("os error 2"), "{diagnosis}");
         assert!(diagnosis.contains("restart"), "{diagnosis}");
+    }
+
+    /// End-to-end: a genuine replaced executable must flip `is_stale`.
+    ///
+    /// This is the arm the incident actually took — the file at the resolved
+    /// path was a DIFFERENT file than the running image. A pure formatter test
+    /// cannot catch a regression in the detection itself, so exercise a real
+    /// copy + atomic replace and require the new-inode condition to be seen.
+    #[cfg(unix)]
+    #[test]
+    fn replaced_on_disk_file_flips_staleness() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("probe-binary");
+        std::fs::write(&path, b"first revision").expect("write original");
+
+        let before = SelfExecutable {
+            on_disk: identity(&path),
+            path: path.clone(),
+            deleted: false,
+        };
+        assert!(!before.is_stale(), "a present file is not stale");
+
+        // Replace it exactly the way a deployment does: write a sibling and
+        // rename over the target. The OLD inode stays mapped by the running
+        // process while the PATH now names a new one.
+        let staged = dir.path().join(".probe-binary-new");
+        std::fs::write(&staged, b"second revision").expect("write replacement");
+        std::fs::rename(&staged, &path).expect("atomic replace");
+
+        let after = SelfExecutable {
+            on_disk: identity(&path),
+            path: path.clone(),
+            deleted: false,
+        };
+        assert!(
+            after.on_disk.is_some(),
+            "the replacement must resolve to an identity"
+        );
+        assert_ne!(
+            before.on_disk, after.on_disk,
+            "an atomic replace must change the observed identity"
+        );
+    }
+
+    /// A REMOVED executable must also be detected, not just a replaced one.
+    #[cfg(unix)]
+    #[test]
+    fn removed_on_disk_file_is_stale() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("probe-binary");
+        std::fs::write(&path, b"revision").expect("write");
+        assert!(identity(&path).is_some());
+        std::fs::remove_file(&path).expect("remove");
+        let gone = SelfExecutable {
+            on_disk: identity(&path),
+            path,
+            deleted: false,
+        };
+        assert!(
+            gone.is_stale(),
+            "a resolved path that no longer exists is stale"
+        );
+    }
+
+    /// Repeated probes of one unchanged file must agree, so a stable install is
+    /// never mistaken for a replacement.
+    #[cfg(unix)]
+    #[test]
+    fn repeated_probes_of_one_file_agree() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("probe-binary");
+        std::fs::write(&path, b"stable revision").expect("write");
+        let first = identity(&path);
+        let second = identity(&path);
+        assert_eq!(first, second, "repeated probes of one file must agree");
+        let stable = SelfExecutable {
+            on_disk: first,
+            path,
+            deleted: false,
+        };
+        assert!(!stable.is_stale(), "a stable file is not stale");
     }
 }

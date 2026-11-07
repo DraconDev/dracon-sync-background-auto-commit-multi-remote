@@ -22,6 +22,10 @@ mod report;
 mod role;
 mod runtime_env;
 mod secrets;
+// ADDED 2026-11-07: detects a replaced/removed own executable. The 2026-11-06
+// stale-binary incident made every local commit fail with a bare `os error 2`
+// while pushes still reported OK, silently, for ~8.5h.
+mod self_executable;
 mod standard_files;
 mod storage;
 mod stuck_route;
@@ -1614,8 +1618,15 @@ async fn run_cli(cli: Cli) -> Result<()> {
             let frozen = freeze.is_some();
             let policy_ok = validate_result.is_valid();
             let daemon_ok = true;
+            // ADDED 2026-11-07: a daemon executing a replaced/removed image is
+            // UNHEALTHY even though it is "running". The 2026-11-06 incident
+            // looked healthy from every angle: the process was up, pushes
+            // reported OK, and health said healthy — while every local commit
+            // silently failed against a deleted executable.
+            let stale_daemons = crate::self_executable::stale_daemon_processes();
+            let image_ok = stale_daemons.is_empty();
 
-            let status = if frozen || !policy_ok {
+            let status = if frozen || !policy_ok || !image_ok {
                 "unhealthy"
             } else {
                 "healthy"
@@ -1633,6 +1644,8 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     daemon_running: bool,
                     roots: usize,
                     repos_discovered: usize,
+                    /// ADDED 2026-11-07: pids running a replaced/removed binary.
+                    stale_daemon_pids: Vec<u32>,
                 }
                 let payload = HealthJson {
                     status,
@@ -1644,6 +1657,7 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     daemon_running: daemon_ok,
                     roots: roots.len(),
                     repos_discovered: repos.len(),
+                    stale_daemon_pids: stale_daemons.iter().map(|(pid, _)| *pid).collect(),
                 };
                 println!("{}", serde_json::to_string_pretty(&payload)?);
             } else {
@@ -1711,6 +1725,34 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     ]);
                 } else {
                     table.add_row(vec![Cell::new("  "), Cell::new("Freeze"), Cell::new("off")]);
+                }
+
+                // ADDED 2026-11-07: the stale-image row. Without it `health`
+                // reported green throughout the 8.5h incident: the process was
+                // up, so `daemon_running` was true, while every local commit
+                // failed against a replaced executable.
+                if image_ok {
+                    table.add_row(vec![
+                        mk("✅", Color::Green),
+                        Cell::new("Image"),
+                        mk("executing the installed file", Color::Green),
+                    ]);
+                } else {
+                    let pids: Vec<String> = stale_daemons
+                        .iter()
+                        .map(|(pid, _)| pid.to_string())
+                        .collect();
+                    table.add_row(vec![
+                        mk("❌", Color::Red),
+                        Cell::new("Image"),
+                        mk(
+                            &format!(
+                                "pid {} executing a replaced/removed file — every local commit fails while pushes stay green; run: systemctl restart dracon-sync-operator.service",
+                                pids.join(",")
+                            ),
+                            Color::Red,
+                        ),
+                    ]);
                 }
 
                 let policy_color = if policy_ok { Color::Green } else { Color::Red };

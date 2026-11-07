@@ -170,10 +170,20 @@ fn producer_helper() -> Result<PathBuf> {
     );
     #[cfg(not(test))]
     let path = std::env::current_exe()?;
-    ensure!(
-        path.is_absolute() && path.is_file(),
-        "epoch producer helper must be an absolute executable"
-    );
+    // CHANGED 2026-11-07: the old `ensure!(is_absolute() && is_file(), …)`
+    // produced "epoch producer helper must be an absolute executable" for a
+    // REPLACED binary, hiding the real cause for 8.5h. `is_file()` is false
+    // when `/proc/self/exe` reads back as "… (deleted)", so the message was
+    // both true and useless. Report the stale image when that is what
+    // happened, and keep the generic wording for genuine path faults.
+    if !(path.is_absolute() && path.is_file()) {
+        bail!(
+            "{}",
+            crate::self_executable::helper_failure(
+                "epoch producer helper must be an absolute executable"
+            )
+        );
+    }
     Ok(path)
 }
 

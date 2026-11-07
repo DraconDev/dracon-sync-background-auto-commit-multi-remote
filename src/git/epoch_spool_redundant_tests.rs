@@ -351,7 +351,7 @@ async fn pairing_that_exists_only_on_a_local_branch_is_preserved() {
 
     // Point the spool index at the local-only pairing.
     let mut cmd = command(&f.repo);
-    cmd.env("GIT_INDEX_FILE", &f.spool.join("index"))
+    cmd.env("GIT_INDEX_FILE", f.spool.join("index"))
         .args(["update-index", "--cacheinfo", &format!("100644,{beta},a.txt")]);
     let out = cmd.output().unwrap();
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
@@ -629,7 +629,7 @@ async fn index_entry_with_unpublished_content_at_a_published_path_is_preserved()
     git(&f.repo, &["add", "a.txt"]);
     let blob = git_text(&f.repo, &["rev-parse", ":a.txt"]);
     let mut cmd = command(&f.repo);
-    cmd.env("GIT_INDEX_FILE", &f.spool.join("index"))
+    cmd.env("GIT_INDEX_FILE", f.spool.join("index"))
         .args(["update-index", "--cacheinfo", &format!("100644,{blob},a.txt")]);
     let out = cmd.output().unwrap();
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
@@ -650,7 +650,7 @@ async fn index_entry_at_a_path_absent_from_published_is_preserved() {
     let f = fixture("new-path");
     let published_blob = git_text(&f.repo, &["rev-parse", ":dir/b.txt"]);
     let mut cmd = command(&f.repo);
-    cmd.env("GIT_INDEX_FILE", &f.spool.join("index"))
+    cmd.env("GIT_INDEX_FILE", f.spool.join("index"))
         .args(["update-index", "--add", "--cacheinfo", &format!("100644,{published_blob},relocated.txt")]);
     let out = cmd.output().unwrap();
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
@@ -668,7 +668,7 @@ async fn index_entry_using_a_published_blob_at_another_published_path_is_preserv
     let f = fixture("crossed-pairing");
     let blob_a = git_text(&f.repo, &["rev-parse", ":a.txt"]);
     let mut cmd = command(&f.repo);
-    cmd.env("GIT_INDEX_FILE", &f.spool.join("index"))
+    cmd.env("GIT_INDEX_FILE", f.spool.join("index"))
         .args(["update-index", "--cacheinfo", &format!("100644,{blob_a},dir/b.txt")]);
     let out = cmd.output().unwrap();
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
@@ -684,7 +684,7 @@ async fn index_entry_with_a_changed_mode_is_preserved() {
     let f = fixture("mode-change");
     let blob = git_text(&f.repo, &["rev-parse", ":a.txt"]);
     let mut cmd = command(&f.repo);
-    cmd.env("GIT_INDEX_FILE", &f.spool.join("index"))
+    cmd.env("GIT_INDEX_FILE", f.spool.join("index"))
         .args(["update-index", "--cacheinfo", &format!("100755,{blob},a.txt")]);
     let out = cmd.output().unwrap();
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));

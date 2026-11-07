@@ -791,6 +791,20 @@ async fn verify_storage(
                 .context("matching revision-qualified epoch test helper is required")?,
         )
     };
+    // CHANGED 2026-11-07: a replaced own binary resolves `current_exe()` to
+    // "… (deleted)", so this spawn failed with a bare `os error 2` on every
+    // commit for 8.5h (see src/self_executable.rs). Record the self-executable
+    // identity BEFORE spawning so a stale image is reported as such; a spawn
+    // failure with an intact image keeps its own separate error.
+    let self_executable = crate::self_executable::probe().ok();
+    ensure!(
+        self_executable.as_ref().is_none_or(|e| !e.is_stale()),
+        "{}",
+        self_executable
+            .as_ref()
+            .map(crate::self_executable::SelfExecutable::diagnosis)
+            .unwrap_or_default()
+    );
     ensure!(
         executable.is_absolute(),
         "epoch helper executable must be absolute"

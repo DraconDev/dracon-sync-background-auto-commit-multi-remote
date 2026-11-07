@@ -7626,6 +7626,21 @@ pub(crate) async fn run_daemon(
     // to block buffering. We can't use setvbuf on Rust's handles, so instead
     // we flush stderr at strategic points in the daemon loop (see flush calls below).
     eprintln!("🔄 dracon-sync daemon started");
+    // ADDED 2026-11-07: say so, loudly, when this process is NOT executing the
+    // installed file. The 2026-11-06 incident ran a replaced binary for 8.5h:
+    // every local commit failed, pushes stayed green, and nothing in the log
+    // named the cause. Logged once at startup (the condition cannot appear
+    // mid-run without a replacement, which the per-commit self-exec gates
+    // report) plus once at ERROR level so it stands out.
+    match crate::self_executable::probe() {
+        Ok(current) if current.is_stale() => {
+            eprintln!("❌ stale daemon image: {}", current.diagnosis());
+        }
+        Ok(_) => {
+            veprintln!(2, "daemon image: executing the installed file");
+        }
+        Err(e) => eprintln!("⚠️ cannot resolve own executable: {e}"),
+    }
     let scheduler_epoch = Instant::now();
 
     let mut activity: HashMap<PathBuf, RepoActivity> = HashMap::new();
