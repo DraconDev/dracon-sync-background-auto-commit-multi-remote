@@ -38,6 +38,17 @@ use tokio::process::Command;
 /// every candidate rather than guessing at its object universe.
 const MAX_REACHABLE_OBJECTS: usize = 2_000_000;
 
+/// How many commits of ONE path's published history a single entry check may
+/// inspect before giving up. A path rewritten constantly would otherwise make a
+/// single spool's proof unbounded; exceeding this preserves the spool.
+const MAX_PATH_HISTORY_COMMITS: usize = 64;
+
+/// How many entries of one spool may require an individual historical lookup.
+/// Entries already matched by a published tip cost nothing, so this bounds only
+/// the genuine work. A spool needing more is preserved rather than proven
+/// slowly.
+const MAX_HISTORY_ENTRIES: usize = 512;
+
 /// How long a repository is left alone after a redundant-reclaim pass.
 ///
 /// The pass builds a full published-reachability set: one `rev-list --objects`
@@ -860,6 +871,27 @@ async fn remove_if_redundant(
                 .all(|entry| reference.by_path.get(&entry.path) == Some(&(entry.mode.clone(), entry.oid.clone())))
         })
         .map(|reference| reference.name.clone());
+
+    // ADDED 2026-11-06: an entry that does not match the published TIP is still
+    // redundant when it matches a PUBLISHED HISTORICAL commit's tree. A spool
+    // stages a working tree, and a file that was published in an earlier commit
+    // and later edited leaves the spool holding the OLD published blob — the
+    // exact same bytes, already shipped, just not at the tip. Demanding a tip
+    // match held 31.4 GiB in a single repository while blocking on 8 entries out
+    // of 91,073.
+    //
+    // The proof stays sound because "historical" is scoped to commits reachable
+    // from a PUBLISHED remote-tracking ref. `refs/heads/*` is deliberately never
+    // consulted: a local branch is work that may never ship, so accepting it
+    // would prove redundancy against something that is not published. The
+    // object-universe check above has already required every object in the
+    // spool to be published, so this only decides WHERE published bytes are
+    // allowed to be found.
+    let reference = match reference {
+        Some(reference) => Some(reference),
+        None => published_history_reference(repo, entries, published, width, timeout).await?,
+    };
+
     let Some(reference) = reference else {
         anyhow::bail!(
             "spool index holds a staged state that no published tree contains entry-for-entry"
