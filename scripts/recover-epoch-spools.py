@@ -20,10 +20,21 @@ For every spool it:
   2. `git write-tree` against a private GIT_INDEX_FILE to obtain the staged
      TREE object (this adds tree objects to the repo ODB; blobs are normally
      already there),
-  3. keeps that tree reachable from a local-only ref
-     `refs/dracon-spool-recovery/<short-tree>`,
-  4. re-reads the ref to PROVE the tree resolves, and only then
+  3. wraps that tree in an ANCHOR COMMIT and keeps it reachable from a
+     local-only ref `refs/dracon-spool-recovery/<short-tree>`,
+  4. re-reads the ref to PROVE the commit and its tree resolve, and only
+     then
   5. deletes the spool directory.
+
+WHY A COMMIT AND NOT A BARE TREE (fixed 2026-11-07)
+---------------------------------------------------
+The first version pointed the ref straight at the TREE object. That made every
+`git bundle create --all` and every mirror push FAIL with a silent exit 2:
+git cannot express a non-commit ref in a bundle or a `refs/*` push refspec.
+Anchoring each recovered tree in a real commit fixes that, keeps the bytes
+exactly as staged (the tree is the recovered content), and makes the recovery
+self-describing in `git log`. The anchor is deliberately parentless: it is a
+snapshot, not part of the repository's development history.
 
 Trees are DEDUPED per repo: many spools staged identical content, so one ref
 covers all of them. A tree already reachable from an existing ref needs no new
@@ -93,6 +104,41 @@ def tree_of_index(repo, scratch_index):
 
 def object_exists(repo, oid):
     return git(repo, "cat-file", "-e", f"{oid}^{{tree}}").returncode == 0
+
+
+def committer_env():
+    """Pin a committer identity for anchor commits.
+
+    The script may run inside a repo whose local git identity is unset; without
+    this, `commit-tree` fails for a reason unrelated to recovery.
+    """
+    name = os.environ.get("DRACON_SPOOL_COMMITTER_NAME", "dracon-sync spool recovery")
+    email = os.environ.get("DRACON_SPOOL_COMMITTER_EMAIL", "spool-recovery@localhost")
+    return {
+        "GIT_AUTHOR_NAME": name,
+        "GIT_AUTHOR_EMAIL": email,
+        "GIT_COMMITTER_NAME": name,
+        "GIT_COMMITTER_EMAIL": email,
+    }
+
+
+def anchor_commit(repo, tree, message):
+    """Create a parentless commit recording `tree`; return (oid, error).
+
+    Bare-tree refs cannot be bundled or pushed (see the module docstring), so
+    every preserved tree is anchored in a real commit. `commit-tree` writes the
+    object into the repo ODB and returns the new sha; no worktree is touched.
+    """
+    result = subprocess.run(
+        ["git", "-C", str(repo), "commit-tree", tree, "-m", message],
+        capture_output=True,
+        env={**os.environ, **committer_env()},
+        timeout=120,
+    )
+    if result.returncode != 0:
+        return None, result.stderr.decode(errors="replace")[:300]
+    oid = result.stdout.decode().strip()
+    return (oid or None), None
 
 
 def tree_already_referenced(repo):
@@ -274,14 +320,38 @@ def main():
                 created[tree] = "already-reachable"
                 continue
             ref = f"{REF_PREFIX}{tree}"
-            make = git(repo_path, "update-ref", ref, tree)
+            # Anchor the recovered tree in a real commit so the ref can be
+            # bundled/pushed (git cannot express a bare-tree ref in either).
+            spool_count = len(by_tree[tree])
+            anchors = ", ".join(sorted(entry.name for entry in by_tree[tree])[:5])
+            message = (
+                "epoch-spool recovery: preserve staged state that never landed\n\n"
+                f"tree: {tree}\n"
+                f"spools: {spool_count} ({anchors}"
+                f"{'...' if spool_count > 5 else ''})\n"
+                "recovered-by: dracon-sync scripts/recover-epoch-spools.py\n"
+                "note: parentless snapshot, NOT part of development history\n"
+            )
+            commit, err = anchor_commit(repo_path, tree, message)
+            if not commit:
+                created[tree] = f"anchor-failed: {err or 'no commit oid'}"
+                continue
+            make = git(repo_path, "update-ref", ref, commit)
             if make.returncode != 0:
                 created[tree] = f"ref-failed: {make.stderr.decode(errors='replace')[:200]}"
                 continue
-            # PROVE the ref resolves before trusting it.
+            # PROVE the ref resolves to the commit AND that the commit still
+            # carries the recovered tree before trusting it.
             verify = git(repo_path, "rev-parse", "--verify", ref)
-            if verify.returncode != 0 or verify.stdout.decode().strip() != tree:
+            if verify.returncode != 0 or verify.stdout.decode().strip() != commit:
                 created[tree] = "ref-verify-failed"
+                continue
+            verify_tree = git(repo_path, "rev-parse", "--verify", f"{ref}^{{tree}}")
+            if (
+                verify_tree.returncode != 0
+                or verify_tree.stdout.decode().strip() != tree
+            ):
+                created[tree] = "ref-tree-verify-failed"
                 continue
             created[tree] = ref
 
