@@ -219,6 +219,27 @@ mod tests {
         );
     }
 
+    /// The remedy must be REACHABLE by the person reading it.
+    ///
+    /// The daemon runs as a system unit, so `systemctl restart` needs root.
+    /// An operator without sudo was handed a correct diagnosis and an
+    /// "Access denied" command (observed live on 2026-11-07). The unit
+    /// carries `Restart=always`, so a plain SIGTERM makes systemd reload
+    /// the installed binary — no root required. The diagnosis must name
+    /// that path too, or it names a command its reader cannot run.
+    #[test]
+    fn diagnosis_names_a_remedy_that_needs_no_root() {
+        let text = stale_fixture().diagnosis();
+        assert!(
+            text.contains("kill -TERM"),
+            "the remedy must include a root-free path: {text}"
+        );
+        assert!(
+            text.contains("Restart=always"),
+            "the remedy must explain WHY the root-free path works: {text}"
+        );
+    }
+
     /// The regression this incident is: a stale self-executable must produce a
     /// DIAGNOSABLE message, never the bare errno that cost 8.5 hours.
     #[test]
