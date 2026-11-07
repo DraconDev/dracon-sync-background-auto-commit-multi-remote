@@ -789,6 +789,7 @@ async fn published_history_reference(
         let name = published.refs.first().map(|reference| reference.name.clone());
         return Ok(name);
     }
+    eprintln!("DBG history path: unmatched={}", unmatched.len());
     ensure!(
         unmatched.len() <= MAX_HISTORY_ENTRIES,
         "too many spool entries need a historical lookup to prove"

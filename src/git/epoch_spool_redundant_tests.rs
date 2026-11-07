@@ -311,10 +311,12 @@ async fn unknown_empty_file_is_tolerated() {
 }
 
 #[tokio::test]
-async fn index_that_matches_no_published_tree_is_preserved() {
+async fn index_matching_a_published_historical_tree_is_redundant() {
+    // RENAMED 2026-11-06. The spool was written from the FIRST commit's tree; a
+    // second commit has since moved the tip. The spool's bytes are still
+    // published — in history — so they are pure duplication and must go. This
+    // used to assert preservation, which held 31.4 GiB hostage in one repo.
     let f = fixture("tree-mismatch");
-    // Publish a second commit so the ref's tree no longer matches the spool
-    // index, even though the older objects stay reachable in history.
     fs::write(f.repo.join("a.txt"), b"alpha changed\n").unwrap();
     fs::write(f.repo.join("c.txt"), b"gamma\n").unwrap();
     git(&f.repo, &["add", "-A"]);
@@ -322,7 +324,45 @@ async fn index_that_matches_no_published_tree_is_preserved() {
     git(&f.repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
     seal(&f.spool);
     backdate(&f.spool);
-    assert_eq!(reap(&f.repo).await, 0);
+    assert_eq!(reap(&f.repo).await, 1);
+    assert!(!f.spool.exists());
+}
+
+#[tokio::test]
+async fn pairing_that_exists_only_on_a_local_branch_is_preserved() {
+    // The safety boundary of the historical proof, isolated precisely.
+    //
+    // Every BLOB here is published and every PATH is published, so neither the
+    // object-universe check nor a naive path check can reject this spool. What
+    // is NOT published is the (path, blob) PAIRING: `a.txt` holding beta's bytes
+    // exists only on an unpushed local commit. If the historical lookup consulted
+    // refs/heads/* it would find that pairing and delete the spool; scoping it to
+    // refs/remotes/* correctly refuses.
+    let f = fixture("local-only-history");
+    let beta = git_text(&f.repo, &["rev-parse", ":dir/b.txt"]);
+
+    // A local-only commit that moves beta's bytes to a.txt.
+    fs::write(f.repo.join("a.txt"), b"beta\n").unwrap();
+    git(&f.repo, &["add", "a.txt"]);
+    commit(&f.repo, "swap a.txt to beta content");
+    git(&f.repo, &["branch", "unpushed-work", "HEAD"]);
+    // Published history does NOT contain it: origin/main stays at the first commit.
+    git(&f.repo, &["update-ref", "refs/remotes/origin/main", "HEAD~1"]);
+
+    // Point the spool index at the local-only pairing.
+    let mut cmd = command(&f.repo);
+    cmd.env("GIT_INDEX_FILE", &f.spool.join("index"))
+        .args(["update-index", "--cacheinfo", &format!("100644,{beta},a.txt")]);
+    let out = cmd.output().unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(
+        reap(&f.repo).await,
+        0,
+        "a pairing present only on a local branch must not prove redundancy"
+    );
     assert!(f.spool.exists());
 }
 
