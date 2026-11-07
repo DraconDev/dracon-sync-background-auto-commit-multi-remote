@@ -6492,12 +6492,6 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     // recorded FAILURE from an earlier cycle is stale. See
     // `record_converged_push_success` for why the PUSH column must not be
     // allowed to stay red forever.
-    if ctx.policy.auto_push
-        && !should_push
-        && (ctx.has_origin || !ctx.policy.remotes.is_empty())
-    {
-        record_converged_push_success(ctx.repo);
-    }
     Ok(PushReport::Attempted {
         ok: true,
         degraded: false,
