@@ -356,22 +356,26 @@ Recovery refs created: **1,282** `refs/dracon-spool-recovery/*` refs,
 fleet-wide, all now anchored commits, **0** present on any remote
 (`git ls-remote` shows none).
 
-Residual spools at the time of writing: **117 directories / 528,448 bytes
-(516 KiB)** — far under the 1 GiB budget. Note the residue figure is not a
-net-saving figure: the built-in reclaimer additionally reports
+Residual spools at the time of writing: **167 directories / 570,740 bytes
+(557 KiB)** — far under the 1 GiB budget. (The count fluctuates with the
+live daemon's own epoch churn; the byte total is what matters and it is
+two to three orders of magnitude below the budget.) Note the residue figure
+is not a net-saving figure: the built-in reclaimer additionally reports
 "Verified removals: 0 · Redundant removals: 15" because most remaining
 spool bytes are live epoch state whose content must stay recoverable, and
 the reclaimer correctly refuses to delete anything it cannot prove
 redundant. Removing them would delete staged state, which is what fault 2
 exists to prevent.
 
-Disk: **≥120 GiB free** (121.08 GiB / 126,959,892 KiB at the time of
-writing) was reached by (a) the ai-auto-video rewrite releasing ~18 GiB of
-pack/loose objects and (b) deleting the disposable `~/dracon/conv-work`
+Disk: **129.66 GiB free (135,959,132 KiB)** at the time of writing, against
+a 120 GiB target. Reached by (a) the ai-auto-video rewrite releasing ~18 GiB
+of pack/loose objects, (b) deleting the disposable `~/dracon/conv-work`
 filter-repo scratch tree (~26 GiB: an abandoned ai-auto-writer rewrite
 whose bare "slim" clone was still the full 7.24 GiB pack and whose tip was
-absent from the live repo, plus deathrun/cag/dracon-platform scratch).
-`~/dracon`'s audit/backup content and `~/Backups` were **not** touched.
+absent from the live repo, plus deathrun/cag/dracon-platform scratch), and
+(c) removing the regenerable `target/debug/incremental` cache after the
+gates finished. `~/dracon`'s audit/backup content and `~/Backups` were
+**not** touched.
 
 ---
 
