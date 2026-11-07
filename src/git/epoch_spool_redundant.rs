@@ -1026,7 +1026,7 @@ async fn remove_if_redundant(
     // allowed to be found.
     let reference = match reference {
         Some(reference) => Some(reference),
-        None => published_history_reference(repo, entries, published, width, timeout).await?,
+        None => published_history_reference(repo, &entries, published, width, timeout).await?,
     };
 
     let Some(reference) = reference else {
