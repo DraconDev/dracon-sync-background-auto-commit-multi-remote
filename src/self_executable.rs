@@ -54,8 +54,10 @@ impl SelfExecutable {
              removed since startup, so the running image is the OLD revision and \
              self-exec helpers (epoch storage verifier / producer) cannot be spawned. \
              Every local commit fails while pushes still report OK. Remedy: restart \
-             the daemon to load the installed revision \
-             (systemctl restart dracon-sync-operator.service)",
+             the daemon to load the installed revision — with root: \
+             `systemctl restart dracon-sync-operator.service`; WITHOUT root (the unit \
+             has Restart=always, so systemd reloads the installed binary): \
+             `kill -TERM $(pidof dracon-sync)`",
             self.path.display()
         )
     }
