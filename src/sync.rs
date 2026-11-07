@@ -6488,10 +6488,57 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
             ctx.repo.display()
         );
     }
+    // Converged with nothing to push: the repo is already published, so a
+    // recorded FAILURE from an earlier cycle is stale. See
+    // `record_converged_push_success` for why the PUSH column must not be
+    // allowed to stay red forever.
+    if ctx.policy.auto_push
+        && !should_push
+        && (ctx.has_origin || !ctx.policy.remotes.is_empty())
+    {
+        record_converged_push_success(ctx.repo);
+    }
     Ok(PushReport::Attempted {
         ok: true,
         degraded: false,
     })
+}
+
+/// Record a SUCCESSFUL push observation for a repo that is already
+/// converged, so a stale failure cannot outlive the fault that caused it.
+///
+/// WHY (2026-11-07): the PUSH column reports the LAST RECORDED push
+/// attempt. A converged repo never attempts a push — `handle_ahead_push`
+/// returns `Attempted { ok: true }` without touching the network — so
+/// after a single transient failure its observation stayed at
+/// `❌ FAIL` indefinitely. Observed live: pi-goal-list-loop-audit showed
+/// `❌ FAIL 1h` while local, origin and gitlab all pointed at the same
+/// commit. The cell was stale, not a live fault, and a permanently red
+/// cell is precisely how a REAL fault gets ignored later.
+///
+/// The recording is deliberately narrow, because "the repo looks
+/// converged" is not the same as "the push succeeded":
+///
+///   * only when the repo is NOT in the stuck ledger — a genuinely stuck
+///     repo keeps its stuck state and its retry owns the true outcome.
+///     Clearing the ledger from here would erase a real stuck condition
+///     and its failure count.
+///   * only when the last observation was a FAILURE — a healthy repo
+///     writes nothing, so this costs one small write per incident rather
+///     than one per daemon cycle.
+///   * only reached from the "nothing to push" path — a repo that still
+///     has unpushed work records the true outcome of its real push.
+fn record_converged_push_success(repo: &Path) {
+    if crate::daemon::get_stuck_push_info(repo).is_some() {
+        return;
+    }
+    let stale_failure = matches!(
+        crate::daemon::push_history::load(repo),
+        Some(observed) if !observed.succeeded
+    );
+    if stale_failure {
+        crate::daemon::record_push_success(repo);
+    }
 }
 
 #[cfg(test)]
