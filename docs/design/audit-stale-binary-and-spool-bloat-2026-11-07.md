@@ -242,6 +242,15 @@ instead of exiting silently. The installed hook was regenerated through
 `dracon-warden setup-hooks` from the corrected template (patching
 `~/.config/git/hooks/pre-push` directly is useless: warden re-installs it).
 
+Regression test: `pre_push_hook_survives_remote_sha_absent_from_object_store`
+in `dracon-warden/src/tests.rs`. It runs the hook with an absent remote SHA
+under `DRACON_ALLOW_REWRITE=1` (required — an absent remote SHA *is* the
+rewrite shape, so the history guard is the first gate it meets), and asserts
+the push is not aborted **and** that stderr explains why the scan widened.
+The test was confirmed to fail against the pre-fix hook with exit 1 and
+**empty stderr** — i.e. it detects the silent-failure regression, not just
+the presence of a new string.
+
 Observed after the fix, during the real cutover:
 
 ```
@@ -374,7 +383,7 @@ includes these changes:
 | Gate | Command | Result |
 | --- | --- | --- |
 | Build | `cargo build --release --locked` | PASS |
-| Tests | `cargo test --workspace --locked` | **3066 passed, 0 failed** |
+| Tests | `cargo test --workspace --locked` | **3067 passed, 0 failed** |
 | Clippy | `cargo clippy --workspace --locked -- -D warnings` | PASS |
 | Deny | `cargo deny check` | PASS (`advisories/bans/licenses/sources ok`) |
 
@@ -464,6 +473,7 @@ was used here and yields **993,184,971 bytes (0.92 GiB) < 2 GiB**.
 | `dracon-sync/src/git/epoch_spool_producer.rs` | Spawn failure routed through `helper_failure` |
 | `dracon-sync/scripts/recover-epoch-spools.py` | Anchor each recovered tree in a commit; verify ref **and** tree before deleting |
 | `dracon-warden/src/main.rs` | Pre-push: diagnose and survive an unresolvable remote SHA instead of a silent `exit 1` |
+| `dracon-warden/src/tests.rs` | `pre_push_hook_survives_remote_sha_absent_from_object_store` — the pre-push regression test |
 | `ai-auto-video/.gitignore` | Post-managed-block ignore rules for session exports and epoch scratch |
 | `ai-auto-video/docs/slim-record-2026-11-07.md` | Step-7 record of the slimming |
 | `docs/design/audit-stale-binary-and-spool-bloat-2026-11-07.md` | This document |
