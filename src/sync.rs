@@ -5411,13 +5411,27 @@ async fn sync_repo_local_with_ownership(
     // so it must not be gated on push mode or it can never heal the exact
     // repos that need it. It remains gated on `!dry_run`.
     if !dry_run {
-        crate::git::maybe_auto_gc(
-            repo,
-            policy.auto_gc_garbage_threshold_bytes,
-            policy.auto_gc_loose_threshold_bytes,
-            policy.auto_gc_pack_growth_bytes,
-        )
-        .await;
+        // ADDED 2026-11-07: a repository can opt OUT of automatic gc entirely.
+        //
+        // On a store too large to repack inside the gc timeout, every attempt
+        // fails after burning the FULL cap (multi-core + ~1.5 GiB resident),
+        // then retries forever on its cooldown — dragging the whole host down
+        // without ever converging (ai-auto-video: 12.2 GiB loose, 20 failures
+        // / 0 successes across six hours). Skipping the call is the only
+        // behaviour that stops the loop; the repository keeps every object
+        // and the operator repacks by hand or runs the slimming procedure.
+        // nothing inside Git's two-week grace). The repository keeps its
+        // objects; they are simply not automatically repacked.
+        let gc_override = crate::policy::load_repo_override(repo);
+        if !crate::policy::repo_auto_gc_disabled(policy, &gc_override) {
+            crate::git::maybe_auto_gc(
+                repo,
+                policy.auto_gc_garbage_threshold_bytes,
+                policy.auto_gc_loose_threshold_bytes,
+                policy.auto_gc_pack_growth_bytes,
+            )
+            .await;
+        }
         // ADDED 2026-10-26: sweep stale `tmp_pack_*` leftovers.
         // `git gc` reports these as garbage but does NOT remove recent ones
         // (verified: a fresh 1 MB tmp_pack survived plain `git gc` and was

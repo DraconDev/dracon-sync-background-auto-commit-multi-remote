@@ -676,6 +676,30 @@ pub(crate) struct SyncPolicy {
     /// repository is expensive and the excess is not urgent.
     #[serde(default = "default_auto_gc_pack_growth_bytes")]
     pub(crate) auto_gc_pack_growth_bytes: u64,
+    /// ADDED 2026-11-07: per-repo opt-OUT of every automatic-gc trigger.
+    ///
+    /// WHY THIS EXISTS: on a repository whose object store is larger than
+    /// `git gc` can repack inside its timeout, the automatic gc can NEVER
+    /// succeed — and it must repack the whole store to find out. It then
+    /// burns the full 2400s cap at multiple cores and ~1.5 GiB resident,
+    /// fails, and retries on its cooldown forever. Observed live on
+    /// ai-auto-video: 546 loose objects totalling 12.2 GiB (large media),
+    /// **20 gc failures and 0 successes in six hours**, with each attempt
+    /// swapping >10 GiB on a 30 GiB machine and dragging system load past
+    /// 80. The retry cannot converge by itself, so the only correct global
+    /// behaviour is unchanged (gc is a genuine self-heal elsewhere) and the
+    /// operator gets a per-repo switch to stop one pathological repository
+    /// from degrading the whole host.
+    ///
+    /// This is a TUNING choice, not a safety bypass: gc creates no commits,
+    /// touches no refs, and prunes nothing inside Git's two-week grace. The
+    /// repository keeps its objects; they are simply not automatically
+    /// repacked. Run `git gc` by hand (unbounded time) or the sanctioned
+    /// slimming procedure instead.
+    ///
+    /// Default: false (auto-gc stays enabled everywhere).
+    #[serde(default)]
+    pub(crate) auto_gc_disabled: bool,
     /// ADDED 2026-10-26: age before an abandoned private-epoch spool
     /// (`<gitdir>/dracon-staging-*`) may be reaped by the daemon.
     ///
@@ -1088,6 +1112,12 @@ pub(crate) struct RepoPolicyOverride {
     /// air. Merged via `repo_auto_repair_enabled`.
     #[serde(default)]
     pub(crate) auto_repair_concerns: Option<bool>,
+    /// Optional per-repo override for `auto_gc_disabled`. `Some(true)` stops
+    /// every automatic-gc trigger for this repository; `None` inherits the
+    /// global value (auto-gc enabled). See [`SyncPolicy::auto_gc_disabled`]
+    /// for why a repository can need this.
+    #[serde(default)]
+    pub(crate) auto_gc_disabled: Option<bool>,
     /// Optional per-repo override for `stale_dirty_alert_secs`.
     /// None inherits the global value. See
     /// [`SyncPolicy::stale_dirty_alert_secs`].
@@ -1203,6 +1233,30 @@ pub(crate) fn repo_auto_repair_enabled(
         Some(false) => false,
         _ => policy.auto_repair_concerns,
     }
+}
+
+/// Effective `auto_gc_disabled`: whether automatic GC is switched off for
+/// this repository.
+///
+/// ADDED 2026-11-07. A repository whose object store cannot be repacked
+/// inside `git gc`'s timeout makes every attempt fail after burning the full
+/// cap (ai-auto-video: 12.2 GiB loose, 20 failures / 0 successes in six
+/// hours, >10 GiB swapped per attempt). Retrying cannot converge, so the
+/// repository opts out and the operator repacks by hand.
+///
+/// Fails CLOSED on an unparsable override in the same sense as
+/// [`repo_auto_repair_enabled`]: unknown intent must not silently ENABLE a
+/// pathology the operator asked to stop.
+pub(crate) fn repo_auto_gc_disabled(
+    policy: &SyncPolicy,
+    repo_override: &RepoPolicyOverride,
+) -> bool {
+    if repo_override.override_parse_error.is_some() {
+        return policy.auto_gc_disabled;
+    }
+    repo_override
+        .auto_gc_disabled
+        .unwrap_or(policy.auto_gc_disabled)
 }
 
 /// Effective `auto_commit_exclude_patterns`: per-repo entries EXTEND
@@ -2292,6 +2346,7 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
         auto_gc_garbage_threshold_bytes: default_auto_gc_garbage_threshold_bytes(),
         auto_gc_loose_threshold_bytes: default_auto_gc_loose_threshold_bytes(),
         auto_gc_pack_growth_bytes: default_auto_gc_pack_growth_bytes(),
+        auto_gc_disabled: false,
         epoch_spool_max_age_secs: default_epoch_spool_max_age_secs(),
         repo_sync_timeout_secs: 420,
         stage_op_timeout_secs: 60,
@@ -2960,6 +3015,44 @@ mod tests {
     /// `Some(false)` wins over a global `true`; `None` inherits;
     /// a global `false` stays off (no per-repo opt-in to a
     /// destructive path).
+    #[test]
+    /// ADDED 2026-11-07: the per-repo auto-gc opt-out resolves correctly.
+    ///
+    /// The knob exists because a repository whose object store cannot be
+    /// repacked inside the gc timeout fails EVERY attempt after burning the
+    /// full cap (ai-auto-video: 20 failures / 0 successes in six hours, >10 GiB
+    /// swapped per try). Opting that one repository out must be honoured, and
+    /// the default must stay "gc enabled" so no other repo loses its self-heal.
+    fn test_repo_auto_gc_disabled_merge() {
+        let global: SyncPolicy = toml::from_str("").expect("parse empty");
+        assert!(!global.auto_gc_disabled, "auto-gc is ON by default");
+
+        // No override: inherit the global default (enabled).
+        let inherit = RepoPolicyOverride::default();
+        assert!(!repo_auto_gc_disabled(&global, &inherit));
+
+        // Explicit per-repo opt-out is honoured.
+        let opt_out = RepoPolicyOverride {
+            auto_gc_disabled: Some(true),
+            ..Default::default()
+        };
+        assert!(repo_auto_gc_disabled(&global, &opt_out));
+
+        // An unparsable override must not silently ENABLE the pathology the
+        // operator asked to stop, and must not invert a global opt-out either.
+        let mut broken = RepoPolicyOverride::default();
+        broken.override_parse_error = Some("bad toml".into());
+        assert!(!repo_auto_gc_disabled(&global, &broken));
+        let mut global_off = global.clone();
+        global_off.auto_gc_disabled = true;
+        assert!(repo_auto_gc_disabled(&global_off, &broken));
+
+        // The override parses from a real per-repo config file value.
+        let parsed: RepoPolicyOverride =
+            toml::from_str("auto_gc_disabled = true").expect("parse per-repo knob");
+        assert_eq!(parsed.auto_gc_disabled, Some(true));
+    }
+
     #[test]
     fn test_repo_auto_repair_enabled_merge() {
         let mut global_on: SyncPolicy = toml::from_str("").expect("parse empty");
