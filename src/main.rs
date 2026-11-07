@@ -1747,7 +1747,7 @@ async fn run_cli(cli: Cli) -> Result<()> {
                         Cell::new("Image"),
                         mk(
                             &format!(
-                                "pid {} executing a replaced/removed file — every local commit fails while pushes stay green; run: systemctl restart dracon-sync-operator.service",
+                                "pid {} executing a replaced/removed file — every local commit fails while pushes stay green; run: systemctl restart dracon-sync-operator.service (or, without root: kill -TERM $(pidof dracon-sync) — the unit has Restart=always, so systemd reloads the installed binary)",
                                 pids.join(",")
                             ),
                             Color::Red,
