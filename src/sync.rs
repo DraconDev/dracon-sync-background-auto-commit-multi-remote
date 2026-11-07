@@ -6558,6 +6558,12 @@ mod tests {
     ///   * a converged repo refreshes a stale FAILURE to a success, and
     ///   * a repo that is genuinely STUCK keeps its failure (and its
     ///     ledger entry), because its retry owns the true outcome.
+    ///
+    /// The scenario is the real one: a push fails (observation FAIL +
+    /// stuck-ledger entry), the cause is fixed and the operator clears the
+    /// ledger with `repair stuck-unstuck`, the repo converges — and then
+    /// NOTHING ever records that the failure is over, because a converged
+    /// repo never attempts a push.
     #[test]
     fn test_converged_repo_refreshes_stale_push_failure() {
         let state_dir = tempfile::tempdir().unwrap();
@@ -6573,6 +6579,17 @@ mod tests {
         let observed = crate::daemon::push_history::load(&repo)
             .expect("a failed push must leave an observation");
         assert!(!observed.succeeded, "precondition: observation is a failure");
+
+        // The cause is fixed and the operator clears the ledger, exactly as
+        // `dracon-sync repair stuck-unstuck` does.
+        assert!(
+            crate::daemon::unstuck_repo(&repo),
+            "precondition: the ledger entry was clearable"
+        );
+        assert!(
+            crate::daemon::get_stuck_push_info(&repo).is_none(),
+            "precondition: the repo is no longer in the stuck ledger"
+        );
 
         record_converged_push_success(&repo);
         let refreshed = crate::daemon::push_history::load(&repo).expect("observation");
