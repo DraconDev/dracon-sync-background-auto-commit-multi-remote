@@ -693,3 +693,42 @@ async fn index_entry_with_a_changed_mode_is_preserved() {
     assert_eq!(reap(&f.repo).await, 0, "a mode change must preserve");
     assert!(f.spool.exists());
 }
+
+/// The historical lookup is scoped to published remote-tracking refs.
+///
+/// This pins the boundary directly instead of relying on a full reap: it asks
+/// the helper itself, so a change that widened the scope to `refs/heads/*`
+/// fails here even if reachability would happen to cover the same bytes.
+#[tokio::test]
+async fn published_history_lookup_is_scoped_to_remote_tracking_refs() {
+    let f = fixture("history-scope");
+    let beta = git_text(&f.repo, &["rev-parse", ":dir/b.txt"]);
+    // A local-only commit that pairs a.txt with beta's bytes.
+    fs::write(f.repo.join("a.txt"), b"beta\n").unwrap();
+    git(&f.repo, &["add", "a.txt"]);
+    commit(&f.repo, "local pairing");
+    git(&f.repo, &["branch", "unpushed-work", "HEAD"]);
+    git(&f.repo, &["update-ref", "refs/remotes/origin/main", "HEAD~1"]);
+
+    let entry = TreeEntry {
+        mode: "100644".to_owned(),
+        oid: beta.clone(),
+        path: b"a.txt".to_vec(),
+    };
+    // Directly: is (a.txt, beta) in PUBLISHED history? It is only in the local
+    // branch, so this must be false.
+    assert!(
+        !entry_is_published_at_path(&f.repo, "refs/remotes/origin/main", &entry, 60)
+            .await
+            .unwrap(),
+        "the local-only pairing must not be found in published history"
+    );
+    // And the pairing IS findable on the local branch, which proves the probe
+    // itself works and only the SCOPE is doing the rejecting.
+    assert!(
+        entry_is_published_at_path(&f.repo, "unpushed-work", &entry, 60)
+            .await
+            .unwrap(),
+        "the probe must find the pairing on the local branch"
+    );
+}
