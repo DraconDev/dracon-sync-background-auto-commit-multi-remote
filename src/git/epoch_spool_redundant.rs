@@ -746,6 +746,143 @@ async fn grafts_present(repo: &Path, gitdir: &Path, timeout: u64) -> bool {
     }
 }
 
+/// Prove a spool's entries against PUBLISHED HISTORY rather than only the tip.
+///
+/// Returns the published ref whose history vouches for every entry, or `None`
+/// when any entry is not published anywhere in that history.
+///
+/// Two cheap short-circuits come first, because the common case is a spool whose
+/// entries all match some published tip and never reaches this function, and the
+/// next most common is a spool where ONE file diverges:
+///
+/// 1. A per-path entry is resolved by asking Git for that path's own history
+///    (`git rev-list -n1 <ref> -- <path>`), which finds the newest commit on that
+///    ref that touched the path. If that commit's blob equals the spool's entry,
+///    the bytes are published.
+/// 2. That alone is not sufficient — a path can be edited, reverted, and edited
+///    again — so the lookup walks a bounded number of touching commits per path
+///    and accepts the entry only on an exact (mode, blob) match at that path.
+///
+/// Anything exceeding the per-entry or per-spool budget is NOT proven, so the
+/// spool is preserved. Too large to prove is always "keep".
+async fn published_history_reference(
+    repo: &Path,
+    entries: &[TreeEntry],
+    published: &Published,
+    width: usize,
+    timeout: u64,
+) -> Result<Option<String>> {
+    let _ = width;
+    // Which entries the published tips did NOT already prove.
+    let unmatched: Vec<&TreeEntry> = entries
+        .iter()
+        .filter(|entry| {
+            !published
+                .refs
+                .iter()
+                .any(|reference| reference.by_path.get(&entry.path) == Some(&(entry.mode.clone(), entry.oid.clone())))
+        })
+        .collect();
+    if unmatched.is_empty() {
+        // Every entry matched a tip after all; the caller's find failed only
+        // because entries were split across different refs' tips.
+        let name = published.refs.first().map(|reference| reference.name.clone());
+        return Ok(name);
+    }
+    ensure!(
+        unmatched.len() <= MAX_HISTORY_ENTRIES,
+        "too many spool entries need a historical lookup to prove"
+    );
+
+    for reference in &published.refs {
+        let mut all = true;
+        for entry in &unmatched {
+            if !entry_is_published_at_path(repo, &reference.name, entry, timeout).await? {
+                all = false;
+                break;
+            }
+        }
+        if all {
+            return Ok(Some(reference.name.clone()));
+        }
+    }
+    Ok(None)
+}
+
+/// Whether this exact (path, mode, blob) exists in the history of `ref`.
+///
+/// Only an exact match at that path counts. The walk is bounded by
+/// `MAX_PATH_HISTORY_COMMITS`.
+async fn entry_is_published_at_path(
+    repo: &Path,
+    reference: &str,
+    entry: &TreeEntry,
+    timeout: u64,
+) -> Result<bool> {
+    let path = String::from_utf8(entry.path.clone()).context("non-UTF8 spool entry path")?;
+    // Newest commits on this ref that touched the path. `--` keeps the path from
+    // being parsed as a revision.
+    let commits = git_output(
+        repo,
+        &[
+            "rev-list",
+            &format!("--max-count={MAX_PATH_HISTORY_COMMITS}"),
+            reference,
+            "--",
+            &path,
+        ],
+        timeout,
+        "path history",
+    )
+    .await?;
+    for line in commits.split(|byte| *byte == b'\n') {
+        let commit = std::str::from_utf8(line)?.trim();
+        if commit.is_empty() {
+            continue;
+        }
+        ensure!(
+            crate::git::is_valid_object_id(commit),
+            "invalid commit identity in path history"
+        );
+        // `<commit>:<path>` resolves the blob that commit recorded at that path.
+        let probe = match git_output(
+            repo,
+            &["rev-parse", &format!("{commit}:{path}")],
+            timeout,
+            "historical path blob",
+        )
+        .await
+        {
+            Ok(blob) => blob,
+            // The path did not exist in that commit: it was added later. Not a
+            // proof, and not an error.
+            Err(_) => continue,
+        };
+        let blob = String::from_utf8_lossy(&probe).trim().to_owned();
+        if blob == entry.oid {
+            // The blob matches. Confirm the MODE too, so a file that changed
+            // between 100644 and 100755 is not silently accepted.
+            let mode = match git_output(
+                repo,
+                &["ls-tree", commit, "--", &path],
+                timeout,
+                "historical path mode",
+            )
+            .await
+            {
+                Ok(listing) => listing,
+                Err(_) => continue,
+            };
+            let mode = String::from_utf8_lossy(&mode);
+            let want = format!("{} {} ", entry.mode, "blob");
+            if mode.starts_with(&want) {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
+}
+
 /// Prove one spool redundant and remove it.
 ///
 /// Every check must pass. Any failure preserves the spool and returns the
