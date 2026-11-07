@@ -6546,6 +6546,78 @@ mod tests {
     use super::*;
     use std::process::Command;
 
+    /// A converged repo must not keep reporting a stale push FAILURE.
+    ///
+    /// The PUSH column shows the LAST RECORDED push attempt. A repo that
+    /// is already published never attempts a push, so before this fix a
+    /// single transient failure left the cell red indefinitely — observed
+    /// live on 2026-11-07: pi-goal-list-loop-audit showed `❌ FAIL 1h`
+    /// while local, origin and gitlab all pointed at the same commit.
+    ///
+    /// This test pins the two halves that matter:
+    ///   * a converged repo refreshes a stale FAILURE to a success, and
+    ///   * a repo that is genuinely STUCK keeps its failure (and its
+    ///     ledger entry), because its retry owns the true outcome.
+    #[test]
+    fn test_converged_repo_refreshes_stale_push_failure() {
+        let state_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("converged-repo");
+
+        // A recorded failure: the state this fix has to clear.
+        crate::daemon::record_push_failure(&repo, "transient network hiccup");
+        let observed = crate::daemon::push_history::load(&repo)
+            .expect("a failed push must leave an observation");
+        assert!(!observed.succeeded, "precondition: observation is a failure");
+
+        record_converged_push_success(&repo);
+        let refreshed = crate::daemon::push_history::load(&repo).expect("observation");
+        assert!(
+            refreshed.succeeded,
+            "a converged repo must not keep reporting a stale failure"
+        );
+    }
+
+    /// The guard rail: a repo that is genuinely stuck keeps its failure.
+    ///
+    /// "The repo looks converged" is not "the push succeeded". A repo in
+    /// the stuck ledger is being retried, and its retry owns the true
+    /// outcome; refreshing the observation from here would erase a real
+    /// stuck condition and its consecutive-failure count.
+    #[test]
+    fn test_stuck_repo_keeps_its_push_failure() {
+        let state_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("stuck-repo");
+
+        crate::daemon::record_push_failure(&repo, "still broken");
+        assert!(
+            crate::daemon::get_stuck_push_info(&repo).is_some(),
+            "precondition: the repo is in the stuck ledger"
+        );
+
+        record_converged_push_success(&repo);
+
+        let observed = crate::daemon::push_history::load(&repo).expect("observation");
+        assert!(
+            !observed.succeeded,
+            "a stuck repo must keep its failure until a push actually succeeds"
+        );
+        let stuck = crate::daemon::get_stuck_push_info(&repo).expect("stuck entry");
+        assert_eq!(
+            stuck.consecutive_failures, 1,
+            "the stuck ledger entry must survive the refresh attempt"
+        );
+    }
+
     #[test]
     fn test_sanitize_task_name_drops_explanatory_clauses() {
         assert_eq!(
