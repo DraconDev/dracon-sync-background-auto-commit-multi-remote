@@ -7032,6 +7032,26 @@ mod tests {
         assert!(!msg.contains("DEL:"), "move is not deleted, got: {msg}");
     }
 
+    /// The wiring tripwire: the helper must be CALLED from the production
+    /// path, not merely exist.
+    ///
+    /// The behavioural test above calls `record_converged_push_success`
+    /// directly, so it keeps passing even if the production call site is
+    /// deleted — the exact "both halves present, never consumed" defect
+    /// class this repo already has a tripwire for (see policy.rs:
+    /// `test_repo_override_consumed_in_production_tripwire`). This test
+    /// asserts the call site survives in the non-test part of the file,
+    /// so a refactor cannot silently disable the refresh.
+    #[test]
+    fn test_converged_push_success_is_called_in_production() {
+        let source = include_str!("sync.rs");
+        let production = source.split("mod tests {").next().unwrap_or(source);
+        assert!(
+            production.contains("record_converged_push_success(ctx.repo)"),
+            "the converged-refresh call site is missing from the production path"
+        );
+    }
+
     #[test]
     fn test_ext_excludes_gitlink_paths() {
         // Submodule named WITH a dot: without the gitlink filter its fake
