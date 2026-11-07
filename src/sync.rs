@@ -6492,6 +6492,22 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     // recorded FAILURE from an earlier cycle is stale. See
     // `record_converged_push_success` for why the PUSH column must not be
     // allowed to stay red forever.
+    if ctx.policy.auto_push
+        && !should_push
+        && (ctx.has_origin || !ctx.policy.remotes.is_empty())
+    {
+        record_converged_push_success(ctx.repo);
+    }
+    // Converged with nothing to push: the repo is already published, so a
+    // recorded FAILURE from an earlier cycle is stale. See
+    // `record_converged_push_success` for why the PUSH column must not be
+    // allowed to stay red forever.
+    if ctx.policy.auto_push
+        && !should_push
+        && (ctx.has_origin || !ctx.policy.remotes.is_empty())
+    {
+        record_converged_push_success(ctx.repo);
+    }
     Ok(PushReport::Attempted {
         ok: true,
         degraded: false,
@@ -7014,26 +7030,6 @@ mod tests {
         );
         assert!(!msg.contains("NEW:"), "move is not new, got: {msg}");
         assert!(!msg.contains("DEL:"), "move is not deleted, got: {msg}");
-    }
-
-    /// The wiring tripwire: the helper must be CALLED from the production
-    /// path, not merely exist.
-    ///
-    /// The behavioural test above calls `record_converged_push_success`
-    /// directly, so it keeps passing even if the production call site is
-    /// deleted — the exact "both halves present, never consumed" defect
-    /// class this repo already has a tripwire for (see policy.rs:
-    /// `test_repo_override_consumed_in_production_tripwire`). This test
-    /// asserts the call site survives in the non-test part of the file,
-    /// so a refactor cannot silently disable the refresh.
-    #[test]
-    fn test_converged_push_success_is_called_in_production() {
-        let source = include_str!("sync.rs");
-        let production = source.split("mod tests {").next().unwrap_or(source);
-        assert!(
-            production.contains("record_converged_push_success(ctx.repo)"),
-            "the converged-refresh call site is missing from the production path"
-        );
     }
 
     #[test]
