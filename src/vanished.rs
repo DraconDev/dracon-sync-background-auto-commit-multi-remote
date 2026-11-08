@@ -332,6 +332,48 @@ mod tests {
         assert_eq!(ledger["/w/steady"].last_seen_secs, aligned(600));
     }
 
+    /// Entries that a LEGACY (pre-fix) ledger left in DIFFERENT buckets
+    /// must converge on the next pass.
+    ///
+    /// This is the discriminating property. v0.113.81 refreshed each
+    /// entry against its OWN stored value, so entries desynchronised into
+    /// separate windows and the file changed whenever any one of them
+    /// crossed — the hosting repo then churned a commit every ~16-60 s
+    /// (measured 2026-11-07: ~43 commits/hour, dirty 25% of the time, and
+    /// the `repos` report flipping between `✅ CLEAN` and `❔ UNKNOWN`).
+    ///
+    /// Comparing against the current bucket instead makes every entry
+    /// refreshed in the same window hold the same value, so the file is
+    /// byte-stable and the write is skipped.
+    #[test]
+    fn entries_in_different_buckets_converge_on_the_next_pass() {
+        let mut ledger = SeenLedger::new();
+        // A pre-fix ledger: the two entries sit in different windows.
+        ledger.insert(
+            "/w/early".to_string(),
+            SeenRepo {
+                last_seen_secs: aligned(0),
+                first_vanished_secs: None,
+            },
+        );
+        ledger.insert(
+            "/w/late".to_string(),
+            SeenRepo {
+                last_seen_secs: aligned(300),
+                first_vanished_secs: None,
+            },
+        );
+        let current = vec![PathBuf::from("/w/early"), PathBuf::from("/w/late")];
+        update_seen_ledger(&mut ledger, &current, aligned(600));
+        let values: std::collections::BTreeSet<u64> =
+            ledger.values().map(|entry| entry.last_seen_secs).collect();
+        assert_eq!(
+            values.len(),
+            1,
+            "entries in different buckets must converge on one heartbeat value, got {values:?}"
+        );
+    }
+
     /// The v0.113.81 quantum was applied PER ENTRY, so entries first
     /// stamped at different moments crossed the threshold at DIFFERENT
     /// wall-clock times: the serialized file changed whenever any one of
