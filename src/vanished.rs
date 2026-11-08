@@ -112,19 +112,49 @@ pub(crate) fn save_seen_ledger(path: &Path, ledger: &SeenLedger) -> bool {
 /// Bounds the machine-state churn that starved user commits: the ledger
 /// file can change at most once per quantum per repo, instead of every
 /// discovery pass.
+///
+/// CHANGED 2026-11-07: the quantum is now applied to the STORED VALUE,
+/// not only to the comparison (see [`quantum_bucket`]). v0.113.81
+/// quantized per ENTRY — `now - entry.last_seen_secs >= QUANTUM` — but
+/// entries were first stamped at different moments, so they crossed the
+/// threshold at DIFFERENT wall-clock times. The serialized file therefore
+/// changed whenever ANY entry crossed, roughly every 16-60 s for a
+/// ~38-repo fleet, and `save_seen_ledger`'s compare-before-write never
+/// skipped a write. Measured on 2026-11-07: the hosting repo committed
+/// ~43 times/hour (506 in 24 h), was dirty 25% of the time, and flipped
+/// between `✅ CLEAN` and `❔ UNKNOWN` in the `repos` report — the
+/// scheduler-slot starvation v0.113.81 set out to stop, still happening.
+///
+/// Storing the BUCKET makes every entry refreshed inside the same window
+/// hold the SAME value, so the serialized ledger is byte-identical between
+/// buckets and the write is skipped entirely. The file then changes once
+/// per quantum, not once per entry-crossing.
 pub(crate) const SEEN_LAST_SEEN_QUANTUM_SECS: u64 = 600;
+
+/// Bucket-align a heartbeat timestamp.
+///
+/// Every entry refreshed inside the same quantum window stores the same
+/// value, so the whole ledger serializes identically and the hosting
+/// repo's worktree stays clean.
+fn quantum_bucket(now_secs: u64) -> u64 {
+    now_secs - (now_secs % SEEN_LAST_SEEN_QUANTUM_SECS)
+}
 
 /// Refresh one entry's heartbeat, honoring the quantum. Returns true
 /// when the entry changed (caller signal for write-skipping).
 fn refresh_seen(entry: &mut SeenRepo, now_secs: u64) -> bool {
     // A cleared vanish marker is SIGNAL — never delay it.
     if entry.first_vanished_secs.is_some() {
-        entry.last_seen_secs = now_secs;
+        entry.last_seen_secs = quantum_bucket(now_secs);
         entry.first_vanished_secs = None;
         return true;
     }
-    if now_secs.saturating_sub(entry.last_seen_secs) >= SEEN_LAST_SEEN_QUANTUM_SECS {
-        entry.last_seen_secs = now_secs;
+    // The stored value IS the bucket, so "did this window roll over" is
+    // the whole comparison. A legacy entry holding an un-bucketed
+    // timestamp migrates on the first pass.
+    let bucket = quantum_bucket(now_secs);
+    if bucket != entry.last_seen_secs {
+        entry.last_seen_secs = bucket;
         return true;
     }
     false
@@ -156,7 +186,10 @@ pub(crate) fn mark_seen(ledger: &mut SeenLedger, path: &Path, now_secs: u64) -> 
             ledger.insert(
                 key,
                 SeenRepo {
-                    last_seen_secs: now_secs,
+                    // Bucketed like every other heartbeat: a brand-new
+                    // entry must not make the serialized ledger differ
+                    // from the ones refreshed in the same window.
+                    last_seen_secs: quantum_bucket(now_secs),
                     first_vanished_secs: None,
                 },
             );
