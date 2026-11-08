@@ -152,8 +152,9 @@ fn refresh_seen(entry: &mut SeenRepo, now_secs: u64) -> bool {
     // The stored value IS the bucket, so "did this window roll over" is
     // the whole comparison. A legacy entry holding an un-bucketed
     // timestamp migrates on the first pass.
-    if now_secs.saturating_sub(entry.last_seen_secs) >= SEEN_LAST_SEEN_QUANTUM_SECS {
-        entry.last_seen_secs = now_secs;
+    let bucket = quantum_bucket(now_secs);
+    if bucket != entry.last_seen_secs {
+        entry.last_seen_secs = bucket;
         return true;
     }
     false
