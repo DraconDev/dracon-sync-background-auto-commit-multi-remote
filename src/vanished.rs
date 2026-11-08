@@ -229,13 +229,18 @@ mod tests {
         1_700_000_000 + offset
     }
 
+    /// The bucket a heartbeat at `offset` is stored as.
+    fn bucket_of(offset: u64) -> u64 {
+        quantum_bucket(secs(offset))
+    }
+
     #[test]
     fn mark_seen_adds_and_clears_vanished_stamp() {
         let mut ledger = SeenLedger::new();
         let path = Path::new("/tmp/dracon-vanished-test/r");
         mark_seen(&mut ledger, path, secs(0));
         let entry = ledger.get("/tmp/dracon-vanished-test/r").unwrap();
-        assert_eq!(entry.last_seen_secs, secs(0));
+        assert_eq!(entry.last_seen_secs, bucket_of(0));
         assert_eq!(entry.first_vanished_secs, None);
 
         // Re-mark after a vanish clears the stamp.
@@ -245,7 +250,7 @@ mod tests {
             .first_vanished_secs = Some(secs(5));
         mark_seen(&mut ledger, path, secs(10));
         let entry = ledger.get("/tmp/dracon-vanished-test/r").unwrap();
-        assert_eq!(entry.last_seen_secs, secs(10));
+        assert_eq!(entry.last_seen_secs, bucket_of(10));
         assert_eq!(entry.first_vanished_secs, None);
     }
 
@@ -296,7 +301,7 @@ mod tests {
             secs(180),
         );
         assert_eq!(ledger["/w/alpha"].first_vanished_secs, None);
-        assert_eq!(ledger["/w/alpha"].last_seen_secs, secs(180));
+        assert_eq!(ledger["/w/alpha"].last_seen_secs, bucket_of(180));
     }
 
     #[test]
@@ -308,14 +313,74 @@ mod tests {
         mark_seen(&mut ledger, Path::new("/w/steady"), secs(0));
         // 599 s later: no change.
         update_seen_ledger(&mut ledger, &[PathBuf::from("/w/steady")], secs(599));
-        assert_eq!(ledger["/w/steady"].last_seen_secs, secs(0));
+        assert_eq!(ledger["/w/steady"].last_seen_secs, bucket_of(0));
         // Vanish stamps immediately even inside the quantum.
         update_seen_ledger(&mut ledger, &[], secs(600));
         assert_eq!(ledger["/w/steady"].first_vanished_secs, Some(secs(600)));
         // Return clears immediately even inside the quantum.
         update_seen_ledger(&mut ledger, &[PathBuf::from("/w/steady")], secs(601));
         assert_eq!(ledger["/w/steady"].first_vanished_secs, None);
-        assert_eq!(ledger["/w/steady"].last_seen_secs, secs(601));
+        assert_eq!(ledger["/w/steady"].last_seen_secs, bucket_of(601));
+    }
+
+    /// The v0.113.81 quantum was applied PER ENTRY, so entries first
+    /// stamped at different moments crossed the threshold at DIFFERENT
+    /// wall-clock times: the serialized file changed whenever any one of
+    /// them crossed, and `save_seen_ledger`'s compare-before-write never
+    /// skipped a write. Measured on 2026-11-07, the hosting repo committed
+    /// ~43 times/hour, was dirty 25% of the time, and flipped between
+    /// `✅ CLEAN` and `❔ UNKNOWN` in the `repos` report.
+    ///
+    /// Storing the BUCKET makes every entry refreshed inside one window
+    /// hold the SAME value, so the ledger is byte-stable and the hosting
+    /// repo's worktree stays clean.
+    #[test]
+    fn staggered_entries_share_one_heartbeat_value_inside_a_quantum() {
+        let mut ledger = SeenLedger::new();
+        // Eight repos first seen 37 s apart — the real fleet discovers
+        // repos at different moments, which is what desynchronised them.
+        let current: Vec<PathBuf> = (0..8).map(|i| PathBuf::from(format!("/w/repo{i}"))).collect();
+        for (i, path) in current.iter().enumerate() {
+            mark_seen(&mut ledger, path, secs(i as u64 * 37));
+        }
+        // A pass inside the next window must leave every entry on ONE
+        // value — that is the file-level property the per-entry quantum
+        // failed to provide.
+        update_seen_ledger(&mut ledger, &current, secs(400));
+        let values: std::collections::BTreeSet<u64> =
+            ledger.values().map(|entry| entry.last_seen_secs).collect();
+        assert_eq!(
+            values.len(),
+            1,
+            "every entry must share one heartbeat value inside a quantum window, got {values:?}"
+        );
+    }
+
+    /// The same property, observed through the write-skip: once the
+    /// entries are synchronised, a pass inside the same window must not
+    /// touch the file at all (no dirty worktree, no commit, no scheduler
+    /// slot burned on the machine-state repo).
+    #[test]
+    fn synchronised_ledger_does_not_touch_the_file_inside_a_quantum() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let path = dir.path().join("ledger.json");
+        let mut ledger = SeenLedger::new();
+        let current: Vec<PathBuf> = (0..8).map(|i| PathBuf::from(format!("/w/repo{i}"))).collect();
+        for (i, p) in current.iter().enumerate() {
+            mark_seen(&mut ledger, p, secs(i as u64 * 37));
+        }
+        assert!(save_seen_ledger(&path, &ledger), "first write lands");
+
+        // Synchronise, then write the synchronised state.
+        update_seen_ledger(&mut ledger, &current, secs(400));
+        assert!(save_seen_ledger(&path, &ledger), "synchronised state writes once");
+
+        // A pass later in the SAME window must not change the bytes.
+        update_seen_ledger(&mut ledger, &current, secs(500));
+        assert!(
+            !save_seen_ledger(&path, &ledger),
+            "a pass inside the same quantum window must not dirty the hosting repo"
+        );
     }
 
     #[test]
