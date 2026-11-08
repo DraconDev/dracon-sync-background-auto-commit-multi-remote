@@ -229,6 +229,16 @@ mod tests {
         1_700_000_000 + offset
     }
 
+    /// A base aligned to the quantum boundary.
+    ///
+    /// The stored heartbeat is an ABSOLUTE quantum bucket, so the window
+    /// boundaries are fixed multiples of the quantum since the epoch — not
+    /// "600 s after this entry was first seen". Anchoring the fixtures to
+    /// a real boundary makes "inside the window" read literally.
+    fn aligned(offset: u64) -> u64 {
+        1_700_000_400 + offset
+    }
+
     /// The bucket a heartbeat at `offset` is stored as.
     fn bucket_of(offset: u64) -> u64 {
         quantum_bucket(secs(offset))
@@ -277,7 +287,7 @@ mod tests {
         assert_eq!(ledger["/w/alpha"].first_vanished_secs, Some(secs(60)));
         assert_eq!(
             ledger["/w/beta"].last_seen_secs,
-            secs(0),
+            bucket_of(0),
             "quantum must hold the heartbeat inside 600 s"
         );
 
@@ -289,7 +299,7 @@ mod tests {
         );
         assert_eq!(
             ledger["/w/beta"].last_seen_secs,
-            secs(0) + super::SEEN_LAST_SEEN_QUANTUM_SECS
+            bucket_of(0) + super::SEEN_LAST_SEEN_QUANTUM_SECS
         );
 
         // Cycle 3: alpha returns — vanished marker cleared.
@@ -310,17 +320,17 @@ mod tests {
         // quantum (the write-skipping that quiets the hosting repo),
         // while vanish stamps and clears land immediately.
         let mut ledger = SeenLedger::new();
-        mark_seen(&mut ledger, Path::new("/w/steady"), secs(0));
+        mark_seen(&mut ledger, Path::new("/w/steady"), aligned(0));
         // 599 s later: no change.
-        update_seen_ledger(&mut ledger, &[PathBuf::from("/w/steady")], secs(599));
-        assert_eq!(ledger["/w/steady"].last_seen_secs, bucket_of(0));
+        update_seen_ledger(&mut ledger, &[PathBuf::from("/w/steady")], aligned(599));
+        assert_eq!(ledger["/w/steady"].last_seen_secs, aligned(0));
         // Vanish stamps immediately even inside the quantum.
-        update_seen_ledger(&mut ledger, &[], secs(600));
-        assert_eq!(ledger["/w/steady"].first_vanished_secs, Some(secs(600)));
+        update_seen_ledger(&mut ledger, &[], aligned(600));
+        assert_eq!(ledger["/w/steady"].first_vanished_secs, Some(aligned(600)));
         // Return clears immediately even inside the quantum.
-        update_seen_ledger(&mut ledger, &[PathBuf::from("/w/steady")], secs(601));
+        update_seen_ledger(&mut ledger, &[PathBuf::from("/w/steady")], aligned(601));
         assert_eq!(ledger["/w/steady"].first_vanished_secs, None);
-        assert_eq!(ledger["/w/steady"].last_seen_secs, bucket_of(601));
+        assert_eq!(ledger["/w/steady"].last_seen_secs, aligned(600));
     }
 
     /// The v0.113.81 quantum was applied PER ENTRY, so entries first
