@@ -16876,7 +16876,7 @@ mod v011316_tests {
             remotes: vec![
                 RemoteConfig {
                     name: "github".to_string(),
-                    push_url: "git@github.com:DraconDev/{repo}.git".to_string(),
+                    push_url: "git@github.com:DraconDev/db-gateway.git".to_string(),
                     auto_create: false,
                     auto_create_account: String::new(),
                     auth_type: crate::policy::AuthType::GitHub,
@@ -16888,7 +16888,7 @@ mod v011316_tests {
                 },
                 RemoteConfig {
                     name: "gitlab".to_string(),
-                    push_url: "git@gitlab.com:DraconDev/{repo}.git".to_string(),
+                    push_url: "git@gitlab.com:DraconDev/db-gateway.git".to_string(),
                     auto_create: false,
                     auto_create_account: String::new(),
                     auth_type: crate::policy::AuthType::GitLab,
