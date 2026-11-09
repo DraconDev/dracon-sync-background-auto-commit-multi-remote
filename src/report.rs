@@ -1550,6 +1550,15 @@ pub(crate) struct RepoReportRow {
     /// the repo uses the full default remote set. Always present (not
     /// Option) so downstream callers don't have to handle None.
     excluded_remotes: Vec<String>,
+    /// Named MIRRORS the forge-identity dedupe dropped because their resolved
+    /// URL names the SAME forge project as `origin` (or as a higher-priority
+    /// mirror). ADDED 2026-11-09: `excluded_remotes` reports the operator's
+    /// explicit opt-outs, and this reports automatic de-duplication, so two
+    /// different reasons a destination is not pushed are never conflated in
+    /// one list. The detail view renders it as `[dup:...]` and the JSON row
+    /// carries it, which is how "the duplicate github MIRROR stopped pushing
+    /// while origin still publishes github" is observable at all.
+    duplicate_mirrors: Vec<String>,
     /// Reason codeberg is in `excluded_remotes` for this repo, when the
     /// skip is driven by the `codeberg_public_only` policy rather than
     /// a manual `exclude_remotes = ["codeberg"]` in the per-repo override.
