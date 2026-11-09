@@ -792,13 +792,17 @@ fn format_push_to_remotes_cell(
 /// auto-create is off). Returning both lists from one place so
 /// `push_to_remotes` / `excluded_remotes` can never drift apart.
 ///
-/// Returns `(push_to, excluded)`.
+/// Returns `(push_to, excluded, duplicate_mirrors)` — the push target set,
+/// the operator's name-based exclusions, and the mirrors the forge-identity
+/// dedupe dropped. ADDED 2026-11-09: the third element exists because a
+/// dropped duplicate is otherwise INVISIBLE (github still appears via
+/// `origin`), and silently changing where commits go is not acceptable.
 pub(crate) fn report_effective_remotes(
     policy: &crate::policy::SyncPolicy,
     repo_override: &crate::policy::RepoPolicyOverride,
     repo_path: &std::path::Path,
     too_big_for_github: bool,
-) -> (Vec<String>, Vec<String>) {
+) -> (Vec<String>, Vec<String>, Vec<String>) {
     let mut excluded = effective_excluded_remotes(policy, repo_override, repo_path);
     if crate::git::multi_remote::codeberg_push_excluded_for_repo(
         &policy.remotes,
@@ -836,7 +840,9 @@ pub(crate) fn report_effective_remotes(
         &filtered,
         &repo_name,
     );
-    (targets.push_to, excluded)
+    // Three distinct answers, never conflated: where commits GO, what the
+    // OPERATOR excluded, and which MIRRORS were de-duplicated.
+    (targets.push_to, excluded, targets.duplicate_mirrors)
 }
 
 pub(crate) fn effective_excluded_remotes(
