@@ -798,6 +798,11 @@ fn format_push_to_remotes_cell(
 /// gets only legs would reintroduce exactly the leg/forge confusion this
 /// change fixes.
 pub(crate) fn report_effective_remote_legs(
+    policy: &crate::policy::SyncPolicy,
+    repo_override: &crate::policy::RepoPolicyOverride,
+    repo_path: &std::path::Path,
+    too_big_for_github: bool,
+) -> ReportEffectiveRemotes {
     let mut excluded = effective_excluded_remotes(policy, repo_override, repo_path);
     if crate::git::multi_remote::codeberg_push_excluded_for_repo(
         &policy.remotes,
