@@ -253,6 +253,57 @@ pub(crate) fn incident_shields_failure(
         && transient_hosts.iter().all(|h| incident_hosts.contains(h))
 }
 
+/// The `(host, slug)` identity of a forge project, lowercased, or `None`
+/// when the URL shape is unrecognized.
+///
+/// MOVED 2026-11-09 into `forge` (was private in `report`): the push path
+/// and the report path must agree on what "the same project" means. They
+/// did not — `filter_remotes_by_exclude` matched remote NAMES only, so a
+/// repo whose `origin` and `github` mirror point at the SAME forge project
+/// pushed the same object twice every cycle, while the report showed that
+/// mirror as a normal independent target. Seven repos were doing exactly
+/// that (db-gateway, dracon-platform, empire, eve, mcode-plugins,
+/// opencode-plugins, terhub).
+///
+/// One definition, two consumers: a second copy of this comparison is
+/// precisely the divergence that would silently half-fix the problem.
+///
+/// Normalisation matters, not just parsing: the live fleet mixes scp form
+/// (`git@github.com:DraconDev/repo.git`), https with `.git`, and https
+/// WITHOUT it (`https://github.com/DraconDev/pi-plugins`). All three must
+/// compare equal. `https://user@host/...` userinfo is stripped for the
+/// same reason — credentials must never change project identity.
+pub(crate) fn remote_project_identity(url: &str) -> Option<(String, String)> {
+    let url = url.trim().trim_end_matches('/');
+    let url = url.strip_suffix(".git").unwrap_or(url);
+    // URL `scheme://host/path` first (an `https://user@host/...` userinfo
+    // `@` must not route into the scp branch), then scp-like
+    // `git@host:path` (colon before any slash).
+    let (host, path) = if let Some(after_scheme) = url.split("://").nth(1) {
+        let i = after_scheme.find('/')?;
+        (
+            after_scheme[..i].to_string(),
+            after_scheme[i + 1..].to_string(),
+        )
+    } else {
+        let after_at = url.split('@').next_back().unwrap_or(url);
+        let colon = after_at.find(':')?;
+        if after_at[..colon].contains('/') {
+            return None;
+        }
+        let (h, p) = after_at.split_at(colon);
+        (h.to_string(), p[1..].to_string())
+    };
+    // Strip URL userinfo (`https://user@host/...`) so identical projects
+    // compare equal regardless of credential embedding.
+    let host = host.split('@').next_back().unwrap_or(&host).to_lowercase();
+    let slug = path.trim_matches('/').to_lowercase();
+    if host.is_empty() || slug.is_empty() {
+        return None;
+    }
+    Some((host, slug))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
