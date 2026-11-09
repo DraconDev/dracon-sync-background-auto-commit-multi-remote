@@ -818,8 +818,25 @@ pub(crate) fn report_effective_remotes(
         excluded.push("github".to_string());
     }
     let filtered = crate::git::multi_remote::filter_remotes_by_exclude(&policy.remotes, &excluded);
-    let push_to = filtered.iter().map(|r| r.name.clone()).collect();
-    (push_to, excluded)
+    // SAME calculation the push path runs (`multi_remote::effective_push_targets`).
+    // The report must never derive its own answer: two independent calculations
+    // of "where do commits go" is exactly how the table came to claim a repo was
+    // GitLab-only while GitHub was receiving every commit through `origin`.
+    let origin_url = if crate::git::status::has_origin_remote(repo_path) {
+        crate::git::multi_remote::get_remote_url(repo_path, "origin")
+    } else {
+        None
+    };
+    let repo_name = repo_path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let targets = crate::git::multi_remote::effective_push_targets(
+        origin_url.as_deref(),
+        &filtered,
+        &repo_name,
+    );
+    (targets.push_to, excluded)
 }
 
 pub(crate) fn effective_excluded_remotes(
