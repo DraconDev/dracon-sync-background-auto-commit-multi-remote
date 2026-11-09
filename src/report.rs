@@ -16708,9 +16708,26 @@ mod v011316_tests {
             "gitlab",
             "git@gitlab.com:DraconDev/browser-extensions-shared.git",
         ]);
-        let policy = quota_policy();
+        // No github MIRROR configured: origin alone publishes github, which is
+        // exactly the browser-extensions-shared / pi-plugins shape.
+        let origin_only_policy = SyncPolicy {
+            remotes: vec![RemoteConfig {
+                name: "codeberg".to_string(),
+                push_url: "git@codeberg.org:example/{repo}.git".to_string(),
+                auto_create: false,
+                auto_create_account: String::new(),
+                auth_type: crate::policy::AuthType::Codeberg,
+                priority: 50,
+                api_endpoint: None,
+                auto_create_token_var: None,
+                repo_name_map: std::collections::HashMap::new(),
+                force_push_when_behind: false,
+            }],
+            codeberg_public_only: false,
+            ..test_sync_policy()
+        };
         let remotes =
-            report_effective_remote_legs(&policy, &RepoPolicyOverride::default(), &dir, false);
+            report_effective_remote_legs(&origin_only_policy, &RepoPolicyOverride::default(), &dir, false);
         assert_eq!(
             remotes.legs,
             vec!["origin".to_string()],
@@ -16754,9 +16771,10 @@ mod v011316_tests {
         }
         let two_mirror_policy = SyncPolicy {
             remotes: vec![
+                // Same project as `origin` -> de-duplicated, NOT a leg.
                 RemoteConfig {
                     name: "github".to_string(),
-                    push_url: "git@github.com:DraconDev/{repo}.git".to_string(),
+                    push_url: "git@github.com:DraconDev/browser-extensions-shared.git".to_string(),
                     auto_create: false,
                     auto_create_account: String::new(),
                     auth_type: crate::policy::AuthType::GitHub,
@@ -16768,7 +16786,7 @@ mod v011316_tests {
                 },
                 RemoteConfig {
                     name: "gitlab".to_string(),
-                    push_url: "git@gitlab.com:DraconDev/{repo}.git".to_string(),
+                    push_url: "git@gitlab.com:DraconDev/browser-extensions-shared.git".to_string(),
                     auto_create: false,
                     auto_create_account: String::new(),
                     auth_type: crate::policy::AuthType::GitLab,
