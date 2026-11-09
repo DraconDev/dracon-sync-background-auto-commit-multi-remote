@@ -65,12 +65,24 @@ pub(super) async fn plan_publication(
     } else {
         None
     };
-    let github_mirror_url = crate::git::multi_remote::get_remote_url(repo, "github");
-    // Host comparison alone is insufficient: origin and the named github
-    // mirror may be DIFFERENT repositories on github.com.
-    let github_mirror_is_origin =
-        github_mirror_matches_origin(origin_url.as_deref(), github_mirror_url.as_deref());
 
+    // REMOVED 2026-11-09: the old name-based `github_mirror_is_origin`
+    // pre-exclusion that lived here. Two reasons it cannot stay:
+    //
+    // 1. It guessed by NAME. `exclude_remotes` meant "do not push this
+    //    named mirror", so it could only ever catch the one remote named
+    //    `github` — a duplicate under any other name (`github-backup`,
+    //    `mirror`, `gh`) still double-pushed, and a DISTINCT github mirror
+    //    was dropped for simply sharing the name.
+    // 2. Its exclusion reached `prepare_mirror_remotes`, whose
+    //    `remove_stale_remotes` DELETED the daemon-managed remote from
+    //    `.git/config`. That is a destructive answer to a display/push
+    //    question: the goal's boundary is "change which remotes RECEIVE
+    //    pushes and what the report SHOWS, not what exists on disk".
+    //
+    // The forge-identity pass below replaces it: it runs AFTER remote
+    // preparation, so nothing on disk changes, and it compares resolved
+    // URLs through the ONE shared helper instead of a remote name.
     let repo_override = load_repo_override(repo);
     let mut exclude: Vec<String> = repo_override.exclude_remotes.clone();
     // Codeberg's 85 GiB quota is reserved for public marketing mirrors.
@@ -86,9 +98,6 @@ pub(super) async fn plan_publication(
         if skip_codeberg && !exclude.iter().any(|e| e == "codeberg") {
             exclude.push("codeberg".to_string());
         }
-    }
-    if github_mirror_is_origin && !exclude.iter().any(|e| e == "github") {
-        exclude.push("github".to_string());
     }
     let mut planned_failures = remote_failures.cloned().unwrap_or_default();
     if too_big_for_github {
