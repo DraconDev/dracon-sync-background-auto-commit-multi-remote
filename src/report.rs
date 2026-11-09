@@ -1461,7 +1461,7 @@ fn remote_slug_diverged(named_urls: &[(String, String)]) -> bool {
     use std::collections::{HashMap, HashSet};
     let mut by_host: HashMap<String, HashSet<String>> = HashMap::new();
     for (_, url) in named_urls {
-        if let Some((host, slug)) = remote_project_identity(url) {
+        if let Some((host, slug)) = crate::forge::remote_project_identity(url) {
             by_host.entry(host).or_default().insert(slug);
         }
     }
@@ -9979,32 +9979,6 @@ mod tests {
             serde_json::from_slice::<SummaryNotifyState>(&std::fs::read(&path).unwrap()).is_err()
         );
     }
-    #[test]
-    fn test_remote_project_identity_shapes() {
-        // scp-like SSH.
-        assert_eq!(
-            remote_project_identity("git@gitlab.com:DraconDev/web-games-doomtap.git"),
-            Some((
-                "gitlab.com".to_string(),
-                "dracondev/web-games-doomtap".to_string()
-            ))
-        );
-        // Plain https.
-        assert_eq!(
-            remote_project_identity("https://github.com/DraconDev/doomtap.git"),
-            Some(("github.com".to_string(), "dracondev/doomtap".to_string()))
-        );
-        // Case-insensitive comparison input (DraconDev vs dracondev).
-        assert_eq!(
-            remote_project_identity("git@github.com:DraconDev/Doomtap.git"),
-            remote_project_identity("git@github.com:dracondev/doomtap.git")
-        );
-        // Unrecognized shapes never warn.
-        assert_eq!(remote_project_identity("/srv/local/repo"), None);
-        assert_eq!(remote_project_identity("git@github.com:"), None);
-        assert_eq!(remote_project_identity(""), None);
-    }
-
     #[test]
     fn test_remote_slug_diverged_doomtap_case() {
         // Live 2026-09-18: origin names the stale project while github +
