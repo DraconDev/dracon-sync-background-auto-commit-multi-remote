@@ -16398,6 +16398,49 @@ mod v011315_tests {
         assert_eq!(remote_icon("origin"), None);
     }
 
+    /// ADDED 2026-11-09: the detail line must distinguish an operator opt-out
+    /// from the automatic forge-identity dedupe. A dropped duplicate is
+    /// otherwise invisible — github still appears in the push-to list via
+    /// origin — and "it silently stopped pushing to a mirror" is exactly the
+    /// class of change the operator must be able to see.
+    #[test]
+    fn push_to_detail_text_separates_opt_outs_from_automatic_dedupes() {
+        // db-gateway / terhub shape: origin github + kept gitlab mirror, and
+        // the github mirror dropped as a duplicate of origin.
+        assert_eq!(
+            push_to_detail_text(
+                &["github".to_string(), "gitlab".to_string()],
+                &[],
+                &["github".to_string()]
+            ),
+            "github,gitlab [dup:github]"
+        );
+        // Operator opt-out only — unchanged historical rendering.
+        assert_eq!(
+            push_to_detail_text(
+                &["github".to_string()],
+                &["gitlab".to_string(), "codeberg".to_string()],
+                &[]
+            ),
+            "github [excl:gitlab,codeberg]"
+        );
+        // Both reasons at once, opt-out first.
+        assert_eq!(
+            push_to_detail_text(
+                &["github".to_string()],
+                &["codeberg".to_string()],
+                &["github-backup".to_string()]
+            ),
+            "github [excl:codeberg] [dup:github-backup]"
+        );
+        // No remotes at all keeps the historical "(none)".
+        assert_eq!(push_to_detail_text(&[], &[], &[]), "(none)");
+        assert_eq!(
+            push_to_detail_text(&[], &["github".to_string()], &[]),
+            "(none) [excl:github]"
+        );
+    }
+
     #[test]
     fn rem_cell_shows_only_active_push_remotes() {
         // v0.113.17: excluded remotes are not rendered at all — the
