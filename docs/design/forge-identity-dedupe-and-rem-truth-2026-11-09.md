@@ -203,7 +203,7 @@ the automatic behaviour. The detail view renders both.
 
 | gate | result |
 | --- | --- |
-| `cargo test --workspace --locked` | 3105 passed, 0 failed, 27 ignored |
+| `cargo test --workspace --locked` | 3106 passed, 0 failed, 27 ignored (44 suites) |
 | `cargo clippy --workspace --locked -- -D warnings` | exit 0 |
 | `cargo clippy --workspace --locked --all-targets -- -D warnings` | exit 0 |
 | `cargo build --release --locked` | exit 0 |
@@ -213,61 +213,83 @@ the automatic behaviour. The detail view renders both.
 `clippy::field_reassign_with_default` in `policy.rs` test code (untouched by
 this change); fixed in place rather than left failing the stricter gate.
 
-Deployment: `~/.local/bin/dracon-sync` is byte-identical (`cmp`) to
-`target/release/dracon-sync`; the running daemon's `/proc/<pid>/exe` resolves
-to that same path and its inode equals the deployed file's inode.
-(`dracon-sync 0.113.96`, deployed 11:23:02, daemon restarted 11:23:11.)
+The 47 staged-epoch/storage tests need a helper binary whose
+`DRACON_EPOCH_SOURCE_ID` matches the code under test (`.cargo/config.toml`
+points `DRACON_EPOCH_TEST_HELPER` at `target/debug/dracon-sync`), so a plain
+`cargo test` after a source edit fails them with "source identity mismatch"
+until `cargo build` refreshes that binary. Building first is the whole fix; no
+test was skipped or relaxed.
+
+Deployment (2026-11-09 22:05:32, `scripts/install-qualified-daemon.py`):
+`expected_sha256 == running_sha256 == 74904dc9…`, `new_pid 3676819`, and the
+running revision was read back from `/proc/3676819/exe` rather than trusted
+from installation metadata. The previous binary was backed up under
+`~/.local/state/dracon-sync/deployments/`.
 
 ### Live verification (2026-11-09, after the restart)
 
-`dracon-sync repos --json` over the whole fleet:
+`dracon-sync repos --json` over the whole fleet. `push_to_remotes` is the LEG
+list, `push_to_forges` the icon families:
 
-| repo | `push_to_remotes` | `duplicate_mirrors` | `excluded_remotes` |
-| --- | --- | --- | --- |
-| db-gateway | github, gitlab | github | — |
-| terhub | github, gitlab | github | — |
-| empire | github, gitlab | github | codeberg |
-| mcode-plugins | github, gitlab | github | — |
-| opencode-plugins | github, gitlab | github | codeberg |
-| dracon-utilities | github, gitlab | github | — |
-| dracon-platform | github, gitlab | github | codeberg |
-| browser-extensions-shared | github, gitlab | github | codeberg |
+| repo | `push_to_remotes` | `push_to_forges` | `duplicate_mirrors` | `excluded_remotes` |
+| --- | --- | --- | --- | --- |
+| db-gateway | origin, gitlab | github, gitlab | github | — |
+| terhub | origin, gitlab | github, gitlab | github | — |
+| empire | origin, gitlab | github, gitlab | github | codeberg |
+| mcode-plugins | origin, gitlab | github, gitlab | github | — |
+| opencode-plugins | origin, gitlab | github, gitlab | github | codeberg |
+| dracon-utilities | origin, gitlab | github, gitlab | github | — |
+| dracon-platform | origin, gitlab | github, gitlab | github | codeberg |
+| browser-extensions-shared | origin, gitlab | github, gitlab | github | codeberg |
+| pi-plugins | origin, gitlab | github, gitlab | github | — |
+| tiles-tui-file-manager | origin, gitlab | github, gitlab | github | — |
 
-The `github` *mirror* is reported as a duplicate and is not a push leg; the
-forge `github` still appears in `push_to_remotes` through `origin`. Before the
-change the detail line read `gitlab [excl:github,codeberg]` for
-`browser-extensions-shared`; it now reads
-`github,gitlab [excl:codeberg] [dup:github]` (item 4.2 — no per-repo
-exception left in `.dracon/dracon-sync.toml`, `grep exclude_remotes` finds no
-`github` entry).
+`github` is **not** a push target on any of them (the de-duplicated mirror is
+gone and origin is the github leg), while `origin` publishes GitHub — so
+GitHub still receives commits and still renders 🐙:
 
-REM column (`--layout full`, col 12 of 23) now renders `github,gitlab`
-(`🐙🦊`) on every census repo, including `browser-extensions-shared`, `pi-plugins`
-and `tiles-tui-file-manager` — all of which were GitLab-only or iconless before.
+```
+$ dracon-sync repos db-gateway | grep push-to
+     push-to:   origin,gitlab [dup:github]
+$ dracon-sync repos terhub | grep push-to
+     push-to:   origin,gitlab [dup:github]
+$ dracon-sync repos browser-extensions-shared | grep push-to
+     push-to:   origin,gitlab [excl:codeberg] [dup:github]
+```
 
-Every previously-published forge still received the commit — `ls-remote
-refs/heads/main` compared against the local `refs/heads/main` SHA:
+(Corrected 2026-11-09 22:29 after the audit: the earlier revision of this
+document quoted `push-to: github,gitlab [dup:github]`. That was the version
+whose LEG list carried origin's forge label, and the audit was right that it
+contradicted the target list it claimed to fix.)
+
+Before the change the same line read `gitlab [excl:github,codeberg]` for
+`browser-extensions-shared` — GitLab only, while GitHub received every commit.
+The override that produced it is gone: `grep exclude_remotes` on that repo's
+`.dracon/dracon-sync.toml` returns nothing.
+
+REM column (fleet table) now renders `🐙🦊` for every row above, including the
+three repos that previously showed no GitHub icon at all.
+
+Every previously-published forge still received commits — `ls-remote
+refs/heads/main` against the local `refs/heads/main` SHA, 2026-11-09 22:17:
 
 | repo | local | github (origin) | gitlab |
 | --- | --- | --- | --- |
 | db-gateway | `d9cdc7ab3abb` | `d9cdc7ab3abb` | `d9cdc7ab3abb` |
-| terhub | `918e5fab5e0b` | `918e5fab5e0b` | `918e5fab5e0b` |
-| empire | `bdc6d84cb4e4` | `bdc6d84cb4e4` | `bdc6d84cb4e4` |
+| terhub | `0e850ed054be` | `0e850ed054be` | `0e850ed054be` |
+| empire | `d23c626bab1c` | `d23c626bab1c` | `d23c626bab1c` |
 | mcode-plugins | `d04433108741` | `d04433108741` | `d04433108741` |
 | opencode-plugins | `803f967d132c` | `803f967d132c` | `803f967d132c` |
-| dracon-platform | `1812c9c833af` | `1812c9c833af` | `1812c9c833af` |
+| dracon-utilities | `c82a11e3968d` | `c82a11e3968d` | `c82a11e3968d` |
 
-Fleet state after the change: 38 inspected, 0 concerns, 0 inspection
-failures. `browser-extensions-shared` and `dracon-platform` were `PENDING`
-with unpushed commits at measurement time (a live producer landing commits
-faster than the gate can validate — the pre-existing queue condition this
-dedupe does not address), not push failures: neither had a `push_error`, and
-both forges advanced to the tip each round.
-
-`eve` is in `exclude_repos`, so it has no report row; its remote config has
-`origin` = github plus a byte-identical `github` mirror — the same class as the
-census, handled by the identical code path, and its mirrors are left on disk
-untouched (nothing is deleted or reconfigured).
+Fleet state: 38 inspected, 0 concerns, 0 inspection failures. The only repo in
+a warn/pending state is `dracon-platform` (3–4 unpushed commits), and its cause
+is unrelated to this change — the private-bucket preparation times out at 300s
+("private bucket workflow failed; no commit permitted: … timed out after 300s"
+in the journal, both before and after the restart), so no commit is created and
+no push can follow. `browser-extensions-shared` shows the same pre-existing
+producer-faster-than-gate backlog rather than a push rejection: both of its
+forges advance in lockstep to the same published tip every round.
 
 ## No publication target was lost
 
