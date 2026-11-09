@@ -1453,44 +1453,6 @@ pub(crate) enum RepoFilter {
     Warn,
 }
 
-/// ADDED 2026-09-18 (v0.113.67): remote-divergence detection. Extract the
-/// `host/path` identity from each remote URL so `repair concerns` can warn
-/// when one repo's remotes point at differently-named forge projects
-/// (live case: doomtap's `origin` → `web-games-doomtap` while `github` +
-/// `gitlab` → `doomtap`). Returns `(host, slug)` lowercased for
-/// comparison; `None` when the URL shape is unrecognized (never warn on
-/// parse failure — detection must not cry wolf on exotic remotes).
-fn remote_project_identity(url: &str) -> Option<(String, String)> {
-    let url = url.trim().trim_end_matches('/');
-    let url = url.strip_suffix(".git").unwrap_or(url);
-    // URL `scheme://host/path` first (an `https://user@host/...` userinfo
-    // `@` must not route into the scp branch), then scp-like
-    // `git@host:path` (colon before any slash).
-    let (host, path) = if let Some(after_scheme) = url.split("://").nth(1) {
-        let i = after_scheme.find('/')?;
-        (
-            after_scheme[..i].to_string(),
-            after_scheme[i + 1..].to_string(),
-        )
-    } else {
-        let after_at = url.split('@').next_back().unwrap_or(url);
-        let colon = after_at.find(':')?;
-        if after_at[..colon].contains('/') {
-            return None;
-        }
-        let (h, p) = after_at.split_at(colon);
-        (h.to_string(), p[1..].to_string())
-    };
-    // Strip URL userinfo (`https://user@host/...`) so identical projects
-    // compare equal regardless of credential embedding.
-    let host = host.split('@').next_back().unwrap_or(&host).to_lowercase();
-    let slug = path.trim_matches('/').to_lowercase();
-    if host.is_empty() || slug.is_empty() {
-        return None;
-    }
-    Some((host, slug))
-}
-
 /// True when the repo's remotes name at least two distinct forge projects
 /// on the SAME host (cross-host mirrors trivially differ — github vs
 /// gitlab is the design, not drift). Same-host, different-slug is the
