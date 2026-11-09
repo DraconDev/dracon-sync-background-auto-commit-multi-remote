@@ -351,6 +351,21 @@ mod tests {
             remote_project_identity("git@github.com:DraconDev/pi-plugins.git"),
             "embedded credentials must not change project identity"
         );
+        // Transport ports are NOT identity, and this case is the reason the
+        // parser delegates to `canonical_repository_url` instead of keeping
+        // its own copy: the pre-move implementation kept `:22` inside the
+        // host, so this pair compared UNEQUAL and the dedupe would have
+        // failed on exactly the spellings `ssh://` remotes use.
+        assert_eq!(
+            remote_project_identity("ssh://git@gitlab.com:22/DraconDev/doomtap.git"),
+            remote_project_identity("git@gitlab.com:DraconDev/doomtap.git"),
+            "ssh:// with an explicit port must equal the scp form"
+        );
+        assert_eq!(
+            remote_project_identity("https://github.com:443/DraconDev/doomtap.git"),
+            remote_project_identity("https://github.com/DraconDev/doomtap.git"),
+            "https with the default port must equal the portless form"
+        );
         // Different projects on the SAME forge stay distinct — this is the
         // half that must NOT be deduped (drift, not duplication).
         assert_ne!(
