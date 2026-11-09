@@ -2099,13 +2099,6 @@ async fn run_release_pipeline_if_bumped(repo: &Path, policy: &SyncPolicy, versio
     }
 }
 
-fn github_mirror_matches_origin(origin_url: Option<&str>, github_url: Option<&str>) -> bool {
-    match (origin_url, github_url) {
-        (Some(origin), Some(github)) => crate::git::same_repository_url(origin, github),
-        _ => false,
-    }
-}
-
 /// What `push_background` actually did this cycle (ADDED 2026-09-18,
 /// v0.113.69, per-remote pause scope). `Attempted(ok)` preserves the
 /// legacy bool: at least one remote was pushed, `ok` = all attempted
@@ -6667,23 +6660,6 @@ mod tests {
             sanitize_task_name("Added .dracon/ and .pub to NOISE_PATTERNS in bump.rs"),
             "Added .dracon/ and"
         );
-    }
-
-    #[test]
-    fn github_mirror_comparison_uses_repository_identity_not_host_only() {
-        let origin_url = "git@github.com:DraconDev/ultratap.git";
-        let origin = Some(origin_url);
-        let distinct_github = Some("https://github.com/DraconDev/doomtap.git");
-        assert!(publication::is_github_url(origin_url));
-        assert!(!github_mirror_matches_origin(origin, distinct_github));
-    }
-
-    #[test]
-    fn github_mirror_comparison_accepts_transport_variants() {
-        let origin = Some("git@github.com:DraconDev/fleetmaster.git");
-        let same_github = Some("https://github.com/DraconDev/fleetmaster/");
-        assert!(github_mirror_matches_origin(origin, same_github));
-        assert!(!github_mirror_matches_origin(origin, None));
     }
 
     #[test]
