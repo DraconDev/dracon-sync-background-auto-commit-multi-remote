@@ -6813,7 +6813,7 @@ fn push_cell_with_markers(text: String, row: &RepoReportRow, budget: usize) -> S
         out.push('🩹');
     }
     let token_missing = row
-        .push_to_remotes
+        .push_to_forges
         .iter()
         .chain(row.excluded_remotes.iter())
         .any(|r| match r.as_str() {
