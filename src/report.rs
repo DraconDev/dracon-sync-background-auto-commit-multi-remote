@@ -792,27 +792,12 @@ fn format_push_to_remotes_cell(
 /// auto-create is off). Returning both lists from one place so
 /// `push_to_remotes` / `excluded_remotes` can never drift apart.
 ///
-/// Returns `(push_to, excluded, duplicate_mirrors)` — the publication legs,
-/// the operator's name-based exclusions, and the mirrors the forge-identity
-/// dedupe dropped. ADDED 2026-11-09: the third element exists because a
-/// dropped duplicate is otherwise INVISIBLE, and silently changing where
-/// commits go is not acceptable. CHANGED 2026-11-09 (audit item 5): the first
-/// element is the legs (origin, mirrors) — a forge LABEL there claimed `github`
-/// was a destination even when the github mirror had just been de-duplicated;
-/// the forge families travel alongside in `pub_effective_remotes`.
-pub(crate) fn report_effective_remotes(
-    policy: &crate::policy::SyncPolicy,
-    repo_override: &crate::policy::RepoPolicyOverride,
-    repo_path: &std::path::Path,
-    too_big_for_github: bool,
-) -> (Vec<String>, Vec<String>, Vec<String>) {
-    let remotes = report_effective_remote_legs(policy, repo_override, repo_path, too_big_for_github);
-    (remotes.legs, remotes.excluded, remotes.duplicate_mirrors)
-}
-
-/// The report's full answer to "where do commits go": legs for the
-/// `push-to:` / `push_to_remotes` answer, forges for the REM icons.
-pub(crate) struct ReportEffectiveRemotes {
+/// Extracted from `report_effective_remotes` on 2026-11-09 (audit item 5)
+/// so the legs and the forge families travel together; the tuple-returning
+/// wrapper was removed rather than left as dead code, because a caller that
+/// gets only legs would reintroduce exactly the leg/forge confusion this
+/// change fixes.
+pub(crate) fn report_effective_remote_legs(
     /// Publication legs (`origin`, mirror names).
     pub legs: Vec<String>,
     /// Forge family per leg, in the same order (`github`/`gitlab`/`codeberg`, or
