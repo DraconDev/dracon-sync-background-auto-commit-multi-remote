@@ -69,7 +69,7 @@ origin is a forge: `push_to` listed mirror names only, never origin's forge.
 `forge_host_of_url` in `src/forge.rs` (`forge.rs:276`). One definition, two
 consumers:
 
-- report path: `report.rs:829` → `effective_push_targets`
+- report path: `report.rs:838` → `effective_push_targets`
 - push path: `sync/publication.rs:146` → `effective_push_targets`
 
 `grep -rn "fn remote_project_identity" src/` returns exactly the definition
@@ -185,7 +185,7 @@ the automatic behaviour. The detail view renders both,
 
 | gate | result |
 | --- | --- |
-| `cargo test --workspace --locked` | 3104 passed, 0 failed, 27 ignored |
+| `cargo test --workspace --locked` | 3105 passed, 0 failed, 27 ignored |
 | `cargo clippy --workspace --locked -- -D warnings` | exit 0 |
 | `cargo clippy --workspace --locked --all-targets -- -D warnings` | exit 0 |
 | `cargo build --release --locked` | exit 0 |
