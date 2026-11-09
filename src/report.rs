@@ -12563,7 +12563,6 @@ mod tests {
             push_to_remotes: vec![],
             excluded_remotes: vec![],
             duplicate_mirrors: vec![],
-            duplicate_mirrors: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: None,
             git_modules_bytes: None,
@@ -13259,7 +13258,6 @@ mod tests {
                 "gitlab".to_string(),
             ],
             excluded_remotes: vec![],
-            duplicate_mirrors: vec![],
             duplicate_mirrors: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: Some(34_476_847),
@@ -16535,7 +16533,7 @@ mod v011316_tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let policy = quota_policy();
-        let (push_to, excluded) =
+        let (push_to, excluded, _dups) =
             report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, false);
         assert_eq!(push_to, vec!["github".to_string()]);
         assert!(
@@ -16583,7 +16581,7 @@ mod v011316_tests {
         .unwrap();
         run(&["update-ref", "refs/remotes/codeberg/main", sha.trim()]);
         let policy = quota_policy();
-        let (push_to, _excluded) =
+        let (push_to, _excluded, _dups) =
             report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, false);
         assert!(
             push_to.iter().any(|r| r == "codeberg"),
@@ -16602,7 +16600,7 @@ mod v011316_tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let policy = quota_policy();
-        let (push_to, excluded) =
+        let (push_to, excluded, _dups) =
             report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, true);
         assert!(
             excluded.iter().any(|e| e == "github"),
@@ -16649,7 +16647,7 @@ mod v011316_tests {
             "git@gitlab.com:DraconDev/browser-extensions-shared.git",
         ]);
         let policy = quota_policy();
-        let (push_to, _excluded) =
+        let (push_to, _excluded, _dups) =
             report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, false);
         assert!(
             push_to.iter().any(|r| r == "github"),
@@ -16716,7 +16714,7 @@ mod v011316_tests {
             codeberg_public_only: false,
             ..test_sync_policy()
         };
-        let (push_to, _excluded) = report_effective_remotes(
+        let (push_to, _excluded, _dups) = report_effective_remotes(
             &two_mirror_policy,
             &RepoPolicyOverride::default(),
             &dir2,
@@ -16796,7 +16794,7 @@ mod v011316_tests {
             codeberg_public_only: false,
             ..test_sync_policy()
         };
-        let (push_to, _excluded) =
+        let (push_to, _excluded, _dups) =
             report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, false);
         assert_eq!(
             push_to,
@@ -17254,7 +17252,6 @@ mod v011321_tests {
             push_error: String::new(),
             push_to_remotes: vec!["github".into()],
             excluded_remotes: vec![],
-            duplicate_mirrors: vec![],
             duplicate_mirrors: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: None,
