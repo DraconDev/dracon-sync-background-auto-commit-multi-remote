@@ -3040,8 +3040,10 @@ mod tests {
 
         // An unparsable override must not silently ENABLE the pathology the
         // operator asked to stop, and must not invert a global opt-out either.
-        let mut broken = RepoPolicyOverride::default();
-        broken.override_parse_error = Some("bad toml".into());
+        let broken = RepoPolicyOverride {
+            override_parse_error: Some("bad toml".into()),
+            ..Default::default()
+        };
         assert!(!repo_auto_gc_disabled(&global, &broken));
         let mut global_off = global.clone();
         global_off.auto_gc_disabled = true;
