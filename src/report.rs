@@ -16771,10 +16771,10 @@ mod v011316_tests {
         }
         let two_mirror_policy = SyncPolicy {
             remotes: vec![
-                // Same project as `origin` -> de-duplicated, NOT a leg.
+                // A DISTINCT github project (different slug) -> KEPT as a leg.
                 RemoteConfig {
                     name: "github".to_string(),
-                    push_url: "git@github.com:DraconDev/browser-extensions-shared.git".to_string(),
+                    push_url: "git@github.com:DraconDev/{repo}.git".to_string(),
                     auto_create: false,
                     auto_create_account: String::new(),
                     auth_type: crate::policy::AuthType::GitHub,
@@ -16786,7 +16786,7 @@ mod v011316_tests {
                 },
                 RemoteConfig {
                     name: "gitlab".to_string(),
-                    push_url: "git@gitlab.com:DraconDev/browser-extensions-shared.git".to_string(),
+                    push_url: "git@gitlab.com:DraconDev/{repo}.git".to_string(),
                     auto_create: false,
                     auto_create_account: String::new(),
                     auth_type: crate::policy::AuthType::GitLab,
@@ -16806,15 +16806,32 @@ mod v011316_tests {
             &dir2,
             false,
         );
+        // The github MIRROR here resolves to a DIFFERENT project than origin
+        // (the temp dir name differs from `browser-extensions-shared`), so
+        // forge-identity dedupe must KEEP it: drift, not duplication. That is
+        // the KEEP half of the rule, at the report level.
         assert_eq!(
             remotes.legs,
-            vec!["origin".to_string(), "gitlab".to_string()],
-            "origin's github leg plus the distinct gitlab mirror leg"
+            vec![
+                "origin".to_string(),
+                "github".to_string(),
+                "gitlab".to_string()
+            ],
+            "a distinct github project plus the gitlab mirror are both legs"
         );
         assert_eq!(
             remotes.forges,
-            vec!["github".to_string(), "gitlab".to_string()],
-            "both forges render — github is origin's"
+            vec![
+                "github".to_string(),
+                "github".to_string(),
+                "gitlab".to_string()
+            ],
+            "two distinct github projects render two icons; gitlab renders one"
+        );
+        assert!(
+            remotes.duplicate_mirrors.is_empty(),
+            "nothing was de-duplicated: {:?}",
+            remotes.duplicate_mirrors
         );
         let _ = std::fs::remove_dir_all(&dir2);
     }
