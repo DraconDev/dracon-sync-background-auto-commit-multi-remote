@@ -7422,7 +7422,7 @@ fn build_repos_rich_table(
     const REM_MIN_COL: usize = 8;
     let rem_col = indexed
         .iter()
-        .map(|(_, row)| rem_column_width(&row.push_to_remotes))
+        .map(|(_, row)| rem_column_width(&row.push_to_forges))
         .max()
         .unwrap_or(REM_MIN_COL);
 
@@ -7816,7 +7816,11 @@ fn build_repos_rich_table(
         // row under the codeberg quota posture (fleet-wide
         // exclusion = noise, not signal): "leave it out if we are
         // not using it — easier to see".
-        let rem_text = rem_cell_content(&row.push_to_remotes);
+        // CHANGED 2026-11-09 (audit item 5): icons read the FORGE column,
+        // not the leg names — `origin` is a leg, `github` is the forge it
+        // publishes to, and the target list must not pretend a leg named
+        // `github` still exists after the dedupe removed it.
+        let rem_text = rem_cell_content(&row.push_to_forges);
 
         // CHANGED 2026-07-29 (v0.113.13): USED column dropped
         // (duplicated ACTIVITY) and COMMITS split into three columns.
