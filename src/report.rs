@@ -798,18 +798,6 @@ fn format_push_to_remotes_cell(
 /// gets only legs would reintroduce exactly the leg/forge confusion this
 /// change fixes.
 pub(crate) fn report_effective_remote_legs(
-    /// Publication legs (`origin`, mirror names).
-    pub legs: Vec<String>,
-    /// Forge family per leg, in the same order (`github`/`gitlab`/`codeberg`, or
-    /// the remote name when the host is not a recognised forge).
-    pub forges: Vec<String>,
-    /// The operator's explicit opt-outs.
-    pub excluded: Vec<String>,
-    /// Mirrors the forge-identity dedupe dropped.
-    pub duplicate_mirrors: Vec<String>,
-}
-
-pub(crate) fn report_effective_remote_legs(
     policy: &crate::policy::SyncPolicy,
     repo_override: &crate::policy::RepoPolicyOverride,
     repo_path: &std::path::Path,
