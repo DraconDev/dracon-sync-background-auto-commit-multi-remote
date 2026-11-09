@@ -16564,11 +16564,79 @@ mod v011316_tests {
             push_to.iter().any(|r| r == "github"),
             "origin's forge must be named: {push_to:?}"
         );
-        assert!(
-            push_to.iter().any(|r| r == "gitlab"),
-            "the distinct gitlab mirror must survive: {push_to:?}"
-        );
         let _ = std::fs::remove_dir_all(&dir);
+
+        // The distinct gitlab mirror must survive alongside origin's github.
+        // (Separate policy: `quota_policy()` does not configure gitlab, so the
+        // mirror could never be a candidate above.)
+        let dir2 = std::env::temp_dir().join("dracon-v011309-origin-github-2");
+        let _ = std::fs::remove_dir_all(&dir2);
+        std::fs::create_dir_all(&dir2).unwrap();
+        let out = std::process::Command::new("git")
+            .args(["init", "-q", "-b", "main"])
+            .current_dir(&dir2)
+            .output()
+            .unwrap();
+        assert!(out.status.success());
+        for (name, url) in [
+            (
+                "origin",
+                "https://github.com/DraconDev/browser-extensions-shared",
+            ),
+            (
+                "gitlab",
+                "git@gitlab.com:DraconDev/browser-extensions-shared.git",
+            ),
+        ] {
+            let out = std::process::Command::new("git")
+                .args(["remote", "add", name, url])
+                .current_dir(&dir2)
+                .output()
+                .unwrap();
+            assert!(out.status.success());
+        }
+        let two_mirror_policy = SyncPolicy {
+            remotes: vec![
+                RemoteConfig {
+                    name: "github".to_string(),
+                    push_url: "git@github.com:DraconDev/{repo}.git".to_string(),
+                    auto_create: false,
+                    auto_create_account: String::new(),
+                    auth_type: crate::policy::AuthType::GitHub,
+                    priority: 50,
+                    api_endpoint: None,
+                    auto_create_token_var: None,
+                    repo_name_map: std::collections::HashMap::new(),
+                    force_push_when_behind: false,
+                },
+                RemoteConfig {
+                    name: "gitlab".to_string(),
+                    push_url: "git@gitlab.com:DraconDev/{repo}.git".to_string(),
+                    auto_create: false,
+                    auto_create_account: String::new(),
+                    auth_type: crate::policy::AuthType::GitLab,
+                    priority: 50,
+                    api_endpoint: None,
+                    auto_create_token_var: None,
+                    repo_name_map: std::collections::HashMap::new(),
+                    force_push_when_behind: true,
+                },
+            ],
+            codeberg_public_only: false,
+            ..test_sync_policy()
+        };
+        let (push_to, _excluded) = report_effective_remotes(
+            &two_mirror_policy,
+            &RepoPolicyOverride::default(),
+            &dir2,
+            false,
+        );
+        assert_eq!(
+            push_to,
+            vec!["github".to_string(), "gitlab".to_string()],
+            "origin's github plus the distinct gitlab mirror"
+        );
+        let _ = std::fs::remove_dir_all(&dir2);
     }
 
     #[test]
