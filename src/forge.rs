@@ -458,6 +458,141 @@ mod tests {
         );
     }
 
+    /// The dedupe itself, pinned against the seven live repos' shape: origin
+    /// and a byte-identical `github` mirror, plus a genuinely distinct gitlab
+    /// mirror that must SURVIVE.
+    #[test]
+    fn duplicate_mirror_names_drops_origin_duplicate_across_url_spellings() {
+        let mirrors = [
+            ForgeMirror {
+                name: "github".to_string(),
+                url: "git@github.com:DraconDev/db-gateway.git".to_string(),
+                priority: 50,
+            },
+            ForgeMirror {
+                name: "gitlab".to_string(),
+                url: "git@gitlab.com:DraconDev/db-gateway.git".to_string(),
+                priority: 50,
+            },
+        ];
+        // Every spelling of the SAME project must be recognised as the
+        // duplicate leg. The live fleet mixes all of these.
+        for origin in [
+            "git@github.com:DraconDev/db-gateway.git",
+            "https://github.com/DraconDev/db-gateway.git",
+            "https://github.com/DraconDev/db-gateway",
+            "ssh://git@github.com:22/DraconDev/db-gateway.git",
+            "https://token@github.com/DraconDev/db-gateway.git",
+            "GIT@GitHub.com:DraconDev/DB-Gateway.git",
+        ] {
+            let dropped = duplicate_mirror_names(Some(origin), &mirrors);
+            assert_eq!(
+                dropped,
+                vec!["github".to_string()],
+                "origin {origin} must drop the duplicate github mirror and KEEP gitlab"
+            );
+        }
+        // No origin configured: nothing to duplicate against, nothing dropped.
+        assert!(duplicate_mirror_names(None, &mirrors).is_empty());
+        // An unparseable origin claims nothing — every mirror survives.
+        assert!(duplicate_mirror_names(Some("/srv/local/repo"), &mirrors).is_empty());
+    }
+
+    /// Same host, DIFFERENT slug is drift, not duplication: the mirror must
+    /// survive. This is the boundary the dedupe must never cross — dropping
+    /// it would silently retire a destination the operator still publishes to.
+    #[test]
+    fn duplicate_mirror_names_keeps_same_host_different_slug() {
+        let mirrors = [
+            ForgeMirror {
+                name: "github".to_string(),
+                url: "git@github.com:DraconDev/doomtap.git".to_string(),
+                priority: 50,
+            },
+            ForgeMirror {
+                name: "gitlab".to_string(),
+                url: "git@gitlab.com:DraconDev/web-games-doomtap.git".to_string(),
+                priority: 50,
+            },
+        ];
+        // The live doomtap case: origin kept the old name, mirrors moved on.
+        let dropped = duplicate_mirror_names(
+            Some("git@github.com:DraconDev/web-games-doomtap.git"),
+            &mirrors,
+        );
+        assert!(
+            dropped.is_empty(),
+            "same-host different-slug mirrors must be KEPT, dropped={dropped:?}"
+        );
+        // And the github mirror IS a duplicate when origin names its own project.
+        let dropped =
+            duplicate_mirror_names(Some("git@github.com:DraconDev/doomtap.git"), &mirrors);
+        assert_eq!(dropped, vec!["github".to_string()]);
+    }
+
+    /// Two mirrors sharing one project collapse to ONE: the higher-priority
+    /// (lower number) leg, i.e. the leg the pusher would have used first.
+    #[test]
+    fn duplicate_mirror_names_collapses_two_mirrors_to_one_project() {
+        let mirrors = [
+            ForgeMirror {
+                name: "github-backup".to_string(),
+                url: "https://github.com/DraconDev/eve.git".to_string(),
+                priority: 100,
+            },
+            ForgeMirror {
+                name: "github".to_string(),
+                url: "git@github.com:DraconDev/eve.git".to_string(),
+                priority: 10,
+            },
+        ];
+        let dropped = duplicate_mirror_names(None, &mirrors);
+        assert_eq!(
+            dropped,
+            vec!["github-backup".to_string()],
+            "the LOWEST priority number keeps the leg (github priority 10 < 100)"
+        );
+        // Tie on priority is broken by name, deterministically: `alpha` wins.
+        let tied = [
+            ForgeMirror {
+                name: "zeta".to_string(),
+                url: "git@github.com:DraconDev/eve.git".to_string(),
+                priority: 50,
+            },
+            ForgeMirror {
+                name: "alpha".to_string(),
+                url: "https://github.com/DraconDev/eve".to_string(),
+                priority: 50,
+            },
+        ];
+        assert_eq!(duplicate_mirror_names(None, &tied), vec!["zeta".to_string()]);
+    }
+
+    #[test]
+    fn forge_label_of_url_maps_the_three_published_forges() {
+        assert_eq!(
+            forge_label_of_url("git@github.com:DraconDev/pi-plugins.git"),
+            Some("github")
+        );
+        assert_eq!(
+            forge_label_of_url("https://github.com/DraconDev/pi-plugins"),
+            Some("github")
+        );
+        assert_eq!(
+            forge_label_of_url("git@gitlab.com:DraconDev/pi-plugins.git"),
+            Some("gitlab")
+        );
+        assert_eq!(
+            forge_label_of_url("ssh://git@codeberg.org/DraconDev/x.git"),
+            Some("codeberg")
+        );
+        // Unknown hosts and non-forge shapes report nothing — the caller
+        // falls back to the remote NAME rather than inventing a forge.
+        assert_eq!(forge_label_of_url("git@git.internal:DraconDev/x.git"), None);
+        assert_eq!(forge_label_of_url("/srv/local/repo"), None);
+        assert_eq!(forge_label_of_url(""), None);
+    }
+
     #[test]
     fn test_forge_host_of_url_matrix() {
         // scp-like
