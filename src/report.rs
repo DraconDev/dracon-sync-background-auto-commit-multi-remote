@@ -5056,7 +5056,7 @@ pub(crate) async fn run_repos_report(
         // ONCE (the helper spawns a `git rev-parse` subprocess per
         // call) and pass the pack_too_large signal so the report
         // mirrors the daemon's over-2-GiB github skip.
-        let (push_to_list, excluded_list) = report_effective_remotes(
+        let (push_to_list, excluded_list, duplicate_list) = report_effective_remotes(
             policy,
             &repo_override,
             repo.as_ref(),
@@ -5109,6 +5109,7 @@ pub(crate) async fn run_repos_report(
             // `report_effective_remotes` and used for both fields.
             push_to_remotes: push_to_list,
             excluded_remotes: excluded_list.clone(),
+            duplicate_mirrors: duplicate_list,
             // When codeberg is in excluded_remotes AND the skip came
             // from policy (not a manual per-repo `exclude_remotes`),
             // record why so the renderer can annotate the row
