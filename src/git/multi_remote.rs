@@ -1655,6 +1655,116 @@ mod tests {
     use crate::policy::RemoteConfig;
     use crate::test_helpers::EnvRestorer;
 
+    /// Helper: a policy remote with the given name/URL/priority.
+    fn remote(name: &str, push_url: &str, priority: u32) -> RemoteConfig {
+        RemoteConfig {
+            name: name.to_string(),
+            push_url: push_url.to_string(),
+            auto_create: false,
+            auto_create_account: String::new(),
+            auth_type: crate::policy::AuthType::GitHub,
+            priority,
+            api_endpoint: None,
+            auto_create_token_var: None,
+            repo_name_map: std::collections::HashMap::new(),
+            force_push_when_behind: false,
+        }
+    }
+
+    /// ADDED 2026-11-09: the push path's effective-target calculation. Before
+    /// this, the push path and the report each filtered by remote NAME, so the
+    /// same `github` project could be pushed twice via `origin` + mirror, and a
+    /// repo publishing GitHub through origin showed no GitHub icon.
+    #[test]
+    fn effective_push_targets_names_origin_forge_and_keeps_distinct_mirrors() {
+        let candidates = [
+            remote("github", "git@github.com:DraconDev/{repo}.git", 50),
+            remote("gitlab", "git@gitlab.com:DraconDev/{repo}.git", 50),
+        ];
+        // pi-plugins / tiles-tui-file-manager shape: origin IS github, no
+        // github mirror on disk. Started as: push_to == ['gitlab'].
+        let targets = effective_push_targets(
+            Some("https://github.com/DraconDev/pi-plugins"),
+            &candidates,
+            "pi-plugins",
+        );
+        assert_eq!(
+            targets.push_to,
+            vec!["github".to_string(), "gitlab".to_string()],
+            "origin's forge must be reported so GitHub is not invisible"
+        );
+        assert_eq!(targets.duplicate_mirrors, vec!["github".to_string()]);
+        assert_eq!(
+            targets.kept.len(),
+            1,
+            "only the distinct gitlab leg is pushed; github is served by origin"
+        );
+        assert_eq!(targets.kept[0].name, "gitlab");
+    }
+
+    /// browser-extensions-shared shape: origin github + gitlab mirror, no
+    /// github mirror. Both forges must be reported, both push legs kept.
+    #[test]
+    fn effective_push_targets_keeps_every_distinct_forge() {
+        let candidates = [remote(
+            "gitlab",
+            "git@gitlab.com:DraconDev/{repo}.git",
+            50,
+        )];
+        let targets = effective_push_targets(
+            Some("git@github.com:DraconDev/browser-extensions-shared.git"),
+            &candidates,
+            "browser-extensions-shared",
+        );
+        assert_eq!(
+            targets.push_to,
+            vec!["github".to_string(), "gitlab".to_string()]
+        );
+        assert!(targets.duplicate_mirrors.is_empty());
+        assert_eq!(targets.kept.len(), 1);
+    }
+
+    /// An explicit `exclude_remotes` opt-out must still work: the caller
+    /// filters by name BEFORE this runs, and nothing here re-adds it.
+    #[test]
+    fn effective_push_targets_respects_prior_name_exclusion() {
+        let policy_remotes = [
+            remote("github", "git@github.com:DraconDev/{repo}.git", 50),
+            remote("gitlab", "git@gitlab.com:DraconDev/{repo}.git", 50),
+        ];
+        let exclude = vec!["github".to_string()];
+        let named = filter_remotes_by_exclude(&policy_remotes, &exclude);
+        let targets = effective_push_targets(
+            Some("git@github.com:DraconDev/db-gateway.git"),
+            &named,
+            "db-gateway",
+        );
+        assert!(targets.kept.iter().all(|r| r.name != "github"));
+        assert_eq!(
+            targets.push_to,
+            vec!["github".to_string(), "gitlab".to_string()],
+            "github stays reported because ORIGIN still publishes it"
+        );
+    }
+
+    /// Unknown hosts are reported by their remote NAME, never by an invented
+    /// forge label — an internal git server must not look like GitHub.
+    #[test]
+    fn effective_push_targets_reports_unknown_remotes_by_name() {
+        let candidates = [remote("nas", "ssh://git@nas.internal/srv/{repo}.git", 50)];
+        let targets = effective_push_targets(
+            Some("ssh://git@git.internal/DraconDev/repo.git"),
+            &candidates,
+            "repo",
+        );
+        assert_eq!(
+            targets.push_to,
+            vec!["origin".to_string(), "nas".to_string()],
+            "non-forge hosts keep their remote names (origin labelled as such)"
+        );
+        assert!(targets.duplicate_mirrors.is_empty());
+    }
+
     /// 2026-09-17 (sync-convergence goal): the durable companion to
     /// EXISTS_CACHE must round-trip — a confirmed pair survives a
     /// "restart" (fresh in-memory cache, same state dir), and an
