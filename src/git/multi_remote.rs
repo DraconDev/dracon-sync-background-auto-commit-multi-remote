@@ -105,6 +105,88 @@ pub(crate) fn filter_remotes_by_exclude(
         .collect()
 }
 
+/// The RESULT of deciding which publication destinations actually receive
+/// commits for one repository. Both consumers derive from this single
+/// calculation, so the table and the pusher cannot disagree.
+///
+/// ADDED 2026-11-09 (goal 202609... duplicate-push): before this, the push
+/// path filtered mirrors by remote NAME only and the report rendered those
+/// names, so (a) seven repos pushed the same object to the same GitHub project
+/// twice per cycle (origin + a byte-identical `github` mirror), and (b) any
+/// repo publishing GitHub through `origin` showed no GitHub icon at all.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct EffectivePushTargets {
+    /// Destination labels for display: origin's forge first (when origin
+    /// publishes a forge), then each kept mirror's forge label (or its remote
+    /// name when the forge is unrecognised). Exact duplicates are collapsed so
+    /// the REM cell reports forges, never legs.
+    pub push_to: Vec<String>,
+    /// Mirrors dropped because their forge project is the SAME as origin's or
+    /// as a higher-priority mirror's. Reported so the operator can see WHY a
+    /// mirror stopped receiving pushes; never used to mutate `.git/config`.
+    pub duplicate_mirrors: Vec<String>,
+    /// Mirrors that will actually be pushed this round.
+    pub kept: Vec<RemoteConfig>,
+}
+
+/// Decide the effective publication targets for one repo.
+///
+/// `origin_url` is the URL `origin` really pushes to (read from `.git/config`,
+/// NOT assumed to be the github mirror). `candidates` must already have the
+/// NAME-based `exclude_remotes` filter applied — an explicit operator opt-out
+/// always wins, and the dedupe only removes a destination that another leg of
+/// this same round already covers.
+///
+/// Load-bearing invariant: nothing is dropped unless BOTH sides parse to the
+/// same forge identity. An unparseable URL keeps its destination (see
+/// `crate::forge::duplicate_mirror_names`), so a dedupe can never cost the
+/// operator a publication target by guessing.
+pub(crate) fn effective_push_targets(
+    origin_url: Option<&str>,
+    candidates: &[RemoteConfig],
+    repo_name: &str,
+) -> EffectivePushTargets {
+    let candidates_for_dedupe: Vec<crate::forge::ForgeMirror> = candidates
+        .iter()
+        .map(|remote| crate::forge::ForgeMirror {
+            name: remote.name.clone(),
+            url: remote.resolve_push_url(repo_name),
+            priority: remote.priority,
+        })
+        .collect();
+    let duplicate_mirrors = crate::forge::duplicate_mirror_names(origin_url, &candidates_for_dedupe);
+
+    let mut push_to: Vec<String> = Vec::new();
+    if let Some(origin) = origin_url {
+        // Origin is the primary leg: it is pushed before any mirror, so its
+        // forge is part of the reported target set even though it is not a
+        // configured mirror.
+        if let Some(label) = crate::forge::forge_label_of_url(origin) {
+            push_to.push(label.to_string());
+        } else if crate::forge::remote_project_identity(origin).is_some() {
+            push_to.push("origin".to_string());
+        }
+    }
+    let kept: Vec<RemoteConfig> = candidates
+        .iter()
+        .filter(|remote| !duplicate_mirrors.iter().any(|name| name == &remote.name))
+        .cloned()
+        .collect();
+    for remote in &kept {
+        let label = crate::forge::forge_label_of_url(&remote.resolve_push_url(repo_name))
+            .map(str::to_string)
+            .unwrap_or_else(|| remote.name.clone());
+        if !push_to.iter().any(|existing| existing == &label) {
+            push_to.push(label);
+        }
+    }
+    EffectivePushTargets {
+        push_to,
+        duplicate_mirrors,
+        kept,
+    }
+}
+
 /// ADDED 2026-07-21 (v0.112.30): whether the repo has ever been pushed
 /// to codeberg — i.e. a local tracking ref for the current branch (or
 /// the legacy `main` branch) exists. Local-only check (no network). Used to distinguish
