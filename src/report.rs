@@ -12240,13 +12240,13 @@ mod tests {
             push_status: "OK".to_string(),
             push_error: String::new(),
             push_to_remotes: vec![
+                "origin".to_string(),
                 "codeberg".to_string(),
-                "github".to_string(),
                 "gitlab".to_string(),
             ],
             push_to_forges: vec![
-                "codeberg".to_string(),
                 "github".to_string(),
+                "codeberg".to_string(),
                 "gitlab".to_string(),
             ],
             excluded_remotes: vec![],
@@ -12307,7 +12307,7 @@ mod tests {
             last_push: "5m ago".to_string(),
             push_status: "OK".to_string(),
             push_error: String::new(),
-            push_to_remotes: vec!["github".to_string()],
+            push_to_remotes: vec!["origin".to_string()],
             push_to_forges: vec!["github".to_string()],
             excluded_remotes: vec![],
             duplicate_mirrors: vec![],
@@ -13298,13 +13298,13 @@ mod tests {
             push_status: push_status.to_string(),
             push_error: String::new(),
             push_to_remotes: vec![
+                "origin".to_string(),
                 "codeberg".to_string(),
-                "github".to_string(),
                 "gitlab".to_string(),
             ],
             push_to_forges: vec![
-                "codeberg".to_string(),
                 "github".to_string(),
+                "codeberg".to_string(),
                 "gitlab".to_string(),
             ],
             excluded_remotes: vec![],
@@ -16451,38 +16451,42 @@ mod v011315_tests {
 
     /// ADDED 2026-11-09: the detail line must distinguish an operator opt-out
     /// from the automatic forge-identity dedupe. A dropped duplicate is
-    /// otherwise invisible — github still appears in the push-to list via
-    /// origin — and "it silently stopped pushing to a mirror" is exactly the
-    /// class of change the operator must be able to see.
+    /// otherwise invisible, and "it silently stopped pushing to a mirror" is
+    /// exactly the class of change the operator must be able to see.
+    ///
+    /// CHANGED 2026-11-09 (audit item 5): the first list is now the LEGS, so
+    /// the db-gateway shape reads `origin,gitlab` — `github` is absent from the
+    /// target list (origin publishes it) while `[dup:github]` records that the
+    /// de-duplicated mirror is gone.
     #[test]
     fn push_to_detail_text_separates_opt_outs_from_automatic_dedupes() {
         // db-gateway / terhub shape: origin github + kept gitlab mirror, and
         // the github mirror dropped as a duplicate of origin.
         assert_eq!(
             push_to_detail_text(
-                &["github".to_string(), "gitlab".to_string()],
+                &["origin".to_string(), "gitlab".to_string()],
                 &[],
                 &["github".to_string()]
             ),
-            "github,gitlab [dup:github]"
+            "origin,gitlab [dup:github]"
         );
         // Operator opt-out only — unchanged historical rendering.
         assert_eq!(
             push_to_detail_text(
-                &["github".to_string()],
+                &["origin".to_string()],
                 &["gitlab".to_string(), "codeberg".to_string()],
                 &[]
             ),
-            "github [excl:gitlab,codeberg]"
+            "origin [excl:gitlab,codeberg]"
         );
         // Both reasons at once, opt-out first.
         assert_eq!(
             push_to_detail_text(
-                &["github".to_string()],
+                &["origin".to_string()],
                 &["codeberg".to_string()],
                 &["github-backup".to_string()]
             ),
-            "github [excl:codeberg] [dup:github-backup]"
+            "origin [excl:codeberg] [dup:github-backup]"
         );
         // No remotes at all keeps the historical "(none)".
         assert_eq!(push_to_detail_text(&[], &[], &[]), "(none)");
@@ -17368,7 +17372,7 @@ mod v011321_tests {
             last_push: String::new(),
             push_status: "OK".into(),
             push_error: String::new(),
-            push_to_remotes: vec!["github".into()],
+            push_to_remotes: vec!["origin".into()],
             push_to_forges: vec!["github".into()],
             excluded_remotes: vec![],
             duplicate_mirrors: vec![],
