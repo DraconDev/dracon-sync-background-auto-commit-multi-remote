@@ -308,6 +308,67 @@ pub(crate) fn remote_project_identity(url: &str) -> Option<(String, String)> {
 mod tests {
     use super::*;
 
+    /// MOVED here 2026-11-09 with the definition. The shapes below are the
+    /// ones the live fleet actually uses; the dedupe depends on them
+    /// collapsing to ONE identity, so the equality cases matter as much as
+    /// the parsing cases.
+    #[test]
+    fn test_remote_project_identity_shapes() {
+        // scp-like SSH.
+        assert_eq!(
+            remote_project_identity("git@gitlab.com:DraconDev/web-games-doomtap.git"),
+            Some((
+                "gitlab.com".to_string(),
+                "dracondev/web-games-doomtap".to_string()
+            ))
+        );
+        // Plain https.
+        assert_eq!(
+            remote_project_identity("https://github.com/DraconDev/doomtap.git"),
+            Some(("github.com".to_string(), "dracondev/doomtap".to_string()))
+        );
+        // Case-insensitive comparison input (DraconDev vs dracondev).
+        assert_eq!(
+            remote_project_identity("git@github.com:DraconDev/Doomtap.git"),
+            remote_project_identity("git@github.com:dracondev/doomtap.git")
+        );
+        // Unrecognized shapes never compare equal to anything.
+        assert_eq!(remote_project_identity("/srv/local/repo"), None);
+        assert_eq!(remote_project_identity("git@github.com:"), None);
+        assert_eq!(remote_project_identity(""), None);
+        // The spelling variants the live fleet mixes must collapse to ONE
+        // identity, because that equality is what the duplicate-mirror
+        // dedupe relies on. `pi-plugins` really does have a `.git`-less
+        // https origin alongside an scp gitlab mirror.
+        assert_eq!(
+            remote_project_identity("https://github.com/DraconDev/pi-plugins"),
+            remote_project_identity("git@github.com:DraconDev/pi-plugins.git"),
+            "https without .git must equal the scp form for the same project"
+        );
+        // Trailing slash and embedded credentials are not identity.
+        assert_eq!(
+            remote_project_identity("https://github.com/DraconDev/pi-plugins/"),
+            remote_project_identity("git@github.com:DraconDev/pi-plugins.git")
+        );
+        assert_eq!(
+            remote_project_identity("https://token@github.com/DraconDev/pi-plugins.git"),
+            remote_project_identity("git@github.com:DraconDev/pi-plugins.git"),
+            "embedded credentials must not change project identity"
+        );
+        // Different projects on the SAME forge stay distinct — this is the
+        // half that must NOT be deduped (drift, not duplication).
+        assert_ne!(
+            remote_project_identity("git@github.com:DraconDev/pi-plugins.git"),
+            remote_project_identity("git@github.com:DraconDev/pi-goal-list-loop-audit.git")
+        );
+        // Different forges serving the same slug stay distinct: github and
+        // gitlab are two mirrors by design, never one.
+        assert_ne!(
+            remote_project_identity("git@github.com:DraconDev/doomtap.git"),
+            remote_project_identity("git@gitlab.com:DraconDev/doomtap.git")
+        );
+    }
+
     #[test]
     fn test_forge_host_of_url_matrix() {
         // scp-like
