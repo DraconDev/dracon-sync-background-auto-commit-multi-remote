@@ -131,19 +131,37 @@ nothing on disk is touched.
 
 ### REM column reports origin's forge
 
-`report_effective_remotes` now returns `(push_to, excluded, duplicate_mirrors)`
-and derives `push_to` from the same `effective_push_targets` the pusher uses:
-origin's forge label first (when origin publishes a recognised forge), then
-each kept mirror's forge label, with exact duplicates collapsed. Unknown hosts
-still report by remote name, so an internal git server never masquerades as
-GitHub. The codeberg quota rule and the over-2-GiB GitHub skip are unchanged
-in both paths.
+`report_effective_remote_legs` derives both answers from the same
+`effective_push_targets` the pusher uses and returns four things: `legs`,
+`forges`, `excluded`, `duplicate_mirrors`.
+
+**Legs vs forges (CHANGED 2026-11-09, audit item 5).** The first version put a
+forge *label* in the target list, so a repo whose duplicate `github` mirror had
+just been de-duplicated still printed `push-to: github,...` — the target list
+named the very destination that was no longer pushed as a leg. The list is now
+the **legs** (`origin`, mirror names) and the forge families travel alongside:
+
+```
+push-to:   origin,gitlab [dup:github]        # db-gateway / terhub
+push-to:   origin,gitlab [excl:codeberg]     # browser-extensions-shared
+```
+
+`origin` is a leg; `github` is the forge it publishes to, rendered as a 🐙 in
+the REM column from `push_to_forges`. So a repo publishing GitHub through
+`origin` still shows the GitHub icon (task 3.2) while `github` is absent from
+the push-target list itself (contract item 5), and `[dup:github]` keeps the
+receipt for the dropped mirror. Unknown hosts still report by remote name, so
+an internal git server never masquerades as GitHub. The codeberg quota rule and
+the over-2-GiB GitHub skip are unchanged in both paths.
+
+One deliberate consequence: a repo with two DISTINCT projects on one forge
+(none today) renders two 🐙, because the forge list is per leg. The earlier
+"forges, never legs" collapse hid that second destination.
 
 `RepoReportRow.duplicate_mirrors` is a **separate** field from
 `excluded_remotes` on purpose: they are different reasons a destination is not
 pushed (operator decision vs automatic dedupe) and conflating them would hide
-the automatic behaviour. The detail view renders both,
-`push_to_detail_text(...)` → `github,gitlab [dup:github]`.
+the automatic behaviour. The detail view renders both.
 
 ## Evidence
 
