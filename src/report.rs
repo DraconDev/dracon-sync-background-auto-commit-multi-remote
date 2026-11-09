@@ -5098,12 +5098,8 @@ pub(crate) async fn run_repos_report(
         // ONCE (the helper spawns a `git rev-parse` subprocess per
         // call) and pass the pack_too_large signal so the report
         // mirrors the daemon's over-2-GiB github skip.
-        let (push_to_list, excluded_list, duplicate_list) = report_effective_remotes(
-            policy,
-            &repo_override,
-            repo.as_ref(),
-            pack_too_large.0,
-        );
+        let effective_remotes =
+            report_effective_remote_legs(policy, &repo_override, repo.as_ref(), pack_too_large.0);
         let health = current_health::Evidence {
             last_push: crate::daemon::push_history::load(&repo),
             ..Default::default()
