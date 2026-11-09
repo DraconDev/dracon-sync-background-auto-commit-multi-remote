@@ -134,7 +134,31 @@ pub(super) async fn plan_publication(
         policy.sync_visibility_interval_hours,
     )
     .await;
-    let remotes = crate::git::multi_remote::filter_remotes_by_exclude(&prepared, &exclude);
+    // Name-based behaviour above is unchanged (that is `.git/config` hygiene
+    // and the operator's explicit opt-outs). What is NEW is the forge-identity
+    // pass: a mirror that publishes the SAME project as `origin` — under any
+    // spelling, and not only the hardcoded `github` name — must not receive the
+    // same pinned object a second time. Pushes still go to every distinct
+    // project; only the duplicate LEG is dropped, and nothing here touches the
+    // remote list on disk.
+    let named = crate::git::multi_remote::filter_remotes_by_exclude(&prepared, &exclude);
+    let targets = crate::git::multi_remote::effective_push_targets(
+        origin_url.as_deref(),
+        &named,
+        repo
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default()
+            .as_str(),
+    );
+    let remotes = targets.kept;
+    for name in &targets.duplicate_mirrors {
+        crate::policy::log_debug_only(&format!(
+            "🛰️ {} mirror {} publishes the same forge project as another leg of this round — not pushed twice",
+            repo.display(),
+            name
+        ));
+    }
     // PIN LAST. Everything above reads the checkout or mutates Git
     // configuration (auto-create can take seconds). Pinning before that work
     // would publish a tip that predates the configuration the round is about
