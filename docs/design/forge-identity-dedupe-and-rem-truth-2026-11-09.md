@@ -198,6 +198,58 @@ this change); fixed in place rather than left failing the stricter gate.
 Deployment: `~/.local/bin/dracon-sync` is byte-identical (`cmp`) to
 `target/release/dracon-sync`; the running daemon's `/proc/<pid>/exe` resolves
 to that same path and its inode equals the deployed file's inode.
+(`dracon-sync 0.113.96`, deployed 11:23:02, daemon restarted 11:23:11.)
+
+### Live verification (2026-11-09, after the restart)
+
+`dracon-sync repos --json` over the whole fleet:
+
+| repo | `push_to_remotes` | `duplicate_mirrors` | `excluded_remotes` |
+| --- | --- | --- | --- |
+| db-gateway | github, gitlab | github | — |
+| terhub | github, gitlab | github | — |
+| empire | github, gitlab | github | codeberg |
+| mcode-plugins | github, gitlab | github | — |
+| opencode-plugins | github, gitlab | github | codeberg |
+| dracon-utilities | github, gitlab | github | — |
+| dracon-platform | github, gitlab | github | codeberg |
+| browser-extensions-shared | github, gitlab | github | codeberg |
+
+The `github` *mirror* is reported as a duplicate and is not a push leg; the
+forge `github` still appears in `push_to_remotes` through `origin`. Before the
+change the detail line read `gitlab [excl:github,codeberg]` for
+`browser-extensions-shared`; it now reads
+`github,gitlab [excl:codeberg] [dup:github]` (item 4.2 — no per-repo
+exception left in `.dracon/dracon-sync.toml`, `grep exclude_remotes` finds no
+`github` entry).
+
+REM column (`--layout full`, col 12 of 23) now renders `github,gitlab`
+(`🐙🦊`) on every census repo, including `browser-extensions-shared`, `pi-plugins`
+and `tiles-tui-file-manager` — all of which were GitLab-only or iconless before.
+
+Every previously-published forge still received the commit — `ls-remote
+refs/heads/main` compared against the local `refs/heads/main` SHA:
+
+| repo | local | github (origin) | gitlab |
+| --- | --- | --- | --- |
+| db-gateway | `d9cdc7ab3abb` | `d9cdc7ab3abb` | `d9cdc7ab3abb` |
+| terhub | `918e5fab5e0b` | `918e5fab5e0b` | `918e5fab5e0b` |
+| empire | `bdc6d84cb4e4` | `bdc6d84cb4e4` | `bdc6d84cb4e4` |
+| mcode-plugins | `d04433108741` | `d04433108741` | `d04433108741` |
+| opencode-plugins | `803f967d132c` | `803f967d132c` | `803f967d132c` |
+| dracon-platform | `1812c9c833af` | `1812c9c833af` | `1812c9c833af` |
+
+Fleet state after the change: 38 inspected, 0 concerns, 0 inspection
+failures. `browser-extensions-shared` and `dracon-platform` were `PENDING`
+with unpushed commits at measurement time (a live producer landing commits
+faster than the gate can validate — the pre-existing queue condition this
+dedupe does not address), not push failures: neither had a `push_error`, and
+both forges advanced to the tip each round.
+
+`eve` is in `exclude_repos`, so it has no report row; its remote config has
+`origin` = github plus a byte-identical `github` mirror — the same class as the
+census, handled by the identical code path, and its mirrors are left on disk
+untouched (nothing is deleted or reconfigured).
 
 ## No publication target was lost
 
