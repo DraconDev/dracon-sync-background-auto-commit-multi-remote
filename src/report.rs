@@ -5623,21 +5623,15 @@ fn print_repos_vertical(
             commit_summary_cell(&row.last_hash, &row.last_msg, commit_width)
         };
 
-        // PUSH-TO cell
-        let push_to_text = match (&row.excluded_remotes, !row.push_to_remotes.is_empty()) {
-            (excl, true) if !excl.is_empty() => format!(
-                "{} [excl:{}]",
-                row.push_to_remotes.join(","),
-                excl.join(",")
-            ),
-            _ => {
-                if row.push_to_remotes.is_empty() {
-                    "(none)".to_string()
-                } else {
-                    row.push_to_remotes.join(",")
-                }
-            }
-        };
+        // PUSH-TO cell. ADDED 2026-11-09: renders the automatic forge-identity
+        // dedupe as `[dup:...]` alongside the operator's `[excl:...]`, so "the
+        // github MIRROR stopped receiving pushes because origin already
+        // publishes github" is visible instead of looking like a lost target.
+        let push_to_text = push_to_detail_text(
+            &row.push_to_remotes,
+            &row.excluded_remotes,
+            &row.duplicate_mirrors,
+        );
         let push_to_text = truncate_unicode_width(&push_to_text, width.saturating_sub(15));
 
         // Header line: " 1. ✅ OK  dracon-platform"
@@ -6673,6 +6667,34 @@ mod v011318_tests {
             );
         }
     }
+}
+
+/// Compose the `push-to:` line of the single-repo detail view.
+///
+/// Pure so the two annotations are directly testable. Order matters: the
+/// operator's explicit `[excl:...]` comes first (it is a decision), the
+/// automatic `[dup:...]` second (it is an observation). ADDED 2026-11-09, when
+/// the daemon began de-duplicating mirrors by forge identity: without this
+/// suffix a dropped mirror is indistinguishable from a mirror that was never
+/// configured.
+fn push_to_detail_text(
+    push_to: &[String],
+    excluded: &[String],
+    duplicate_mirrors: &[String],
+) -> String {
+    let main = if push_to.is_empty() {
+        "(none)".to_string()
+    } else {
+        push_to.join(",")
+    };
+    let mut text = main;
+    if !excluded.is_empty() {
+        text.push_str(&format!(" [excl:{}]", excluded.join(",")));
+    }
+    if !duplicate_mirrors.is_empty() {
+        text.push_str(&format!(" [dup:{}]", duplicate_mirrors.join(",")));
+    }
+    text
 }
 
 /// ADDED 2026-07-29 (v0.113.15): compose the REM cell. CHANGED
