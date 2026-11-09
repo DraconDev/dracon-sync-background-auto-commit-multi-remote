@@ -822,7 +822,7 @@ pub(crate) fn report_effective_remotes(
     // The report must never derive its own answer: two independent calculations
     // of "where do commits go" is exactly how the table came to claim a repo was
     // GitLab-only while GitHub was receiving every commit through `origin`.
-    let origin_url = if crate::git::status::has_origin_remote(repo_path) {
+    let origin_url = if has_origin_remote(repo_path) {
         crate::git::multi_remote::get_remote_url(repo_path, "origin")
     } else {
         None
