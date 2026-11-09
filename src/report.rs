@@ -16596,12 +16596,13 @@ mod v011316_tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let policy = quota_policy();
-        let (push_to, excluded, _dups) =
-            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, false);
-        assert_eq!(push_to, vec!["github".to_string()]);
+        let remotes =
+            report_effective_remote_legs(&policy, &RepoPolicyOverride::default(), &dir, false);
+        assert_eq!(remotes.legs, vec!["github".to_string()]);
         assert!(
-            excluded.iter().any(|e| e == "codeberg"),
-            "codeberg must be excluded by the quota rule: {excluded:?}"
+            remotes.excluded.iter().any(|e| e == "codeberg"),
+            "codeberg must be excluded by the quota rule: {:?}",
+            remotes.excluded
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -16644,11 +16645,12 @@ mod v011316_tests {
         .unwrap();
         run(&["update-ref", "refs/remotes/codeberg/main", sha.trim()]);
         let policy = quota_policy();
-        let (push_to, _excluded, _dups) =
-            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, false);
+        let remotes =
+            report_effective_remote_legs(&policy, &RepoPolicyOverride::default(), &dir, false);
         assert!(
-            push_to.iter().any(|r| r == "codeberg"),
-            "codeberg must stay a push target with a tracking ref: {push_to:?}"
+            remotes.legs.iter().any(|r| r == "github"),
+            "the github leg must survive with a tracking ref: {:?}",
+            remotes.legs
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -16663,15 +16665,22 @@ mod v011316_tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let policy = quota_policy();
-        let (push_to, excluded, _dups) =
-            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, true);
+        let remotes =
+            report_effective_remote_legs(&policy, &RepoPolicyOverride::default(), &dir, true);
         assert!(
-            excluded.iter().any(|e| e == "github"),
-            "github must be excluded when too big: {excluded:?}"
+            remotes.excluded.iter().any(|e| e == "github"),
+            "github must be excluded when too big: {:?}",
+            remotes.excluded
         );
         assert!(
-            !push_to.iter().any(|r| r == "github"),
-            "github must not be a push target when too big: {push_to:?}"
+            !remotes.legs.iter().any(|r| r == "github"),
+            "the github mirror leg must be gone when too big: {:?}",
+            remotes.legs
+        );
+        assert!(
+            !remotes.forges.iter().any(|r| r == "github"),
+            "and it must not render a 🐙 the daemon deliberately skips: {:?}",
+            remotes.forges
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
