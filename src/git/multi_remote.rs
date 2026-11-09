@@ -105,6 +105,57 @@ pub(crate) fn filter_remotes_by_exclude(
         .collect()
 }
 
+/// ONE publication leg together with the forge it publishes to.
+///
+/// ADDED 2026-11-09 (audit: contract item 5) — the leg and the forge are two
+/// different answers and conflating them made the target list lie:
+///
+/// - the **leg** is what receives the push: `origin`, or a configured mirror's
+///   remote NAME. This is the honest answer to "where do commits go";
+/// - the **forge** is the project family that leg publishes to (`github`,
+///   `gitlab`, `codeberg`), and it is what the REM icons report.
+///
+/// The previous version pushed origin's forge LABEL into the target list, so a
+/// repo whose duplicate `github` mirror had just been de-duplicated still read
+/// `push-to: github,...` — the target list named the very destination that was
+/// no longer pushed as a leg. `origin` (forge `github`) is now unambiguous.
+pub(crate) struct PushTarget {
+    /// The leg that actually receives the push: `origin`, or the configured
+    /// mirror's remote name.
+    pub leg: String,
+    /// The forge family a human reads off the REM icons, or the remote name
+    /// when the host is unrecognised (never an invented forge).
+    pub forge: String,
+}
+
+// Hand-written so `assert_eq!` and clones stay available without deriving
+// anything the struct does not need (it is built once per round).
+impl Clone for PushTarget {
+    fn clone(&self) -> Self {
+        Self {
+            leg: self.leg.clone(),
+            forge: self.forge.clone(),
+        }
+    }
+}
+
+impl PartialEq for PushTarget {
+    fn eq(&self, other: &Self) -> bool {
+        self.leg == other.leg && self.forge == other.forge
+    }
+}
+
+impl Eq for PushTarget {}
+
+impl std::fmt::Debug for PushTarget {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PushTarget")
+            .field("leg", &self.leg)
+            .field("forge", &self.forge)
+            .finish()
+    }
+}
+
 /// The RESULT of deciding which publication destinations actually receive
 /// commits for one repository. Both consumers derive from this single
 /// calculation, so the table and the pusher cannot disagree.
@@ -116,17 +167,30 @@ pub(crate) fn filter_remotes_by_exclude(
 /// repo publishing GitHub through `origin` showed no GitHub icon at all.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct EffectivePushTargets {
-    /// Destination labels for display: origin's forge first (when origin
-    /// publishes a forge), then each kept mirror's forge label (or its remote
-    /// name when the forge is unrecognised). Exact duplicates are collapsed so
-    /// the REM cell reports forges, never legs.
-    pub push_to: Vec<String>,
+    /// The legs that will receive commits this round, in push order: `origin`
+    /// first (when origin publishes a forge), then each kept mirror. Never
+    /// contains a forge label in place of a leg name.
+    pub push_to: Vec<PushTarget>,
     /// Mirrors dropped because their forge project is the SAME as origin's or
     /// as a higher-priority mirror's. Reported so the operator can see WHY a
     /// mirror stopped receiving pushes; never used to mutate `.git/config`.
     pub duplicate_mirrors: Vec<String>,
     /// Mirrors that will actually be pushed this round.
     pub kept: Vec<RemoteConfig>,
+}
+
+impl EffectivePushTargets {
+    /// Leg names only — the `push_to_remotes` / `push-to:` answer.
+    pub fn legs(&self) -> Vec<String> {
+        self.push_to.iter().map(|t| t.leg.clone()).collect()
+    }
+
+    /// Forge labels only — the REM-icon answer. One entry per leg, so two
+    /// distinct projects on one forge render as two icons rather than being
+    /// collapsed into a claim that only one destination exists.
+    pub fn forges(&self) -> Vec<String> {
+        self.push_to.iter().map(|t| t.forge.clone()).collect()
+    }
 }
 
 /// Decide the effective publication targets for one repo.
@@ -156,15 +220,24 @@ pub(crate) fn effective_push_targets(
         .collect();
     let duplicate_mirrors = crate::forge::duplicate_mirror_names(origin_url, &candidates_for_dedupe);
 
-    let mut push_to: Vec<String> = Vec::new();
+    let mut push_to: Vec<PushTarget> = Vec::new();
     if let Some(origin) = origin_url {
-        // Origin is the primary leg: it is pushed before any mirror, so its
-        // forge is part of the reported target set even though it is not a
-        // configured mirror.
-        if let Some(label) = crate::forge::forge_label_of_url(origin) {
-            push_to.push(label.to_string());
-        } else if crate::forge::remote_project_identity(origin).is_some() {
-            push_to.push("origin".to_string());
+        // Origin is the primary leg: it is pushed before any mirror. Its LEG
+        // is `origin`; only its FORGE label is `github` (or `origin` itself
+        // when the host is a parseable non-forge, so an internal git server
+        // never masquerades as GitHub).
+        let forge = match crate::forge::forge_label_of_url(origin) {
+            Some(label) => Some(label.to_string()),
+            None if crate::forge::remote_project_identity(origin).is_some() => {
+                Some("origin".to_string())
+            }
+            None => None,
+        };
+        if let Some(forge) = forge {
+            push_to.push(PushTarget {
+                leg: "origin".to_string(),
+                forge,
+            });
         }
     }
     let kept: Vec<RemoteConfig> = candidates
@@ -173,12 +246,17 @@ pub(crate) fn effective_push_targets(
         .cloned()
         .collect();
     for remote in &kept {
-        let label = crate::forge::forge_label_of_url(&remote.resolve_push_url(repo_name))
+        let forge = crate::forge::forge_label_of_url(&remote.resolve_push_url(repo_name))
             .map(str::to_string)
             .unwrap_or_else(|| remote.name.clone());
-        if !push_to.iter().any(|existing| existing == &label) {
-            push_to.push(label);
-        }
+        // One entry PER LEG. Two distinct projects on one forge are two
+        // destinations, so they render as two icons instead of being collapsed
+        // into "this repo has one GitHub target" — the same confusion, in the
+        // opposite direction, that the forge-label list used to cause.
+        push_to.push(PushTarget {
+            leg: remote.name.clone(),
+            forge,
+        });
     }
     EffectivePushTargets {
         push_to,
