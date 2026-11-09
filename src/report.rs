@@ -1575,7 +1575,18 @@ pub(crate) struct RepoReportRow {
     /// `dracon-platform` it is `["codeberg"]` because the per-repo
     /// override at `<repo>/.dracon/dracon-sync.toml` excludes github+gitlab
     /// (see 2026-06-23 goal `mqqsyzyd-qkvna5` for rationale).
+    ///
+    /// CHANGED 2026-11-09 (audit item 5): these are LEGS (`origin`, mirror
+    /// names) — the destinations that actually receive the push. A forge
+    /// label here claimed `github` was a target even when the github mirror
+    /// had just been de-duplicated; the forge family lives in `push_to_forges`.
     push_to_remotes: Vec<String>,
+    /// The forge family of each entry in `push_to_remotes`, in the same order:
+    /// `github` / `gitlab` / `codeberg` when the URL maps to a known forge, or
+    /// the remote name when the host is unrecognised (so an internal git
+    /// server never renders as GitHub). ADDED 2026-11-09 with the leg/forge
+    /// split; this is what the REM icons read.
+    push_to_forges: Vec<String>,
     /// Remotes explicitly excluded from this repo by the per-repo override
     /// (`exclude_remotes` in `<repo>/.dracon/dracon-sync.toml` — there is
     /// no global `policy.exclude_remotes`; FIXED 2026-10-03, audit
@@ -5144,10 +5155,17 @@ pub(crate) async fn run_repos_report(
             // the daemon deliberately skipped codeberg — a silent
             // push-gap lie the operator spotted in the live table. The
             // combined exclusion is now computed once by
-            // `report_effective_remotes` and used for both fields.
-            push_to_remotes: push_to_list,
-            excluded_remotes: excluded_list.clone(),
-            duplicate_mirrors: duplicate_list,
+            // `report_effective_remote_legs` and used for both fields.
+            //
+            // CHANGED 2026-11-09 (audit item 5): `push_to_remotes` is now the
+            // LEG list (`origin`, mirror names) and `push_to_forges` carries
+            // the forge family per leg. A forge LABEL in the leg list made the
+            // target set claim `github` was a destination even when the github
+            // mirror had just been de-duplicated away.
+            push_to_remotes: effective_remotes.legs,
+            push_to_forges: effective_remotes.forges,
+            excluded_remotes: effective_remotes.excluded.clone(),
+            duplicate_mirrors: effective_remotes.duplicate_mirrors,
             // When codeberg is in excluded_remotes AND the skip came
             // from policy (not a manual per-repo `exclude_remotes`),
             // record why so the renderer can annotate the row
@@ -5156,7 +5174,7 @@ pub(crate) async fn run_repos_report(
             // quota-posture rule even though the visibility gate
             // would have allowed it.
             codeberg_skip_reason: {
-                if excluded_list.iter().any(|r| r == "codeberg")
+                if effective_remotes.excluded.iter().any(|r| r == "codeberg")
                     && !repo_override.exclude_remotes.iter().any(|r| r == "codeberg")
                 {
                     let gate_exclude =
