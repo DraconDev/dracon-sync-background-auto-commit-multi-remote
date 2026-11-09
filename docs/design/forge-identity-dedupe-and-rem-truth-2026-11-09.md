@@ -290,14 +290,24 @@ refs/heads/main` against the local `refs/heads/main` SHA, 2026-11-09 22:17:
 | opencode-plugins | `803f967d132c` | `803f967d132c` | `803f967d132c` |
 | dracon-utilities | `c82a11e3968d` | `c82a11e3968d` | `c82a11e3968d` |
 
-Fleet state: 38 inspected, 0 concerns, 0 inspection failures. The only repo in
-a warn/pending state is `dracon-platform` (3–4 unpushed commits), and its cause
-is unrelated to this change — the private-bucket preparation times out at 300s
-("private bucket workflow failed; no commit permitted: … timed out after 300s"
-in the journal, both before and after the restart), so no commit is created and
-no push can follow. `browser-extensions-shared` shows the same pre-existing
-producer-faster-than-gate backlog rather than a push rejection: both of its
-forges advance in lockstep to the same published tip every round.
+Fleet state (2026-11-09 22:55): 38 inspected, **0 concerns, 0 inspection
+failures**, 35 clean. Neither repo in a non-OK push state is a failure this
+change could have caused, and both were already in that state before the deploy:
+
+- `dracon-platform` — `push=PENDING`, 1–4 unpushed commits, warn. Cause is
+  unrelated to the dedupe: the private-bucket preparation times out at 300 s
+  ("private bucket workflow failed; no commit permitted: … timed out after
+  300s", logged before and after the restart at 21:50, 22:01, 22:11, 22:22),
+  so no commit is created and no push can follow. The journal already carried
+  `Stuck Ahead (Unpushed)` and `Sync Blocked (>30 min)` alerts at 10:18, 11:18
+  and 12:30 — hours before this change was deployed at 22:05:32.
+- `browser-extensions-shared` — `push=PENDING` with a producer-faster-than-gate
+  backlog, not a push rejection: both of its forges advance in lockstep to the
+  same published tip every round. The journal logged five consecutive sync
+  failures and a "Sync Failures (backing off)" alert at 10:47, before the
+  change existed.
+- `.dracon` — carries the warn flag with `push_status=OK`, `state_flags=[OK,
+  REPORT_CHECKS_DEFERRED]` and no `push_error`; it is not a push failure.
 
 ## No publication target was lost
 
