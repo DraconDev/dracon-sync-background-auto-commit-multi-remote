@@ -186,18 +186,26 @@ the automatic behaviour. The detail view renders both.
 
 `src/git/multi_remote.rs`:
 
-- `effective_push_targets_names_origin_forge_and_keeps_distinct_mirrors`
+- `effective_push_targets_names_origin_leg_and_keeps_distinct_mirrors` — asserts
+  `legs() == ["origin", "gitlab"]` (no `github` entry survives the dedupe) and
+  `forges() == ["github", "gitlab"]` (the icon stays).
 - `effective_push_targets_keeps_every_distinct_forge`
-- `effective_push_targets_respects_prior_name_exclusion`
+- `effective_push_targets_keeps_two_projects_on_one_forge_as_two_legs` — two
+  distinct GitHub projects are two legs and two 🐙; the duplicate collapses.
+- `effective_push_targets_respects_prior_name_exclusion` — an explicit opt-out
+  removes the mirror leg and leaves `github` absent from the target list.
 - `effective_push_targets_reports_unknown_remotes_by_name`
 
 `src/report.rs`:
 
 - `report_names_github_when_origin_publishes_github` — real `git init` fixture;
-  the pre-fix behaviour named only `gitlab`.
-- `report_drops_the_duplicate_mirror_origin_already_covers` — github appears
-  **once** (via origin) plus the distinct gitlab leg.
-- `push_to_detail_text_separates_opt_outs_from_automatic_dedupes`.
+  the pre-fix behaviour named only `gitlab`, and `github` must not reappear as
+  a target just because origin publishes it.
+- `report_drops_the_duplicate_mirror_origin_already_covers` — legs are
+  `["origin","gitlab"]`, forges are `["github","gitlab"]`, and the dropped
+  mirror leaves a `duplicate_mirrors` receipt.
+- `push_to_detail_text_separates_opt_outs_from_automatic_dedupes` — renders
+  `origin,gitlab [dup:github]`.
 
 ### Gates
 
