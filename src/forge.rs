@@ -274,34 +274,30 @@ pub(crate) fn incident_shields_failure(
 /// compare equal. `https://user@host/...` userinfo is stripped for the
 /// same reason — credentials must never change project identity.
 pub(crate) fn remote_project_identity(url: &str) -> Option<(String, String)> {
-    let url = url.trim().trim_end_matches('/');
-    let url = url.strip_suffix(".git").unwrap_or(url);
-    // URL `scheme://host/path` first (an `https://user@host/...` userinfo
-    // `@` must not route into the scp branch), then scp-like
-    // `git@host:path` (colon before any slash).
-    let (host, path) = if let Some(after_scheme) = url.split("://").nth(1) {
-        let i = after_scheme.find('/')?;
-        (
-            after_scheme[..i].to_string(),
-            after_scheme[i + 1..].to_string(),
-        )
-    } else {
-        let after_at = url.split('@').next_back().unwrap_or(url);
-        let colon = after_at.find(':')?;
-        if after_at[..colon].contains('/') {
-            return None;
-        }
-        let (h, p) = after_at.split_at(colon);
-        (h.to_string(), p[1..].to_string())
-    };
-    // Strip URL userinfo (`https://user@host/...`) so identical projects
-    // compare equal regardless of credential embedding.
-    let host = host.split('@').next_back().unwrap_or(&host).to_lowercase();
-    let slug = path.trim_matches('/').to_lowercase();
+    // DELEGATES to `crate::git::canonical_repository_url` rather than
+    // re-implementing the parse. This tree already had TWO URL-identity
+    // normalisers, and they DISAGREED: `canonical_repository_url` strips
+    // `ssh://…:22` / `https://…:443` ports and unwraps IPv6 brackets,
+    // while the pre-move copy here kept the port inside the host (so
+    // `ssh://git@gitlab.com:22/DraconDev/x.git` was the project
+    // `gitlab.com:22/x`). The push path ALREADY decides identity through
+    // the canonical form (`github_mirror_matches_origin` →
+    // `same_repository_url`), so a second, weaker parser on the report
+    // side guaranteed the two views would eventually disagree about
+    // whether a mirror duplicates origin — which is the exact silent
+    // half-fix this helper exists to prevent.
+    //
+    // The `(host, slug)` split is presentation: callers that need to ask
+    // "same host, different project?" (the drift check) need the pair,
+    // while the dedupe only needs equality. The canonical string is
+    // `host/path`, so the split is at the first `/` and the slug keeps its
+    // path separator (`dracondev/web-games-doomtap`).
+    let canonical = crate::git::canonical_repository_url(url)?;
+    let (host, slug) = canonical.split_once('/')?;
     if host.is_empty() || slug.is_empty() {
         return None;
     }
-    Some((host, slug))
+    Some((host.to_string(), slug.to_string()))
 }
 
 #[cfg(test)]
