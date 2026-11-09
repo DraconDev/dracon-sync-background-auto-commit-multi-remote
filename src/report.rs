@@ -16719,11 +16719,17 @@ mod v011316_tests {
             "git@gitlab.com:DraconDev/browser-extensions-shared.git",
         ]);
         let policy = quota_policy();
-        let (push_to, _excluded, _dups) =
-            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, false);
+        let remotes =
+            report_effective_remote_legs(&policy, &RepoPolicyOverride::default(), &dir, false);
+        assert_eq!(
+            remotes.legs,
+            vec!["origin".to_string()],
+            "origin is the github leg — and `github` must NOT appear as a target"
+        );
         assert!(
-            push_to.iter().any(|r| r == "github"),
-            "origin's forge must be named: {push_to:?}"
+            remotes.forges.iter().any(|f| f == "github"),
+            "origin's forge must be named so GitHub is not invisible: {:?}",
+            remotes.forges
         );
         let _ = std::fs::remove_dir_all(&dir);
 
@@ -16786,16 +16792,21 @@ mod v011316_tests {
             codeberg_public_only: false,
             ..test_sync_policy()
         };
-        let (push_to, _excluded, _dups) = report_effective_remotes(
+        let remotes = report_effective_remote_legs(
             &two_mirror_policy,
             &RepoPolicyOverride::default(),
             &dir2,
             false,
         );
         assert_eq!(
-            push_to,
+            remotes.legs,
+            vec!["origin".to_string(), "gitlab".to_string()],
+            "origin's github leg plus the distinct gitlab mirror leg"
+        );
+        assert_eq!(
+            remotes.forges,
             vec!["github".to_string(), "gitlab".to_string()],
-            "origin's github plus the distinct gitlab mirror"
+            "both forges render — github is origin's"
         );
         let _ = std::fs::remove_dir_all(&dir2);
     }
@@ -16866,12 +16877,22 @@ mod v011316_tests {
             codeberg_public_only: false,
             ..test_sync_policy()
         };
-        let (push_to, _excluded, _dups) =
-            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, false);
+        let remotes =
+            report_effective_remote_legs(&policy, &RepoPolicyOverride::default(), &dir, false);
         assert_eq!(
-            push_to,
+            remotes.legs,
+            vec!["origin".to_string(), "gitlab".to_string()],
+            "`github` is gone from the target list; origin carries the github push"
+        );
+        assert_eq!(
+            remotes.forges,
             vec!["github".to_string(), "gitlab".to_string()],
-            "github appears ONCE (served by origin) plus the distinct gitlab leg"
+            "github still renders (origin's forge) alongside the distinct gitlab icon"
+        );
+        assert_eq!(
+            remotes.duplicate_mirrors,
+            vec!["github".to_string()],
+            "and the dropped mirror leaves a receipt"
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
