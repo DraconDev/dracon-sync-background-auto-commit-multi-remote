@@ -331,6 +331,15 @@ receiving them.**
   "drop a distinct target". That is the intended fail-open direction.
 - `duplicate_mirror_names` is O(mirrors) with one parse per remote; it runs
   once per publication round, not per commit.
-- The REM column reports **forges**, not legs. A repo with two distinct GitHub
-  projects configured (none today) would render one 🐙; the detail view and the
-  JSON row disambiguate via `[dup:...]` and `push_to_remotes`.
+- The REM column renders one icon PER LEG, so two distinct GitHub projects
+  (none today) show two 🐙 rather than one. That is deliberate: a collapsed
+  icon would claim a destination does not exist. `push_to_forges` and
+  `push_to_remotes` are index-aligned for exactly this, and `[dup:...]` keeps
+  the dropped mirror visible.
+- The leg/forge split is a report-shape change: anything reading
+  `push_to_remotes` from `repos --json` now sees `origin` where it may have
+  expected a forge name. `scripts/fleet-convergence-observe.py` already
+  prepends `origin` itself, so a row that used to read
+  `["github","gitlab"]` now reads `["origin","gitlab"]` and that script's
+  `required_remotes()` collapses to the same set — but an external consumer
+  that matched on the string `github` must read `push_to_forges` instead.
