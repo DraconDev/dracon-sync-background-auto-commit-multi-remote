@@ -792,17 +792,44 @@ fn format_push_to_remotes_cell(
 /// auto-create is off). Returning both lists from one place so
 /// `push_to_remotes` / `excluded_remotes` can never drift apart.
 ///
-/// Returns `(push_to, excluded, duplicate_mirrors)` — the push target set,
+/// Returns `(push_to, excluded, duplicate_mirrors)` — the publication legs,
 /// the operator's name-based exclusions, and the mirrors the forge-identity
 /// dedupe dropped. ADDED 2026-11-09: the third element exists because a
-/// dropped duplicate is otherwise INVISIBLE (github still appears via
-/// `origin`), and silently changing where commits go is not acceptable.
+/// dropped duplicate is otherwise INVISIBLE, and silently changing where
+/// commits go is not acceptable. CHANGED 2026-11-09 (audit item 5): the first
+/// element is the legs (origin, mirrors) — a forge LABEL there claimed `github`
+/// was a destination even when the github mirror had just been de-duplicated;
+/// the forge families travel alongside in `pub_effective_remotes`.
 pub(crate) fn report_effective_remotes(
     policy: &crate::policy::SyncPolicy,
     repo_override: &crate::policy::RepoPolicyOverride,
     repo_path: &std::path::Path,
     too_big_for_github: bool,
 ) -> (Vec<String>, Vec<String>, Vec<String>) {
+    let remotes = report_effective_remote_legs(policy, repo_override, repo_path, too_big_for_github);
+    (remotes.legs, remotes.excluded, remotes.duplicate_mirrors)
+}
+
+/// The report's full answer to "where do commits go": legs for the
+/// `push-to:` / `push_to_remotes` answer, forges for the REM icons.
+pub(crate) struct ReportEffectiveRemotes {
+    /// Publication legs (`origin`, mirror names).
+    pub legs: Vec<String>,
+    /// Forge family per leg, in the same order (`github`/`gitlab`/`codeberg`, or
+    /// the remote name when the host is not a recognised forge).
+    pub forges: Vec<String>,
+    /// The operator's explicit opt-outs.
+    pub excluded: Vec<String>,
+    /// Mirrors the forge-identity dedupe dropped.
+    pub duplicate_mirrors: Vec<String>,
+}
+
+pub(crate) fn report_effective_remote_legs(
+    policy: &crate::policy::SyncPolicy,
+    repo_override: &crate::policy::RepoPolicyOverride,
+    repo_path: &std::path::Path,
+    too_big_for_github: bool,
+) -> ReportEffectiveRemotes {
     let mut excluded = effective_excluded_remotes(policy, repo_override, repo_path);
     if crate::git::multi_remote::codeberg_push_excluded_for_repo(
         &policy.remotes,
@@ -840,9 +867,15 @@ pub(crate) fn report_effective_remotes(
         &filtered,
         &repo_name,
     );
-    // Three distinct answers, never conflated: where commits GO, what the
-    // OPERATOR excluded, and which MIRRORS were de-duplicated.
-    (targets.push_to, excluded, targets.duplicate_mirrors)
+    // Three distinct answers, never conflated: where commits GO (legs), which
+    // forge family each leg publishes to (icons), what the OPERATOR excluded,
+    // and which MIRRORS were de-duplicated.
+    ReportEffectiveRemotes {
+        legs: targets.legs(),
+        forges: targets.forges(),
+        excluded,
+        duplicate_mirrors: targets.duplicate_mirrors,
+    }
 }
 
 pub(crate) fn effective_excluded_remotes(
