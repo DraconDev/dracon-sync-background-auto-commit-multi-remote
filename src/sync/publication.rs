@@ -160,8 +160,7 @@ pub(super) async fn plan_publication(
                 name
             );
         }
-    }
-    // PIN LAST. Everything above reads the checkout or mutates Git
+    }    // PIN LAST. Everything above reads the checkout or mutates Git
     // configuration (auto-create can take seconds). Pinning before that work
     // would publish a tip that predates the configuration the round is about
     // to use; pinning here means the pinned object is the tip that existed when
