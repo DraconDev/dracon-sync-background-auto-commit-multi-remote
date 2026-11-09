@@ -180,19 +180,26 @@ pub(crate) fn canonical_repository_url(raw: &str) -> Option<String> {
     Some(format!("{host}/{path}"))
 }
 
-/// Compare two Git remote URLs by repository identity, ignoring transport
-/// syntax, credentials, a trailing slash, and the conventional `.git`
-/// suffix.
-pub(crate) fn same_repository_url(left: &str, right: &str) -> bool {
-    matches!(
-        (canonical_repository_url(left), canonical_repository_url(right)),
-        (Some(left), Some(right)) if left == right
-    )
-}
+// REMOVED 2026-11-09: `same_repository_url` lived here and was the tree's
+// SECOND identity comparator. Once `forge::remote_project_identity` started
+// delegating to `canonical_repository_url`, keeping a wrapper that only
+// compared canonical strings left a fourth spelling of the same question
+// ("are these the same project?") with no callers. Identity is decided in
+// exactly one place now: `forge::remote_project_identity`, which both the
+// push path and the report call.
 
 #[cfg(test)]
 mod tests {
-    use super::{canonical_repository_url, same_repository_url};
+    use super::canonical_repository_url;
+
+    /// Identity equality, expressed the way the ONE helper states it: two
+    /// URLs name the same project when their canonical forms are equal.
+    fn same_repository_url(left: &str, right: &str) -> bool {
+        matches!(
+            (canonical_repository_url(left), canonical_repository_url(right)),
+            (Some(left), Some(right)) if left == right
+        )
+    }
 
     #[test]
     fn canonical_repository_url_normalizes_transport_and_suffix() {
