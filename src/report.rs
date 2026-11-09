@@ -16523,6 +16523,129 @@ mod v011316_tests {
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    /// ADDED 2026-11-09: the report and the pusher must derive from ONE
+    /// calculation. `effective_push_targets` is that calculation; these tests
+    /// pin the two live display defects it fixes.
+    #[test]
+    fn report_names_github_when_origin_publishes_github() {
+        // browser-extensions-shared / pi-plugins / tiles-tui-file-manager:
+        // origin IS the github project and there is no github mirror. Before
+        // the fix the push-to line named only `gitlab`, and the REM cell had
+        // no GitHub icon, while GitHub received every commit.
+        let dir = std::env::temp_dir().join("dracon-v011309-origin-github");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let run = |args: &[&str]| {
+            let out = std::process::Command::new("git")
+                .args(args)
+                .current_dir(&dir)
+                .output()
+                .unwrap();
+            assert!(out.status.success(), "git {:?} failed", args);
+        };
+        run(&["init", "-q", "-b", "main"]);
+        run(&[
+            "remote",
+            "add",
+            "origin",
+            "git@github.com:DraconDev/browser-extensions-shared.git",
+        ]);
+        run(&[
+            "remote",
+            "add",
+            "gitlab",
+            "git@gitlab.com:DraconDev/browser-extensions-shared.git",
+        ]);
+        let policy = quota_policy();
+        let (push_to, _excluded) =
+            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, false);
+        assert!(
+            push_to.iter().any(|r| r == "github"),
+            "origin's forge must be named: {push_to:?}"
+        );
+        assert!(
+            push_to.iter().any(|r| r == "gitlab"),
+            "the distinct gitlab mirror must survive: {push_to:?}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn report_drops_the_duplicate_mirror_origin_already_covers() {
+        // The seven double-pushing repos: origin and a github mirror name the
+        // SAME project. The push-to line must name github ONCE (via origin)
+        // rather than listing a duplicate destination.
+        let dir = std::env::temp_dir().join("dracon-v011309-dedupe");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let run = |args: &[&str]| {
+            let out = std::process::Command::new("git")
+                .args(args)
+                .current_dir(&dir)
+                .output()
+                .unwrap();
+            assert!(out.status.success(), "git {:?} failed", args);
+        };
+        run(&["init", "-q", "-b", "main"]);
+        run(&[
+            "remote",
+            "add",
+            "origin",
+            "git@github.com:DraconDev/db-gateway.git",
+        ]);
+        run(&[
+            "remote",
+            "add",
+            "github",
+            "git@github.com:DraconDev/db-gateway.git",
+        ]);
+        run(&[
+            "remote",
+            "add",
+            "gitlab",
+            "git@gitlab.com:DraconDev/db-gateway.git",
+        ]);
+        // Tracking refs so the codeberg quota rule does not confuse the test.
+        let policy = SyncPolicy {
+            remotes: vec![
+                RemoteConfig {
+                    name: "github".to_string(),
+                    push_url: "git@github.com:DraconDev/{repo}.git".to_string(),
+                    auto_create: false,
+                    auto_create_account: String::new(),
+                    auth_type: crate::policy::AuthType::GitHub,
+                    priority: 50,
+                    api_endpoint: None,
+                    auto_create_token_var: None,
+                    repo_name_map: std::collections::HashMap::new(),
+                    force_push_when_behind: false,
+                },
+                RemoteConfig {
+                    name: "gitlab".to_string(),
+                    push_url: "git@gitlab.com:DraconDev/{repo}.git".to_string(),
+                    auto_create: false,
+                    auto_create_account: String::new(),
+                    auth_type: crate::policy::AuthType::GitLab,
+                    priority: 50,
+                    api_endpoint: None,
+                    auto_create_token_var: None,
+                    repo_name_map: std::collections::HashMap::new(),
+                    force_push_when_behind: true,
+                },
+            ],
+            codeberg_public_only: false,
+            ..test_sync_policy()
+        };
+        let (push_to, _excluded) =
+            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, false);
+        assert_eq!(
+            push_to,
+            vec!["github".to_string(), "gitlab".to_string()],
+            "github appears ONCE (served by origin) plus the distinct gitlab leg"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }
 
 /// ADDED 2026-07-29 (v0.113.18): audit fix-batch tests — REPO cell
