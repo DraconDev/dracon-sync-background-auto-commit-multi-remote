@@ -1754,7 +1754,7 @@ mod tests {
     /// same `github` project could be pushed twice via `origin` + mirror, and a
     /// repo publishing GitHub through origin showed no GitHub icon.
     #[test]
-    fn effective_push_targets_names_origin_forge_and_keeps_distinct_mirrors() {
+    fn effective_push_targets_names_origin_leg_and_keeps_distinct_mirrors() {
         let candidates = [
             remote("github", "git@github.com:DraconDev/{repo}.git", 50),
             remote("gitlab", "git@gitlab.com:DraconDev/{repo}.git", 50),
@@ -1766,8 +1766,16 @@ mod tests {
             &candidates,
             "pi-plugins",
         );
+        // The LEG list names what receives the push. `github` is NOT a leg here:
+        // the github mirror was de-duplicated and origin is the github leg.
         assert_eq!(
-            targets.push_to,
+            targets.legs(),
+            vec!["origin".to_string(), "gitlab".to_string()],
+            "origin is the github leg; no `github` entry may remain"
+        );
+        // The FORGE list is what the REM icons read, so GitHub stays visible.
+        assert_eq!(
+            targets.forges(),
             vec!["github".to_string(), "gitlab".to_string()],
             "origin's forge must be reported so GitHub is not invisible"
         );
@@ -1795,11 +1803,44 @@ mod tests {
             "browser-extensions-shared",
         );
         assert_eq!(
-            targets.push_to,
+            targets.legs(),
+            vec!["origin".to_string(), "gitlab".to_string()]
+        );
+        assert_eq!(
+            targets.forges(),
             vec!["github".to_string(), "gitlab".to_string()]
         );
         assert!(targets.duplicate_mirrors.is_empty());
         assert_eq!(targets.kept.len(), 1);
+    }
+
+    /// Two DISTINCT projects on ONE forge are two destinations: the leg list
+    /// must name both, and the forge list keeps both entries (the REM cell
+    /// renders two 🐙 rather than claiming one GitHub target).
+    #[test]
+    fn effective_push_targets_keeps_two_projects_on_one_forge_as_two_legs() {
+        let candidates = [
+            remote("github", "git@github.com:DraconDev/{repo}.git", 50),
+            remote("github-backup", "git@github.com:DraconDev/{repo}-backup.git", 60),
+        ];
+        let targets = effective_push_targets(
+            Some("git@github.com:DraconDev/db-gateway.git"),
+            &candidates,
+            "db-gateway",
+        );
+        assert_eq!(
+            targets.legs(),
+            vec!["origin".to_string(), "github-backup".to_string()],
+            "the duplicate `github` leg is gone; the distinct backup leg stays"
+        );
+        assert_eq!(
+            targets.forges(),
+            vec!["github".to_string(), "github".to_string()],
+            "two distinct github projects must render two icons"
+        );
+        assert_eq!(targets.duplicate_mirrors, vec!["github".to_string()]);
+        assert_eq!(targets.kept.len(), 1);
+        assert_eq!(targets.kept[0].name, "github-backup");
     }
 
     /// An explicit `exclude_remotes` opt-out must still work: the caller
@@ -1819,9 +1860,18 @@ mod tests {
         );
         assert!(targets.kept.iter().all(|r| r.name != "github"));
         assert_eq!(
-            targets.push_to,
+            targets.legs(),
+            vec!["origin".to_string(), "gitlab".to_string()],
+            "the excluded github MIRROR is not a leg; origin still publishes github"
+        );
+        assert!(
+            !targets.legs().iter().any(|l| l == "github"),
+            "no `github` entry may survive an explicit opt-out"
+        );
+        assert_eq!(
+            targets.forges(),
             vec!["github".to_string(), "gitlab".to_string()],
-            "github stays reported because ORIGIN still publishes it"
+            "github stays visible because ORIGIN still publishes it"
         );
     }
 
@@ -1836,9 +1886,14 @@ mod tests {
             "repo",
         );
         assert_eq!(
-            targets.push_to,
+            targets.legs(),
             vec!["origin".to_string(), "nas".to_string()],
             "non-forge hosts keep their remote names (origin labelled as such)"
+        );
+        assert_eq!(
+            targets.forges(),
+            vec!["origin".to_string(), "nas".to_string()],
+            "an internal git server must never be reported as a forge"
         );
         assert!(targets.duplicate_mirrors.is_empty());
     }
