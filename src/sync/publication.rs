@@ -153,11 +153,13 @@ pub(super) async fn plan_publication(
     );
     let remotes = targets.kept;
     for name in &targets.duplicate_mirrors {
-        crate::policy::log_debug_only(&format!(
-            "🛰️ {} mirror {} publishes the same forge project as another leg of this round — not pushed twice",
-            repo.display(),
-            name
-        ));
+        if crate::policy::debug_enabled() {
+            eprintln!(
+                "🛰️ {} mirror {} publishes the same forge project as another leg of this round — not pushed twice",
+                repo.display(),
+                name
+            );
+        }
     }
     // PIN LAST. Everything above reads the checkout or mutates Git
     // configuration (auto-create can take seconds). Pinning before that work
