@@ -300,6 +300,84 @@ pub(crate) fn remote_project_identity(url: &str) -> Option<(String, String)> {
     Some((host.to_string(), slug.to_string()))
 }
 
+/// One candidate mirror for forge-identity dedupe.
+#[derive(Debug, Clone)]
+pub(crate) struct ForgeMirror {
+    pub name: String,
+    pub url: String,
+    pub priority: u32,
+}
+
+/// Mirrors that publish the SAME forge project as `origin` or as another,
+/// higher-priority mirror.
+///
+/// ADDED 2026-11-09: seven repos had `origin` and a `github` mirror pointing
+/// at byte-identical GitHub URLs, so every cycle pushed the same object to the
+/// same project twice (db-gateway, dracon-platform, empire, eve,
+/// mcode-plugins, opencode-plugins, terhub). The name-based
+/// `filter_remotes_by_exclude` could not see it: it compares remote NAMES,
+/// never resolved URLs.
+///
+/// SEMANTICS, each half load-bearing:
+///
+/// - A mirror is dropped ONLY when a *parseable* identity collides with an
+///   already-claimed one. An unparseable URL (local path, `ext::`, malformed)
+///   is always KEPT: a dedupe that guessed would cost a publication target,
+///   and every previously-published forge must still receive commits.
+/// - Origin claims first (it is the primary leg), then mirrors in push order
+///   (`priority` ascending, name-tiebreak) — so "two mirrors share one project"
+///   collapses to the higher-priority one, exactly the leg the pusher would
+///   have used anyway.
+/// - Same HOST with a DIFFERENT slug is drift, not duplication, and is KEPT:
+///   github and gitlab serving one repo are two mirrors BY DESIGN, and a
+///   renamed-project remote is an operator decision, never a silent drop.
+/// - Cross-host mirrors never collide (identity is host+slug).
+///
+/// Returns the dropped MIRROR NAMES (not URLs) so callers can exclude them
+/// from the push set while leaving `.git/config` untouched.
+pub(crate) fn duplicate_mirror_names(
+    origin_url: Option<&str>,
+    mirrors: &[ForgeMirror],
+) -> Vec<String> {
+    use std::collections::HashSet;
+    let mut claimed: HashSet<(String, String)> = HashSet::new();
+    if let Some((host, slug)) = origin_url.and_then(remote_project_identity) {
+        claimed.insert((host, slug));
+    }
+    let mut ordered: Vec<&ForgeMirror> = mirrors.iter().collect();
+    ordered.sort_by(|a, b| a.priority.cmp(&b.priority).then_with(|| a.name.cmp(&b.name)));
+    let mut dropped = Vec::new();
+    for mirror in ordered {
+        match remote_project_identity(&mirror.url) {
+            Some(identity) if claimed.contains(&identity) => dropped.push(mirror.name.clone()),
+            Some(identity) => {
+                claimed.insert(identity);
+            }
+            // Unparseable: never claim, never drop.
+            None => {}
+        }
+    }
+    dropped
+}
+
+/// Canonical forge label for a remote URL (`github` / `gitlab` / `codeberg`),
+/// or `None` for hosts this fleet does not publish to.
+///
+/// ADDED 2026-11-09: the REM column rendered the remote NAME, so a repo that
+/// publishes GitHub through `origin` (pi-plugins, tiles-tui-file-manager,
+/// browser-extensions-shared) showed no GitHub icon at all even though GitHub
+/// received every commit. The label is derived from the URL's forge identity,
+/// which is the only thing that actually identifies the destination.
+pub(crate) fn forge_label_of_url(url: &str) -> Option<&'static str> {
+    let (host, _) = remote_project_identity(url)?;
+    match host.as_str() {
+        "github.com" => Some("github"),
+        "gitlab.com" => Some("gitlab"),
+        "codeberg.org" => Some("codeberg"),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
