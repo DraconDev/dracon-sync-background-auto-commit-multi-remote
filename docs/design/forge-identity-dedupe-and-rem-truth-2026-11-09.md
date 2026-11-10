@@ -309,6 +309,44 @@ change could have caused, and both were already in that state before the deploy:
 - `.dracon` — carries the warn flag with `push_status=OK`, `state_flags=[OK,
   REPORT_CHECKS_DEFERRED]` and no `push_error`; it is not a push failure.
 
+## Follow-up (2026-11-10): the icons must read the same everywhere
+
+The leg/forge split fixed *what* the REM column says; it left the icon
+**order** inherited from the leg list, so the same two active forges produced
+two different pictures depending on which remote was named `origin`:
+
+```
+db-gateway             push-to: origin,gitlab   REM 🐙🦊     (origin = github)
+capture-anime-girls    push-to: origin,gitlab   REM 🦊🐙     (origin = gitlab)
+```
+
+Five fleet repos rendered `🦊🐙` (`capture-anime-girls`, `polis`,
+`one-mil-girls`, `neonbreak`, `hellhunter`). The operator's report: "we should
+be consistent about the order of the icons" — a column scanned by icon shape
+cannot depend on which remote happens to be `origin`.
+
+`rem_cell_content` now sorts a copy of the forge list through
+`forge_display_key`, which derives its rank from `remote_icon` itself
+(`github` → 0, `gitlab` → 1, `codeberg` → 2, anything else → 3 + its own
+case-folded name) so the icon and its rank can never disagree. Order follows
+the header legend (🐙 GitHub · 🦊 GitLab · 🗻 Codeberg); unfamiliar labels keep a
+deterministic alphabetical tail rather than being dropped.
+
+Two properties were preserved deliberately:
+
+- **The sort is stable**, so two DISTINCT projects on one forge still render
+two icons (`🐙🐙🦊`), pinned by `rem_cell_icon_order_is_canonical_not_leg_order`.
+Canonical ordering must never turn into de-duplication — that decision belongs
+to `effective_push_targets`, not to the renderer.
+- **The JSON row is untouched.** `push_to_forges` stays index-aligned with
+`push_to_remotes`, because leg *i*'s forge is a fact about that leg. Sorting
+only the display would have been invisible to a `--json` consumer; sorting the
+data would have broken the alignment. The renderer sorts.
+
+Live after redeploy (build `ec8146ee`, pid 2580563): `grep -c 🦊🐙` over the
+whole fleet table returns **0**, and all five previously-reordered repos read
+`🐙🦊`.
+
 ## No publication target was lost
 
 Explicitly: **no forge that received commits before this change stopped
