@@ -6739,8 +6739,19 @@ fn push_to_detail_text(
 /// `repos <name>` / the JSON row. Unknown remote names render as
 /// their first two letters rather than being silently dropped.
 fn rem_cell_content(push_to: &[String]) -> String {
+    let mut ordered: Vec<&String> = push_to.iter().collect();
+    // ADDED 2026-11-09 (operator: "we should be consistent about the
+    // order of the icons"): the cell must not inherit leg order. A repo
+    // whose `origin` is GitLab rendered 🦊🐙 while GitHub-origin repos
+    // rendered 🐙🦊 — same facts, two different pictures, and the
+    // column is scanned by icon shape. Rank follows the header legend
+    // (🐙 GitHub · 🦊 GitLab · 🗻 Codeberg); unfamiliar labels keep a
+    // deterministic alphabetical tail so they are still shown, never
+    // dropped. `sort_by` is stable, so two legs on the SAME forge stay
+    // two icons (the topology that keeps both projects visible).
+    ordered.sort_by_cached_key(|name| forge_display_key(name));
     let mut s = String::new();
-    for name in push_to {
+    for name in ordered {
         match remote_icon(name) {
             Some(icon) => s.push_str(icon),
             None => {
@@ -6755,6 +6766,19 @@ fn rem_cell_content(push_to: &[String]) -> String {
         s.push('—');
     }
     s
+}
+
+/// Sort key for the REM cell, derived from `remote_icon` so the icon and
+/// its rank can never disagree (`github` → 0, `gitlab` → 1, `codeberg` → 2,
+/// anything else → 3 + its own case-folded name).
+fn forge_display_key(name: &str) -> (u8, String) {
+    let rank = match remote_icon(name) {
+        Some("🐙") => 0,
+        Some("🦊") => 1,
+        Some("🗻") => 2,
+        _ => 3,
+    };
+    (rank, name.to_ascii_lowercase())
 }
 
 /// Compute an absolute REM-column width from the actual rendered cell.
@@ -16511,6 +16535,50 @@ mod v011315_tests {
         assert_eq!(cell, "or");
         let mixed = rem_cell_content(&["github".to_string(), "origin".to_string()]);
         assert_eq!(mixed, "🐙 or", "icon + spaced letters: {mixed:?}");
+        // Unknown labels sort by their own name, so the picture does not
+        // depend on the order legs happen to arrive in.
+        assert_eq!(
+            rem_cell_content(&["origin".to_string(), "backup".to_string()]),
+            "ba or"
+        );
+    }
+
+    #[test]
+    fn rem_cell_icon_order_is_canonical_not_leg_order() {
+        // 2026-11-09 operator report: `capture-anime-girls` (origin =
+        // GitLab) rendered 🦊🐙 next to GitHub-origin repos rendering
+        // 🐙🦊. Same active forges must always render the same glyph
+        // order, whatever orders the legs were discovered in.
+        let github_origin = rem_cell_content(&["github".to_string(), "gitlab".to_string()]);
+        let gitlab_origin = rem_cell_content(&["gitlab".to_string(), "github".to_string()]);
+        assert_eq!(github_origin, "🐙🦊");
+        assert_eq!(gitlab_origin, "🐙🦊", "leg order must not leak: {gitlab_origin:?}");
+
+        // Codeberg sits after GitLab regardless of arrival order.
+        assert_eq!(
+            rem_cell_content(&[
+                "codeberg".to_string(),
+                "gitlab".to_string(),
+                "github".to_string(),
+            ]),
+            "🐙🦊🗻"
+        );
+
+        // Two DISTINCT projects on one forge are two legs, so the cell
+        // must keep both icons — canonical ordering must not dedupe.
+        assert_eq!(
+            rem_cell_content(&[
+                "gitlab".to_string(),
+                "github".to_string(),
+                "github-iso".to_string(),
+            ]),
+            "🐙🐙🦊"
+        );
+
+        // ...and the column width follows the cell, not the input order.
+        let a = rem_column_width(&["github".to_string(), "gitlab".to_string()]);
+        let b = rem_column_width(&["gitlab".to_string(), "github".to_string()]);
+        assert_eq!(a, b);
     }
 
     #[test]
