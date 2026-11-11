@@ -33,7 +33,7 @@
 # the bridge-fixture ReadWritePaths, the memory headroom), so the unit no
 # longer depends on them.
 
-{ ... }:
+{ lib, ... }:
 
 {
   systemd.services.dracon-sync-operator = {
@@ -42,7 +42,10 @@
     after = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
     environment = {
-      PATH = "/home/dracon/.local/bin:/run/wrappers/bin:/home/dracon/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/home/dracon/.nix-profile/bin:/nix/profile/bin:/home/dracon/.local/state/nix/profile/bin:/etc/profiles/per-user/dracon/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin";
+      # lib.mkForce: NixOS's systemd module defines a default PATH for every
+      # service, so an unqualified value here is a conflicting definition
+      # and the whole config fails to evaluate.
+      PATH = lib.mkForce "/home/dracon/.local/bin:/run/wrappers/bin:/home/dracon/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/home/dracon/.nix-profile/bin:/nix/profile/bin:/home/dracon/.local/state/nix/profile/bin:/etc/profiles/per-user/dracon/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin";
       DRACON_SYNC_POLICY = "/home/dracon/.dracon/utilities/sync/dracon-sync.toml";
       GIT_TERMINAL_PROMPT = "0";
       HOME = "/home/dracon";
