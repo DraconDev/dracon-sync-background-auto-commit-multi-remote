@@ -6251,14 +6251,42 @@ async fn refresh_stale_upstream_ref(repo: &Path) {
     if !stale_upstream_refresh_allowed(repo, std::time::Instant::now()) {
         return;
     }
-    let _ = super::git::run_git_with_timeout_env_progress(
-        repo,
-        &["fetch", &remote],
-        30,
-        "upstream-refresh",
-        &[("GIT_TERMINAL_PROMPT", "0")],
-    )
-    .await;
+    // ADDED 2026-11-11: refresh every configured REMOTE NAME, not only the
+    // one `branch.<b>.remote` happens to point at. The daemon pushes each
+    // mirror by name, so `git push github ...` updates
+    // `refs/remotes/github/<b>` — but `branch.<b>.remote` is a single value
+    // (here `origin`, which shares github's URL), so only origin's ref got
+    // repaired. With three names aimed at two forges, ONE stale tracking ref
+    // is enough to poison every consumer of `count_ahead_commits`, which
+    // takes the MAXIMUM across all tracking refs: the daemon permanently
+    // reported browser-extensions-shared as "1784 commit(s) ahead" when it
+    // was 31, scaled every push timeout 900s -> 5400s, fired a standing
+    // "Stuck Ahead (Unpushed)" alert, and tripped the auto-commit backstop
+    // so fresh edits stopped being committed. Fetching by name keeps the
+    // max honest: a name that is genuinely behind still reports its own
+    // distance, and a name whose remote tip already equals HEAD costs a
+    // local rev-parse and no network at all.
+    let mut names: Vec<String> = vec![remote];
+    for candidate in super::git::multi_remote::list_remotes(repo) {
+        if !names.contains(&candidate) {
+            names.push(candidate);
+        }
+    }
+    for name in &names {
+        let tracking = format!("refs/remotes/{}/{}", name, short);
+        let tracking_sha = output(&["rev-parse", &tracking]);
+        if tracking_sha.is_some() && tracking_sha == head_sha {
+            continue; // this name already agrees with HEAD — zero network cost
+        }
+        let _ = super::git::run_git_with_timeout_env_progress(
+            repo,
+            &["fetch", name],
+            30,
+            "upstream-refresh",
+            &[("GIT_TERMINAL_PROMPT", "0")],
+        )
+        .await;
+    }
 }
 
 /// Pushes unpushed commits when needed.
@@ -12307,6 +12335,88 @@ auto_bump_versions = false
         .trim()
         .to_string();
         assert_eq!(again, head);
+    }
+
+    /// ADDED 2026-11-11: a stale MIRROR tracking ref must be repaired too, not
+    /// only the single `branch.<b>.remote` upstream.
+    ///
+    /// `count_ahead_commits` takes the MAXIMUM across every tracking ref, so
+    /// one stale name permanently poisons every consumer: browser-extension-
+    /// shared was reported as 1784 commits ahead when it was 31, every push
+    /// timeout scaled 900s -> 5400s, a "Stuck Ahead (Unpushed)" alert stood
+    /// permanently, and the auto-commit backstop blocked fresh commits. The
+    /// push path pushes each mirror BY NAME, so `git push github ...` updates
+    /// `refs/remotes/github/<b>` while `branch.<b>.remote` — a single value —
+    /// leaves the other names untouched.
+    #[tokio::test]
+    async fn test_refresh_stale_upstream_ref_repairs_every_mirror_name() {
+        let _global_guard = crate::test_helpers::EnvRestorer::new("GIT_CONFIG_GLOBAL", "/dev/null");
+        let _system_guard = crate::test_helpers::EnvRestorer::new("GIT_CONFIG_SYSTEM", "/dev/null");
+        let tmp = tempfile::tempdir().unwrap();
+        let bare = tmp.path().join("remote.git");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-b", "main"])
+            .arg(&bare)
+            .status()
+            .unwrap();
+        let repo = init_test_repo(&tmp, "stale-mirror-repo");
+        git_cmd(&repo, &["checkout", "-q", "-b", "main"]);
+        std::fs::write(repo.join("a.txt"), "one").unwrap();
+        git_cmd(&repo, &["add", "."]);
+        git_cmd(&repo, &["commit", "--no-verify", "-q", "-m", "c1"]);
+        git_cmd(&repo, &["remote", "add", "origin", &bare.to_string_lossy()]);
+        // A mirror name that shares the same URL, exactly like the live
+        // `origin`/`github` pair, plus a second distinct mirror.
+        git_cmd(&repo, &["remote", "add", "github", &bare.to_string_lossy()]);
+        git_cmd(&repo, &["push", "-q", "-u", "origin", "main"]);
+        git_cmd(&repo, &["push", "-q", "github", "main"]);
+
+        std::fs::write(repo.join("a.txt"), "two").unwrap();
+        git_cmd(&repo, &["add", "."]);
+        git_cmd(&repo, &["commit", "--no-verify", "-q", "-m", "c2"]);
+        let head = String::from_utf8_lossy(&git_cmd(&repo, &["rev-parse", "HEAD"]).stdout)
+            .trim()
+            .to_string();
+        // Publish behind the tracking refs, then rewind BOTH names — the
+        // production shape where the branch's upstream was repaired long
+        // ago and the mirror name still points at an older tip.
+        git_cmd(&repo, &["push", "-q", "origin", "HEAD:refs/heads/main"]);
+        git_cmd(&repo, &["update-ref", "refs/remotes/origin/main", "HEAD~1"]);
+        git_cmd(&repo, &["update-ref", "refs/remotes/github/main", "HEAD~1"]);
+        for name in ["origin", "github"] {
+            let stale = String::from_utf8_lossy(
+                &git_cmd(&repo, &["rev-parse", &format!("refs/remotes/{name}/main")]).stdout,
+            )
+            .trim()
+            .to_string();
+            assert_ne!(stale, head, "precondition: {name} must start stale");
+        }
+        // The poison the daemon actually saw: one stale name makes the
+        // MAXIMUM count wrong even though the checkout is fully pushed.
+        assert_eq!(
+            count_ahead_commits(&repo).await.unwrap(),
+            1,
+            "precondition: a stale mirror name inflates the max count"
+        );
+
+        refresh_stale_upstream_ref(&repo).await;
+
+        for name in ["origin", "github"] {
+            let refreshed = String::from_utf8_lossy(
+                &git_cmd(&repo, &["rev-parse", &format!("refs/remotes/{name}/main")]).stdout,
+            )
+            .trim()
+            .to_string();
+            assert_eq!(
+                refreshed, head,
+                "{name} tracking ref must converge to HEAD after refresh"
+            );
+        }
+        assert_eq!(
+            count_ahead_commits(&repo).await.unwrap(),
+            0,
+            "after the refresh the repo is genuinely converged"
+        );
     }
 
     #[tokio::test]
