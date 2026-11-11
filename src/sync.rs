@@ -6262,19 +6262,11 @@ async fn refresh_stale_upstream_ref(repo: &Path) {
     // remote tip already equalled HEAD. The per-name `continue` inside the
     // loop already makes a converged name free, so the early return bought
     // nothing: decide staleness per name instead.
-    let upstream_probe = format!("refs/remotes/{}/{}", remote, short);
     let mut names: Vec<String> = vec![remote];
     for candidate in super::git::multi_remote::list_remotes(repo) {
         if !names.contains(&candidate) {
             names.push(candidate);
         }
-    }
-    // TEMPORARY un-fix for the discriminating-test experiment (restored below).
-    let upstream_converged = output(&["rev-parse", &upstream_probe])
-        .zip(head_sha.as_deref())
-        .is_some_and(|(upstream_sha, head)| upstream_sha == head);
-    if upstream_converged {
-        return;
     }
     let stale: Vec<String> = names
         .iter()
