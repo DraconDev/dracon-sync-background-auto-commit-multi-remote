@@ -6235,22 +6235,7 @@ async fn refresh_stale_upstream_ref(repo: &Path) {
         return;
     };
     let short = merge.strip_prefix("refs/heads/").unwrap_or(&merge);
-    let upstream_ref = format!("refs/remotes/{}/{}", remote, short);
-    let upstream_sha = output(&["rev-parse", &upstream_ref]);
     let head_sha = output(&["rev-parse", "HEAD"]);
-    if upstream_sha.is_some() && upstream_sha == head_sha {
-        return; // converged — the common case, zero network cost
-    }
-    // A successful named-mirror push can leave the configured upstream
-    // tracking ref stale. If the fetch cannot repair it (dead origin,
-    // credentials, or a transient network failure), the next successful
-    // push would otherwise launch the same 30-second fetch every cycle.
-    // Keep the fast local convergence check above, but rate-limit repeated
-    // refresh attempts per repo so a broken upstream cannot dominate the
-    // daemon's push budget.
-    if !stale_upstream_refresh_allowed(repo, std::time::Instant::now()) {
-        return;
-    }
     // ADDED 2026-11-11: refresh every configured REMOTE NAME, not only the
     // one `branch.<b>.remote` happens to point at. The daemon pushes each
     // mirror by name, so `git push github ...` updates
@@ -6266,18 +6251,46 @@ async fn refresh_stale_upstream_ref(repo: &Path) {
     // max honest: a name that is genuinely behind still reports its own
     // distance, and a name whose remote tip already equals HEAD costs a
     // local rev-parse and no network at all.
+    //
+    // FIXED 2026-11-11 (audit follow-up, HIGH): the names loop used to sit
+    // BEHIND an early `return` on the upstream tracking ref being converged
+    // (`refs/remotes/origin/<b> == HEAD`), so the common production shape —
+    // upstream repaired long ago, a MIRROR still pinned at an old tip —
+    // never reached the loop at all. Live proof: capture-anime-girls had
+    // `origin/main == HEAD` (8c9692f6) while `gitlab/main` sat at d191dde3,
+    // so the daemon kept reporting 233 unpushed commits off a ref whose real
+    // remote tip already equalled HEAD. The per-name `continue` inside the
+    // loop already makes a converged name free, so the early return bought
+    // nothing: decide staleness per name instead.
     let mut names: Vec<String> = vec![remote];
     for candidate in super::git::multi_remote::list_remotes(repo) {
         if !names.contains(&candidate) {
             names.push(candidate);
         }
     }
-    for name in &names {
-        let tracking = format!("refs/remotes/{}/{}", name, short);
-        let tracking_sha = output(&["rev-parse", &tracking]);
-        if tracking_sha.is_some() && tracking_sha == head_sha {
-            continue; // this name already agrees with HEAD — zero network cost
-        }
+    let stale: Vec<String> = names
+        .iter()
+        .filter(|name| {
+            let tracking = format!("refs/remotes/{}/{}", name, short);
+            output(&["rev-parse", &tracking])
+                .zip(head_sha.clone())
+                .is_some_and(|(tracking_sha, head)| tracking_sha != head)
+        })
+        .cloned()
+        .collect();
+    if stale.is_empty() {
+        return; // every name already agrees with HEAD — zero network cost
+    }
+    // A successful named-mirror push can leave the configured upstream
+    // tracking ref stale. If the fetch cannot repair it (dead origin,
+    // credentials, or a transient network failure), the next successful
+    // push would otherwise launch the same 30-second fetch every cycle.
+    // Rate-limit repeated refresh attempts per repo so a broken upstream
+    // cannot dominate the daemon's push budget.
+    if !stale_upstream_refresh_allowed(repo, std::time::Instant::now()) {
+        return;
+    }
+    for name in &stale {
         let _ = super::git::run_git_with_timeout_env_progress(
             repo,
             &["fetch", name],
