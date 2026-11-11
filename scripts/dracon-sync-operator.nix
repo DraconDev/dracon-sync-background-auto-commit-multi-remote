@@ -18,6 +18,20 @@
 # Rollback: remove the import and rebuild; or restore user scheduling by
 # unmasking the user unit and stopping the system service (see the v8
 # handover-backup in ~/.local/state/dracon-sync/service-migration/20261018-operator-v8).
+#
+# APPLIED 2026-11-11 (memory-collapse incident): installed at
+# /home/dracon/nixos/modules/dracon-sync-operator.nix and imported by
+# /home/dracon/nixos/configuration.nix, so the operator unit is declarative
+# and survives a reboot. The 2026-11-11 change added the containment block
+# (MemoryHigh/MemoryMax/MemorySwapMax/IOWeight/OOMPolicy/ManagedOOM*) that
+# keeps the sync daemon from taking the desktop down with it; see the
+# inline comments on each setting for the measurements behind it.
+#
+# NOTE: the hand-written drop-ins that lived under
+# /run/systemd/system/dracon-sync-operator.service.d/ were tmpfs and did not
+# survive a reboot. Their contents are folded into this module (TasksMax 512,
+# the bridge-fixture ReadWritePaths, the memory headroom), so the unit no
+# longer depends on them.
 
 { ... }:
 
@@ -46,12 +60,58 @@
       ];
       ExecStart = "/home/dracon/.local/bin/dracon-sync daemon";
       Restart = "always";
-      RestartSec = 5;
+      # CHANGED 2026-11-11 (memory-collapse incident): 5 -> 30. The unit is
+      # killed by systemd-oomd when it becomes the memory hog (see
+      # ManagedOOM* below); a 5s restart was a hot loop against a host that
+      # was still recovering.
+      RestartSec = 30;
       RestartPreventExitStatus = [ 2 78 ];
       Nice = 10;
       CPUQuota = "200%";
-      MemoryHigh = "1536M";
-      MemoryMax = "2G";
+      # CHANGED 2026-11-11 (memory-collapse incident): the daemon's memory
+      # limits are the ONLY hard containment between the sync daemon and a
+      # dead desktop, so they are tightened here and the reasoning is kept:
+      #
+      #   * MemoryHigh 1536M -> 1024M. The cgroup was pinned at its soft
+      #     limit (systemd reported "available: 15.9M" while the daemon held
+      #     1.4 GiB), which keeps the kernel in global reclaim -- the daemon
+      #     does not merely lose its own pages, it makes the WHOLE host
+      #     thrash. Reclaiming earlier and locally is what protects the
+      #     desktop. The 2026-09-28 note that raised this from 768M did so
+      #     because a 733 MB `git pack-objects` child was being throttled;
+      #     1024M still fits that child with room to spare.
+      #   * MemoryMax 2G -> 1400M. Unchanged in spirit (it was never the
+      #     binding constraint) but now it binds BEFORE the host does: a
+      #     runaway child is killed inside the cgroup instead of taking the
+      #     desktop with it.
+      #   * MemorySwapMax 128M (NEW). This is the important one. The host
+      #     runs 60 GiB of zram, so "swap" here is RAM plus zstd CPU. The
+      #     daemon's 1.2 GiB of swap (3.4 GiB peak) was invisible in RSS --
+      #     which is why the memory guard never named it as an offender --
+      #     while it burned CPU on zram decompression and starved the
+      #     compositor's page-ins. Keeping the daemon off swap keeps its
+      #     footprint visible and stops the amplification. If a legitimate
+      #     push needs more, the daemon is OOM-killed and restarted, which
+      #     is the intended trade: a restarted sync is cheap, a wedged
+      #     desktop is not.
+      MemoryHigh = "1024M";
+      MemoryMax = "1400M";
+      MemorySwapMax = "128M";
+      # CHANGED 2026-11-11: IOWeight 10 (default 100). The daemon read
+      # 4.6 TB and wrote 1 TB while continuously re-classifying 38 repos;
+      # the sync's git traffic competed with the compositor's page-ins on
+      # the same NVMe, which is what turned memory pressure into a
+      # pageflip timeout in KWin. Low IO weight makes the sync yield to
+      # interactive work instead of starving it.
+      IOWeight = "10";
+      # CHANGED 2026-11-11: hand the kill decision to systemd-oomd, which
+      # is already active on this host. When the daemon's swap use crosses
+      # its limit (or it becomes a major consumer while the host is under
+      # memory pressure), systemd-oomd kills THIS unit and nothing else.
+      # The desktop survives; the sync restarts 30s later.
+      OOMPolicy = "kill";
+      ManagedOOMMemoryPressure = "kill";
+      ManagedOOMSwap = "kill";
       # CHANGED 2026-10-21: 96 -> 512. The shipped unit (dracon-sync.service)
       # and the parent flake's parity check (needSync "TasksMax" "512") already
       # carry 512; this module copy still pinned 96, so a NixOS install of
