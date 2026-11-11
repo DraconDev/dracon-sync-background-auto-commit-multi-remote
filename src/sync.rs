@@ -6268,6 +6268,13 @@ async fn refresh_stale_upstream_ref(repo: &Path) {
             names.push(candidate);
         }
     }
+    // TEMPORARY un-fix for the discriminating-test experiment (restored below).
+    if output(&["rev-parse", &format!("refs/remotes/{}/{}", remote, short)])
+        .zip(head_sha.clone())
+        .is_some_and(|(upstream_sha, head)| upstream_sha == head)
+    {
+        return;
+    }
     let stale: Vec<String> = names
         .iter()
         .filter(|name| {
