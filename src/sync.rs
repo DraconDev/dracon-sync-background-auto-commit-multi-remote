@@ -12390,20 +12390,38 @@ auto_bump_versions = false
         let head = String::from_utf8_lossy(&git_cmd(&repo, &["rev-parse", "HEAD"]).stdout)
             .trim()
             .to_string();
-        // Publish behind the tracking refs, then rewind BOTH names — the
-        // production shape where the branch's upstream was repaired long
-        // ago and the mirror name still points at an older tip.
-        git_cmd(&repo, &["push", "-q", "origin", "HEAD:refs/heads/main"]);
-        git_cmd(&repo, &["update-ref", "refs/remotes/origin/main", "HEAD~1"]);
-        git_cmd(&repo, &["update-ref", "refs/remotes/github/main", "HEAD~1"]);
-        for name in ["origin", "github"] {
-            let stale = String::from_utf8_lossy(
-                &git_cmd(&repo, &["rev-parse", &format!("refs/remotes/{name}/main")]).stdout,
-            )
-            .trim()
-            .to_string();
-            assert_ne!(stale, head, "precondition: {name} must start stale");
-        }
+        // FIXED 2026-11-11 (audit follow-up, HIGH): rewind ONLY the mirror
+        // name and leave the branch's configured upstream converged. This is
+        // the live production shape that the previous version of this test
+        // could not reproduce: it also rewound `origin/main`, which kept the
+        // pre-fix early `return` ("upstream converged") from firing, so the
+        // test passed against the buggy implementation. Live proof of the
+        // shape: capture-anime-girls had `origin/main == HEAD` (8c9692f6)
+        // while `gitlab/main` was pinned at d191dde3 — real remote tip 8c9692f6.
+        git_cmd(&repo, &["push", "-q", "github", "HEAD:refs/heads/main"]);
+        git_cmd(
+            &repo,
+            &["update-ref", "refs/remotes/origin/main", "HEAD"],
+        );
+        git_cmd(
+            &repo,
+            &["update-ref", "refs/remotes/github/main", "HEAD~1"],
+        );
+        let upstream = String::from_utf8_lossy(
+            &git_cmd(&repo, &["rev-parse", "refs/remotes/origin/main"]).stdout,
+        )
+        .trim()
+        .to_string();
+        assert_eq!(
+            upstream, head,
+            "precondition: the configured upstream must already be converged"
+        );
+        let mirror = String::from_utf8_lossy(
+            &git_cmd(&repo, &["rev-parse", "refs/remotes/github/main"]).stdout,
+        )
+        .trim()
+        .to_string();
+        assert_ne!(mirror, head, "precondition: the mirror name must start stale");
         // The poison the daemon actually saw: one stale name makes the
         // MAXIMUM count wrong even though the checkout is fully pushed.
         assert_eq!(
