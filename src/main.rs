@@ -1640,9 +1640,15 @@ async fn run_cli(cli: Cli) -> Result<()> {
             let mut spool_dirs = 0usize;
             let mut spool_bytes = 0u64;
             let mut spool_worst: Option<(PathBuf, u64)> = None;
-            for repo in &repos {
+            // Concurrent: each inventory is one `rev-parse` plus a directory
+            // walk, and on a loaded host the sequential form added ~20s.
+            let inventories = futures::future::join_all(repos.iter().map(|repo| async move {
                 let (dirs, bytes) =
                     git::sweep_epoch_spools(repo, policy.epoch_spool_max_age_secs, false).await;
+                (repo, dirs, bytes)
+            }))
+            .await;
+            for (repo, dirs, bytes) in inventories {
                 spool_dirs += dirs;
                 spool_bytes = spool_bytes.saturating_add(bytes);
                 if spool_worst.as_ref().is_none_or(|(_, worst)| bytes > *worst) && bytes > 0 {
