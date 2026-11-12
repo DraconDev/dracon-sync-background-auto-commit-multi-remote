@@ -6462,6 +6462,30 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                     // loop reads this instead of the attempt layout.
                     crate::daemon::record_gate_failure_artifact(ctx.repo, &msg, Some(detail));
                 }
+                // ADDED 2026-11-12 (audit finding: inflated ahead-count on a
+                // PARTIAL push). A round can succeed on some remotes and fail
+                // on others. The success branch above refreshes every
+                // tracking ref, but this branch returned without doing so —
+                // so the remote that DID accept the objects was never
+                // recorded locally, and `count_ahead_commits` (which takes
+                // the MAXIMUM across all tracking refs) kept reporting the
+                // pre-push distance as "unpushed" even though those commits
+                // were already on that forge.
+                //
+                // Measured 2026-11-12 on browser-extensions-shared:
+                // `refs/remotes/github/main` sat at 3ac4f74ccb while the real
+                // github tip was c8981025de, so the daemon reported 77 ahead
+                // when the true figure was 50 (and later 79 vs 73). That
+                // inflated max scales the push timeout, fires the standing
+                // "Stuck Ahead" alert, and trips the auto-commit backstop —
+                // the exact 2026-11-11 defect class, reintroduced through the
+                // failure path after the success path was fixed.
+                //
+                // A stale-tracking-ref fetch is a LOCAL, read-only operation
+                // (it cannot publish anything and cannot fail the round), so
+                // it is safe on the failure path too. The per-repo cooldown
+                // inside the helper still bounds it.
+                refresh_stale_upstream_ref(ctx.repo).await;
                 crate::daemon::record_push_failure(ctx.repo, &msg);
                 notify_webhook_persistent_push_failure(ctx.policy, ctx.repo, &names, &cause);
                 // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3):
@@ -12447,6 +12471,76 @@ auto_bump_versions = false
             count_ahead_commits(&repo).await.unwrap(),
             0,
             "after the refresh the repo is genuinely converged"
+        );
+    }
+
+    /// ADDED 2026-11-12 (audit finding: inflated ahead-count after a PARTIAL
+    /// push). The success branch refreshed every tracking ref on 2026-11-11,
+    /// but the FAILURE branch returned without refreshing anything — so when
+    /// a round succeeded on one remote and failed on another, the accepting
+    /// remote's tracking ref was never recorded locally and
+    /// `count_ahead_commits` (a MAXIMUM across refs) kept reporting the
+    /// pre-push distance as unpushed.
+    ///
+    /// This test reproduces the live shape in miniature: two remote names
+    /// share one bare repository; one name's tracking ref is rewound to a
+    /// previous commit (simulating "this leg never recorded its success"),
+    /// while the real remote tip already equals HEAD. Before the fix the
+    /// failed leg's stale ref alone kept the max at 1; after the fix the
+    /// refresh must converge BOTH names and the count must be 0.
+    #[tokio::test]
+    async fn test_refresh_after_partial_push_converges_every_name() {
+        let _global_guard = crate::test_helpers::EnvRestorer::new("GIT_CONFIG_GLOBAL", "/dev/null");
+        let _system_guard = crate::test_helpers::EnvRestorer::new("GIT_CONFIG_SYSTEM", "/dev/null");
+        let tmp = tempfile::tempdir().unwrap();
+        let bare = tmp.path().join("partial.git");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-b", "main"])
+            .arg(&bare)
+            .status()
+            .unwrap();
+        let repo = init_test_repo(&tmp, "partial-push-repo");
+        git_cmd(&repo, &["checkout", "-q", "-b", "main"]);
+        std::fs::write(repo.join("a.txt"), "one").unwrap();
+        git_cmd(&repo, &["add", "."]);
+        git_cmd(&repo, &["commit", "--no-verify", "-q", "-m", "c1"]);
+        git_cmd(&repo, &["remote", "add", "origin", &bare.to_string_lossy()]);
+        git_cmd(&repo, &["remote", "add", "github", &bare.to_string_lossy()]);
+        git_cmd(&repo, &["push", "-q", "-u", "origin", "main"]);
+        git_cmd(&repo, &["push", "-q", "github", "main"]);
+
+        std::fs::write(repo.join("a.txt"), "two").unwrap();
+        git_cmd(&repo, &["add", "."]);
+        git_cmd(&repo, &["commit", "--no-verify", "-q", "-m", "c2"]);
+        let head = String::from_utf8_lossy(&git_cmd(&repo, &["rev-parse", "HEAD"]).stdout)
+            .trim()
+            .to_string();
+        // One leg accepted the objects (the bare repo really is at HEAD) but
+        // its local tracking ref was left behind, exactly as the failure
+        // branch used to leave it.
+        git_cmd(&repo, &["push", "-q", "github", "HEAD:refs/heads/main"]);
+        git_cmd(&repo, &["update-ref", "refs/remotes/github/main", "HEAD~1"]);
+
+        assert_eq!(
+            count_ahead_commits(&repo).await.unwrap(),
+            1,
+            "precondition: the unrefreshed leg inflates the max count"
+        );
+
+        refresh_stale_upstream_ref(&repo).await;
+
+        for name in ["origin", "github"] {
+            let refreshed = String::from_utf8_lossy(
+                &git_cmd(&repo, &["rev-parse", &format!("refs/remotes/{name}/main")]).stdout,
+            )
+            .trim()
+            .to_string();
+            assert_eq!(refreshed, head, "{name} must converge after a partial push");
+        }
+        assert_eq!(
+            count_ahead_commits(&repo).await.unwrap(),
+            0,
+            "a partially-refused round must not keep reporting pushed commits as unpushed"
         );
     }
 
