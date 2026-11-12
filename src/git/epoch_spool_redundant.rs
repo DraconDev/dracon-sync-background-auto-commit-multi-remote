@@ -1033,6 +1033,7 @@ async fn remove_if_redundant(
     width: usize,
     floor: std::time::Duration,
     timeout: u64,
+    apply: bool,
 ) -> Result<Option<Removal>> {
     // Quiescence: the producer fence plus an identity-bound settled marker.
     let owner = ReclaimOwner::acquire(gitdir, spool, floor)?;
@@ -1191,6 +1192,13 @@ async fn remove_if_redundant(
             .duration_since(std::time::UNIX_EPOCH)?
             .as_secs(),
     });
+    if !apply {
+        // Preview: the full proof ran and passed; nothing is written.
+        return Ok(Some(Removal {
+            objects: universe.len(),
+            reference,
+        }));
+    }
     append_ledger(gitdir, &intent)?;
     fs::remove_dir_all(spool).context("spool removal failed; spool preserved")?;
     File::open(gitdir)?
@@ -1211,7 +1219,19 @@ pub(super) async fn reap(
     max_age_secs: u64,
     op_timeout_secs: u64,
 ) -> usize {
-    reap_limited(repo, max_age_secs, op_timeout_secs, MAX_REDUNDANT_SPOOLS_PER_PASS).await
+    reap_limited(repo, max_age_secs, op_timeout_secs, MAX_REDUNDANT_SPOOLS_PER_PASS, true).await
+}
+
+/// Run the full redundancy proof without removing anything.
+///
+/// ADDED 2026-11-12: lets an operator (and release verification) measure on
+/// LIVE spools how many a pass would remove, what blocks the rest, and how
+/// long a pass takes — a copied repository cannot answer that, because spool
+/// identity is bound to device+inode. Read-only apart from the same transient
+/// flock on the existing owner file that a real pass takes. It bypasses the
+/// cooldown and records no refusal memo.
+pub(super) async fn preview(repo: &Path, max_age_secs: u64, op_timeout_secs: u64) -> usize {
+    reap_limited(repo, max_age_secs, op_timeout_secs, MAX_REDUNDANT_SPOOLS_PER_PASS, false).await
 }
 
 /// `reap` with an explicit per-pass spool cap, so tests can exercise
@@ -1221,6 +1241,7 @@ async fn reap_limited(
     max_age_secs: u64,
     op_timeout_secs: u64,
     limit: usize,
+    apply: bool,
 ) -> usize {
     let seconds = op_timeout_secs.clamp(30, 600);
     let floor = std::time::Duration::from_secs(if max_age_secs == 0 {
@@ -1230,10 +1251,13 @@ async fn reap_limited(
     });
     // Housekeeping, not convergence: bound how often a repository's sync
     // worker pays for even the cheap gate below.
-    if cooling_down(repo) {
-        return 0;
+    if apply {
+        if cooling_down(repo) {
+            return 0;
+        }
+        note_attempt(repo);
     }
-    note_attempt(repo);
+    let verb = if apply { "removed" } else { "would be removed (preview)" };
     let mut removed = 0usize;
     let pass = async {
         let Some(gitdir) = super::absolute_git_dir(repo).await else {
@@ -1318,13 +1342,14 @@ async fn reap_limited(
                 width,
                 floor,
                 seconds,
+                apply,
             )
             .await
             {
                 Ok(Some(removal)) => {
                     removed += 1;
                     eprintln!(
-                        "🧹 {}: redundant epoch spool {} removed; {} object(s) proven published by {}",
+                        "🧹 {}: redundant epoch spool {} {verb}; {} object(s) proven published by {}",
                         repo.display(),
                         spool.display(),
                         removal.objects,
@@ -1334,7 +1359,9 @@ async fn reap_limited(
                 Ok(None) => {}
                 Err(error) => {
                     refused += 1;
-                    remember_refusal(spool, &error, &fingerprint);
+                    if apply {
+                        remember_refusal(spool, &error, &fingerprint);
+                    }
                     // Logged once per (spool, state): the memo suppresses the
                     // identical re-proof, and with it the repeated line.
                     eprintln!(
@@ -1348,7 +1375,7 @@ async fn reap_limited(
         let deferred = candidates.len() - examined;
         if removed + refused > 0 || deferred > 0 {
             eprintln!(
-                "🧹 {}: spool reclaim pass: {removed} removed, {refused} newly refused, {known} known-refused skipped, {deferred} deferred to the next pass ({:.1}s)",
+                "🧹 {}: spool reclaim pass: {removed} {verb}, {refused} newly refused, {known} known-refused skipped, {deferred} deferred to the next pass ({:.1}s)",
                 repo.display(),
                 started.elapsed().as_secs_f64()
             );

@@ -95,6 +95,16 @@ pub(crate) async fn reap_redundant_spools(
     redundant::reap(repo, max_age_secs, op_timeout_secs).await
 }
 
+/// Read-only preview of `reap_redundant_spools`: runs the full proof and
+/// reports how many spools a pass would remove, removing nothing.
+pub(crate) async fn preview_redundant_spools(
+    repo: &Path,
+    max_age_secs: u64,
+    op_timeout_secs: u64,
+) -> usize {
+    redundant::preview(repo, max_age_secs, op_timeout_secs).await
+}
+
 /// Exactly the same transaction is used after a settled-unpublished deadline,
 /// after publication/empty candidates and by the automatic reaper. No branch
 /// treats a present object, an empty pack list or publication as a proof.
