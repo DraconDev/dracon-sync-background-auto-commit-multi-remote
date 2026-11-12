@@ -927,3 +927,57 @@ async fn preview_proves_without_removing_or_cooling_down() {
     assert_eq!(reap(&f.repo).await, 1);
     assert!(!f.spool.exists());
 }
+
+/// Record a gitlink (submodule pointer) at `path` in the repo's index.
+fn add_gitlink(repo: &Path, path: &str, commit: &str) {
+    git(
+        repo,
+        &["update-index", "--add", "--cacheinfo", &format!("160000,{commit},{path}")],
+    );
+}
+
+/// A fixture whose published tree carries a gitlink to a commit that does not
+/// exist in this repository (as in every parent repo with submodules).
+fn gitlink_fixture(label: &str) -> (Fixture, String) {
+    let f = fixture(label);
+    let foreign = "1234567890abcdef1234567890abcdef12345678".to_owned();
+    add_gitlink(&f.repo, "sub", &foreign);
+    commit(&f.repo, "add submodule pointer");
+    git(&f.repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    drop_packs(&f.spool);
+    fs::copy(f.repo.join(".git/index"), f.spool.join("index")).unwrap();
+    let objects = git_text(&f.repo, &["rev-list", "--objects", "--no-object-names", "HEAD"]);
+    pack(&f.repo, &f.spool, "retained", &objects);
+    seal(&f.spool);
+    backdate(&f.spool);
+    (f, foreign)
+}
+
+/// ADDED 2026-11-12: a gitlink names a commit in the submodule's object
+/// database, so the parent can never reach it. Requiring it in the object
+/// universe made every dracon-platform spool unprovable.
+#[tokio::test]
+async fn published_gitlink_does_not_block_redundancy() {
+    let (f, _) = gitlink_fixture("gitlink-published");
+    assert_eq!(reap(&f.repo).await, 1);
+    assert!(!f.spool.exists());
+}
+
+/// The gitlink is still PROVED as an entry: a spool recording a submodule
+/// pointer that was never published is preserved.
+#[tokio::test]
+async fn unpublished_gitlink_is_preserved() {
+    let (f, _) = gitlink_fixture("gitlink-unpublished");
+    let other = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    let index = f.spool.join("index");
+    let mut cmd = command(&f.repo);
+    cmd.env("GIT_INDEX_FILE", &index).args([
+        "update-index",
+        "--cacheinfo",
+        &format!("160000,{other},sub"),
+    ]);
+    assert!(cmd.status().unwrap().success());
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0);
+    assert!(f.spool.exists());
+}

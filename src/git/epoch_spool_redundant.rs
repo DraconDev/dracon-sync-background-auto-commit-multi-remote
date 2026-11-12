@@ -52,6 +52,9 @@ const MAX_REACHABLE_OBJECTS: usize = 2_000_000;
 /// entry older than this window is simply not proved — the spool is kept.
 const MAX_HISTORY_COMMITS: usize = 20_000;
 
+/// Index/tree mode of a submodule gitlink.
+const GITLINK_MODE: &str = "160000";
+
 /// How long a repository is left alone after a redundant-reclaim pass.
 ///
 /// The pass builds a full published-reachability set: one `rev-list --objects`
@@ -1033,7 +1036,20 @@ async fn remove_if_redundant(
 
     // The object universe is the index plus every retained pack. A pack may
     // hold objects the index never references; those are still covered.
-    let mut universe: BTreeSet<String> = entries.iter().map(|entry| entry.oid.clone()).collect();
+    //
+    // CHANGED 2026-11-12: gitlink entries (mode 160000) are excluded from the
+    // universe. A gitlink names a commit in the SUBMODULE's object database,
+    // not this one, so `rev-list --objects` over the parent never lists it and
+    // every spool of a repo with submodules was refused as "holds an object
+    // that no published ref reaches" (dracon-platform: 884 of 1,136 examined,
+    // 0 provable). The spool holds no bytes for a gitlink. The gitlink is still
+    // PROVED below like every other entry: the published tip or published
+    // history must record exactly (path, 160000, commit).
+    let mut universe: BTreeSet<String> = entries
+        .iter()
+        .filter(|entry| entry.mode != GITLINK_MODE)
+        .map(|entry| entry.oid.clone())
+        .collect();
     let mut packs: BTreeSet<String> = BTreeSet::new();
     let mut indexes: BTreeSet<String> = BTreeSet::new();
     for entry in fs::read_dir(spool)? {
