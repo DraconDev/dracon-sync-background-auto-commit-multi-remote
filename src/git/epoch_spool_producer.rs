@@ -187,6 +187,11 @@ fn producer_helper() -> Result<PathBuf> {
     Ok(path)
 }
 
+/// Attempts for a read-only `systemctl --user show` before it is an error.
+const SHOW_ATTEMPTS: u32 = 3;
+/// Base backoff between `show` attempts (linear: 250 ms, 500 ms).
+const SHOW_RETRY_DELAY: Duration = Duration::from_millis(250);
+
 impl Manager {
     fn new() -> Result<Self> {
         #[cfg(target_os = "linux")]
@@ -221,12 +226,31 @@ impl Manager {
             .stderr(Stdio::piped());
         command
     }
+    /// Read-only unit property query.
+    ///
+    /// CHANGED 2026-11-12: a single failed `systemctl --user show` aborted the
+    /// whole epoch (9 failed syncs in 12h, clustered under host load, each
+    /// leaving a retained spool) and the error dropped systemd's stderr, so
+    /// the cause was never visible. The query mutates nothing and every caller
+    /// re-validates identity (`InvocationID`, `LoadState`) on the result, so a
+    /// bounded retry cannot mask a lost or replaced unit — it only absorbs a
+    /// transient bus/manager timeout. The final error now carries stderr.
     async fn show(&self, name: &str) -> Result<BTreeMap<String, String>> {
-        let output = self.command(&self.control).args(["--user", "show", name,
-            "--property=LoadState,ControlGroup,InvocationID,ExecMainCode,ExecMainStatus,ActiveState,SubState"]).output().await?;
+        const ATTEMPTS: u32 = SHOW_ATTEMPTS;
+        let mut attempt = 0;
+        let output = loop {
+            attempt += 1;
+            let output = self.command(&self.control).args(["--user", "show", name,
+                "--property=LoadState,ControlGroup,InvocationID,ExecMainCode,ExecMainStatus,ActiveState,SubState"]).output().await?;
+            if output.status.success() || attempt >= ATTEMPTS {
+                break output;
+            }
+            tokio::time::sleep(SHOW_RETRY_DELAY * attempt).await;
+        };
         ensure!(
             output.status.success(),
-            "user manager property query failed"
+            "user manager property query failed after {attempt} attempt(s): {}",
+            String::from_utf8_lossy(&output.stderr).trim()
         );
         Ok(String::from_utf8(output.stdout)?
             .lines()
@@ -590,6 +614,47 @@ impl EpochProducerScope {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A fake `systemctl` that fails `fail` times, then prints properties.
+    fn flaky_control(dir: &Path, fail: u32) -> Manager {
+        use std::os::unix::fs::PermissionsExt;
+        let script = dir.join("systemctl");
+        let counter = dir.join("calls");
+        std::fs::write(
+            &script,
+            format!(
+                "#!/bin/sh\nn=$(cat '{c}' 2>/dev/null || echo 0); n=$((n+1)); echo $n > '{c}'\n\
+                 if [ $n -le {fail} ]; then echo 'Failed to connect to bus: timeout' >&2; exit 1; fi\n\
+                 echo LoadState=loaded; echo InvocationID=abc\n",
+                c = counter.display()
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        Manager {
+            uid: 0,
+            runner: script.clone(),
+            control: script,
+            helper: PathBuf::from("/bin/false"),
+        }
+    }
+
+    #[tokio::test]
+    async fn show_absorbs_a_transient_manager_failure() {
+        let dir = tempfile::tempdir().unwrap();
+        let manager = flaky_control(dir.path(), SHOW_ATTEMPTS - 1);
+        let properties = manager.show("x.service").await.unwrap();
+        assert_eq!(properties.get("LoadState").map(String::as_str), Some("loaded"));
+    }
+
+    #[tokio::test]
+    async fn show_still_fails_a_persistent_failure_with_its_stderr() {
+        let dir = tempfile::tempdir().unwrap();
+        let manager = flaky_control(dir.path(), SHOW_ATTEMPTS);
+        let error = format!("{:#}", manager.show("x.service").await.unwrap_err());
+        assert!(error.contains("after 3 attempt(s)"), "{error}");
+        assert!(error.contains("Failed to connect to bus"), "{error}");
+    }
 
     #[test]
     fn environment_removals_and_literals() {
