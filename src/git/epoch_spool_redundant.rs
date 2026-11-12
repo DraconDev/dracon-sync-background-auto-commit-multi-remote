@@ -48,9 +48,17 @@ const MAX_REACHABLE_OBJECTS: usize = 2_000_000;
 /// a live 247-unmatched-entry spool at load ~60 that is >300 s for ONE ref, so
 /// a single spool consumed the whole pass and no pass ever finished. It is now
 /// ONE `git log --raw` over every published ref per pass, shared by all spools
-/// in it: 16,384 commits read in 5.2 s, full history (69,778) in 13.5 s. An
-/// entry older than this window is simply not proved — the spool is kept.
-const MAX_HISTORY_COMMITS: usize = 20_000;
+/// in it: full history of browser-extensions-shared (69,778 commits) in
+/// 13.5 s at load ~60; dracon-platform (45k) 3.1 s / 32 MB; ~/.dracon (130k,
+/// the fleet's largest) 3.5 s / 44 MB / 257k distinct entries.
+///
+/// The window must cover FULL history, not a recent slice: a spool's index
+/// holds every file of the working tree, and a file last changed months ago
+/// is recorded only in that old commit. A 20k-commit window left 704 of 956
+/// dracon-platform spools unprovable on exactly such entries (files last
+/// edited 25k+ commits earlier). 250k covers every repo in the fleet with
+/// headroom; an entry beyond it is simply not proved — the spool is kept.
+const MAX_HISTORY_COMMITS: usize = 250_000;
 
 /// Index/tree mode of a submodule gitlink.
 const GITLINK_MODE: &str = "160000";
