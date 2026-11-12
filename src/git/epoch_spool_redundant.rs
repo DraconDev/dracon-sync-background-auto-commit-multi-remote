@@ -38,16 +38,19 @@ use tokio::process::Command;
 /// every candidate rather than guessing at its object universe.
 const MAX_REACHABLE_OBJECTS: usize = 2_000_000;
 
-/// How many commits of ONE path's published history a single entry check may
-/// inspect before giving up. A path rewritten constantly would otherwise make a
-/// single spool's proof unbounded; exceeding this preserves the spool.
-const MAX_PATH_HISTORY_COMMITS: usize = 64;
-
-/// How many entries of one spool may require an individual historical lookup.
-/// Entries already matched by a published tip cost nothing, so this bounds only
-/// the genuine work. A spool needing more is preserved rather than proven
-/// slowly.
-const MAX_HISTORY_ENTRIES: usize = 512;
+/// How many published commits one pass's history walk may read when an entry
+/// does not match any published tip.
+///
+/// CHANGED 2026-11-12: the historical proof used to spawn, PER unmatched entry
+/// (≤512) and PER published ref (9 on browser-extensions-shared, five of them
+/// the same tip), one `rev-list -- <path>` plus up to 64 `rev-parse`/`ls-tree`
+/// calls, and restarted on the next ref whenever one entry failed. Measured on
+/// a live 247-unmatched-entry spool at load ~60 that is >300 s for ONE ref, so
+/// a single spool consumed the whole pass and no pass ever finished. It is now
+/// ONE `git log --raw` over every published ref per pass, shared by all spools
+/// in it: 16,384 commits read in 5.2 s, full history (69,778) in 13.5 s. An
+/// entry older than this window is simply not proved — the spool is kept.
+const MAX_HISTORY_COMMITS: usize = 20_000;
 
 /// How long a repository is left alone after a redundant-reclaim pass.
 ///
@@ -245,7 +248,7 @@ struct Published {
 }
 
 /// A staged entry: mode, object identity and path.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct TreeEntry {
     mode: String,
     oid: String,
@@ -884,34 +887,85 @@ async fn grafts_present(repo: &Path, gitdir: &Path, timeout: u64) -> bool {
     }
 }
 
-/// Prove a spool's entries against PUBLISHED HISTORY rather than only the tip.
+/// Every (mode, blob, path) a published commit recorded, within the bounded
+/// history window, built at most once per pass and shared by its spools.
+type PublishedHistory = HashSet<TreeEntry>;
+
+/// Read the published history window: the post-image of every change in the
+/// newest `MAX_HISTORY_COMMITS` commits reachable from `refs`.
 ///
-/// Returns the published ref whose history vouches for every entry, or `None`
-/// when any entry is not published anywhere in that history.
+/// Sound by construction: a raw diff line's post-image `(mode, blob, path)` is
+/// an entry of THAT commit's tree, and the commit is reachable from `refs`.
+/// Only remote-tracking refs are ever passed in production, so a local branch
+/// is never proof. Anything the window does not show (older commits, entries
+/// introduced only by a merge) is simply absent, which preserves the spool.
+async fn published_history(repo: &Path, refs: &[String], timeout: u64) -> Result<PublishedHistory> {
+    let mut args: Vec<String> = [
+        "log",
+        "--no-renames",
+        "--no-abbrev",
+        "--no-ext-diff",
+        "--no-textconv",
+        "--raw",
+        "-z",
+        "--format=%H",
+    ]
+    .iter()
+    .map(|arg| (*arg).to_owned())
+    .collect();
+    args.push(format!("--max-count={MAX_HISTORY_COMMITS}"));
+    args.extend(refs.iter().cloned());
+    args.push("--".to_owned());
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    let bytes = git_output(repo, &args, timeout, "published history").await?;
+    parse_raw_history(&bytes)
+}
+
+/// Parse `git log --raw -z --format=%H` output.
 ///
-/// Two cheap short-circuits come first, because the common case is a spool whose
-/// entries all match some published tip and never reaches this function, and the
-/// next most common is a spool where ONE file diverges:
+/// Layout: `<commit>\0` then, per change, `\n:<old> <new> <oid> <oid> <status>\0<path>\0`.
+fn parse_raw_history(bytes: &[u8]) -> Result<PublishedHistory> {
+    let mut history = PublishedHistory::new();
+    let mut tokens = bytes.split(|byte| *byte == 0);
+    while let Some(token) = tokens.next() {
+        let token = token.strip_prefix(b"\n").unwrap_or(token);
+        let Some(header) = token.strip_prefix(b":") else {
+            continue;
+        };
+        let path = tokens.next().context("raw history change without a path")?;
+        let fields: Vec<&[u8]> = header.split(|byte| *byte == b' ').collect();
+        ensure!(fields.len() == 5, "malformed raw history change");
+        if fields[4].first() == Some(&b'D') {
+            continue;
+        }
+        let mode = std::str::from_utf8(fields[1]).context("non-UTF8 raw mode")?;
+        let oid = std::str::from_utf8(fields[3]).context("non-UTF8 raw object id")?;
+        ensure!(
+            crate::git::is_valid_object_id(oid),
+            "invalid object identity in raw history"
+        );
+        history.insert(TreeEntry {
+            mode: mode.to_owned(),
+            oid: oid.to_owned(),
+            path: path.to_vec(),
+        });
+    }
+    Ok(history)
+}
+
+/// Prove every entry the published TIPS did not already prove against the
+/// published history window, loading the window on first use in this pass.
 ///
-/// 1. A per-path entry is resolved by asking Git for that path's own history
-///    (`git rev-list -n1 <ref> -- <path>`), which finds the newest commit on that
-///    ref that touched the path. If that commit's blob equals the spool's entry,
-///    the bytes are published.
-/// 2. That alone is not sufficient — a path can be edited, reverted, and edited
-///    again — so the lookup walks a bounded number of touching commits per path
-///    and accepts the entry only on an exact (mode, blob) match at that path.
-///
-/// Anything exceeding the per-entry or per-spool budget is NOT proven, so the
-/// spool is preserved. Too large to prove is always "keep".
+/// An entry that matches no published tip is still redundant when a PUBLISHED
+/// historical commit recorded exactly (mode, blob) at that path: the spool
+/// staged a working tree whose file was published earlier and edited later.
 async fn published_history_reference(
     repo: &Path,
     entries: &[TreeEntry],
     published: &Published,
-    width: usize,
+    history: &mut Option<PublishedHistory>,
     timeout: u64,
 ) -> Result<Option<String>> {
-    let _ = width;
-    // Which entries the published tips did NOT already prove.
     let unmatched: Vec<&TreeEntry> = entries
         .iter()
         .filter(|entry| {
@@ -921,104 +975,20 @@ async fn published_history_reference(
                 .any(|reference| reference.by_path.get(&entry.path) == Some(&(entry.mode.clone(), entry.oid.clone())))
         })
         .collect();
+    let label = format!("published history (newest {MAX_HISTORY_COMMITS} commits)");
     if unmatched.is_empty() {
-        // Every entry matched a tip after all; the caller's find failed only
-        // because entries were split across different refs' tips.
-        let name = published.refs.first().map(|reference| reference.name.clone());
-        return Ok(name);
+        // Every entry matched SOME tip; they were split across refs.
+        return Ok(Some(published.refs.first().map_or(label, |r| r.name.clone())));
     }
-    ensure!(
-        unmatched.len() <= MAX_HISTORY_ENTRIES,
-        "too many spool entries need a historical lookup to prove"
-    );
-
-    for reference in &published.refs {
-        let mut all = true;
-        for entry in &unmatched {
-            if !entry_is_published_at_path(repo, &reference.name, entry, timeout).await? {
-                all = false;
-                break;
-            }
-        }
-        if all {
-            return Ok(Some(reference.name.clone()));
-        }
+    if history.is_none() {
+        let names: Vec<String> = published.refs.iter().map(|r| r.name.clone()).collect();
+        *history = Some(published_history(repo, &names, timeout).await?);
     }
-    Ok(None)
-}
-
-/// Whether this exact (path, mode, blob) exists in the history of `ref`.
-///
-/// Only an exact match at that path counts. The walk is bounded by
-/// `MAX_PATH_HISTORY_COMMITS`.
-async fn entry_is_published_at_path(
-    repo: &Path,
-    reference: &str,
-    entry: &TreeEntry,
-    timeout: u64,
-) -> Result<bool> {
-    let path = String::from_utf8(entry.path.clone()).context("non-UTF8 spool entry path")?;
-    // Newest commits on this ref that touched the path. `--` keeps the path from
-    // being parsed as a revision.
-    let commits = git_output(
-        repo,
-        &[
-            "rev-list",
-            &format!("--max-count={MAX_PATH_HISTORY_COMMITS}"),
-            reference,
-            "--",
-            &path,
-        ],
-        timeout,
-        "path history",
-    )
-    .await?;
-    for line in commits.split(|byte| *byte == b'\n') {
-        let commit = std::str::from_utf8(line)?.trim();
-        if commit.is_empty() {
-            continue;
-        }
-        ensure!(
-            crate::git::is_valid_object_id(commit),
-            "invalid commit identity in path history"
-        );
-        // `<commit>:<path>` resolves the blob that commit recorded at that path.
-        let probe = match git_output(
-            repo,
-            &["rev-parse", &format!("{commit}:{path}")],
-            timeout,
-            "historical path blob",
-        )
-        .await
-        {
-            Ok(blob) => blob,
-            // The path did not exist in that commit: it was added later. Not a
-            // proof, and not an error.
-            Err(_) => continue,
-        };
-        let blob = String::from_utf8_lossy(&probe).trim().to_owned();
-        if blob == entry.oid {
-            // The blob matches. Confirm the MODE too, so a file that changed
-            // between 100644 and 100755 is not silently accepted.
-            let mode = match git_output(
-                repo,
-                &["ls-tree", commit, "--", &path],
-                timeout,
-                "historical path mode",
-            )
-            .await
-            {
-                Ok(listing) => listing,
-                Err(_) => continue,
-            };
-            let mode = String::from_utf8_lossy(&mode);
-            let want = format!("{} {} ", entry.mode, "blob");
-            if mode.starts_with(&want) {
-                return Ok(true);
-            }
-        }
-    }
-    Ok(false)
+    let history = history.as_ref().expect("history loaded above");
+    Ok(unmatched
+        .iter()
+        .all(|entry| history.contains(entry))
+        .then_some(label))
 }
 
 /// Prove one spool redundant and remove it.
@@ -1034,6 +1004,7 @@ async fn remove_if_redundant(
     floor: std::time::Duration,
     timeout: u64,
     apply: bool,
+    history: &mut Option<PublishedHistory>,
 ) -> Result<Option<Removal>> {
     // Quiescence: the producer fence plus an identity-bound settled marker.
     let owner = ReclaimOwner::acquire(gitdir, spool, floor)?;
@@ -1164,7 +1135,7 @@ async fn remove_if_redundant(
     // allowed to be found.
     let reference = match reference {
         Some(reference) => Some(reference),
-        None => published_history_reference(repo, &entries, published, width, timeout).await?,
+        None => published_history_reference(repo, &entries, published, history, timeout).await?,
     };
 
     let Some(reference) = reference else {
@@ -1329,6 +1300,7 @@ async fn reap_limited(
         let started = std::time::Instant::now();
         let mut refused = 0usize;
         let mut examined = 0usize;
+        let mut history: Option<PublishedHistory> = None;
         for spool in candidates.iter().take(limit) {
             if started.elapsed() >= budget {
                 break;
@@ -1343,6 +1315,7 @@ async fn reap_limited(
                 floor,
                 seconds,
                 apply,
+                &mut history,
             )
             .await
             {

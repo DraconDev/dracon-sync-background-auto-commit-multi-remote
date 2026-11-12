@@ -717,19 +717,47 @@ async fn published_history_lookup_is_scoped_to_remote_tracking_refs() {
     };
     // Directly: is (a.txt, beta) in PUBLISHED history? It is only in the local
     // branch, so this must be false.
+    let published = published_history(&f.repo, &["refs/remotes/origin/main".to_owned()], 60)
+        .await
+        .unwrap();
     assert!(
-        !entry_is_published_at_path(&f.repo, "refs/remotes/origin/main", &entry, 60)
-            .await
-            .unwrap(),
+        !published.contains(&entry),
         "the local-only pairing must not be found in published history"
     );
     // And the pairing IS findable on the local branch, which proves the probe
     // itself works and only the SCOPE is doing the rejecting.
+    let local = published_history(&f.repo, &["unpushed-work".to_owned()], 60)
+        .await
+        .unwrap();
+    assert!(local.contains(&entry), "the probe must find the pairing on the local branch");
+}
+
+/// ADDED 2026-11-12: the pass-level history walk proves an entry that only an
+/// OLDER published commit recorded, parses paths with spaces, and never treats
+/// a deletion's all-zero post-image as an entry.
+#[tokio::test]
+async fn published_history_window_proves_older_entries_and_skips_deletions() {
+    let f = fixture("history-window");
+    fs::write(f.repo.join("with space.txt"), b"v1\n").unwrap();
+    git(&f.repo, &["add", "-A"]);
+    commit(&f.repo, "v1");
+    let v1 = git_text(&f.repo, &["rev-parse", ":with space.txt"]);
+    fs::write(f.repo.join("with space.txt"), b"v2\n").unwrap();
+    git(&f.repo, &["rm", "-q", "a.txt"]);
+    git(&f.repo, &["add", "-A"]);
+    commit(&f.repo, "v2");
+    git(&f.repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    let history = published_history(&f.repo, &["refs/remotes/origin/main".to_owned()], 60)
+        .await
+        .unwrap();
+    assert!(history.contains(&TreeEntry {
+        mode: "100644".to_owned(),
+        oid: v1,
+        path: b"with space.txt".to_vec(),
+    }));
     assert!(
-        entry_is_published_at_path(&f.repo, "unpushed-work", &entry, 60)
-            .await
-            .unwrap(),
-        "the probe must find the pairing on the local branch"
+        history.iter().all(|entry| entry.oid.bytes().any(|b| b != b'0')),
+        "a deletion's zero post-image is never an entry"
     );
 }
 
