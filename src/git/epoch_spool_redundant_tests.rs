@@ -732,3 +732,154 @@ async fn published_history_lookup_is_scoped_to_remote_tracking_refs() {
         "the probe must find the pairing on the local branch"
     );
 }
+
+// ---------------------------------------------------------------------------
+// ADDED 2026-11-12: refusal memo + multi-pass progress (spool leak fix).
+//
+// The oldest spools are typically the permanently unprovable ones, and the
+// reclaimer visits candidates oldest-first. Without a memo, every pass
+// re-proved the same refusals and never reached the provable backlog behind
+// them. These tests pin the memo's two halves: it must SKIP a refusal that is
+// still the answer, and it must RETRY when the answer can have changed.
+// ---------------------------------------------------------------------------
+
+/// Let the next pass run immediately, as if the cooldown had expired.
+fn expire_cooldown(repo: &Path) {
+    REDUNDANT_ATTEMPTS
+        .get_or_init(|| std::sync::Mutex::new(Default::default()))
+        .lock()
+        .unwrap()
+        .remove(repo);
+}
+
+async fn reap_one(repo: &Path) -> usize {
+    expire_cooldown(repo);
+    reap_limited(repo, 1, 30, 1).await
+}
+
+/// A second spool of the same fixture repository, provably redundant.
+fn sibling_redundant_spool(f: &Fixture, label: &str) -> PathBuf {
+    let spool = f.repo.join(".git").join(format!("dracon-staging-{label}"));
+    fs::create_dir(&spool).unwrap();
+    fs::copy(f.repo.join(".git/index"), spool.join("index")).unwrap();
+    let objects = git_text(&f.repo, &["rev-list", "--objects", "--no-object-names", "HEAD"]);
+    pack(&f.repo, &spool, "retained", &objects);
+    seal(&spool);
+    // Newer than the fixture's backdated spool, still past the 1 s floor.
+    fs::File::open(&spool)
+        .unwrap()
+        .set_modified(std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_000_000))
+        .unwrap();
+    spool
+}
+
+#[tokio::test]
+async fn an_unprovable_oldest_spool_does_not_starve_the_backlog() {
+    // Oldest: legacy (no fence) — refused forever. Newer: redundant.
+    let f = fixture("starve-legacy");
+    backdate(&f.spool);
+    let newer = sibling_redundant_spool(&f, "starve-newer");
+
+    // One spool per pass. Pass 1 spends its whole budget on the legacy spool.
+    assert_eq!(reap_one(&f.repo).await, 0);
+    assert!(newer.exists());
+    // Pass 2 must skip the known refusal and reach the redundant spool.
+    assert_eq!(reap_one(&f.repo).await, 1, "memo lets the pass reach the backlog");
+    assert!(!newer.exists());
+    assert!(f.spool.exists(), "the legacy spool is still preserved");
+}
+
+#[tokio::test]
+async fn an_intrinsic_refusal_is_not_retried_when_published_state_moves() {
+    let f = fixture("intrinsic-memo");
+    backdate(&f.spool);
+    assert_eq!(reap_one(&f.repo).await, 0);
+    let fingerprint = published_fingerprint(&f.repo, 30).await.unwrap();
+    assert!(refusal_still_holds(&f.spool, &fingerprint));
+    // Publishing something new does not make a fence-less spool provable.
+    fs::write(f.repo.join("c.txt"), b"gamma\n").unwrap();
+    git(&f.repo, &["add", "-A"]);
+    commit(&f.repo, "more");
+    git(&f.repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    let moved = published_fingerprint(&f.repo, 30).await.unwrap();
+    assert_ne!(moved, fingerprint);
+    assert!(refusal_still_holds(&f.spool, &moved));
+}
+
+#[tokio::test]
+async fn a_not_yet_published_refusal_is_retried_once_it_is_published() {
+    let f = fixture("published-memo");
+    // The index matches published state; the pack holds one extra object
+    // that is not published yet.
+    let blob = dangling_blob(&f.repo, b"shipped later\n");
+    let published = git_text(&f.repo, &["rev-list", "--objects", "--no-object-names", "HEAD"]);
+    drop_packs(&f.spool);
+    pack(&f.repo, &f.spool, "retained", &format!("{published}\n{blob}"));
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap_one(&f.repo).await, 0);
+    let before = published_fingerprint(&f.repo, 30).await.unwrap();
+    assert!(
+        refusal_still_holds(&f.spool, &before),
+        "unchanged published state: the refusal is still the answer"
+    );
+    // Publish the blob in a SEPARATE ref so origin/main's tree (which the
+    // index must match) stays as it was.
+    let tree = String::from_utf8(
+        command(&f.repo)
+            .args(["mktree"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .and_then(|mut child| {
+                child
+                    .stdin
+                    .take()
+                    .unwrap()
+                    .write_all(format!("100644 blob {blob}\tlater.txt\n").as_bytes())?;
+                child.wait_with_output()
+            })
+            .unwrap()
+            .stdout,
+    )
+    .unwrap()
+    .trim()
+    .to_owned();
+    let side = git_text(
+        &f.repo,
+        &[
+            "-c",
+            "user.email=fixture@example.com",
+            "-c",
+            "user.name=Fixture",
+            "commit-tree",
+            &tree,
+            "-m",
+            "side",
+        ],
+    );
+    git(&f.repo, &["update-ref", "refs/remotes/origin/side", &side]);
+    let after = published_fingerprint(&f.repo, 30).await.unwrap();
+    assert!(!refusal_still_holds(&f.spool, &after), "moved tips invalidate the memo");
+    assert_eq!(reap_one(&f.repo).await, 1, "the spool is now provably redundant");
+    assert!(!f.spool.exists());
+}
+
+#[tokio::test]
+async fn a_changed_spool_invalidates_its_memo() {
+    let f = fixture("changed-memo");
+    backdate(&f.spool);
+    assert_eq!(reap_one(&f.repo).await, 0, "legacy: refused");
+    let fingerprint = published_fingerprint(&f.repo, 30).await.unwrap();
+    assert!(refusal_still_holds(&f.spool, &fingerprint));
+    // The fence and settled marker appear (directory mtime moves).
+    seal(&f.spool);
+    backdate(&f.spool);
+    // backdate restores the same mtime the memo saw, so force a distinct one.
+    fs::File::open(&f.spool)
+        .unwrap()
+        .set_modified(std::time::UNIX_EPOCH + std::time::Duration::from_secs(5))
+        .unwrap();
+    assert!(!refusal_still_holds(&f.spool, &fingerprint));
+    assert_eq!(reap_one(&f.repo).await, 1);
+}

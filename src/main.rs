@@ -761,6 +761,11 @@ fn handle_visibility_flip(
     Ok(())
 }
 
+/// Aged epoch-spool bytes above which `health` reports unhealthy (5 GiB).
+/// The 2026-11-07 leak reached 78 GiB and filled the disk; a working reclaimer
+/// keeps the aged backlog near zero, so 5 GiB means days of leak, not noise.
+const SPOOL_BACKLOG_ALERT_BYTES: u64 = 5 * 1024 * 1024 * 1024;
+
 fn main() -> Result<()> {
     git::epoch_producer_trampoline()?;
     #[cfg(target_os = "linux")]
@@ -1626,7 +1631,27 @@ async fn run_cli(cli: Cli) -> Result<()> {
             let stale_daemons = crate::self_executable::stale_daemon_processes();
             let image_ok = stale_daemons.is_empty();
 
-            let status = if frozen || !policy_ok || !image_ok {
+            // ADDED 2026-11-12: epoch spool backlog. The 2026-11-07 leak
+            // (78 GiB) and the 2026-11-12 one (~10 GiB, reclaim throughput
+            // below creation rate) both grew for days with `health` green;
+            // the disk filling was the first visible symptom. Read-only
+            // inventory of spools past the reap age floor, i.e. exactly what
+            // the reclaimer should already have dealt with.
+            let mut spool_dirs = 0usize;
+            let mut spool_bytes = 0u64;
+            let mut spool_worst: Option<(PathBuf, u64)> = None;
+            for repo in &repos {
+                let (dirs, bytes) =
+                    git::sweep_epoch_spools(repo, policy.epoch_spool_max_age_secs, false).await;
+                spool_dirs += dirs;
+                spool_bytes = spool_bytes.saturating_add(bytes);
+                if spool_worst.as_ref().is_none_or(|(_, worst)| bytes > *worst) && bytes > 0 {
+                    spool_worst = Some((repo.clone(), bytes));
+                }
+            }
+            let spools_ok = spool_bytes < SPOOL_BACKLOG_ALERT_BYTES;
+
+            let status = if frozen || !policy_ok || !image_ok || !spools_ok {
                 "unhealthy"
             } else {
                 "healthy"
@@ -1646,6 +1671,10 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     repos_discovered: usize,
                     /// ADDED 2026-11-07: pids running a replaced/removed binary.
                     stale_daemon_pids: Vec<u32>,
+                    /// ADDED 2026-11-12: aged epoch spools awaiting reclaim.
+                    spool_backlog_dirs: usize,
+                    spool_backlog_bytes: u64,
+                    spool_backlog_ok: bool,
                 }
                 let payload = HealthJson {
                     status,
@@ -1658,6 +1687,9 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     roots: roots.len(),
                     repos_discovered: repos.len(),
                     stale_daemon_pids: stale_daemons.iter().map(|(pid, _)| *pid).collect(),
+                    spool_backlog_dirs: spool_dirs,
+                    spool_backlog_bytes: spool_bytes,
+                    spool_backlog_ok: spools_ok,
                 };
                 println!("{}", serde_json::to_string_pretty(&payload)?);
             } else {
@@ -1749,6 +1781,34 @@ async fn run_cli(cli: Cli) -> Result<()> {
                             &format!(
                                 "pid {} executing a replaced/removed file — every local commit fails while pushes stay green; run: systemctl restart dracon-sync-operator.service (or, without root: kill -TERM $(pidof dracon-sync) — the unit has Restart=always, so systemd reloads the installed binary)",
                                 pids.join(",")
+                            ),
+                            Color::Red,
+                        ),
+                    ]);
+                }
+
+                let spool_text = match &spool_worst {
+                    Some((repo, bytes)) => format!(
+                        "{spool_dirs} aged spool dir(s), {} (largest: {} {})",
+                        git::human_bytes(spool_bytes),
+                        repo.display(),
+                        git::human_bytes(*bytes)
+                    ),
+                    None => "none aged past the reap floor".to_string(),
+                };
+                if spools_ok {
+                    table.add_row(vec![
+                        mk("✅", Color::Green),
+                        Cell::new("Spools"),
+                        mk(&spool_text, Color::Green),
+                    ]);
+                } else {
+                    table.add_row(vec![
+                        mk("❌", Color::Red),
+                        Cell::new("Spools"),
+                        mk(
+                            &format!(
+                                "{spool_text} — reclaim is not keeping up; see `journalctl -u dracon-sync-operator.service | grep 'spool reclaim pass'` and `dracon-sync repair spools`"
                             ),
                             Color::Red,
                         ),

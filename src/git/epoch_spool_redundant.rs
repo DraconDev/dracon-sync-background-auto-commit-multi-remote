@@ -62,14 +62,150 @@ const MAX_HISTORY_ENTRIES: usize = 512;
 /// producer fence) are properties of the SPOOL, not of the repository, and
 /// re-deriving them every cycle can never change the answer.
 ///
-/// One hour matches the auto-gc cooldown: reclamation is housekeeping, and an
-/// hour of latency on a housekeeping decision costs nothing.
-const REDUNDANT_RECLAIM_COOLDOWN_SECS: u64 = 3600;
+/// CHANGED 2026-11-12 (spool leak, 3.6k spools / 6.5 GiB in dracon-platform):
+/// the cooldown was one hour and each pass examined at most 64 spools, a hard
+/// ceiling of 1,536 spools/repo/day — below dracon-platform's ~4,800/day
+/// creation rate even if every spool were provable. Worse, candidates are
+/// visited oldest-first, and the oldest are exactly the permanently
+/// unprovable ones (legacy spools without a fence), so every pass re-proved
+/// the same refusals and the provable backlog behind them was never reached.
+///
+/// The "a pass cannot learn anything new" rationale is now enforced directly
+/// by the refusal memo below instead of by wall-clock spacing: a spool is
+/// re-proved only when the spool itself changed or (for refusals that depend
+/// on what is published) the published ref tips moved. That leaves the walk
+/// itself, which since the single-walk change costs ~2 s on the fleet's
+/// largest repository (402k objects, load average 37) — so ten minutes is
+/// ample spacing.
+const REDUNDANT_RECLAIM_COOLDOWN_SECS: u64 = 600;
+
+/// Soft wall-clock budget for one pass's spool loop. The pass runs inline on
+/// the repository's sync worker, so it must not hold commits back for long;
+/// the loop stops between spools once this is spent and the next pass picks
+/// up where it left off (refused spools are memoized, removed ones are gone).
+const REDUNDANT_PASS_BUDGET_SECS: u64 = 120;
+
+/// Hard cap on spools examined per pass. The budget above is the real bound;
+/// this only stops a pathological directory from being walked in one go.
+const MAX_REDUNDANT_SPOOLS_PER_PASS: usize = 2048;
+
+/// How long a refusal that does NOT depend on published state is trusted
+/// before the spool is proved again. Such refusals (no producer fence,
+/// unknown payload, preserve marker, history bound exceeded) are properties
+/// of the spool; a daily re-check is a cheap backstop against a
+/// misclassification, never a correctness requirement.
+const INTRINSIC_REFUSAL_RETRY_SECS: u64 = 24 * 3600;
 
 /// Per-repository cooldown state for this route.
 static REDUNDANT_ATTEMPTS: std::sync::OnceLock<
     std::sync::Mutex<std::collections::HashMap<PathBuf, std::time::Instant>>,
 > = std::sync::OnceLock::new();
+
+/// A refusal that can only change once something is newly published: an
+/// object or entry the spool holds is not (yet) reachable from a published
+/// ref. Distinguished by type so the memo can retry it when ref tips move.
+#[derive(Debug)]
+struct NotYetPublished(&'static str);
+impl std::fmt::Display for NotYetPublished {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.0)
+    }
+}
+impl std::error::Error for NotYetPublished {}
+
+/// Why a spool was last refused, and under which conditions that answer
+/// still holds.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum Refusal {
+    /// Retry only after `INTRINSIC_REFUSAL_RETRY_SECS`.
+    Intrinsic { at: std::time::Instant },
+    /// Retry as soon as the published ref tips differ from these.
+    Published { fingerprint: String },
+}
+
+#[derive(Clone, Debug)]
+struct Memo {
+    /// The spool directory's mtime when refused. Any entry added, removed or
+    /// renamed (a new settled marker, a dropped pack) invalidates the memo.
+    modified: std::time::SystemTime,
+    refusal: Refusal,
+}
+
+/// Refusal memo, keyed by spool path. Process-local: a restart re-proves each
+/// refused spool once, which is the conservative direction.
+static REFUSALS: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<PathBuf, Memo>>> =
+    std::sync::OnceLock::new();
+
+fn refusals() -> std::sync::MutexGuard<'static, std::collections::HashMap<PathBuf, Memo>> {
+    REFUSALS
+        .get_or_init(|| std::sync::Mutex::new(Default::default()))
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+}
+
+fn spool_modified(spool: &Path) -> Option<std::time::SystemTime> {
+    fs::symlink_metadata(spool).ok()?.modified().ok()
+}
+
+/// Whether a previous refusal of this spool is still the answer, so proving
+/// it again would only repeat known work. Never authorises removal: a memo
+/// can only make the reclaimer skip a spool, never delete one.
+fn refusal_still_holds(spool: &Path, fingerprint: &str) -> bool {
+    let Some(memo) = refusals().get(spool).cloned() else {
+        return false;
+    };
+    if spool_modified(spool) != Some(memo.modified) {
+        return false;
+    }
+    match memo.refusal {
+        Refusal::Intrinsic { at } => at.elapsed().as_secs() < INTRINSIC_REFUSAL_RETRY_SECS,
+        Refusal::Published { fingerprint: seen } => seen == fingerprint,
+    }
+}
+
+fn remember_refusal(spool: &Path, error: &anyhow::Error, fingerprint: &str) {
+    let Some(modified) = spool_modified(spool) else {
+        return;
+    };
+    let refusal = if error.downcast_ref::<NotYetPublished>().is_some() {
+        Refusal::Published {
+            fingerprint: fingerprint.to_owned(),
+        }
+    } else {
+        Refusal::Intrinsic {
+            at: std::time::Instant::now(),
+        }
+    };
+    refusals().insert(spool.to_path_buf(), Memo { modified, refusal });
+}
+
+/// Drop memo entries for spools of this git dir that no longer exist, so the
+/// memo stays bounded by the live spool population.
+fn forget_vanished(gitdir: &Path, present: &BTreeSet<PathBuf>) {
+    refusals().retain(|spool, _| spool.parent() != Some(gitdir) || present.contains(spool));
+}
+
+/// A cheap identity of the published state: every published ref with its tip.
+/// Moves whenever a fetch or push advances what is published.
+async fn published_fingerprint(repo: &Path, timeout: u64) -> Result<String> {
+    let names = published_refs(repo, timeout).await?;
+    if names.is_empty() {
+        return Ok(String::new());
+    }
+    // Names come from `for-each-ref` and always start with `refs/remotes/`,
+    // so none can be mistaken for an option.
+    let mut args = vec!["rev-parse"];
+    args.extend(names.iter().map(String::as_str));
+    let tips = git_output(repo, &args, timeout, "published tips").await?;
+    let mut fingerprint = String::new();
+    for (name, tip) in names.iter().zip(String::from_utf8_lossy(&tips).lines()) {
+        fingerprint.push_str(name);
+        fingerprint.push(' ');
+        fingerprint.push_str(tip.trim());
+        fingerprint.push('\n');
+    }
+    Ok(fingerprint)
+}
 
 /// Whether this repository is still inside its post-pass cooldown.
 fn cooling_down(repo: &Path) -> bool {
@@ -593,10 +729,12 @@ fn only_known_files(spool: &Path, published: &Published, width: usize) -> Result
                 if published.reachable.contains(producer_name.as_str()) {
                     continue;
                 }
-                ensure!(
-                    stems.contains(producer_name.as_str()),
-                    "producer endpoint names neither a published object nor this spool's own retained pack"
-                );
+                if !stems.contains(producer_name.as_str()) {
+                    return Err(NotYetPublished(
+                        "producer endpoint names neither a published object nor this spool's own retained pack",
+                    )
+                    .into());
+                }
             }
             continue;
         }
@@ -969,10 +1107,9 @@ async fn remove_if_redundant(
     // Durability: every object the spool holds must be reachable from a
     // published ref in this repository's own object database.
     for oid in &universe {
-        ensure!(
-            published.reachable.contains(oid.as_str()),
-            "spool holds an object that no published ref reaches"
-        );
+        if !published.reachable.contains(oid.as_str()) {
+            return Err(NotYetPublished("spool holds an object that no published ref reaches").into());
+        }
     }
 
     // The index must be PROVED against published state, entry by entry.
@@ -1030,9 +1167,10 @@ async fn remove_if_redundant(
     };
 
     let Some(reference) = reference else {
-        anyhow::bail!(
-            "spool index holds a staged state that no published tree contains entry-for-entry"
-        );
+        return Err(NotYetPublished(
+            "spool index holds a staged state that no published tree contains entry-for-entry",
+        )
+        .into());
     };
 
     // Final, no-await checks. The owner fence is held across the removal, so
@@ -1073,15 +1211,25 @@ pub(super) async fn reap(
     max_age_secs: u64,
     op_timeout_secs: u64,
 ) -> usize {
+    reap_limited(repo, max_age_secs, op_timeout_secs, MAX_REDUNDANT_SPOOLS_PER_PASS).await
+}
+
+/// `reap` with an explicit per-pass spool cap, so tests can exercise
+/// multi-pass progress without building thousands of spools.
+async fn reap_limited(
+    repo: &Path,
+    max_age_secs: u64,
+    op_timeout_secs: u64,
+    limit: usize,
+) -> usize {
     let seconds = op_timeout_secs.clamp(30, 600);
     let floor = std::time::Duration::from_secs(if max_age_secs == 0 {
         3600
     } else {
         max_age_secs
     });
-    // Housekeeping, not convergence: a pass that just ran cannot learn anything
-    // new about the same spools, and the reachability walk it needs is the most
-    // expensive thing this route does.
+    // Housekeeping, not convergence: bound how often a repository's sync
+    // worker pays for even the cheap gate below.
     if cooling_down(repo) {
         return 0;
     }
@@ -1096,10 +1244,26 @@ pub(super) async fn reap(
             tokio::task::spawn_blocking(move || super::spool_candidates(&scan_dir, floor))
                 .await
                 .unwrap_or_default();
+        let present: BTreeSet<PathBuf> = candidates.iter().cloned().collect();
+        forget_vanished(&gitdir, &present);
+        if candidates.is_empty() {
+            return;
+        }
+        // An unreadable published state still lets the walk below decide (it
+        // will fail closed); it only means no published-dependent memo can
+        // match, so those spools are simply proved again.
+        let fingerprint = published_fingerprint(repo, seconds)
+            .await
+            .unwrap_or_default();
+        // Skip spools whose last refusal is still the answer. This is what
+        // stops the oldest permanently-unprovable spools from consuming every
+        // pass while the provable backlog behind them is never reached.
+        let total = candidates.len();
         let candidates: Vec<PathBuf> = candidates
             .into_iter()
-            .take(super::MAX_SPOOLS_PER_PASS)
+            .filter(|spool| !refusal_still_holds(spool, &fingerprint))
             .collect();
+        let known = total - candidates.len();
         if candidates.is_empty() {
             return;
         }
@@ -1137,11 +1301,19 @@ pub(super) async fn reap(
                 return;
             }
         };
-        for spool in candidates {
+        let budget = std::time::Duration::from_secs(REDUNDANT_PASS_BUDGET_SECS.min(seconds));
+        let started = std::time::Instant::now();
+        let mut refused = 0usize;
+        let mut examined = 0usize;
+        for spool in candidates.iter().take(limit) {
+            if started.elapsed() >= budget {
+                break;
+            }
+            examined += 1;
             match remove_if_redundant(
                 repo,
                 &gitdir,
-                &spool,
+                spool,
                 &published,
                 width,
                 floor,
@@ -1161,6 +1333,10 @@ pub(super) async fn reap(
                 }
                 Ok(None) => {}
                 Err(error) => {
+                    refused += 1;
+                    remember_refusal(spool, &error, &fingerprint);
+                    // Logged once per (spool, state): the memo suppresses the
+                    // identical re-proof, and with it the repeated line.
                     eprintln!(
                         "⚠️ {}: epoch spool {} preserved; not provably redundant: {error:#}",
                         repo.display(),
@@ -1168,6 +1344,14 @@ pub(super) async fn reap(
                     );
                 }
             }
+        }
+        let deferred = candidates.len() - examined;
+        if removed + refused > 0 || deferred > 0 {
+            eprintln!(
+                "🧹 {}: spool reclaim pass: {removed} removed, {refused} newly refused, {known} known-refused skipped, {deferred} deferred to the next pass ({:.1}s)",
+                repo.display(),
+                started.elapsed().as_secs_f64()
+            );
         }
     };
     let _ = tokio::time::timeout(std::time::Duration::from_secs(seconds), pass).await;

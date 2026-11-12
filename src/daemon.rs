@@ -266,6 +266,39 @@ fn identify_probe_join<T>(
 /// CPU, and would delay the sweep that frees genuinely wedged slots.
 const MAX_INFLIGHT_STATUS_TASKS: usize = 4;
 
+/// How often an unchanged freeze is re-announced in the journal.
+const PAUSED_LOG_INTERVAL: Duration = Duration::from_secs(300);
+
+/// Last announced freeze reason and when it was announced.
+static PAUSED_LOGGED: std::sync::Mutex<Option<(String, Instant)>> = std::sync::Mutex::new(None);
+
+/// Announce a freeze on entry, on a changed reason, and every
+/// `PAUSED_LOG_INTERVAL` thereafter.
+///
+/// ADDED 2026-11-12: the paused loop wakes about once a second, and logging
+/// every wake wrote ~3,600 identical lines an hour, burying the lines that
+/// explain why the fleet is frozen. `dracon-sync repos`/`health` still show
+/// the live freeze state at any moment.
+fn log_paused(reason: &str) {
+    let mut last = PAUSED_LOGGED
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    let now = Instant::now();
+    if paused_log_due(last.as_ref(), reason, now) {
+        eprintln!("⏸️ sync daemon paused ({})", reason);
+        *last = Some((reason.to_owned(), now));
+    }
+}
+
+fn paused_log_due(last: Option<&(String, Instant)>, reason: &str, now: Instant) -> bool {
+    match last {
+        None => true,
+        Some((seen, at)) => {
+            seen != reason || now.saturating_duration_since(*at) >= PAUSED_LOG_INTERVAL
+        }
+    }
+}
+
 /// Failed inspectors yield slots to later repositories in the scan order.
 const STATUS_RETRY_COOLDOWN: Duration = Duration::from_secs(300);
 
@@ -1900,6 +1933,19 @@ pub(crate) fn stuck_decision(
 // `SyncPolicy::push_max_retries`). The duplicate here was dead code.
 #[cfg(test)]
 mod tests {
+    /// A frozen daemon announces the freeze once, again on a changed reason,
+    /// and otherwise only every `PAUSED_LOG_INTERVAL` — not on every ~1s wake.
+    #[test]
+    fn paused_log_is_throttled_but_not_silenced() {
+        let t0 = Instant::now();
+        assert!(super::paused_log_due(None, "marker a", t0));
+        let seen = ("marker a".to_owned(), t0);
+        assert!(!super::paused_log_due(Some(&seen), "marker a", t0 + Duration::from_secs(1)));
+        assert!(!super::paused_log_due(Some(&seen), "marker a", t0 + Duration::from_secs(299)));
+        assert!(super::paused_log_due(Some(&seen), "marker a", t0 + super::PAUSED_LOG_INTERVAL));
+        assert!(super::paused_log_due(Some(&seen), "marker b", t0 + Duration::from_secs(1)));
+    }
+
     /// Shutdown must finish promptly once the owned workers have stopped.
     /// Regression: counting the detached registry AND the worker map as
     /// "outstanding" double-counted the same tasks, so a stopped fleet always
@@ -8013,7 +8059,7 @@ pub(crate) async fn run_daemon(
         // marker flips, so pause and resume take effect within ~1s of
         // the current cycle ending.
         if let Some(reason) = freeze_reason(&policy_path) {
-            eprintln!("⏸️ sync daemon paused ({})", reason);
+            log_paused(&reason);
             scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("paused"));
             sleep_responsive(
                 &reload_notify,
@@ -8239,7 +8285,7 @@ pub(crate) async fn run_daemon(
         }
 
         if let Some(reason) = freeze_reason(&policy_path) {
-            eprintln!("⏸️ sync daemon paused ({})", reason);
+            log_paused(&reason);
             scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("paused"));
             // CHANGED 2026-08-11 (audit LOW): responsive sleep — a
             // `resume` (marker removed) or SIGHUP wakes this early

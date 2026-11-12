@@ -4373,7 +4373,13 @@ async fn stage_commit_and_push(
             let missing: Vec<_> = missing_iter.collect();
             if !missing.is_empty() && !dry_run {
                 let quoted = crate::git::literal_pathspecs(&missing);
-                let mut args = vec!["rm", "--cached", "--ignore-unmatch", "--"];
+                // `-q` is load-bearing (2026-11-12): this runs as a spool
+                // producer whose stdout lands in a `producer-io-*` endpoint
+                // inside the retained spool. Git's per-path `rm '<path>'`
+                // chatter is not an object name, so the redundant reclaimer
+                // treats it as unknown payload and preserves the spool
+                // forever (225 permanently-unreclaimable spools fleet-wide).
+                let mut args = vec!["rm", "--cached", "-q", "--ignore-unmatch", "--"];
                 args.extend(quoted.iter().map(String::as_str));
                 staged_epoch::run_index_git(
                     repo,
