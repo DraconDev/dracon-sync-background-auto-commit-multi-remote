@@ -1475,6 +1475,18 @@ async fn run_cli(cli: Cli) -> Result<()> {
                         total_dirs += dirs;
                         total_bytes += bytes;
                     }
+                    if !apply && dirs > 0 {
+                        // ADDED 2026-11-12: the dry-run now runs the full
+                        // redundancy proof read-only, so it reports what an
+                        // apply would actually remove instead of only the
+                        // inventory.
+                        redundant_total += git::preview_redundant_spools(
+                            &repo,
+                            max_age,
+                            policy.stage_op_timeout_secs,
+                        )
+                        .await;
+                    }
                     if apply {
                         reclaimed_total += git::reap_abandoned_spools(
                             &repo,

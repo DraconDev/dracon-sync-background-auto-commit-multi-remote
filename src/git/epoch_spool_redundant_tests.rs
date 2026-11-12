@@ -754,7 +754,7 @@ fn expire_cooldown(repo: &Path) {
 
 async fn reap_one(repo: &Path) -> usize {
     expire_cooldown(repo);
-    reap_limited(repo, 1, 30, 1).await
+    reap_limited(repo, 1, 30, 1, true).await
 }
 
 /// A second spool of the same fixture repository, provably redundant.
@@ -882,4 +882,20 @@ async fn a_changed_spool_invalidates_its_memo() {
         .unwrap();
     assert!(!refusal_still_holds(&f.spool, &fingerprint));
     assert_eq!(reap_one(&f.repo).await, 1);
+}
+
+#[tokio::test]
+async fn preview_proves_without_removing_or_cooling_down() {
+    let f = fixture("preview");
+    seal(&f.spool);
+    backdate(&f.spool);
+    let before: Vec<_> = fs::read_dir(&f.spool).unwrap().map(|e| e.unwrap().file_name()).collect();
+    assert_eq!(preview(&f.repo, 1, 30).await, 1, "the spool is provably redundant");
+    assert!(f.spool.exists(), "preview removed nothing");
+    let after: Vec<_> = fs::read_dir(&f.spool).unwrap().map(|e| e.unwrap().file_name()).collect();
+    assert_eq!(before.len(), after.len(), "preview wrote nothing into the spool");
+    assert!(!f.repo.join(".git").join(LEDGER).exists(), "preview wrote no ledger");
+    // No cooldown was recorded, so a real pass right after still runs.
+    assert_eq!(reap(&f.repo).await, 1);
+    assert!(!f.spool.exists());
 }
