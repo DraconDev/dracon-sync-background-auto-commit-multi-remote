@@ -822,6 +822,13 @@ pub(crate) async fn push_with_retries_for_target(
 /// and stay in the `is_permanent_push_rejection` arm, so the sets remain
 /// disjoint.
 pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
+    // An isolated push killed by its memory budget is local by construction:
+    // the kill happened on this host, and it can carry a PASSING gate banner
+    // (the hook passed, then pack-objects was killed), so it must be decided
+    // before the success-banner test below.
+    if is_push_unit_resource_kill(err_msg) {
+        return true;
+    }
     let lower = err_msg.to_lowercase();
     // FIXED 2026-10-28 (browser-extensions-shared GitLab wedge): a PASSING
     // gate is not a refusal. The daemon's runner appends captured hook STDOUT
@@ -860,6 +867,17 @@ pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
         // same class: the bytes never left the machine.
         || lower.contains("4-gate failed")
         || lower.contains("pre-push:")
+}
+
+/// ADDED 2026-11-13: an isolated push unit (`push_unit`) exhausted the
+/// host-configured `dracon-sync-push.slice` budget and systemd killed it.
+/// `systemd-run --wait` reports exactly this line. The same push will need
+/// the same memory, so this must fail fast like a hook refusal instead of
+/// re-running the hook through the retry, pull and HTTPS-fallback arms.
+pub(crate) fn is_push_unit_resource_kill(err_msg: &str) -> bool {
+    err_msg
+        .to_lowercase()
+        .contains("finished with result: oom-kill")
 }
 
 /// Markers that positively identify a LOCAL hook refusal. Only these make a
@@ -1061,6 +1079,8 @@ pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
         "forge-side outage (transient infra: Gitaly/5xx; retrying with backoff, excluded from stuck budget)"
     } else if is_pack_too_large(err_msg) {
         "pack exceeds forge size limit (needs history rewrite)"
+    } else if is_push_unit_resource_kill(err_msg) {
+        "local push exhausted its isolated memory budget (dracon-sync-push.slice OOM-killed the hook/pack; the daemon itself kept running — give the slice more memory or the hook less concurrency; not a network failure)"
     } else if is_local_hook_rejection(err_msg) {
         "local pre-push hook failed (inspect retained hook output, product gates and the service environment; this does not establish a network failure or justify weakening policy)"
     } else if is_permanent_push_rejection(err_msg) {
@@ -2377,6 +2397,23 @@ mod tests {
         assert!(!is_transient_network_outage(message));
         assert!(is_transient_forge_outage(
             "remote: Gitaly is temporarily unavailable: OS can't spawn worker thread"
+        ));
+    }
+
+    #[test]
+    fn isolated_push_oom_kill_is_a_local_fail_fast_resource_failure() {
+        // Verbatim systemd-run --wait tail, after a PASSING gate banner: the
+        // hook passed and pack-objects was killed. Still local, still fail-fast.
+        let message = "git push failed in /r with status exit status: 1: Running as unit: dracon-push-ab.service\n\u{2705} Pre-push: 4-gate passed for all affected workspaces.\n          Finished with result: oom-kill\nMain processes terminated with: code=killed, status=9/KILL";
+        assert!(is_push_unit_resource_kill(message));
+        assert!(is_local_hook_rejection(message));
+        let class = classify_push_failure(message);
+        assert!(class.contains("isolated memory budget"), "{class}");
+        assert!(!is_transient_forge_outage(message));
+        assert!(!is_transient_network_outage(message));
+        // A normal success summary from systemd-run is not a resource kill.
+        assert!(!is_push_unit_resource_kill(
+            "Finished with result: exit-code\nMain processes terminated with: code=exited, status=1/FAILURE"
         ));
     }
 
