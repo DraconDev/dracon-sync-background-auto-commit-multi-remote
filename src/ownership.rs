@@ -757,6 +757,30 @@ mod tests {
         assert_eq!(identity_defect("Zoë", "z@x"), None);
     }
 
+    #[tokio::test]
+    async fn ensure_commit_identity_reads_the_effective_repo_identity() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        let git = |args: &[&str]| {
+            assert!(crate::test_helpers::test_git_cmd()
+                .current_dir(repo)
+                .args(args)
+                .status()
+                .unwrap()
+                .success())
+        };
+        git(&["init", "-q"]);
+        git(&["config", "user.name", "DraconDev"]);
+        git(&["config", "user.email", "dracsharp@gmail.com"]);
+        ensure_commit_identity(repo).await.unwrap();
+        // hellhunter's local config, verbatim.
+        git(&["config", "user.name", "-"]);
+        git(&["config", "user.email", "-"]);
+        let error = ensure_commit_identity(repo).await.unwrap_err().to_string();
+        assert!(error.contains("malformed git identity"), "{error}");
+        assert!(error.contains("--unset user.name"), "{error}");
+    }
+
     #[test]
     fn parse_ident_reads_git_var_output() {
         assert_eq!(
