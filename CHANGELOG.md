@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **Operator NixOS module: systemd-oomd no longer kills the daemon for
+  its own throttling.** `ManagedOOMMemoryPressure` is now `auto` (was
+  `kill`). oomd judged the daemon cgroup's *own* memory pressure, which
+  the unit's `MemoryHigh=1024M` cap produces by itself, and SIGKILLed
+  the unit 5 times on 2026-11-13. `MemoryMax=1400M` still bounds real
+  overruns, `ManagedOOMSwap=kill` stays, and pushes and hooks keep their
+  own slice policy. Needs `nixos-rebuild switch`.
 ## [0.113.98] - 2026-11-13
 
 ### Fixed
