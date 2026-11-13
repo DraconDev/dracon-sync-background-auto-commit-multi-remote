@@ -156,6 +156,17 @@ pub(super) fn isolated_push(args: &[&str]) -> bool {
     args.first() == Some(&"push") && PUSH_PHASE.try_with(|active| *active).unwrap_or(false)
 }
 
+/// `git hook run …`: how the daemon runs a repository's COMMIT hooks around a
+/// sealed commit (`sync::run_configured_hook`). ADDED 2026-11-13: after push
+/// isolation shipped, dracon-platform's pre-commit bucket guard (`node
+/// bucket-strategy.mjs`, ~360 MB) still ran in the daemon's cgroup; with the
+/// daemon itself and its git children that pinned the unit at MemoryHigh, and
+/// systemd-oomd killed the whole daemon 7 times in 15 minutes for sustained
+/// pressure. Repository-supplied code never shares the daemon's cgroup.
+pub(super) fn isolated_hook(args: &[&str]) -> bool {
+    args.len() >= 2 && args[0] == "hook" && args[1] == "run"
+}
+
 /// Keep the command future in its caller's ownership. Dropping the caller
 /// drops its process runner and kills that runner's owned process group; it
 /// must neither detach publication nor serialize unrelated repositories.
