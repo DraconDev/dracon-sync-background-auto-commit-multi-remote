@@ -981,3 +981,23 @@ async fn unpublished_gitlink_is_preserved() {
     assert_eq!(reap(&f.repo).await, 0);
     assert!(f.spool.exists());
 }
+
+/// ADDED 2026-11-12: the streamed raw-history parser keeps post-images, skips
+/// deletions without desynchronising, and keeps paths with spaces intact.
+#[test]
+fn raw_history_parser_handles_deletions_and_spaces() {
+    let blob = "a".repeat(40);
+    let zero = "0".repeat(40);
+    let raw = format!(
+        "{c}\0\n:100644 000000 {blob} {zero} D\0gone.txt\0\n:000000 100755 {zero} {blob} A\0dir/with space.sh\0",
+        c = "c".repeat(40)
+    );
+    let history = parse_raw_history(raw.as_bytes()).unwrap();
+    assert_eq!(history.len(), 1);
+    assert!(history.contains(&TreeEntry {
+        mode: "100755".to_owned(),
+        oid: blob,
+        path: b"dir/with space.sh".to_vec(),
+    }));
+    assert!(parse_raw_history(b":100644 100644 x y M").is_err(), "header without a path");
+}

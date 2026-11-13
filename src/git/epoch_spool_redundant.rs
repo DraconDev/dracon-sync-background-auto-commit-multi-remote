@@ -127,6 +127,17 @@ impl std::fmt::Display for NotYetPublished {
 }
 impl std::error::Error for NotYetPublished {}
 
+/// A refusal caused by this PASS, not by the spool (the shared history walk
+/// failed or hit its deadline). Never memoized: the next pass simply retries.
+#[derive(Debug)]
+struct PassUnavailable(String);
+impl std::fmt::Display for PassUnavailable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "published history unavailable this pass: {}", self.0)
+    }
+}
+impl std::error::Error for PassUnavailable {}
+
 /// Why a spool was last refused, and under which conditions that answer
 /// still holds.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -911,43 +922,95 @@ type PublishedHistory = HashSet<TreeEntry>;
 /// is never proof. Anything the window does not show (older commits, entries
 /// introduced only by a merge) is simply absent, which preserves the spool.
 async fn published_history(repo: &Path, refs: &[String], timeout: u64) -> Result<PublishedHistory> {
-    let mut args: Vec<String> = [
-        "log",
-        "--no-renames",
-        "--no-abbrev",
-        "--no-ext-diff",
-        "--no-textconv",
-        "--raw",
-        "-z",
-        "--format=%H",
-    ]
-    .iter()
-    .map(|arg| (*arg).to_owned())
-    .collect();
-    args.push(format!("--max-count={MAX_HISTORY_COMMITS}"));
-    args.extend(refs.iter().cloned());
-    args.push("--".to_owned());
-    let args: Vec<&str> = args.iter().map(String::as_str).collect();
-    let bytes = git_output(repo, &args, timeout, "published history").await?;
-    parse_raw_history(&bytes)
+    // STREAMED, not captured (2026-11-12): full raw history is ~84 MB on
+    // browser-extensions-shared, beyond the 64 MiB capture limit of
+    // `run_command_captured_output`. Only the deduplicated entry set is kept.
+    use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
+    let mut command = git(repo);
+    command
+        .args([
+            "log",
+            "--no-renames",
+            "--no-abbrev",
+            "--no-ext-diff",
+            "--no-textconv",
+            "--raw",
+            "-z",
+            "--format=%H",
+        ])
+        .arg(format!("--max-count={MAX_HISTORY_COMMITS}"))
+        .args(refs)
+        .arg("--");
+    let walk = async {
+        let mut child = command.spawn().context("published history walk did not start")?;
+        let stdout = child.stdout.take().context("published history stdout")?;
+        let mut stderr = child.stderr.take().context("published history stderr")?;
+        // Drain stderr concurrently so a full pipe can never stall Git.
+        let errors = tokio::spawn(async move {
+            let mut bytes = Vec::new();
+            let _ = (&mut stderr).take(64 * 1024).read_to_end(&mut bytes).await;
+            let _ = tokio::io::copy(&mut stderr, &mut tokio::io::sink()).await;
+            bytes
+        });
+        let mut parser = RawHistoryParser::default();
+        let mut reader = BufReader::new(stdout);
+        let mut token = Vec::new();
+        loop {
+            token.clear();
+            if reader.read_until(0, &mut token).await? == 0 {
+                break;
+            }
+            if token.last() == Some(&0) {
+                token.pop();
+            }
+            parser.feed(&token)?;
+        }
+        let status = child.wait().await?;
+        let errors = errors.await.unwrap_or_default();
+        ensure!(
+            status.success(),
+            "published history walk failed: {}",
+            String::from_utf8_lossy(&errors).trim()
+        );
+        parser.finish()
+    };
+    tokio::time::timeout(std::time::Duration::from_secs(timeout), walk)
+        .await
+        .context("published history walk deadline")?
 }
 
-/// Parse `git log --raw -z --format=%H` output.
+/// Incremental parser for `git log --raw -z --format=%H` output.
 ///
 /// Layout: `<commit>\0` then, per change, `\n:<old> <new> <oid> <oid> <status>\0<path>\0`.
-fn parse_raw_history(bytes: &[u8]) -> Result<PublishedHistory> {
-    let mut history = PublishedHistory::new();
-    let mut tokens = bytes.split(|byte| *byte == 0);
-    while let Some(token) = tokens.next() {
+#[derive(Default)]
+struct RawHistoryParser {
+    history: PublishedHistory,
+    /// `(mode, oid)` of a change header whose path token comes next; `None`
+    /// inside the pending slot means the change was a deletion (skipped).
+    pending: Option<Option<(String, String)>>,
+}
+
+impl RawHistoryParser {
+    fn feed(&mut self, token: &[u8]) -> Result<()> {
+        if let Some(change) = self.pending.take() {
+            if let Some((mode, oid)) = change {
+                self.history.insert(TreeEntry {
+                    mode,
+                    oid,
+                    path: token.to_vec(),
+                });
+            }
+            return Ok(());
+        }
         let token = token.strip_prefix(b"\n").unwrap_or(token);
         let Some(header) = token.strip_prefix(b":") else {
-            continue;
+            return Ok(());
         };
-        let path = tokens.next().context("raw history change without a path")?;
         let fields: Vec<&[u8]> = header.split(|byte| *byte == b' ').collect();
         ensure!(fields.len() == 5, "malformed raw history change");
         if fields[4].first() == Some(&b'D') {
-            continue;
+            self.pending = Some(None);
+            return Ok(());
         }
         let mode = std::str::from_utf8(fields[1]).context("non-UTF8 raw mode")?;
         let oid = std::str::from_utf8(fields[3]).context("non-UTF8 raw object id")?;
@@ -955,13 +1018,27 @@ fn parse_raw_history(bytes: &[u8]) -> Result<PublishedHistory> {
             crate::git::is_valid_object_id(oid),
             "invalid object identity in raw history"
         );
-        history.insert(TreeEntry {
-            mode: mode.to_owned(),
-            oid: oid.to_owned(),
-            path: path.to_vec(),
-        });
+        self.pending = Some(Some((mode.to_owned(), oid.to_owned())));
+        Ok(())
     }
-    Ok(history)
+    fn finish(self) -> Result<PublishedHistory> {
+        ensure!(self.pending.is_none(), "raw history change without a path");
+        Ok(self.history)
+    }
+}
+
+/// Parse a complete `git log --raw -z --format=%H` output.
+#[cfg(test)]
+fn parse_raw_history(bytes: &[u8]) -> Result<PublishedHistory> {
+    let mut parser = RawHistoryParser::default();
+    let mut tokens: Vec<&[u8]> = bytes.split(|byte| *byte == 0).collect();
+    if tokens.last().is_some_and(|last| last.is_empty()) {
+        tokens.pop();
+    }
+    for token in tokens {
+        parser.feed(token)?;
+    }
+    parser.finish()
 }
 
 /// Prove every entry the published TIPS did not already prove against the
@@ -974,7 +1051,7 @@ async fn published_history_reference(
     repo: &Path,
     entries: &[TreeEntry],
     published: &Published,
-    history: &mut Option<PublishedHistory>,
+    history: &mut Option<std::result::Result<PublishedHistory, String>>,
     timeout: u64,
 ) -> Result<Option<String>> {
     let unmatched: Vec<&TreeEntry> = entries
@@ -992,10 +1069,20 @@ async fn published_history_reference(
         return Ok(Some(published.refs.first().map_or(label, |r| r.name.clone())));
     }
     if history.is_none() {
+        // Loaded at most ONCE per pass, failure included: a walk that failed
+        // (deadline, Git error) fails identically for every later spool, and
+        // re-running it per spool is what made one pass examine 145 spools.
         let names: Vec<String> = published.refs.iter().map(|r| r.name.clone()).collect();
-        *history = Some(published_history(repo, &names, timeout).await?);
+        *history = Some(
+            published_history(repo, &names, timeout)
+                .await
+                .map_err(|error| format!("{error:#}")),
+        );
     }
-    let history = history.as_ref().expect("history loaded above");
+    let history = match history.as_ref().expect("history loaded above") {
+        Ok(history) => history,
+        Err(error) => return Err(PassUnavailable(error.clone()).into()),
+    };
     Ok(unmatched
         .iter()
         .all(|entry| history.contains(entry))
@@ -1015,7 +1102,7 @@ async fn remove_if_redundant(
     floor: std::time::Duration,
     timeout: u64,
     apply: bool,
-    history: &mut Option<PublishedHistory>,
+    history: &mut Option<std::result::Result<PublishedHistory, String>>,
 ) -> Result<Option<Removal>> {
     // Quiescence: the producer fence plus an identity-bound settled marker.
     let owner = ReclaimOwner::acquire(gitdir, spool, floor)?;
@@ -1324,7 +1411,7 @@ async fn reap_limited(
         let started = std::time::Instant::now();
         let mut refused = 0usize;
         let mut examined = 0usize;
-        let mut history: Option<PublishedHistory> = None;
+        let mut history: Option<std::result::Result<PublishedHistory, String>> = None;
         for spool in candidates.iter().take(limit) {
             if started.elapsed() >= budget {
                 break;
@@ -1356,7 +1443,7 @@ async fn reap_limited(
                 Ok(None) => {}
                 Err(error) => {
                     refused += 1;
-                    if apply {
+                    if apply && error.downcast_ref::<PassUnavailable>().is_none() {
                         remember_refusal(spool, &error, &fingerprint);
                     }
                     // Logged once per (spool, state): the memo suppresses the
