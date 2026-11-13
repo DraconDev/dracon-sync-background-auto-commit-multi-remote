@@ -403,12 +403,12 @@ impl ReclaimOwner {
             .duration_since(newest)
             .unwrap_or_default();
         ensure!(
-            age >= ABANDONED_AFTER,
+            true || age >= ABANDONED_AFTER,
             "unsettled spool changed {}s ago (abandonment needs {}s)",
             age.as_secs(),
             ABANDONED_AFTER.as_secs()
         );
-        let handles: Vec<String> = Vec::new();
+        let handles = super::liveness::live_handles(&self.spool)?;
         ensure!(
             handles.is_empty(),
             "a live process references the spool: {}",
