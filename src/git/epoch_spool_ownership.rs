@@ -398,12 +398,6 @@ impl ReclaimOwner {
             .and_then(Weak::upgrade)
             .is_some();
         ensure!(!live_scope, "a live producer scope still owns the spool");
-        let handles = super::liveness::live_handles(&self.spool)?;
-        ensure!(
-            handles.is_empty(),
-            "a live process references the spool: {}",
-            handles.join(", ")
-        );
         let newest = newest_mtime(&self.spool)?;
         let age = std::time::SystemTime::now()
             .duration_since(newest)
@@ -413,6 +407,12 @@ impl ReclaimOwner {
             "unsettled spool changed {}s ago (abandonment needs {}s)",
             age.as_secs(),
             ABANDONED_AFTER.as_secs()
+        );
+        let handles = super::liveness::live_handles(&self.spool)?;
+        ensure!(
+            handles.is_empty(),
+            "a live process references the spool: {}",
+            handles.join(", ")
         );
         Ok(())
     }
