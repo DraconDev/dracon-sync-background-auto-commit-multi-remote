@@ -149,8 +149,14 @@ the `/run` drop-ins.
 
 ## Boundaries / follow-ups
 
-- Non-push daemon children (status, rev-list, bucket guard node) remain in the
-  daemon's cgroup and its 1400M cap. Observed peaks are ~250 MB each.
+- ADDED same day: commit hooks (`git hook run`, `sync::run_configured_hook`)
+  take the same path. With the drop-in gone, `MemoryHigh=1024M` engaged, and
+  a ~360 MB pre-commit bucket guard in the daemon's cgroup held it at the soft
+  limit: systemd-oomd (ManagedOOMMemoryPressure=kill, >60% for 30 s) killed
+  the daemon 7 times in 15 minutes. Test:
+  `storage::tests::commit_hooks_run_outside_the_daemon_cgroup`.
+- The daemon's own git children (status, rev-list for spool reclaim) remain
+  in its cgroup and its 1400M cap. Observed peaks are ~250 MB each.
 - A restart-loop BREAKER (persist "push in flight" and back off a repository
   whose push was in flight across N consecutive daemon deaths) would contain
   future unknown causes; with hooks out of the cgroup the observed cause is
