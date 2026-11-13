@@ -474,6 +474,40 @@ async fn producer_endpoint_holding_real_payload_is_preserved() {
 }
 
 #[tokio::test]
+async fn producer_endpoint_holding_only_git_rm_reports_is_redundant() {
+    // Verbatim shape from browser-extensions-shared, 2026-11-13.
+    let f = fixture("producer-git-rm");
+    let head = git_text(&f.repo, &["rev-parse", "HEAD"]);
+    fs::write(
+        f.spool.join("producer-io-stdout"),
+        "rm 'extensions/standalones/tab-hero/entrypoints/popup/PopupApp.svelte'\nrm 'a b/index.html'\n",
+    )
+    .unwrap();
+    fs::write(f.spool.join("producer-io-rev"), format!("{head}\n")).unwrap();
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 1);
+    assert!(!f.spool.exists());
+}
+
+#[tokio::test]
+async fn git_rm_reports_do_not_launder_other_payload() {
+    for (name, body) in [
+        ("rm-plus-payload", "rm 'a'\nsome captured bytes\n"),
+        ("rm-plus-fatal", "rm 'a'\nfatal: unable to stat 'b'\n"),
+        ("rm-unterminated", "rm 'a\n"),
+        ("rm-empty-path", "rm ''\n"),
+    ] {
+        let f = fixture(name);
+        fs::write(f.spool.join("producer-io-stdout"), body).unwrap();
+        seal(&f.spool);
+        backdate(&f.spool);
+        assert_eq!(reap(&f.repo).await, 0, "{name}");
+        assert!(f.spool.exists(), "{name}");
+    }
+}
+
+#[tokio::test]
 async fn producer_endpoint_that_is_not_text_is_preserved() {
     let f = fixture("producer-binary");
     fs::write(f.spool.join("producer-io-stdin"), [0xff, 0xfe, 0x00, 0x01]).unwrap();

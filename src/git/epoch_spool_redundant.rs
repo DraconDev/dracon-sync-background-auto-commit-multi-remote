@@ -832,20 +832,19 @@ fn producer_names(path: &Path, width: usize) -> Result<Vec<String>> {
     );
     let text = std::str::from_utf8(&bytes).context("producer endpoint is not text")?;
     let mut names = Vec::new();
-    let mut diagnostics = 0usize;
+    let mut reports = 0usize;
     for line in text.lines() {
         if line.trim().is_empty() {
             continue;
         }
-        // ADDED 2026-11-13: captured Git/Warden DIAGNOSTICS carry no
-        // repository content. 415 live endpoints held only `git rm`'s
-        // `rm '<path>'` stdout and ~40 a `fatal:`/warden stderr line; each
-        // preserved its whole spool forever although the spool's index and
-        // objects are proven separately below. Only these exact forms are
-        // accepted — stdin payload (`--index-info` lines, blob content, …)
-        // still preserves the spool.
-        if is_diagnostic_line(line) {
-            diagnostics += 1;
+        // ADDED 2026-11-13: `git rm`'s success stdout (`rm '<path>'`) names
+        // a path that was removed; it carries no repository content. 415 live
+        // endpoints held only such lines and each preserved its whole spool
+        // although the spool's index and objects are proven separately below.
+        // Failure diagnostics (`fatal:`, warden stderr) are deliberately NOT
+        // accepted: they are the only record of why that epoch failed.
+        if is_git_rm_report(line) {
+            reports += 1;
             continue;
         }
         for token in line.split_whitespace() {
@@ -862,30 +861,17 @@ fn producer_names(path: &Path, width: usize) -> Result<Vec<String>> {
         }
     }
     ensure!(
-        !names.is_empty() || diagnostics > 0,
+        !names.is_empty() || reports > 0,
         "producer endpoint names nothing"
     );
     Ok(names)
 }
 
-/// A captured Git or Warden diagnostic line (stdout of `git rm`, or a
-/// `fatal:`/`error:`/`warning:`/`hint:` / warden stderr line).
-fn is_diagnostic_line(line: &str) -> bool {
-    let line = line.trim_end_matches('\r');
-    if let Some(path) = line.strip_prefix("rm '") {
-        return path.len() > 1 && path.ends_with('\'');
-    }
-    [
-        "fatal: ",
-        "error: ",
-        "warning: ",
-        "hint: ",
-        "dracon-warden: ",
-        "⚠️ warden: ",
-        "⚠️ dracon-warden: ",
-    ]
-    .iter()
-    .any(|prefix| line.starts_with(prefix))
+/// One line of `git rm`'s success report: exactly `rm '<path>'`.
+fn is_git_rm_report(line: &str) -> bool {
+    line.trim_end_matches('\r')
+        .strip_prefix("rm '")
+        .is_some_and(|path| path.len() > 1 && path.ends_with('\''))
 }
 
 /// A preserve marker forbids removal.
