@@ -131,7 +131,17 @@
       # memory pressure), systemd-oomd kills THIS unit and nothing else.
       # The desktop survives; the sync restarts 30s later.
       OOMPolicy = "kill";
-      ManagedOOMMemoryPressure = "kill";
+      # CHANGED 2026-11-13 (oomd kill loop): ManagedOOMMemoryPressure
+      # "kill" -> "auto". systemd-oomd judges memory pressure of THIS
+      # cgroup, and that pressure is produced by our own MemoryHigh cap: the
+      # daemon sits at 1024M (memory.events high=46992, swap pinned at its
+      # 128M limit), stalls in reclaim, crosses oomd's 60%/30s default and
+      # is SIGKILLed -- 5 times on 2026-11-13 (15:01, 20:31, 20:52, 21:36,
+      # 22:11), each restart re-doing startup work. Killing a unit for the
+      # throttling we imposed on it frees nothing. MemoryMax still bounds a
+      # genuine overrun (kernel OOM inside the cgroup), and pushes/hooks run
+      # in dracon-sync-push.slice with their own oomd policy.
+      ManagedOOMMemoryPressure = "auto";
       ManagedOOMSwap = "kill";
       # CHANGED 2026-10-21: 96 -> 512. The shipped unit (dracon-sync.service)
       # and the parent flake's parity check (needSync "TasksMax" "512") already
