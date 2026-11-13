@@ -5099,7 +5099,7 @@ async fn run_sealed_commit_hooks(
     // so the hook-edited diagnostic is never silently discarded.
     let directory = tempfile::Builder::new()
         .prefix("dracon-epoch-message-")
-        .tempdir_in(git_dir)?;
+        .tempdir_in(&git_dir)?;
     let msgfile = directory.path().join("COMMIT_EDITMSG");
     std::fs::write(&msgfile, format!("{message}\n"))?;
     let msgfile_arg = msgfile.to_str().context("unsupported message path")?;
