@@ -9,11 +9,8 @@ use std::path::Path;
 /// that no live writer referenced the source at this moment.
 pub(super) fn live_handles(spool: &Path) -> Result<Vec<String>> {
     let mut found = Vec::new();
-    let entries = match std::fs::read_dir("/proc") {
-        Ok(entries) => entries,
-        // Without /proc there is no observation, so no inactivity can be proven.
-        Err(error) => return Err(error.into()),
-    };
+    // Without /proc there is no observation, so no inactivity can be proven.
+    let entries = std::fs::read_dir("/proc")?;
     let needle = spool.as_os_str().as_encoded_bytes();
     let ours = std::process::id();
     for entry in entries.flatten() {
