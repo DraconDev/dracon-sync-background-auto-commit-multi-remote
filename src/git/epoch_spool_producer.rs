@@ -366,12 +366,15 @@ impl Unit {
             .args(["--user", "reset-failed", &self.name])
             .output()
             .await?;
-        if !cleanup.status.success() {
-            // A successful stopped unit may already have been collected. This
-            // bookkeeping failure cannot invalidate observed family emptiness.
+        let stderr = String::from_utf8_lossy(&cleanup.stderr);
+        // A successful stopped unit may already have been collected
+        // ("Unit … not loaded."): that is the expected outcome, not a fault
+        // (2026-11-13: 78 such lines in ten minutes). Anything else is logged.
+        if !cleanup.status.success() && !stderr.contains("not loaded") {
+            // This bookkeeping failure cannot invalidate observed family emptiness.
             eprintln!(
                 "epoch producer unit cleanup: {}",
-                String::from_utf8_lossy(&cleanup.stderr)
+                stderr.trim_end()
             );
         }
         Ok(())

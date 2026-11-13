@@ -188,6 +188,17 @@ fn refusal_still_holds(spool: &Path, fingerprint: &str) -> bool {
     }
 }
 
+/// `; preserved: 12× reason a; 3× reason b` (most frequent first), or "".
+pub(crate) fn refusal_summary(reasons: &std::collections::BTreeMap<String, usize>) -> String {
+    if reasons.is_empty() {
+        return String::new();
+    }
+    let mut ranked: Vec<(&String, &usize)> = reasons.iter().collect();
+    ranked.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
+    let parts: Vec<String> = ranked.iter().map(|(r, n)| format!("{n}× {r}")).collect();
+    format!("; preserved: {}", parts.join("; "))
+}
+
 fn remember_refusal(spool: &Path, error: &anyhow::Error, fingerprint: &str) {
     let Some(modified) = spool_modified(spool) else {
         return;
@@ -1410,6 +1421,8 @@ async fn reap_limited(
         let budget = std::time::Duration::from_secs(REDUNDANT_PASS_BUDGET_SECS.min(seconds));
         let started = std::time::Instant::now();
         let mut refused = 0usize;
+        // Refusal reasons for this pass (outermost context), summarized once.
+        let mut reasons: std::collections::BTreeMap<String, usize> = Default::default();
         let mut examined = 0usize;
         let mut history: Option<std::result::Result<PublishedHistory, String>> = None;
         for spool in candidates.iter().take(limit) {
@@ -1446,22 +1459,29 @@ async fn reap_limited(
                     if apply && error.downcast_ref::<PassUnavailable>().is_none() {
                         remember_refusal(spool, &error, &fingerprint);
                     }
-                    // Logged once per (spool, state): the memo suppresses the
-                    // identical re-proof, and with it the repeated line.
-                    eprintln!(
-                        "⚠️ {}: epoch spool {} preserved; not provably redundant: {error:#}",
-                        repo.display(),
-                        spool.display()
-                    );
+                    // CHANGED 2026-11-13: one line per spool per pass came to
+                    // ~55,000 journal lines a day (the memo is in-memory, so
+                    // every restart re-logs every spool) and buried real
+                    // failures. The pass summary now counts refusals by
+                    // reason; the per-spool proof is a debug line.
+                    *reasons.entry(error.to_string()).or_default() += 1;
+                    if crate::policy::debug_enabled() {
+                        eprintln!(
+                            "🐛 {}: epoch spool {} preserved; not provably redundant: {error:#}",
+                            repo.display(),
+                            spool.display()
+                        );
+                    }
                 }
             }
         }
         let deferred = candidates.len() - examined;
         if removed + refused > 0 || deferred > 0 {
             eprintln!(
-                "🧹 {}: spool reclaim pass: {removed} {verb}, {refused} newly refused, {known} known-refused skipped, {deferred} deferred to the next pass ({:.1}s)",
+                "🧹 {}: spool reclaim pass: {removed} {verb}, {refused} newly refused, {known} known-refused skipped, {deferred} deferred to the next pass ({:.1}s){}",
                 repo.display(),
-                started.elapsed().as_secs_f64()
+                started.elapsed().as_secs_f64(),
+                refusal_summary(&reasons)
             );
         }
     };

@@ -1001,3 +1001,16 @@ fn raw_history_parser_handles_deletions_and_spaces() {
     }));
     assert!(parse_raw_history(b":100644 100644 x y M").is_err(), "header without a path");
 }
+
+#[test]
+fn refusal_summary_ranks_reasons_most_frequent_first() {
+    let mut reasons = std::collections::BTreeMap::new();
+    assert_eq!(refusal_summary(&reasons), "");
+    reasons.insert("source inactivity is not proven".to_string(), 3);
+    reasons.insert("legacy ownership uncertain".to_string(), 12);
+    reasons.insert("a tie".to_string(), 3);
+    assert_eq!(
+        refusal_summary(&reasons),
+        "; preserved: 12× legacy ownership uncertain; 3× a tie; 3× source inactivity is not proven"
+    );
+}
