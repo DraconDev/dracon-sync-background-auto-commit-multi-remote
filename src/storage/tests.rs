@@ -1068,6 +1068,30 @@ trusted_authors = ["DraconDev"]
         std::fs::read(repo.join("README.md")).unwrap(),
         b"bootstrap fixture\n"
     );
+    // 2026-11-13: a refusal keeps ONE fixed message file, never a fresh
+    // per-attempt directory (freeport accumulated 4133 of them).
+    let saved = repo.join(".git").join(crate::sync::REFUSED_MESSAGE_FILE);
+    assert!(
+        message.contains(&saved.display().to_string()),
+        "the refusal must name the saved message: {message}"
+    );
+    assert!(!std::fs::read_to_string(&saved).unwrap().trim().is_empty());
+    let _ = crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false)
+        .await
+        .expect_err("still refused");
+    let leftovers: Vec<_> = std::fs::read_dir(repo.join(".git"))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .starts_with("dracon-epoch-message-")
+        })
+        .collect();
+    assert!(
+        leftovers.is_empty(),
+        "refusals must not leave per-attempt directories: {leftovers:?}"
+    );
 }
 
 /// Native Git must consult ref-transaction policy before advancing the sealed
