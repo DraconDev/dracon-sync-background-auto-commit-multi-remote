@@ -307,11 +307,6 @@ fn mirrored_sandbox() -> &'static [String] {
     })
 }
 
-/// Whether the push units carry a sandbox copied from the daemon (for health).
-pub(crate) fn sandbox_mirrored() -> bool {
-    !mirrored_sandbox().is_empty()
-}
-
 #[allow(clippy::too_many_arguments)]
 fn runner_args(
     unit: &str,
