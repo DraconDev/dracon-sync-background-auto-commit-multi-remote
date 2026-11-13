@@ -391,10 +391,6 @@ impl ReclaimOwner {
     /// proof (known files, published index, reachable objects).
     pub(super) fn proves_abandonment(&self) -> Result<()> {
         ensure!(self.still_owned(), "spool identity changed");
-        ensure!(
-            !self.spool.join(CLOSING_FILE).exists() || !self.is_settled(),
-            "closing spool"
-        );
         let live_scope = scopes()
             .lock()
             .map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?
