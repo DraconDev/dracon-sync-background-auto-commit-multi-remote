@@ -338,6 +338,22 @@ async fn slow_push_hook_leaves_capacity_for_inspection_and_commit_and_enforces_r
         unsafe { libc::getpriority(libc::PRIO_PROCESS, helper_pid) },
         19
     );
+    // ADDED 2026-11-13: with a user manager available, the hook and its
+    // helper run in a transient push unit under the push slice, NOT in the
+    // test's (in production: the daemon's) cgroup. That is what keeps a
+    // hook's memory from OOM-killing the daemon.
+    let uid = unsafe { libc::getuid() };
+    if std::path::Path::new(&format!("/run/user/{uid}/bus")).exists() {
+        for pid in [hook_pid, helper_pid] {
+            let cgroup = std::fs::read_to_string(format!("/proc/{pid}/cgroup")).unwrap();
+            assert!(
+                cgroup.contains("/dracon-sync-push.slice/dracon-push-test-"),
+                "hook process {pid} is not isolated: {cgroup}"
+            );
+        }
+        let own = std::fs::read_to_string("/proc/self/cgroup").unwrap();
+        assert!(!own.contains("dracon-sync-push.slice"), "{own}");
+    }
     let before = f.git(&f.healthy, &["rev-parse", "HEAD"]);
     std::fs::write(
         f.healthy.join("data"),
