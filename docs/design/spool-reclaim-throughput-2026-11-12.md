@@ -80,7 +80,61 @@ about the same spools". That is now enforced *directly* instead of by spacing:
   `Spools` row (unhealthy above 5 GiB of aged spools), with the inventory run
   concurrently across repos.
 
+## Pre-release verification on live spools (2026-11-12/13)
+
+The memo + budget fix alone was NOT enough. A read-only preview mode
+(`repair spools` without `--apply`; the full proof, no removal, no memo, no
+cooldown) was added so the reclaimer could be measured against LIVE spools —
+a copied repository cannot be used, because spool identity is bound to
+device+inode. It found two more defects:
+
+1. **History proof cost.** For entries matching no published tip, the proof
+   spawned per unmatched entry (≤512) × per published ref (9 on
+   browser-extensions-shared, five of them one tip) a `rev-list -- <path>` plus
+   up to 64 `rev-parse`/`ls-tree`, restarting on the next ref after any miss.
+   The first ordinary spool (247 unmatched entries) ran >279 s, the pass was
+   cancelled by the outer timeout, and no summary was logged. Replaced by ONE
+   `git log --raw -z` over the published refs per pass, shared by every spool
+   in it (`published_history`, `parse_raw_history`).
+2. **Window too short, then gitlinks.** A 20k-commit window left 704/956
+   dracon-platform spools unprovable on files last edited 25k+ commits ago, so
+   the window is 250k (full history fleet-wide; ~/.dracon at 130k commits:
+   3.5 s / 44 MB). Before that, every dracon-platform spool failed reachability
+   on its 15 gitlinks: a gitlink names a commit in the submodule's object
+   database. Gitlinks are excluded from the object universe and still proved
+   as (path, 160000, commit) entries.
+
+Preview results, one pass each, after all fixes:
+
+| Repo | Would remove | Kept | Pass |
+|---|---|---|---|
+| dracon-platform | 742 | 252 | 120 s budget |
+| ~/.dracon | 2,022 | 26 | 89 s (2,048 cap) |
+| browser-extensions-shared | 232 | 550 | 120 s budget |
+
+Every kept spool carries a legitimate reason: legacy spools without a fence
+(156), no settled marker, old `rm '<path>'` endpoints (fixed going forward by
+`-q`; ~0.44 GiB fleet-wide, deliberately NOT accepted by widening the proof),
+and browser-extensions-shared's 222 unpushed commits (provable once pushed;
+the memo retries when ref tips move).
+
+Also fixed in the same pass: a single failed `systemctl --user show` aborted
+the whole epoch (9× in 12 h under load). It is read-only and identity is
+re-checked on the result, so it is retried 3× with backoff and the final error
+carries stderr.
+
 ## Regression tests (`src/git/epoch_spool_redundant_tests.rs`)
+
+- `published_history_lookup_is_scoped_to_remote_tracking_refs` (ported to
+  the pass-level walk)
+- `published_history_window_proves_older_entries_and_skips_deletions`
+- `published_gitlink_does_not_block_redundancy` /
+  `unpublished_gitlink_is_preserved` (mutation-checked: removing the gitlink
+  filter fails the first)
+- `preview_proves_without_removing_or_cooling_down`
+- producer: `show_absorbs_a_transient_manager_failure`,
+  `show_still_fails_a_persistent_failure_with_its_stderr`
+
 
 - `an_unprovable_oldest_spool_does_not_starve_the_backlog` — pass cap 1; the
   legacy oldest spool consumes pass 1, pass 2 must reach the redundant one.
@@ -90,6 +144,15 @@ about the same spools". That is now enforced *directly* instead of by spacing:
 
 Non-vacuity: forcing `refusal_still_holds` to `false` fails the three memo
 tests.
+
+## Testing note
+
+`.cargo/config.toml` sets `RUST_TEST_THREADS = "1"` because tests swap
+process-global `PATH`/`DRACON_SYNC_GIT_BIN`. Overriding it (`-- --test-threads=N`)
+produced 389 spurious "git: No such file or directory" failures during this
+work — that run is invalid, not a regression. Likewise `cargo test --bin`
+without rebuilding the bin fails epoch tests with "helper source identity
+mismatch"; build `-p dracon-sync` first or use `cargo test --workspace`.
 
 ## Residual / follow-ups
 
