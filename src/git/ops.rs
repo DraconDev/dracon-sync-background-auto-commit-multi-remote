@@ -936,7 +936,7 @@ pub(crate) async fn git_askpass_script(token: &str) -> Result<PathBuf> {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_nanos();
-        let tmp_path = std::env::temp_dir().join(format!(
+        let tmp_path = askpass_dir().join(format!(
             "dracon-git-askpass-{}-{}-{}.sh",
             std::process::id(),
             nano,
@@ -977,6 +977,32 @@ pub(crate) async fn git_askpass_script(token: &str) -> Result<PathBuf> {
         return Ok(tmp_path);
     }
     unreachable!("retry loop returns or bails on its final iteration");
+}
+
+/// CHANGED 2026-11-13: the askpass script must be visible to an isolated push
+/// unit (`push_unit`). The daemon's `/tmp` is `PrivateTmp` and so is the
+/// unit's (it mirrors the daemon's sandbox), so a `/tmp` script would not
+/// exist where Git looks for it. `~/.local/state/dracon` is writable in both.
+/// The directory is created 0700 and must be a real directory owned by us;
+/// otherwise the old temp-dir location is used.
+#[cfg(unix)]
+fn askpass_dir() -> PathBuf {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    if let Some(home) = std::env::var_os("HOME") {
+        let dir = PathBuf::from(home).join(".local/state/dracon/sync/askpass");
+        if std::fs::create_dir_all(&dir).is_ok() {
+            if let Ok(meta) = std::fs::symlink_metadata(&dir) {
+                // SAFETY: getuid has no preconditions.
+                if meta.is_dir() && meta.uid() == unsafe { libc::getuid() } {
+                    if meta.permissions().mode() & 0o077 != 0 {
+                        let _ = std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700));
+                    }
+                    return dir;
+                }
+            }
+        }
+    }
+    std::env::temp_dir()
 }
 
 /// Combine `O_EXCL | O_NOFOLLOW` as a libc `c_int` for

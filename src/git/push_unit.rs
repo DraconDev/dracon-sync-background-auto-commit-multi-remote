@@ -24,6 +24,12 @@
 //!   systemd 258), so timeout and cancellation stop the unit explicitly.
 //!   `RuntimeMaxSec` is the backstop for a daemon that dies mid-push, and
 //!   [`stop_orphaned_push_units`] reaps survivors at daemon start.
+//! * The unit runs under the SAME filesystem sandbox as the daemon that
+//!   launched it: the daemon's own unit's `ProtectSystem`, `ProtectHome`,
+//!   `ReadWritePaths`, `PrivateTmp`, … are read back from the service manager
+//!   and applied to every push unit ([`mirrored_sandbox`]). Leaving the
+//!   daemon's cgroup must not mean leaving its sandbox, and reading the live
+//!   values means host config and push units cannot drift apart.
 //! * When no user manager is reachable (CI, containers) or
 //!   `DRACON_SYNC_PUSH_ISOLATION=0`, the push runs directly as before.
 #[cfg(test)]
@@ -197,6 +203,116 @@ fn effective_environment(command: &std::process::Command) -> BTreeMap<OsString, 
 /// Build the `systemd-run` argv for one push. Values never appear on the
 /// command line (`--setenv=KEY` copies from systemd-run's own environment),
 /// so credential-bearing variables stay out of `/proc/*/cmdline`.
+/// Exec-sandbox settings copied from the daemon's own unit onto each push unit.
+const MIRRORED_SANDBOX: &[&str] = &[
+    "ProtectSystem",
+    "ProtectHome",
+    "ReadWritePaths",
+    "ReadOnlyPaths",
+    "InaccessiblePaths",
+    "PrivateTmp",
+    "PrivateDevices",
+    "NoNewPrivileges",
+    "LockPersonality",
+    "RestrictRealtime",
+    "RestrictSUIDSGID",
+];
+const PATH_LIST_SANDBOX: &[&str] = &["ReadWritePaths", "ReadOnlyPaths", "InaccessiblePaths"];
+
+/// Turn `systemctl show -p <MIRRORED_SANDBOX…>` output into `Key=Value`
+/// properties, keeping only settings that actually restrict something.
+/// Path entries gain systemd's `-` (ignore-if-missing) prefix: the unit must
+/// not fail to start because a listed path is absent, and an absent path has
+/// nothing to protect.
+pub(crate) fn mirror_properties(show: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for line in show.lines() {
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        let value = value.trim();
+        if !MIRRORED_SANDBOX.contains(&key) || value.is_empty() || value == "no" {
+            continue;
+        }
+        if PATH_LIST_SANDBOX.contains(&key) {
+            let mut seen = std::collections::BTreeSet::new();
+            let paths: Vec<String> = value
+                .split_whitespace()
+                .filter(|p| seen.insert(p.trim_start_matches(['-', '+']).to_owned()))
+                .map(|p| {
+                    if p.starts_with(['-', '+']) {
+                        p.to_owned()
+                    } else {
+                        format!("-{p}")
+                    }
+                })
+                .collect();
+            if !paths.is_empty() {
+                out.push(format!("{key}={}", paths.join(" ")));
+            }
+        } else {
+            out.push(format!("{key}={value}"));
+        }
+    }
+    out
+}
+
+/// The daemon's own unit from `/proc/self/cgroup`: `(user_manager, name)`.
+pub(crate) fn own_unit(cgroup: &str) -> Option<(bool, String)> {
+    let path = cgroup.lines().find_map(|l| l.strip_prefix("0::"))?;
+    let name = path.rsplit('/').next()?;
+    if !name.ends_with(".service") {
+        // A scope (terminal, test harness) carries no exec sandbox to mirror.
+        return None;
+    }
+    Some((path.contains("/user@"), name.to_owned()))
+}
+
+/// The daemon's sandbox, read once per process. Empty when the daemon is not
+/// a service (CLI, tests) or the manager cannot be asked; the latter is logged
+/// because the push would then run less confined than its daemon.
+fn mirrored_sandbox() -> &'static [String] {
+    static SANDBOX: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    SANDBOX.get_or_init(|| {
+        let Some((user, unit)) = std::fs::read_to_string("/proc/self/cgroup")
+            .ok()
+            .as_deref()
+            .and_then(own_unit)
+        else {
+            return Vec::new();
+        };
+        let mut command = std::process::Command::new("systemctl");
+        if user {
+            command.arg("--user");
+        }
+        command.args(["show", &unit]);
+        for key in MIRRORED_SANDBOX {
+            command.args(["-p", key]);
+        }
+        match command
+            .stdin(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .output()
+        {
+            Ok(output) if output.status.success() => {
+                mirror_properties(&String::from_utf8_lossy(&output.stdout))
+            }
+            _ => {
+                eprintln!(
+                    "⚠️ push isolation: could not read {unit}'s sandbox; push units will run WITHOUT it"
+                );
+                Vec::new()
+            }
+        }
+    })
+}
+
+/// Whether the push units carry a sandbox copied from the daemon (for health).
+pub(crate) fn sandbox_mirrored() -> bool {
+    !mirrored_sandbox().is_empty()
+}
+
+#[allow(clippy::too_many_arguments)]
 fn runner_args(
     unit: &str,
     repo: &Path,
@@ -205,6 +321,7 @@ fn runner_args(
     env_keys: &[String],
     runtime_max_secs: u64,
     stop_grace: Duration,
+    sandbox: &[String],
 ) -> Vec<OsString> {
     let mut out: Vec<OsString> = [
         "--user",
@@ -227,6 +344,9 @@ fn runner_args(
         // Same low priority the direct path set through pre_exec.
         "Nice=19".to_string(),
     ] {
+        out.push(format!("--property={property}").into());
+    }
+    for property in sandbox {
         out.push(format!("--property={property}").into());
     }
     let mut workdir = OsString::from("--working-directory=");
@@ -283,6 +403,7 @@ pub(super) fn wrap(
         &keys,
         runtime_max_secs,
         super::ops::SIGTERM_GRACE,
+        mirrored_sandbox(),
     ));
     command.stdin(std::process::Stdio::null());
     Some((command, unit))

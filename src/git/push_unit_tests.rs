@@ -10,6 +10,7 @@ fn runner_args_isolate_into_the_push_slice_without_leaking_values() {
         &["GIT_SSH_COMMAND".into(), "GH_TOKEN".into()],
         3600,
         Duration::from_secs(25),
+        &["ProtectSystem=strict".into(), "ReadWritePaths=-/home/u/Dev".into()],
     );
     let text: Vec<String> = args.iter().map(|a| a.to_string_lossy().into_owned()).collect();
     for expected in [
@@ -27,6 +28,8 @@ fn runner_args_isolate_into_the_push_slice_without_leaking_values() {
         "--working-directory=/repo with space",
         "--setenv=GIT_SSH_COMMAND",
         "--setenv=GH_TOKEN",
+        "--property=ProtectSystem=strict",
+        "--property=ReadWritePaths=-/home/u/Dev",
     ] {
         assert!(text.iter().any(|a| a == expected), "missing {expected}: {text:?}");
     }
@@ -88,4 +91,44 @@ fn unit_names_are_unique_and_prefixed() {
     let b = unit_name().unwrap();
     assert_ne!(a, b);
     assert!(a.starts_with(TEST_UNIT_PREFIX) && a.ends_with(".service"), "{a}");
+}
+
+#[test]
+fn sandbox_is_mirrored_from_the_live_daemon_unit() {
+    // Verbatim `systemctl show` of dracon-sync-operator.service, 2026-11-13
+    // (note the duplicated bridge-fixture path from the merged drop-in).
+    let show = "ReadWritePaths=/home/dracon/.dracon /home/dracon/Dev /home/dracon/.local/state/dracon /home/dracon/.ssh /home/dracon/dracon/bridge-fixture /home/dracon/dracon/bridge-fixture\n\
+ReadOnlyPaths=\nInaccessiblePaths=\nPrivateTmp=yes\nPrivateDevices=yes\nProtectHome=read-only\n\
+ProtectSystem=strict\nNoNewPrivileges=yes\nLockPersonality=yes\nRestrictRealtime=yes\nRestrictSUIDSGID=no\nMemoryMax=1468006400\n";
+    assert_eq!(
+        mirror_properties(show),
+        [
+            "ReadWritePaths=-/home/dracon/.dracon -/home/dracon/Dev -/home/dracon/.local/state/dracon -/home/dracon/.ssh -/home/dracon/dracon/bridge-fixture",
+            "PrivateTmp=yes",
+            "PrivateDevices=yes",
+            "ProtectHome=read-only",
+            "ProtectSystem=strict",
+            "NoNewPrivileges=yes",
+            "LockPersonality=yes",
+            "RestrictRealtime=yes",
+        ]
+    );
+    // Resource limits are the slice's business, never copied.
+    assert!(!mirror_properties(show).iter().any(|p| p.starts_with("Memory")));
+}
+
+#[test]
+fn own_unit_distinguishes_services_from_scopes() {
+    assert_eq!(
+        own_unit("0::/system.slice/dracon-sync-operator.service\n"),
+        Some((false, "dracon-sync-operator.service".into()))
+    );
+    assert_eq!(
+        own_unit("0::/user.slice/user-1000.slice/user@1000.service/app.slice/dracon-sync.service"),
+        Some((true, "dracon-sync.service".into()))
+    );
+    assert_eq!(
+        own_unit("0::/user.slice/user-1000.slice/user@1000.service/app.slice/tmux-spawn-1.scope"),
+        None
+    );
 }
