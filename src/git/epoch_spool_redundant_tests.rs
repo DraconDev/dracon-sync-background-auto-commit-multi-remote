@@ -1052,3 +1052,82 @@ fn refusal_summary_ranks_reasons_most_frequent_first() {
         "; preserved: 12× legacy ownership uncertain; 3× a tie; 3× source inactivity is not proven"
     );
 }
+
+/// A producer that died before settlement: its lease existed and was released
+/// (process exit), no settled marker was ever written.
+fn crash_abandon(spool: &Path) {
+    drop(SpoolLease::acquire(spool).unwrap());
+}
+
+/// Age the spool AND every entry past the abandonment quiet period.
+fn backdate_all(spool: &Path) {
+    for entry in fs::read_dir(spool).unwrap() {
+        fs::File::open(entry.unwrap().path())
+            .unwrap()
+            .set_modified(std::time::UNIX_EPOCH)
+            .unwrap();
+    }
+    backdate(spool);
+}
+
+#[tokio::test]
+async fn crash_abandoned_unsettled_spool_is_reclaimed_when_redundant() {
+    // 2026-11-13: ~60 OOM kills left 200+ unsettled spools that no proof
+    // could ever clear. Abandonment substitutes for the marker only; the
+    // content proofs still apply.
+    let f = fixture("crash-abandoned");
+    crash_abandon(&f.spool);
+    assert!(!f.spool.join("reclaim-settled.json").exists());
+    backdate_all(&f.spool);
+    assert_eq!(reap(&f.repo).await, 1);
+    assert!(!f.spool.exists());
+}
+
+#[tokio::test]
+async fn crash_abandoned_spool_still_needs_its_content_proofs() {
+    let f = fixture("crash-abandoned-unpublished");
+    let dangling = dangling_blob(&f.repo, b"never published");
+    fs::write(f.spool.join("producer-io-stdin"), format!("{dangling}\n")).unwrap();
+    crash_abandon(&f.spool);
+    backdate_all(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0);
+    assert!(f.spool.exists());
+}
+
+#[tokio::test]
+async fn recently_changed_unsettled_spool_is_preserved() {
+    let f = fixture("crash-recent");
+    crash_abandon(&f.spool);
+    // Only the directory is old; its entries changed moments ago.
+    backdate(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0);
+    assert!(f.spool.exists());
+}
+
+#[tokio::test]
+async fn unsettled_spool_referenced_by_a_live_process_is_preserved() {
+    let f = fixture("crash-live-handle");
+    crash_abandon(&f.spool);
+    backdate_all(&f.spool);
+    // A detached producer descendant still working inside the spool.
+    let mut child = std::process::Command::new("sleep")
+        .arg("60")
+        .current_dir(&f.spool)
+        .spawn()
+        .unwrap();
+    let removed = reap(&f.repo).await;
+    child.kill().unwrap();
+    child.wait().unwrap();
+    assert_eq!(removed, 0);
+    assert!(f.spool.exists());
+}
+
+#[tokio::test]
+async fn unsettled_spool_with_a_held_lease_is_preserved() {
+    let f = fixture("crash-held-lease");
+    let lease = SpoolLease::acquire(&f.spool).unwrap();
+    backdate_all(&f.spool);
+    assert_eq!(reap(&f.repo).await, 0);
+    assert!(f.spool.exists());
+    drop(lease);
+}
