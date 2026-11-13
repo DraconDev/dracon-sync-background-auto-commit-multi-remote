@@ -1530,12 +1530,31 @@ mod sigterm_grace_tests {
         assert!(result.is_err());
         if let Some(pid) = pid {
             // The process group must be gone: ESRCH, not a live zombie leader.
-            let alive = std::process::Command::new("kill")
-                .args(["-0", &format!("-{pid}")])
-                .output()
-                .map(|o| o.status.success())
-                .unwrap_or(false);
-            assert!(!alive, "process group {pid} survived SIGKILL escalation");
+            // CHANGED 2026-11-13: poll briefly. The shell's `sleep` grandchild
+            // is SIGKILLed with the group but reparented and reaped
+            // asynchronously; until its subreaper reaps it, the zombie keeps
+            // `kill -0 -<pgid>` succeeding (intermittent 1-in-3 failure at
+            // load 22). A group that genuinely survives still fails, with its
+            // members and states in the message.
+            let alive = || {
+                std::process::Command::new("kill")
+                    .args(["-0", &format!("-{pid}")])
+                    .output()
+                    .map(|o| o.status.success())
+                    .unwrap_or(false)
+            };
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            while alive() && std::time::Instant::now() < deadline {
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            }
+            if alive() {
+                let members = std::process::Command::new("ps")
+                    .args(["-o", "pid=,stat=,comm=", "-g", &pid.to_string()])
+                    .output()
+                    .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+                    .unwrap_or_default();
+                panic!("process group {pid} survived SIGKILL escalation: {members}");
+            }
         }
     }
 
