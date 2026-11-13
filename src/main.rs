@@ -1542,7 +1542,7 @@ async fn run_cli(cli: Cli) -> Result<()> {
                         println!("Redundant removals: {redundant_total} dir(s) proven already published.");
                     }
                     if !apply && total_dirs > 0 {
-                        println!("Provably redundant now (preview, one pass per repo): {redundant_total} dir(s) — the rest are listed in the ⚠️ lines above with the reason each is preserved.");
+                        println!("Provably redundant now (preview, one pass per repo): {redundant_total} dir(s) — the rest are counted by reason in each pass summary above (DRACON_SYNC_DEBUG=1 lists every preserved spool).");
                         println!("\n🔧 Run 'dracon-sync repair spools --apply' to reclaim them");
                     }
                 }
