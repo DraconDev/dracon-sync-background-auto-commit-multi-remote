@@ -15,6 +15,21 @@ use std::time::Duration;
 const OWNER_FILE: &str = "reclaim-owner.lock";
 const SETTLED_FILE: &str = "reclaim-settled.json";
 const CLOSING_FILE: &str = "reclaim-closing.json";
+/// Quiet period after which an unsettled, unowned, unreferenced spool is
+/// abandoned. 24× the producer unit's maximum runtime.
+pub(super) const ABANDONED_AFTER: Duration = Duration::from_secs(24 * 3600);
+
+/// Latest modification time of the spool directory and its direct entries.
+fn newest_mtime(spool: &Path) -> Result<std::time::SystemTime> {
+    let mut newest = std::fs::symlink_metadata(spool)?.modified()?;
+    for entry in std::fs::read_dir(spool)? {
+        let modified = entry?.metadata()?.modified()?;
+        if modified > newest {
+            newest = modified;
+        }
+    }
+    Ok(newest)
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -344,10 +359,64 @@ impl ReclaimOwner {
     }
 
     /// The proof that the source may be inspected and eventually removed.
+    ///
+    /// CHANGED 2026-11-13: a settled marker, OR proof of abandonment. A
+    /// producer killed before settlement (the daemon's ~60 OOM restarts on
+    /// 2026-11-13 left 200+ such spools) can never mint its marker, and the
+    /// sweeper must never manufacture one — so without a second proof every
+    /// crash leaked its spool forever. See [`Self::proves_abandonment`].
     pub(super) fn proves_inactivity(&self) -> Result<()> {
+        if self.is_settled() {
+            return Ok(());
+        }
+        self.proves_abandonment().context(
+            "producer quiescence uncertain: no matching settled marker and abandonment not proven",
+        )
+    }
+
+    /// An unsettled spool whose producer provably can never act again:
+    ///
+    /// 1. this reclaimer HOLDS the owner lock (held by the lease from
+    ///    initialization until settlement, so its holder has exited), and a
+    ///    lease can never be re-acquired (`SpoolLease::acquire` uses
+    ///    `create_new` on the lock file), so nobody can resume it;
+    /// 2. no producer scope for it is live in this process;
+    /// 3. no process holds a descriptor, cwd, root or Git environment inside it
+    ///    (a detached producer descendant / epoch unit would);
+    /// 4. neither the directory nor any entry changed for
+    ///    [`ABANDONED_AFTER`] — far beyond the producer unit's RuntimeMaxSec
+    ///    (clamped to 3600 s), so no bounded producer can still be running.
+    ///
+    /// This only establishes QUIESCENCE. Removal still requires every content
+    /// proof (known files, published index, reachable objects).
+    pub(super) fn proves_abandonment(&self) -> Result<()> {
+        ensure!(self.still_owned(), "spool identity changed");
         ensure!(
-            self.is_settled(),
-            "producer quiescence uncertain: no matching settled marker"
+            !self.spool.join(CLOSING_FILE).exists() || !self.is_settled(),
+            "closing spool"
+        );
+        let live_scope = scopes()
+            .lock()
+            .map_err(|_| anyhow::anyhow!("spool scope registry poisoned"))?
+            .get(&self.spool)
+            .and_then(Weak::upgrade)
+            .is_some();
+        ensure!(!live_scope, "a live producer scope still owns the spool");
+        let handles = super::liveness::live_handles(&self.spool)?;
+        ensure!(
+            handles.is_empty(),
+            "a live process references the spool: {}",
+            handles.join(", ")
+        );
+        let newest = newest_mtime(&self.spool)?;
+        let age = std::time::SystemTime::now()
+            .duration_since(newest)
+            .unwrap_or_default();
+        ensure!(
+            age >= ABANDONED_AFTER,
+            "unsettled spool changed {}s ago (abandonment needs {}s)",
+            age.as_secs(),
+            ABANDONED_AFTER.as_secs()
         );
         Ok(())
     }
