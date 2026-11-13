@@ -145,6 +145,29 @@ carries stderr.
 Non-vacuity: forcing `refusal_still_holds` to `false` fails the three memo
 tests.
 
+### Third defect, and end-to-end verification (2026-11-13)
+
+A fresh preview showed browser-extensions-shared at 0 provable: its full raw
+history (~84 MB) exceeded the 64 MiB capture limit, and the failed walk was
+re-run per spool. The walk is now streamed (`RawHistoryParser`) and loaded at
+most once per pass; a pass-level failure (`PassUnavailable`) is never memoized.
+
+Verification, all against live data:
+
+1. **Independent re-proof of every preview decision.** A separate checker
+   (`show-index` for pack contents, per-path `rev-list` + `cat-file
+   --batch-check` + `ls-tree` for history — none of the Rust proof's code
+   paths) re-proved all 2,843 "would remove" spools: dracon-platform 653,
+   browser-extensions-shared 465, ~/.dracon 1,725 — **0 disagreements**.
+2. **Real apply on dracon-platform**, after copying all 4,380 aged spools
+   (7.9 GiB) to `~/dracon/backups/spool-apply-verify-20261113/` (hard links are
+   unusable: the owner lock requires `nlink == 1`). One pass removed 1,321
+   spools in 120 s. Every removed spool was in the backup; none remained on
+   disk; 1,321 matching ledger records; `git fsck --connectivity-only` clean
+   before and after; HEAD == origin/main; the live daemon kept committing and
+   pushing the repo. The independent checker then re-proved all 1,321 deleted
+   spools from their backup copies — **0 disagreements**.
+
 ## Testing note
 
 `.cargo/config.toml` sets `RUST_TEST_THREADS = "1"` because tests swap
