@@ -1094,6 +1094,68 @@ trusted_authors = ["DraconDev"]
     );
 }
 
+/// 2026-11-13: commit hooks run in a transient unit under the push slice, not
+/// in the daemon's cgroup (a ~360 MB pre-commit guard there pinned the daemon
+/// at MemoryHigh and systemd-oomd killed the whole daemon).
+#[cfg(unix)]
+#[tokio::test]
+async fn commit_hooks_run_outside_the_daemon_cgroup() {
+    use std::os::unix::fs::PermissionsExt;
+    let uid = unsafe { libc::getuid() };
+    if !Path::new(&format!("/run/user/{uid}/bus")).exists() {
+        eprintln!("no user manager: isolation falls back to direct spawn");
+        return;
+    }
+    let dir = guarded_fixture().await;
+    let repo = dir.path();
+    setup_guard(
+        repo,
+        &"a".repeat(64),
+        &repo.join(".git/metadata"),
+        Path::new("assets.manifest"),
+    )
+    .unwrap();
+    let hooks = repo.join(".git/isolated-hooks");
+    std::fs::create_dir_all(&hooks).unwrap();
+    let marker = repo.join("pre-commit-cgroup");
+    let hook = hooks.join("pre-commit");
+    std::fs::write(
+        &hook,
+        format!(
+            "#!/bin/sh\ncat /proc/self/cgroup > '{}'\necho 'refused after recording' >&2\nexit 1\n",
+            marker.to_string_lossy()
+        ),
+    )
+    .unwrap();
+    std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+    git_fixture_command(repo, &["config", "core.hooksPath", hooks.to_str().unwrap()]);
+    std::fs::write(repo.join("README.md"), "bootstrap fixture\n").unwrap();
+    let policy: crate::policy::SyncPolicy = toml::from_str(
+        r#"
+auto_commit = true
+auto_push = false
+auto_pull = false
+auto_bump_versions = false
+trusted_emails = ["dracsharp@gmail.com"]
+trusted_authors = ["DraconDev"]
+"#,
+    )
+    .unwrap();
+    let error = crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false)
+        .await
+        .expect_err("the hook refuses");
+    // The refusal (and its stderr) still reaches the caller through the unit.
+    assert!(
+        format!("{error:#}").contains("refused after recording"),
+        "{error:#}"
+    );
+    let cgroup = std::fs::read_to_string(&marker).expect("pre-commit ran");
+    assert!(
+        cgroup.contains("/dracon-sync-push.slice/dracon-push-test-"),
+        "commit hook is not isolated: {cgroup}"
+    );
+}
+
 /// Native Git must consult ref-transaction policy before advancing the sealed
 /// object. A rejected ref transaction must not run post-commit or advance HEAD.
 #[cfg(unix)]
