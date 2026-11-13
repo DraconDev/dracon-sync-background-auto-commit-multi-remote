@@ -59,6 +59,19 @@ pub(crate) const SIGTERM_GRACE: std::time::Duration = std::time::Duration::from_
 #[cfg(unix)]
 async fn kill_process_group(pid: u32) {
     let pid_s = format!("-{pid}");
+    // An isolated push's hook/pack/ssh processes live in their own user unit,
+    // not in this client's process group. systemd applies the same TERM ->
+    // SIGTERM_GRACE -> KILL sequence to the whole unit; the client exits as
+    // soon as its unit is inactive, so it needs no second grace period.
+    if super::push_unit::stop(pid).await {
+        let _ = tokio::task::spawn_blocking(move || {
+            let _ = std::process::Command::new("kill")
+                .args(["-KILL", pid_s.as_str()])
+                .output();
+        })
+        .await;
+        return;
+    }
     // Use `setsid` + `kill` shell-out to send signals to the
     // process group created by `process_group(0)` in
     // `configure_git_process_group`. The shell-out form is
@@ -170,10 +183,22 @@ fn child_status_result(
 /// kept so the ordering is uniform with that path and so the signal a group sees
 /// is never a bare KILL when a TERM was intended.
 struct GroupKillGuard(Option<u32>);
+impl GroupKillGuard {
+    /// The leader was reaped (or explicitly killed): never signal its PID
+    /// again, and release any isolated-push unit binding for that PID.
+    fn disarm(&mut self) {
+        if let Some(pid) = self.0.take() {
+            super::push_unit::forget(pid);
+        }
+    }
+}
 impl Drop for GroupKillGuard {
     fn drop(&mut self) {
         #[cfg(unix)]
         if let Some(pid) = self.0 {
+            // Cancellation of an isolated push: its hook runs outside this
+            // process group, so the unit itself must be killed too.
+            super::push_unit::kill_now(pid);
             // SAFETY: a positive child PID is also its explicitly-created PGID.
             unsafe { libc::kill(-(pid as libc::pid_t), libc::SIGTERM) };
             // SAFETY: same invariant; unmaskable, so the group cannot survive.
@@ -315,7 +340,7 @@ where
             }
             let _ = child.start_kill();
             let _ = child.wait().await;
-            group_guard.0 = None;
+            group_guard.disarm();
             if captured_stderr.is_none() {
                 let _ = stderr_task.await;
             }
@@ -339,7 +364,7 @@ where
                 let status = status
                     .map_err(|e| anyhow::anyhow!("{} failed in {}: {}", label, workdir.display(), e))?;
                 // wait reaped the leader; never signal its potentially reused PID.
-                group_guard.0 = None;
+                group_guard.disarm();
                 let stderr_output = match captured_stderr.take() {
                     Some(output) => output,
                     None => stderr_task.await,
@@ -398,8 +423,13 @@ where
     .await
 }
 
-fn spawn_git_command(repo: &Path, args: &[&str], op_label: &str) -> Result<tokio::process::Child> {
-    spawn_git_command_inner(repo, args, op_label, &[], None)
+fn spawn_git_command(
+    repo: &Path,
+    args: &[&str],
+    op_label: &str,
+    timeout_secs: u64,
+) -> Result<tokio::process::Child> {
+    spawn_git_command_inner(repo, args, op_label, &[], None, timeout_secs)
 }
 
 fn spawn_git_command_fenced(
@@ -407,8 +437,9 @@ fn spawn_git_command_fenced(
     args: &[&str],
     op_label: &str,
     fence: &WriteFence,
+    timeout_secs: u64,
 ) -> Result<tokio::process::Child> {
-    spawn_git_command_inner(repo, args, op_label, &[], Some(fence))
+    spawn_git_command_inner(repo, args, op_label, &[], Some(fence), timeout_secs)
 }
 
 fn spawn_git_command_inner(
@@ -417,6 +448,7 @@ fn spawn_git_command_inner(
     op_label: &str,
     env: &[(&str, &str)],
     fence: Option<&WriteFence>,
+    timeout_secs: u64,
 ) -> Result<tokio::process::Child> {
     let label = format!("git {}", op_label);
     let mut cmd = crate::policy::tokio_git_command();
@@ -437,6 +469,30 @@ fn spawn_git_command_inner(
         fence.inherit_into(&mut cmd);
     }
     configure_git_process_group(&mut cmd);
+    // ADDED 2026-11-13: an enrolled daemon push runs in its own transient user
+    // unit so its hook's memory is not the daemon's (see `push_unit`). A fenced
+    // command must stay direct: its inherited fence descriptor cannot cross the
+    // service manager. The unit's RuntimeMaxSec backstops a daemon that dies
+    // mid-push; the runner's own deadline still governs normal timeouts.
+    if fence.is_none() && super::push_resources::isolated_push(args) {
+        let backstop = progress_hard_timeout_secs(timeout_secs)
+            .saturating_add(SIGTERM_GRACE.as_secs())
+            .saturating_add(60);
+        if let Some((mut wrapped, unit)) = super::push_unit::wrap(cmd.as_std(), repo, backstop) {
+            wrapped
+                .kill_on_drop(true)
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped());
+            configure_git_process_group(&mut wrapped);
+            let child = wrapped.spawn().with_context(|| {
+                format!("failed to spawn isolated {} in {}", label, repo.display())
+            })?;
+            if let Some(pid) = child.id() {
+                super::push_unit::register(pid, unit);
+            }
+            return Ok(child);
+        }
+    }
     super::push_resources::configure_child(&mut cmd, args);
     cmd.spawn()
         .with_context(|| format!("failed to spawn {} in {}", label, repo.display()))
@@ -624,7 +680,7 @@ async fn run_captured_output(
         .wait()
         .await
         .with_context(|| format!("{} in {}: wait failed", label, workdir.display()))?;
-    group_guard.0 = None;
+    group_guard.disarm();
     Ok((status, stdout_buf, stderr_buf))
 }
 
@@ -655,8 +711,9 @@ fn spawn_git_command_env(
     args: &[&str],
     op_label: &str,
     env: &[(&str, &str)],
+    timeout_secs: u64,
 ) -> Result<tokio::process::Child> {
-    spawn_git_command_inner(repo, args, op_label, env, None)
+    spawn_git_command_inner(repo, args, op_label, env, None, timeout_secs)
 }
 
 fn spawn_git_command_env_fenced(
@@ -665,8 +722,9 @@ fn spawn_git_command_env_fenced(
     op_label: &str,
     env: &[(&str, &str)],
     fence: &WriteFence,
+    timeout_secs: u64,
 ) -> Result<tokio::process::Child> {
-    spawn_git_command_inner(repo, args, op_label, env, Some(fence))
+    spawn_git_command_inner(repo, args, op_label, env, Some(fence), timeout_secs)
 }
 
 /// Run a git command with a timeout using the tokio git command builder.
@@ -715,8 +773,8 @@ async fn run_git_with_timeout_inner_fenced(
         );
     }
     let child = match fence {
-        Some(fence) => spawn_git_command_fenced(repo, args, op_label, fence)?,
-        None => spawn_git_command(repo, args, op_label)?,
+        Some(fence) => spawn_git_command_fenced(repo, args, op_label, fence, timeout_secs)?,
+        None => spawn_git_command(repo, args, op_label, timeout_secs)?,
     };
     if trace_add {
         eprintln!(
@@ -791,7 +849,7 @@ pub(crate) async fn run_git_with_timeout_env(
 ) -> Result<()> {
     super::push_resources::command(args, async {
         let label = format!("git {}", op_label);
-        let child = spawn_git_command_env(repo, args, op_label, env)?;
+        let child = spawn_git_command_env(repo, args, op_label, env, timeout_secs)?;
         run_child(child, repo, timeout_secs, &label).await
     })
     .await
@@ -808,7 +866,7 @@ pub(crate) async fn run_git_with_timeout_env_fenced(
 ) -> Result<()> {
     super::push_resources::command(args, async {
         let label = format!("git {}", op_label);
-        let child = spawn_git_command_env_fenced(repo, args, op_label, env, fence)?;
+        let child = spawn_git_command_env_fenced(repo, args, op_label, env, fence, timeout_secs)?;
         run_child(child, repo, timeout_secs, &label).await
     })
     .await
@@ -824,7 +882,7 @@ pub(crate) async fn run_git_with_timeout_env_progress(
 ) -> Result<()> {
     super::push_resources::command(args, async {
         let label = format!("git {}", op_label);
-        let child = spawn_git_command_env(repo, args, op_label, env)?;
+        let child = spawn_git_command_env(repo, args, op_label, env, timeout_secs)?;
         run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
     })
     .await
@@ -841,7 +899,7 @@ pub(crate) async fn run_git_with_timeout_env_progress_fenced(
 ) -> Result<()> {
     super::push_resources::command(args, async {
         let label = format!("git {}", op_label);
-        let child = spawn_git_command_env_fenced(repo, args, op_label, env, fence)?;
+        let child = spawn_git_command_env_fenced(repo, args, op_label, env, fence, timeout_secs)?;
         run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
     })
     .await

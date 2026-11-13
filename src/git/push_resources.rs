@@ -152,7 +152,7 @@ pub(crate) async fn background_pushes<T>(work: impl Future<Output = T>) -> T {
     PUSH_PHASE.scope(true, work).await
 }
 
-fn isolated_push(args: &[&str]) -> bool {
+pub(super) fn isolated_push(args: &[&str]) -> bool {
     args.first() == Some(&"push") && PUSH_PHASE.try_with(|active| *active).unwrap_or(false)
 }
 
@@ -166,7 +166,9 @@ pub(super) async fn command<T>(_args: &[&str], work: impl Future<Output = Result
 /// Apply only to the child of an enrolled daemon push. Setting our own child
 /// to nice 19 is unprivileged, cannot improve its priority, and is inherited by
 /// hook descendants. The daemon and interactive Git processes are untouched.
-/// No memory limit, service-wide setting or external command wrapper is used.
+/// This is the FALLBACK path: when a systemd user manager is reachable the
+/// push runs in its own transient unit instead (`push_unit`, 2026-11-13) and
+/// gets `Nice=19` there. No memory limit is set by the daemon on either path.
 pub(super) fn configure_child(cmd: &mut tokio::process::Command, args: &[&str]) {
     #[cfg(unix)]
     if isolated_push(args) {

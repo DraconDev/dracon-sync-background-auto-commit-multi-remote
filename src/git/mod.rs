@@ -1349,6 +1349,7 @@ pub(crate) use epoch_spool::*;
 mod ops;
 pub(crate) use ops::*;
 pub(crate) mod push_resources;
+pub(crate) mod push_unit;
 pub(crate) mod staged_intent;
 mod status;
 pub(crate) use status::*;
