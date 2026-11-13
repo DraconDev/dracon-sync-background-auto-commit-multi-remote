@@ -707,7 +707,16 @@ pub(crate) fn parse_ident(ident: &str) -> Option<(String, String)> {
 /// author AND committer git would record, from every config layer and env.
 pub(crate) async fn ensure_commit_identity(repo: &Path) -> anyhow::Result<()> {
     for var in ["GIT_AUTHOR_IDENT", "GIT_COMMITTER_IDENT"] {
-        let output = crate::policy::tokio_git_command()
+        let mut command = crate::policy::tokio_git_command();
+        // Resolve exactly as the epoch commit does (`staged_epoch::git`
+        // strips every inherited GIT_* variable), so the identity judged is
+        // the identity recorded.
+        for (key, _) in std::env::vars_os() {
+            if key.to_string_lossy().starts_with("GIT_") {
+                command.env_remove(key);
+            }
+        }
+        let output = command
             .current_dir(repo)
             .args(["var", var])
             .stdin(std::process::Stdio::null())
