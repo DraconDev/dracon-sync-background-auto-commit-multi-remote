@@ -5082,6 +5082,11 @@ struct PreparedSealedCommit {
     message: String,
 }
 
+/// Fixed name for the latest refused sealed-commit message (overwritten per
+/// refusal). Deliberately NOT `dracon-epoch-message-*`: that prefix belongs to
+/// the private per-attempt directories the spool reclaim judges.
+pub(crate) const REFUSED_MESSAGE_FILE: &str = "dracon-refused-commit-message";
+
 async fn run_sealed_commit_hooks(
     repo: &Path,
     message: &str,
@@ -5111,11 +5116,25 @@ async fn run_sealed_commit_hooks(
     }
     .await;
     if let Err(error) = hooks {
-        let retained = directory.keep();
-        return Err(error.context(format!(
-            "refused epoch message retained at {}",
-            retained.display()
-        )));
+        // CHANGED 2026-11-13: the refused (possibly hook-edited) message is
+        // copied to ONE fixed file and the private directory is removed. The
+        // old `directory.keep()` retained a fresh directory per refusal — a
+        // repo whose hook refused every pass for two days (freeport, bucket
+        // high-water guard) accumulated 4133 of them, which the spool reclaim
+        // cannot prove it owns and so never removes.
+        let saved = git_dir.join(REFUSED_MESSAGE_FILE);
+        let note = match std::fs::copy(&msgfile, &saved) {
+            Ok(_) => format!("refused commit message saved at {}", saved.display()),
+            Err(copy_error) => {
+                let retained = directory.keep();
+                return Err(error.context(format!(
+                    "refused epoch message retained at {} (could not save to {}: {copy_error})",
+                    retained.display(),
+                    saved.display()
+                )));
+            }
+        };
+        return Err(error.context(note));
     }
     let mut options = std::fs::OpenOptions::new();
     options.read(true);

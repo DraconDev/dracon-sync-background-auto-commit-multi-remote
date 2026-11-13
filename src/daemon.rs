@@ -1267,7 +1267,7 @@ pub(crate) fn apply_outcome(
             ApplyOutcome::Failure
         }
         Err(e) => {
-            eprintln!("⚠️ sync failed{} for {}: {}", late_tag, repo.display(), e);
+            eprintln!("⚠️ sync failed{} for {}: {:#}", late_tag, repo.display(), e);
             // As above, retain the detailed failure in the journal/ledger
             // and let sustained-state handling decide when to notify.
             // ADDED 2026-07-22 (v0.112.37): no longer blocked.
@@ -7552,7 +7552,7 @@ pub(crate) async fn run_once(policy_path: &Path) -> Result<()> {
                 );
             }
             Err(e) => {
-                eprintln!("⚠️ sync failed for {}: {}", repo.display(), e);
+                eprintln!("⚠️ sync failed for {}: {:#}", repo.display(), e);
             }
         }
     }
