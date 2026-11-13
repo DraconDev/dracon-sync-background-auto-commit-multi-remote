@@ -79,7 +79,10 @@ pub(crate) fn record_daemon_start() {
         std::fs::rename(&tmp, &path)
     })();
     if let Err(error) = result {
-        eprintln!("⚠️ could not record daemon start in {}: {error}", path.display());
+        eprintln!(
+            "⚠️ could not record daemon start in {}: {error}",
+            path.display()
+        );
     }
     let recent = starts_within(&existing, now, RESTART_WINDOW_SECS) + 1;
     if recent >= RESTART_LOOP_STARTS {

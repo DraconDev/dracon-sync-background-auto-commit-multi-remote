@@ -6,13 +6,23 @@ fn runner_args_isolate_into_the_push_slice_without_leaking_values() {
         "dracon-push-test-00.service",
         Path::new("/repo with space"),
         Path::new("/usr/bin/git"),
-        &["push".into(), "origin".into(), "HEAD:refs/heads/main".into()],
+        &[
+            "push".into(),
+            "origin".into(),
+            "HEAD:refs/heads/main".into(),
+        ],
         &["GIT_SSH_COMMAND".into(), "GH_TOKEN".into()],
         3600,
         Duration::from_secs(25),
-        &["ProtectSystem=strict".into(), "ReadWritePaths=-/home/u/Dev".into()],
+        &[
+            "ProtectSystem=strict".into(),
+            "ReadWritePaths=-/home/u/Dev".into(),
+        ],
     );
-    let text: Vec<String> = args.iter().map(|a| a.to_string_lossy().into_owned()).collect();
+    let text: Vec<String> = args
+        .iter()
+        .map(|a| a.to_string_lossy().into_owned())
+        .collect();
     for expected in [
         "--user",
         "--wait",
@@ -31,12 +41,17 @@ fn runner_args_isolate_into_the_push_slice_without_leaking_values() {
         "--property=ProtectSystem=strict",
         "--property=ReadWritePaths=-/home/u/Dev",
     ] {
-        assert!(text.iter().any(|a| a == expected), "missing {expected}: {text:?}");
+        assert!(
+            text.iter().any(|a| a == expected),
+            "missing {expected}: {text:?}"
+        );
     }
     // The daemon sets no memory limit itself: the budget is the host slice's.
     assert!(!text.iter().any(|a| a.contains("Memory")), "{text:?}");
     // Values never reach argv; only the key names do.
-    assert!(!text.iter().any(|a| a.starts_with("--setenv=") && a.contains('=') && a.matches('=').count() > 1));
+    assert!(!text
+        .iter()
+        .any(|a| a.starts_with("--setenv=") && a.contains('=') && a.matches('=').count() > 1));
     let sep = text.iter().position(|a| a == "--").unwrap();
     assert_eq!(
         &text[sep + 1..],
@@ -53,7 +68,8 @@ fn effective_environment_applies_edits_and_drops_daemon_manager_state() {
         .env_remove("HOME");
     let env = effective_environment(&command);
     assert_eq!(
-        env.get(std::ffi::OsStr::new("GIT_SSH_COMMAND")).map(|v| v.as_os_str()),
+        env.get(std::ffi::OsStr::new("GIT_SSH_COMMAND"))
+            .map(|v| v.as_os_str()),
         Some(std::ffi::OsStr::new("ssh -o BatchMode=yes"))
     );
     assert!(!env.contains_key(std::ffi::OsStr::new("HOME")));
@@ -90,7 +106,10 @@ fn unit_names_are_unique_and_prefixed() {
     let a = unit_name().unwrap();
     let b = unit_name().unwrap();
     assert_ne!(a, b);
-    assert!(a.starts_with(TEST_UNIT_PREFIX) && a.ends_with(".service"), "{a}");
+    assert!(
+        a.starts_with(TEST_UNIT_PREFIX) && a.ends_with(".service"),
+        "{a}"
+    );
 }
 
 #[test]
@@ -114,7 +133,9 @@ ProtectSystem=strict\nNoNewPrivileges=yes\nLockPersonality=yes\nRestrictRealtime
         ]
     );
     // Resource limits are the slice's business, never copied.
-    assert!(!mirror_properties(show).iter().any(|p| p.starts_with("Memory")));
+    assert!(!mirror_properties(show)
+        .iter()
+        .any(|p| p.starts_with("Memory")));
 }
 
 #[test]

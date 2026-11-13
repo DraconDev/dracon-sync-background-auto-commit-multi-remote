@@ -3,7 +3,13 @@ use super::*;
 #[test]
 fn ledger_prunes_old_and_future_entries_and_counts_the_window() {
     let now = 1_000_000;
-    let existing = format!("{}\n{}\nnot-a-number\n{}\n{}\n", now - 90_000, now - 4_000, now - 100, now + 50);
+    let existing = format!(
+        "{}\n{}\nnot-a-number\n{}\n{}\n",
+        now - 90_000,
+        now - 4_000,
+        now - 100,
+        now + 50
+    );
     let next = ledger_with_start(&existing, now);
     // >24h old and future-dated entries are dropped; the new start is appended.
     assert_eq!(next, format!("{}\n{}\n{}\n", now - 4_000, now - 100, now));
@@ -26,7 +32,13 @@ fn tonight_restart_cadence_is_a_loop() {
     let text: String = (0..15).map(|i| format!("{}\n", now - i * 240)).collect();
     assert!(starts_within(&text, now, RESTART_WINDOW_SECS) >= RESTART_LOOP_STARTS);
     // A deploy (two restarts) is not.
-    assert!(starts_within(&format!("{}\n{}\n", now - 30, now), now, RESTART_WINDOW_SECS) < RESTART_LOOP_STARTS);
+    assert!(
+        starts_within(
+            &format!("{}\n{}\n", now - 30, now),
+            now,
+            RESTART_WINDOW_SECS
+        ) < RESTART_LOOP_STARTS
+    );
 }
 
 #[test]
@@ -38,7 +50,10 @@ fn memory_limits_inverted_by_a_runtime_drop_in_are_reported() {
         "/run/systemd/system/dracon-sync-operator.service.d/10-resource-headroom.conf /run/systemd/system/dracon-sync-operator.service.d/30-tasksmax.conf",
     )
     .unwrap();
-    assert!(finding.contains("MemoryHigh 1536M >= MemoryMax 1400M"), "{finding}");
+    assert!(
+        finding.contains("MemoryHigh 1536M >= MemoryMax 1400M"),
+        "{finding}"
+    );
     assert!(finding.contains("10-resource-headroom.conf"), "{finding}");
 }
 

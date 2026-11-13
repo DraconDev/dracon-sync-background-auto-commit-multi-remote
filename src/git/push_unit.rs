@@ -135,7 +135,8 @@ fn manager_reporting(log: bool) -> Option<Manager> {
             report("no systemd user manager bus");
             return None;
         }
-        let (Some(runner), Some(control)) = (locate("systemd-run", None), locate("systemctl", None))
+        let (Some(runner), Some(control)) =
+            (locate("systemd-run", None), locate("systemctl", None))
         else {
             report("systemd-run/systemctl not on PATH");
             return None;
@@ -370,10 +371,7 @@ pub(super) fn wrap(
     let program = if program.is_absolute() {
         program
     } else {
-        locate(
-            program.to_str()?,
-            env.get(std::ffi::OsStr::new("PATH")),
-        )?
+        locate(program.to_str()?, env.get(std::ffi::OsStr::new("PATH")))?
     };
     let repo = std::path::absolute(repo).ok()?;
     let unit = unit_name()?;
@@ -443,7 +441,9 @@ pub(super) async fn stop(pid: u32) -> bool {
         return true;
     };
     let mut command = tokio::process::Command::from(manager.control());
-    command.args(["--user", "stop", "--", &unit]).kill_on_drop(true);
+    command
+        .args(["--user", "stop", "--", &unit])
+        .kill_on_drop(true);
     let budget = super::ops::SIGTERM_GRACE + Duration::from_secs(15);
     match tokio::time::timeout(budget, command.output()).await {
         Ok(Ok(output)) if output.status.success() => {}
@@ -473,7 +473,10 @@ pub(super) fn kill_now(pid: u32) {
             .control()
             .args(["--user", "kill", "--signal=SIGKILL", "--", &unit])
             .output();
-        let _ = manager.control().args(["--user", "stop", "--", &unit]).output();
+        let _ = manager
+            .control()
+            .args(["--user", "stop", "--", &unit])
+            .output();
     });
 }
 
@@ -534,7 +537,9 @@ pub(crate) async fn stop_orphaned_push_units() -> usize {
         eprintln!("⚠️ push isolation: could not stop orphaned {unit}");
     }
     if stopped > 0 {
-        eprintln!("🧹 push isolation: stopped {stopped} orphaned push unit(s) left by a previous daemon");
+        eprintln!(
+            "🧹 push isolation: stopped {stopped} orphaned push unit(s) left by a previous daemon"
+        );
     }
     stopped
 }
