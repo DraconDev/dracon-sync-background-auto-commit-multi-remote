@@ -7921,6 +7921,7 @@ pub(crate) async fn run_daemon(
     // isolated push unit running; stop it before this daemon pushes the same
     // repository. Daemon start only — `run_once` may run beside a live daemon
     // and must never stop that daemon's in-flight pushes.
+    crate::containment::record_daemon_start();
     crate::git::push_unit::stop_orphaned_push_units().await;
     let (repo_set, _) = run_startup_cleanup(&policy_path).await;
     initial_repos = repo_set.iter().cloned().collect();

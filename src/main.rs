@@ -6,6 +6,7 @@ mod bucket_assets;
 mod bucket_guard;
 mod bucket_runner_bridge;
 mod bump;
+mod containment;
 mod cooldown;
 mod daemon;
 mod exclude;
@@ -1670,7 +1671,31 @@ async fn run_cli(cli: Cli) -> Result<()> {
             }
             let spools_ok = spool_bytes < SPOOL_BACKLOG_ALERT_BYTES;
 
-            let status = if frozen || !policy_ok || !image_ok || !spools_ok {
+            // ADDED 2026-11-13: containment. A restart loop and incoherent
+            // unit memory limits are both invisible to every other row (each
+            // restarted daemon looks healthy). Push isolation being
+            // unavailable is a warning: hosts without a user manager are
+            // legitimate, but there a hook shares the daemon's memory.
+            let starts_text =
+                std::fs::read_to_string(containment::starts_ledger_path()).unwrap_or_default();
+            let recent_starts = containment::starts_within(
+                &starts_text,
+                policy::timestamp_secs(),
+                containment::RESTART_WINDOW_SECS,
+            );
+            let restart_loop = recent_starts >= containment::RESTART_LOOP_STARTS;
+            let memory_finding = containment::daemon_unit_properties().and_then(|props| {
+                let get = |k: &str| props.get(k).map(String::as_str).unwrap_or("");
+                containment::memory_limit_finding(
+                    get("MemoryHigh"),
+                    get("MemoryMax"),
+                    get("DropInPaths"),
+                )
+            });
+            let push_isolated = git::push_unit::available();
+            let containment_ok = !restart_loop && memory_finding.is_none();
+
+            let status = if frozen || !policy_ok || !image_ok || !spools_ok || !containment_ok {
                 "unhealthy"
             } else {
                 "healthy"
@@ -1694,6 +1719,12 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     spool_backlog_dirs: usize,
                     spool_backlog_bytes: u64,
                     spool_backlog_ok: bool,
+                    /// ADDED 2026-11-13: daemon starts in the last hour.
+                    daemon_starts_last_hour: usize,
+                    restart_loop: bool,
+                    memory_limit_finding: Option<&'a str>,
+                    push_isolated: bool,
+                    containment_ok: bool,
                 }
                 let payload = HealthJson {
                     status,
@@ -1709,6 +1740,11 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     spool_backlog_dirs: spool_dirs,
                     spool_backlog_bytes: spool_bytes,
                     spool_backlog_ok: spools_ok,
+                    daemon_starts_last_hour: recent_starts,
+                    restart_loop,
+                    memory_limit_finding: memory_finding.as_deref(),
+                    push_isolated,
+                    containment_ok,
                 };
                 println!("{}", serde_json::to_string_pretty(&payload)?);
             } else {
@@ -1831,6 +1867,44 @@ async fn run_cli(cli: Cli) -> Result<()> {
                             ),
                             Color::Red,
                         ),
+                    ]);
+                }
+
+                let mut problems: Vec<String> = Vec::new();
+                if restart_loop {
+                    problems.push(format!(
+                        "daemon started {recent_starts}× in the last hour (crash/OOM loop — `journalctl -u {} | grep -E 'oom-kill|Main process exited'`)",
+                        containment::DAEMON_UNIT
+                    ));
+                }
+                if let Some(finding) = &memory_finding {
+                    problems.push(finding.clone());
+                }
+                let isolation_text = if push_isolated {
+                    format!("push hooks isolated in {}", git::push_unit::PUSH_SLICE)
+                } else {
+                    "push isolation unavailable: hooks share the daemon's memory".to_string()
+                };
+                if problems.is_empty() {
+                    let (icon, c) = if push_isolated {
+                        ("✅", Color::Green)
+                    } else {
+                        ("⚠️", Color::Yellow)
+                    };
+                    table.add_row(vec![
+                        mk(icon, c),
+                        Cell::new("Containment"),
+                        mk(
+                            &format!("{isolation_text}; {recent_starts} daemon start(s) in the last hour"),
+                            c,
+                        ),
+                    ]);
+                } else {
+                    problems.push(isolation_text);
+                    table.add_row(vec![
+                        mk("❌", Color::Red),
+                        Cell::new("Containment"),
+                        mk(&problems.join("; "), Color::Red),
                     ]);
                 }
 

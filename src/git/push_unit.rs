@@ -94,9 +94,19 @@ pub(crate) fn disabled_by_env(value: Option<&str>) -> bool {
 }
 
 fn manager() -> Option<Manager> {
+    manager_reporting(true)
+}
+
+/// Whether daemon pushes would be isolated in this environment (for health).
+/// Callers outside the daemon must not trigger the daemon's one-time log.
+pub(crate) fn available() -> bool {
+    manager_reporting(false).is_some()
+}
+
+fn manager_reporting(log: bool) -> Option<Manager> {
     static REPORTED: AtomicBool = AtomicBool::new(false);
     let report = |why: &str| {
-        if !REPORTED.swap(true, Ordering::Relaxed) {
+        if log && !REPORTED.swap(true, Ordering::Relaxed) {
             eprintln!(
                 "⚠️ push isolation unavailable ({why}); daemon pushes and their hooks run in the daemon's own cgroup"
             );
