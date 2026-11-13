@@ -667,8 +667,100 @@ pub fn detect_ownership_path_owned(
     classify_path_owned(&inputs, trusted)
 }
 
+/// A structurally broken commit identity, or None when it is usable.
+///
+/// ADDED 2026-11-13: the daemon committed under whatever identity a repo's
+/// local config held. freeport's was `--global <--global>` (a mistyped
+/// `git config user.name --global …`) and hellhunter's `- <->` — 530 published
+/// commits — while the only signal was a quiet `untrusted_email` hint. This is
+/// deliberately STRUCTURAL, not a trust check: an untrusted but well-formed
+/// identity stays a warning for a path-owned repo (AGENTS.md), but a name or
+/// email that is empty, an option-looking token, or an email without a
+/// `local@domain` shape is always a configuration accident.
+pub(crate) fn identity_defect(name: &str, email: &str) -> Option<String> {
+    let name_t = name.trim();
+    let email_t = email.trim();
+    let bad_token = |v: &str| v.is_empty() || v.starts_with('-') || v.chars().all(|c| !c.is_alphanumeric());
+    let mut problems = Vec::new();
+    if bad_token(name_t) {
+        problems.push(format!("user.name {name_t:?}"));
+    }
+    let well_formed_email = !bad_token(email_t)
+        && !email_t.chars().any(char::is_whitespace)
+        && email_t
+            .split_once('@')
+            .is_some_and(|(local, domain)| !local.is_empty() && !domain.is_empty() && !domain.contains('@'));
+    if !well_formed_email {
+        problems.push(format!("user.email {email_t:?}"));
+    }
+    (!problems.is_empty()).then(|| problems.join(", "))
+}
+
+/// Parse `git var GIT_AUTHOR_IDENT` output: `Name <email> <epoch> <tz>`.
+pub(crate) fn parse_ident(ident: &str) -> Option<(String, String)> {
+    let (name, rest) = ident.trim().split_once('<')?;
+    let (email, _) = rest.split_once('>')?;
+    Some((name.trim().to_owned(), email.trim().to_owned()))
+}
+
+/// Refuse to commit under a structurally broken identity: the effective
+/// author AND committer git would record, from every config layer and env.
+pub(crate) async fn ensure_commit_identity(repo: &Path) -> anyhow::Result<()> {
+    for var in ["GIT_AUTHOR_IDENT", "GIT_COMMITTER_IDENT"] {
+        let output = crate::policy::tokio_git_command()
+            .current_dir(repo)
+            .args(["var", var])
+            .stdin(std::process::Stdio::null())
+            .output()
+            .await?;
+        let text = String::from_utf8_lossy(&output.stdout);
+        anyhow::ensure!(
+            output.status.success(),
+            "malformed git identity: `git var {var}` failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+        let (name, email) = parse_ident(&text)
+            .ok_or_else(|| anyhow::anyhow!("malformed git identity: unparseable {var} {text:?}"))?;
+        if let Some(defect) = identity_defect(&name, &email) {
+            anyhow::bail!(
+                "malformed git identity ({var}): {defect} — refusing to auto-commit; fix the repo config (e.g. `git -C {} config --local --unset user.name` / `--unset user.email` to inherit the global identity)",
+                repo.display()
+            );
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn identity_defect_flags_config_accidents_only() {
+        // Verbatim from freeport and hellhunter on 2026-11-13.
+        assert!(identity_defect("--global", "--global").is_some());
+        assert!(identity_defect("-", "-").is_some());
+        assert!(identity_defect("", "dracsharp@gmail.com").unwrap().contains("user.name"));
+        assert!(identity_defect("DraconDev", "dracsharp").unwrap().contains("user.email"));
+        assert!(identity_defect("DraconDev", "a b@c").is_some());
+        // Well-formed identities pass, trusted or not: trust is a separate check.
+        assert_eq!(identity_defect("DraconDev", "dracsharp@gmail.com"), None);
+        assert_eq!(identity_defect("DraconDev", "DraconDev@users.noreply.github.com"), None);
+        assert_eq!(identity_defect("hellhunter-dev", "hellhunter@dracon.local"), None);
+        assert_eq!(identity_defect("Zoë", "z@x"), None);
+    }
+
+    #[test]
+    fn parse_ident_reads_git_var_output() {
+        assert_eq!(
+            parse_ident("- <-> 1794577475 +0000\n"),
+            Some(("-".into(), "-".into()))
+        );
+        assert_eq!(
+            parse_ident("DraconDev <dracsharp@gmail.com> 1 +0000"),
+            Some(("DraconDev".into(), "dracsharp@gmail.com".into()))
+        );
+        assert_eq!(parse_ident("garbage"), None);
+    }
+
     use super::*;
 
     fn default_trusted() -> TrustedSet {

@@ -456,6 +456,7 @@ impl Epoch {
                 commit_allowed_by_ownership(repo, policy),
                 "epoch ownership guard refused"
             );
+            crate::ownership::ensure_commit_identity(repo).await?;
             let index = git(
                 repo,
                 &["rev-parse", "--path-format=absolute", "--git-path", "index"],

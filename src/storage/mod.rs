@@ -2837,6 +2837,12 @@ fn prepare_storage_commit_inner(
     let tree_id = indexed.index.write_tree_to(&repository)?;
     let tree = repository.find_tree(tree_id)?;
     let signature = repository.signature()?;
+    if let Some(defect) = crate::ownership::identity_defect(
+        &String::from_utf8_lossy(signature.name_bytes()),
+        &String::from_utf8_lossy(signature.email_bytes()),
+    ) {
+        anyhow::bail!("malformed git identity: {defect} — refusing to commit");
+    }
     let parent = match repository.head() {
         Ok(head) => Some(head.peel_to_commit()?),
         Err(error) if error.code() == git2::ErrorCode::UnbornBranch => None,
