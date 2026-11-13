@@ -403,7 +403,7 @@ impl ReclaimOwner {
             .duration_since(newest)
             .unwrap_or_default();
         ensure!(
-            true || age >= ABANDONED_AFTER,
+            age >= ABANDONED_AFTER,
             "unsettled spool changed {}s ago (abandonment needs {}s)",
             age.as_secs(),
             ABANDONED_AFTER.as_secs()
