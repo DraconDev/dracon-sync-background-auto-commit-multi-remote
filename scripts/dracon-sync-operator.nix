@@ -27,6 +27,24 @@
 # keeps the sync daemon from taking the desktop down with it; see the
 # inline comments on each setting for the measurements behind it.
 #
+# CHANGED 2026-11-13 (OOM restart loop): daemon pushes no longer run in this
+# unit's cgroup. Each `git push` (with its pre-push hook, pack-objects and
+# ssh) runs as a transient USER service under `dracon-sync-push.slice`,
+# defined below, with this unit's filesystem sandbox mirrored onto it by the
+# daemon (src/git/push_unit.rs). Before that, the 1400M cap below covered the
+# daemon AND every hook: browser-extensions-shared's gate (measured peak 4G)
+# OOM-killed the whole daemon 43 times in 3h, and each restart re-ran the
+# same push. The cap below now bounds the daemon itself; the slice bounds
+# repository-supplied hook code, and a slice kill costs one push attempt,
+# not the fleet's in-flight work.
+#
+# Stale runtime drop-ins: /run/systemd/system/dracon-sync-operator.service.d/
+# from 2026-10-19 OVERRIDE this module until reboot. 10-resource-headroom.conf
+# set MemoryHigh=1536M, above MemoryMax=1400M, so soft reclaim never engaged.
+# `dracon-sync health` reports that inversion (Containment row). Remove them:
+#   sudo rm /run/systemd/system/dracon-sync-operator.service.d/{10-resource-headroom,20-bridge-fixture,30-tasksmax}.conf
+#   sudo systemctl daemon-reload
+#
 # NOTE: the hand-written drop-ins that lived under
 # /run/systemd/system/dracon-sync-operator.service.d/ were tmpfs and did not
 # survive a reboot. Their contents are folded into this module (TasksMax 512,
@@ -148,6 +166,33 @@
       SystemCallErrorNumber = "EPERM";
       StandardOutput = "journal";
       StandardError = "journal";
+    };
+  };
+
+  # ADDED 2026-11-13: the budget for ALL daemon pushes and their pre-push
+  # hooks together. The daemon sets no limits itself; it places each push in
+  # this slice (`--slice=dracon-sync-push.slice`). Sized from measurement:
+  # browser-extensions-shared's gate held ~2G steady and peaked at 4G under
+  # the mirrored sandbox (2026-11-13), and two repositories can push at once.
+  #   * MemoryHigh 4G: reclaim starts at the measured single-gate peak.
+  #   * MemoryMax 6G: hard stop well below the 30G host; an overrun kills one
+  #     push unit (reported as "exhausted its isolated memory budget").
+  #   * MemorySwapMax 512M: same reasoning as the daemon's 128M — keep hook
+  #     memory visible instead of burning zram CPU — with room for tsc's
+  #     cold pages.
+  #   * CPU/IO: gates are throughput work. Nice=19 is set per unit by the
+  #     daemon; the weights make them yield to the desktop, and the quota
+  #     (half of 16 cores) keeps eight parallel typechecks from saturating it.
+  systemd.user.slices.dracon-sync-push = {
+    description = "dracon-sync daemon pushes and their pre-push hooks";
+    sliceConfig = {
+      MemoryHigh = "4G";
+      MemoryMax = "6G";
+      MemorySwapMax = "512M";
+      CPUWeight = 20;
+      CPUQuota = "800%";
+      IOWeight = 10;
+      ManagedOOMMemoryPressure = "kill";
     };
   };
 
