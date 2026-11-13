@@ -832,20 +832,60 @@ fn producer_names(path: &Path, width: usize) -> Result<Vec<String>> {
     );
     let text = std::str::from_utf8(&bytes).context("producer endpoint is not text")?;
     let mut names = Vec::new();
-    for token in text.split_whitespace() {
-        let token = token.strip_prefix('^').unwrap_or(token);
-        let token = ["^{tree}", "^{commit}", "^{tag}", "^{blob}"]
-            .iter()
-            .find_map(|suffix| token.strip_suffix(suffix))
-            .unwrap_or(token);
-        ensure!(
-            is_object_id(token, width),
-            "producer endpoint holds a token that is not a full-width hash"
-        );
-        names.push(token.to_owned());
+    let mut diagnostics = 0usize;
+    for line in text.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        // ADDED 2026-11-13: captured Git/Warden DIAGNOSTICS carry no
+        // repository content. 415 live endpoints held only `git rm`'s
+        // `rm '<path>'` stdout and ~40 a `fatal:`/warden stderr line; each
+        // preserved its whole spool forever although the spool's index and
+        // objects are proven separately below. Only these exact forms are
+        // accepted — stdin payload (`--index-info` lines, blob content, …)
+        // still preserves the spool.
+        if is_diagnostic_line(line) {
+            diagnostics += 1;
+            continue;
+        }
+        for token in line.split_whitespace() {
+            let token = token.strip_prefix('^').unwrap_or(token);
+            let token = ["^{tree}", "^{commit}", "^{tag}", "^{blob}"]
+                .iter()
+                .find_map(|suffix| token.strip_suffix(suffix))
+                .unwrap_or(token);
+            ensure!(
+                is_object_id(token, width),
+                "producer endpoint holds a token that is not a full-width hash"
+            );
+            names.push(token.to_owned());
+        }
     }
-    ensure!(!names.is_empty(), "producer endpoint names nothing");
+    ensure!(
+        !names.is_empty() || diagnostics > 0,
+        "producer endpoint names nothing"
+    );
     Ok(names)
+}
+
+/// A captured Git or Warden diagnostic line (stdout of `git rm`, or a
+/// `fatal:`/`error:`/`warning:`/`hint:` / warden stderr line).
+fn is_diagnostic_line(line: &str) -> bool {
+    let line = line.trim_end_matches('\r');
+    if let Some(path) = line.strip_prefix("rm '") {
+        return path.len() > 1 && path.ends_with('\'');
+    }
+    [
+        "fatal: ",
+        "error: ",
+        "warning: ",
+        "hint: ",
+        "dracon-warden: ",
+        "⚠️ warden: ",
+        "⚠️ dracon-warden: ",
+    ]
+    .iter()
+    .any(|prefix| line.starts_with(prefix))
 }
 
 /// A preserve marker forbids removal.
