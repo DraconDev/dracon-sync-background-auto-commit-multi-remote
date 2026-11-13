@@ -595,9 +595,13 @@ async fn producer_endpoint_naming_an_unpaired_pack_stem_is_preserved() {
 #[tokio::test]
 async fn producer_endpoint_with_a_path_is_preserved() {
     let f = fixture("producer-path");
-    // A `git rm --cached <path>`-style endpoint carries repository paths, which
-    // are not names the redundancy proof covers.
-    fs::write(f.spool.join("producer-io-Stdin"), b"rm 'cpu-leases/unit.json'\n").unwrap();
+    // A bare repository path is not a name the redundancy proof covers.
+    // CHANGED 2026-11-13: `git rm`'s exact `rm '<path>'` success report is now
+    // accepted (`producer_endpoint_holding_only_git_rm_reports_is_redundant`):
+    // the daemon's own un-quieted `git rm` minted 415 such endpoints
+    // (spool-reclaim-throughput-2026-11-12.md), and the removal it reports is
+    // covered by the entry-by-entry index proof.
+    fs::write(f.spool.join("producer-io-Stdin"), b"cpu-leases/unit.json\n").unwrap();
     seal(&f.spool);
     backdate(&f.spool);
     assert_eq!(reap(&f.repo).await, 0);
