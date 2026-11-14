@@ -179,7 +179,20 @@ pub(super) fn isolated_maintenance(args: &[&str]) -> bool {
 /// Keep the command future in its caller's ownership. Dropping the caller
 /// drops its process runner and kills that runner's owned process group; it
 /// must neither detach publication nor serialize unrelated repositories.
-pub(super) async fn command<T>(_args: &[&str], work: impl Future<Output = Result<T>>) -> Result<T> {
+///
+/// A push also registers itself for its whole lifetime, hook included, so the
+/// daemon's auto-gc cannot repack the repository underneath it (see
+/// `repo_maintenance`); a push arriving during a repack waits for it.
+pub(super) async fn command<T>(
+    repo: &std::path::Path,
+    args: &[&str],
+    work: impl Future<Output = Result<T>>,
+) -> Result<T> {
+    let _push = if args.first() == Some(&"push") {
+        Some(super::repo_maintenance::begin_push(repo).await)
+    } else {
+        None
+    };
     work.await
 }
 

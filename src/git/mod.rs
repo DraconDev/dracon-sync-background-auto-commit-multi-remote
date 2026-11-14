@@ -1350,6 +1350,7 @@ mod ops;
 pub(crate) use ops::*;
 pub(crate) mod push_resources;
 pub(crate) mod push_unit;
+pub(crate) mod repo_maintenance;
 pub(crate) mod staged_intent;
 mod status;
 pub(crate) use status::*;
@@ -5382,6 +5383,17 @@ pub(crate) async fn maybe_auto_gc(
             pack_growth_threshold_bytes as f64 / 1073741824.0,
         ),
     }
+    // ADDED 2026-11-14: never repack under an in-flight push. A repack during
+    // the pre-push hook makes Git upload the whole history (see
+    // `repo_maintenance`); skipped here, retried on a later probe.
+    let Some(maintenance) = repo_maintenance::try_begin_maintenance(repo) else {
+        eprintln!(
+            "⏳ {} {} deferred: a push is in flight (a repack under a push resends history)",
+            repo.display(),
+            auto_gc_command(trigger).1,
+        );
+        return None;
+    };
     let attempts = AUTO_GC_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
     attempts.lock().unwrap_or_else(|p| p.into_inner()).insert(
         repo.to_path_buf(),
@@ -5404,6 +5416,10 @@ pub(crate) async fn maybe_auto_gc(
 
     let started = std::time::Instant::now();
     let (args, label) = auto_gc_command(trigger);
+    // Held across the gc/repack; pushes arriving meanwhile wait for it (see
+    // `repo_maintenance`). Claimed before the attempt is recorded, so a skip
+    // is neither a failure nor a cooldown.
+    let _maintenance = maintenance;
     match run_git_with_timeout(repo, args, 600, label).await {
         Ok(()) => {
             let after = crate::policy::std_git_command()

@@ -739,6 +739,7 @@ pub(crate) async fn run_git_with_timeout(
     op_label: &str,
 ) -> Result<()> {
     super::push_resources::command(
+        repo,
         args,
         run_git_with_timeout_inner(repo, args, timeout_secs, op_label),
     )
@@ -837,6 +838,7 @@ pub(crate) async fn run_git_with_timeout_fenced(
     fence: &WriteFence,
 ) -> Result<()> {
     super::push_resources::command(
+        repo,
         args,
         run_git_with_timeout_inner_fenced(repo, args, timeout_secs, op_label, Some(fence)),
     )
@@ -851,7 +853,7 @@ pub(crate) async fn run_git_with_timeout_env(
     op_label: &str,
     env: &[(&str, &str)],
 ) -> Result<()> {
-    super::push_resources::command(args, async {
+    super::push_resources::command(repo, args, async {
         let label = format!("git {}", op_label);
         let child = spawn_git_command_env(repo, args, op_label, env, timeout_secs)?;
         run_child(child, repo, timeout_secs, &label).await
@@ -868,7 +870,7 @@ pub(crate) async fn run_git_with_timeout_env_fenced(
     env: &[(&str, &str)],
     fence: &WriteFence,
 ) -> Result<()> {
-    super::push_resources::command(args, async {
+    super::push_resources::command(repo, args, async {
         let label = format!("git {}", op_label);
         let child = spawn_git_command_env_fenced(repo, args, op_label, env, fence, timeout_secs)?;
         run_child(child, repo, timeout_secs, &label).await
@@ -884,7 +886,7 @@ pub(crate) async fn run_git_with_timeout_env_progress(
     op_label: &str,
     env: &[(&str, &str)],
 ) -> Result<()> {
-    super::push_resources::command(args, async {
+    super::push_resources::command(repo, args, async {
         let label = format!("git {}", op_label);
         let child = spawn_git_command_env(repo, args, op_label, env, timeout_secs)?;
         run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
@@ -901,7 +903,7 @@ pub(crate) async fn run_git_with_timeout_env_progress_fenced(
     env: &[(&str, &str)],
     fence: &WriteFence,
 ) -> Result<()> {
-    super::push_resources::command(args, async {
+    super::push_resources::command(repo, args, async {
         let label = format!("git {}", op_label);
         let child = spawn_git_command_env_fenced(repo, args, op_label, env, fence, timeout_secs)?;
         run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
