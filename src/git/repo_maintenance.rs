@@ -41,7 +41,9 @@ fn key(repo: &Path) -> PathBuf {
 }
 
 fn with_registry<T>(work: impl FnOnce(&mut HashMap<PathBuf, RepoActivity>) -> T) -> T {
-    let mut map = registry().lock().unwrap_or_else(|poison| poison.into_inner());
+    let mut map = registry()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
     work(&mut map)
 }
 
@@ -171,7 +173,10 @@ mod tests {
             tokio::spawn(async move { begin_push(&repo).await })
         };
         tokio::time::sleep(PUSH_WAIT_POLL * 3).await;
-        assert!(!waiter.is_finished(), "push must not start during maintenance");
+        assert!(
+            !waiter.is_finished(),
+            "push must not start during maintenance"
+        );
         drop(maintenance);
         let push = tokio::time::timeout(Duration::from_secs(5), waiter)
             .await
@@ -206,7 +211,11 @@ mod tests {
                 .env("GIT_CONFIG_NOSYSTEM", "1")
                 .output()
                 .unwrap();
-            assert!(out.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&out.stderr));
+            assert!(
+                out.status.success(),
+                "git {args:?}: {}",
+                String::from_utf8_lossy(&out.stderr)
+            );
             out
         };
         git(root, &["init", "-q", "--bare", "remote.git"]);
