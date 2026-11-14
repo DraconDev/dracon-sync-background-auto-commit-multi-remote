@@ -830,6 +830,15 @@ pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
         return true;
     }
     let lower = err_msg.to_lowercase();
+    // FIXED 2026-11-14 (browser-extensions-shared): the server answering the
+    // pack proves the hook let it go. An ADVISORY gate prints
+    // "Pre-push: 4-gate ADVISORY — pushing anyway", which the bare
+    // "pre-push:" fallback below matched, so GitHub's "pack exceeds maximum
+    // allowed size" was logged as a local hook refusal, ended the round and
+    // skipped the mirror legs. Server-side evidence decides first.
+    if remote_answered_the_pack(&lower) {
+        return false;
+    }
     // FIXED 2026-10-28 (browser-extensions-shared GitLab wedge): a PASSING
     // gate is not a refusal. The daemon's runner appends captured hook STDOUT
     // to the error text (src/git/ops.rs), and the workspace gate prints its
@@ -867,6 +876,11 @@ pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
         // same class: the bytes never left the machine.
         || lower.contains("4-gate failed")
         || lower.contains("pre-push:")
+}
+
+/// The remote received and judged the pack, so no local hook stopped it.
+fn remote_answered_the_pack(lower: &str) -> bool {
+    lower.contains("[remote rejected]") || lower.contains("remote unpack failed")
 }
 
 /// ADDED 2026-11-13: an isolated push unit (`push_unit`) exhausted the
@@ -2397,6 +2411,19 @@ mod tests {
         assert!(!is_transient_network_outage(message));
         assert!(is_transient_forge_outage(
             "remote: Gitaly is temporarily unavailable: OS can't spawn worker thread"
+        ));
+    }
+
+    #[test]
+    fn remote_rejection_after_an_advisory_gate_is_not_a_local_hook_refusal() {
+        // Verbatim shape from browser-extensions-shared, 2026-11-14.
+        let message = "git push failed in /r with status exit status: 1: Running as unit: dracon-push-39.service\n  - extensions/standalones/tabmon/TEST exited 1 [advisory] (see /g/TEST.log)\nGate exited with status 1 (advisory: not blocking the push)\nremote: fatal: pack exceeds maximum allowed size (2.00 GiB)\nerror: remote unpack failed: index-pack failed\nTo github.com:DraconDev/r.git\n ! [remote rejected]       d33a3fe -> main (failed)\nerror: failed to push some refs to 'github.com:DraconDev/r.git'\n\u{26a0}\u{fe0f} Pre-push: 4-gate ADVISORY \u{2014} pushing anyway; 1 red gate(s) recorded:";
+        assert!(!is_local_hook_rejection(message));
+        assert!(is_pack_too_large(message));
+        assert!(classify_push_failure(message).contains("pack exceeds"));
+        // A real refusal still classifies as one.
+        assert!(is_local_hook_rejection(
+            "\u{274c} Pre-push: 4-gate FAILED for 1 workspace(s)\nerror: failed to push some refs to 'x'"
         ));
     }
 
