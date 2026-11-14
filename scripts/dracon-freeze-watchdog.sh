@@ -62,3 +62,32 @@ for marker in "$HOME/.dracon/dracon-sync.freeze" "$HOME/.dracon/freeze/dracon-sy
         logger -t dracon-freeze-watchdog "freeze active age=${age}s $marker" 2>/dev/null || true
     fi
 done
+
+# ── Cross-check: the dracon-system guard's own watchdog (ADDED 2026-11-14) ──
+# On 2026-11-14 the guard AND dracon-system-guard-watchdog.timer were stopped
+# together; nothing in dracon-system can restart a stopped timer, so the host
+# ran unguarded for 15 min. This user timer is a different unit from a
+# different repo, so it backstops that case.
+#
+# Deliberate states are respected:
+#   - ~/.dracon/dracon-system.maintenance-hold present -> do nothing;
+#   - timer DISABLED (systemctl --user disable) -> deliberate, do nothing;
+#   - timer not installed -> do nothing.
+# Only an ENABLED but INACTIVE timer (a plain `stop`) is re-armed. Starting
+# the timer is enough: its service restarts the guard on the next tick.
+GUARD_TIMER="dracon-system-guard-watchdog.timer"
+GUARD_HOLD="$HOME/.dracon/dracon-system.maintenance-hold"
+if [ ! -f "$GUARD_HOLD" ] && command -v systemctl >/dev/null 2>&1; then
+    if [ "$(systemctl --user is-enabled "$GUARD_TIMER" 2>/dev/null)" = "enabled" ] \
+        && ! systemctl --user is-active --quiet "$GUARD_TIMER"; then
+        echo "⚠️ dracon-freeze-watchdog: $GUARD_TIMER is enabled but stopped and no maintenance hold is set — re-arming it"
+        if systemctl --user start "$GUARD_TIMER"; then
+            logger -t dracon-freeze-watchdog "re-armed stopped $GUARD_TIMER" 2>/dev/null || true
+            if command -v notify-send >/dev/null 2>&1; then
+                notify-send -u normal "dracon-system" "Guard watchdog timer was stopped without a maintenance hold — re-armed" 2>/dev/null || true
+            fi
+        else
+            echo "⚠️ dracon-freeze-watchdog: failed to start $GUARD_TIMER"
+        fi
+    fi
+fi
