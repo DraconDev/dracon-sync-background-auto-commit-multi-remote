@@ -162,3 +162,17 @@ async fn push_phase_restores_local_capacity_on_error_and_nested_mirror_work() {
     .await;
     assert_eq!(local.available_permits(), 1);
 }
+
+#[test]
+fn repository_maintenance_is_isolated_like_pushes_and_hooks() {
+    assert!(isolated_maintenance(&["gc", "--quiet"]));
+    assert!(isolated_maintenance(&["repack", "-d", "-l", "-q"]));
+    for other in [
+        &["status"][..],
+        &["commit", "-m", "gc"],
+        &["count-objects", "-v"],
+        &[],
+    ] {
+        assert!(!isolated_maintenance(other), "{other:?}");
+    }
+}

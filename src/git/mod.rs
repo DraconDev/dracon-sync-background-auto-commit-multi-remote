@@ -4884,6 +4884,11 @@ struct AutoGcState {
     /// ADDED 2026-10-31.
     pack_bytes_after_gc: Option<u64>,
     succeeded: bool,
+    /// Consecutive attempts that did not succeed (0 after a success). Each
+    /// one doubles the retry cooldown — see `auto_gc_backoff_secs`. ADDED
+    /// 2026-11-14: a full gc of browser-extensions-shared (7.6 GiB packs)
+    /// timed out at 600s every 15 minutes, all night, reading ~120 GB.
+    failures: u32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -4906,6 +4911,29 @@ const AUTO_GC_GARBAGE_COOLDOWN_SECS: u64 = 3600;
 const AUTO_GC_LOOSE_COOLDOWN_SECS: u64 = 120;
 const AUTO_GC_LOOSE_FAILURE_COOLDOWN_SECS: u64 = 900;
 const AUTO_GC_LOOSE_PROBE_INTERVAL_SECS: u64 = 60;
+/// Ceiling for the failure backoff: a gc that cannot finish is retried at
+/// most once a day.
+const AUTO_GC_MAX_BACKOFF_SECS: u64 = 86_400;
+
+/// `base` doubled once per consecutive failure beyond the first, capped at
+/// `AUTO_GC_MAX_BACKOFF_SECS` (but never below `base`). A gc that keeps
+/// timing out re-reads the whole repository every attempt, so retrying it on
+/// a fixed short cadence is pure waste.
+fn auto_gc_backoff_secs(base: u64, failures: u32) -> u64 {
+    let shift = failures.saturating_sub(1).min(20);
+    base.saturating_mul(1u64 << shift)
+        .min(AUTO_GC_MAX_BACKOFF_SECS)
+        .max(base)
+}
+
+/// Seconds before the next attempt may run, given the last attempt.
+fn auto_gc_cooldown_secs(base: u64, last: &AutoGcState) -> u64 {
+    if last.succeeded {
+        base
+    } else {
+        auto_gc_backoff_secs(base, last.failures)
+    }
+}
 
 fn auto_gc_trigger(
     garbage_bytes: u64,
@@ -4922,7 +4950,10 @@ fn auto_gc_trigger(
         .unwrap_or(std::time::Duration::from_secs(u64::MAX));
     let garbage_due = garbage_threshold_bytes > 0
         && garbage_bytes >= garbage_threshold_bytes
-        && elapsed.as_secs() >= AUTO_GC_GARBAGE_COOLDOWN_SECS;
+        && elapsed.as_secs()
+            >= last.map_or(AUTO_GC_GARBAGE_COOLDOWN_SECS, |state| {
+                auto_gc_cooldown_secs(AUTO_GC_GARBAGE_COOLDOWN_SECS, state)
+            });
     let loose_due = if loose_threshold_bytes == 0 || loose_bytes < loose_threshold_bytes {
         false
     } else {
@@ -4933,7 +4964,10 @@ fn auto_gc_trigger(
                     && loose_bytes.saturating_sub(state.loose_bytes_after_gc)
                         >= loose_threshold_bytes
             }
-            Some(_) => elapsed.as_secs() >= AUTO_GC_LOOSE_FAILURE_COOLDOWN_SECS,
+            Some(state) => {
+                elapsed.as_secs()
+                    >= auto_gc_backoff_secs(AUTO_GC_LOOSE_FAILURE_COOLDOWN_SECS, state.failures)
+            }
         }
     };
     // Pack growth: NO baseline means disarmed. Comparing an absent baseline
@@ -4945,7 +4979,10 @@ fn auto_gc_trigger(
             .and_then(|state| state.pack_bytes_after_gc)
             .is_some_and(|baseline| {
                 pack_bytes.saturating_sub(baseline) >= pack_growth_threshold_bytes
-                    && elapsed.as_secs() >= AUTO_GC_PACK_GROWTH_COOLDOWN_SECS
+                    && elapsed.as_secs()
+                        >= last.map_or(AUTO_GC_PACK_GROWTH_COOLDOWN_SECS, |state| {
+                            auto_gc_cooldown_secs(AUTO_GC_PACK_GROWTH_COOLDOWN_SECS, state)
+                        })
             });
     if garbage_due {
         Some(AutoGcTrigger::Garbage)
@@ -4955,6 +4992,26 @@ fn auto_gc_trigger(
         Some(AutoGcTrigger::PackGrowth)
     } else {
         None
+    }
+}
+
+/// The Git maintenance command each trigger runs.
+///
+/// CHANGED 2026-11-14: the loose-object trigger runs an INCREMENTAL repack
+/// (`repack -d -l`: pack the loose objects into one new pack, drop the now
+/// redundant loose copies) instead of a full `gc`. Its job is only to stop
+/// loose-object churn from inflating provider measurements; a full gc
+/// rewrites every existing pack too. On browser-extensions-shared (7.6 GiB of
+/// packs, 600 MiB loose) the full gc's `pack-objects` held 860 MiB, never
+/// finished inside its 600s timeout, and was retried every 15 minutes all
+/// night. Unreachable loose objects stay loose here and are left to the
+/// garbage trigger, whose full gc applies Git's two-week prune grace.
+fn auto_gc_command(trigger: AutoGcTrigger) -> (&'static [&'static str], &'static str) {
+    match trigger {
+        AutoGcTrigger::LooseObjects => {
+            (&["repack", "-d", "-l", "-q"], "repack (auto, incremental)")
+        }
+        AutoGcTrigger::Garbage | AutoGcTrigger::PackGrowth => (&["gc", "--quiet"], "gc (auto)"),
     }
 }
 
@@ -5213,7 +5270,8 @@ pub(crate) async fn maybe_auto_gc(
     };
     if loose_threshold_bytes == 0
         && last.as_ref().is_some_and(|state| {
-            state.attempted_at.elapsed().as_secs() < AUTO_GC_GARBAGE_COOLDOWN_SECS
+            state.attempted_at.elapsed().as_secs()
+                < auto_gc_cooldown_secs(AUTO_GC_GARBAGE_COOLDOWN_SECS, state)
         })
     {
         return None;
@@ -5268,6 +5326,7 @@ pub(crate) async fn maybe_auto_gc(
                 loose_bytes_after_gc: loose,
                 pack_bytes_after_gc: Some(pack),
                 succeeded: true,
+                failures: 0,
             },
         };
         attempts_for(repo).insert(repo.to_path_buf(), armed);
@@ -5303,7 +5362,7 @@ pub(crate) async fn maybe_auto_gc(
             garbage_threshold_bytes as f64 / 1073741824.0,
         ),
         AutoGcTrigger::LooseObjects => eprintln!(
-            "🗑️ {} has {:.2} MiB loose objects (growth threshold {:.2} MiB) — running git gc",
+            "🗑️ {} has {:.2} MiB loose objects (growth threshold {:.2} MiB) — running incremental git repack",
             repo.display(),
             loose as f64 / 1048576.0,
             loose_threshold_bytes as f64 / 1048576.0,
@@ -5334,11 +5393,18 @@ pub(crate) async fn maybe_auto_gc(
             // that suppresses the next growth trigger.
             pack_bytes_after_gc: last.as_ref().and_then(|state| state.pack_bytes_after_gc),
             succeeded: false,
+            // Counted BEFORE the attempt, so a gc the daemon is killed
+            // during (or that times out) is already recorded as failed.
+            failures: last
+                .as_ref()
+                .map_or(0, |state| if state.succeeded { 0 } else { state.failures })
+                .saturating_add(1),
         },
     );
 
     let started = std::time::Instant::now();
-    match run_git_with_timeout(repo, &["gc", "--quiet"], 600, "gc (auto)").await {
+    let (args, label) = auto_gc_command(trigger);
+    match run_git_with_timeout(repo, args, 600, label).await {
         Ok(()) => {
             let after = crate::policy::std_git_command()
                 .args(["count-objects", "-v"])
@@ -5362,19 +5428,38 @@ pub(crate) async fn maybe_auto_gc(
                     loose_bytes_after_gc: loose_after,
                     pack_bytes_after_gc: pack_after,
                     succeeded: baseline_known,
+                    failures: if baseline_known {
+                        0
+                    } else {
+                        last.as_ref()
+                            .map_or(0, |state| state.failures)
+                            .saturating_add(1)
+                    },
                 },
             );
             eprintln!(
-                "🗑️ gc done for {} in {:.1}s (observed {:.2} MiB loose bytes after pack)",
+                "🗑️ {} done for {} in {:.1}s (observed {:.2} MiB loose bytes after pack)",
+                label,
                 repo.display(),
                 started.elapsed().as_secs_f64(),
                 loose_after as f64 / 1048576.0,
             );
         }
         Err(e) => {
+            let failures = attempts_for(repo)
+                .get(repo)
+                .map_or(1, |state| state.failures);
+            let base = match trigger {
+                AutoGcTrigger::Garbage => AUTO_GC_GARBAGE_COOLDOWN_SECS,
+                AutoGcTrigger::LooseObjects => AUTO_GC_LOOSE_FAILURE_COOLDOWN_SECS,
+                AutoGcTrigger::PackGrowth => AUTO_GC_PACK_GROWTH_COOLDOWN_SECS,
+            };
             eprintln!(
-                "⚠️ gc failed for {} (garbage retry cooldown 1h; loose retry cooldown 15m): {:#}",
+                "⚠️ {} failed for {} ({} consecutive failure(s); next attempt in ≥{}m): {:#}",
+                label,
                 repo.display(),
+                failures,
+                auto_gc_backoff_secs(base, failures) / 60,
                 e
             );
         }
@@ -5816,6 +5901,7 @@ mod auto_gc_tests {
             loose_bytes_after_gc: threshold,
             pack_bytes_after_gc: None,
             succeeded: true,
+            failures: 0,
         };
         assert_eq!(
             super::auto_gc_trigger(
@@ -5855,6 +5941,7 @@ mod auto_gc_tests {
             loose_bytes_after_gc: 0,
             pack_bytes_after_gc: None,
             succeeded: true,
+            failures: 0,
         };
         assert_eq!(
             super::auto_gc_trigger(threshold, 0, 0, threshold, 0, 0, Some(&last), now,),
@@ -5898,7 +5985,150 @@ mod auto_gc_tests {
         assert_eq!(
             super::parse_count_objects_loose_bytes(&String::from_utf8_lossy(&after.stdout)),
             0,
-            "plain git gc should pack reachable loose objects"
+            "the incremental repack should pack reachable loose objects"
+        );
+    }
+
+    /// REGRESSION (2026-11-14): the loose-object trigger must not rewrite
+    /// the repository's existing packs. A full gc of browser-extensions-shared
+    /// (7.6 GiB of packs) re-read and re-wrote everything to tidy 600 MiB of
+    /// loose objects, never finished inside its timeout, and looped all night.
+    #[tokio::test]
+    async fn loose_trigger_repacks_incrementally_and_keeps_existing_packs() {
+        let repo = crate::test_helpers::create_test_repo();
+        let git = |args: &[&str]| {
+            let out = crate::policy::std_git_command()
+                .args(args)
+                .current_dir(&repo)
+                .output()
+                .unwrap();
+            assert!(
+                out.status.success(),
+                "git {args:?}: {}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+            String::from_utf8_lossy(&out.stdout).into_owned()
+        };
+        git(&["gc", "--quiet"]);
+        let packs = |dir: &std::path::Path| -> std::collections::BTreeSet<String> {
+            std::fs::read_dir(dir)
+                .unwrap()
+                .filter_map(|entry| entry.ok())
+                .map(|entry| entry.file_name().to_string_lossy().into_owned())
+                .filter(|name| name.ends_with(".pack"))
+                .collect()
+        };
+        let pack_dir = repo.join(".git/objects/pack");
+        let before = packs(&pack_dir);
+        assert_eq!(before.len(), 1, "fixture must start fully packed");
+        std::fs::write(repo.join("new.txt"), "fresh loose content\n").unwrap();
+        git(&["add", "new.txt"]);
+        git(&["commit", "-q", "-m", "add new"]);
+        assert!(super::parse_count_objects_loose_bytes(&git(&["count-objects", "-v"])) > 0);
+
+        assert!(super::maybe_auto_gc(&repo, 0, 1, 0).await.is_some());
+
+        let after = packs(&pack_dir);
+        assert!(
+            before.is_subset(&after),
+            "existing packs must survive the loose trigger: before {before:?} after {after:?}"
+        );
+        assert_eq!(
+            after.len(),
+            2,
+            "the loose objects land in exactly one new pack"
+        );
+        assert_eq!(
+            super::parse_count_objects_loose_bytes(&git(&["count-objects", "-v"])),
+            0
+        );
+        let state = super::attempts_for(&repo).get(&repo).copied().unwrap();
+        assert!(state.succeeded);
+        assert_eq!(state.failures, 0);
+    }
+
+    #[test]
+    fn each_trigger_runs_its_own_maintenance_command() {
+        assert_eq!(
+            super::auto_gc_command(super::AutoGcTrigger::LooseObjects).0,
+            &["repack", "-d", "-l", "-q"]
+        );
+        for trigger in [
+            super::AutoGcTrigger::Garbage,
+            super::AutoGcTrigger::PackGrowth,
+        ] {
+            assert_eq!(super::auto_gc_command(trigger).0, &["gc", "--quiet"]);
+        }
+    }
+
+    #[test]
+    fn failure_backoff_doubles_per_consecutive_failure_and_caps_at_a_day() {
+        let base = super::AUTO_GC_LOOSE_FAILURE_COOLDOWN_SECS;
+        assert_eq!(super::auto_gc_backoff_secs(base, 0), base);
+        assert_eq!(super::auto_gc_backoff_secs(base, 1), base);
+        assert_eq!(super::auto_gc_backoff_secs(base, 2), base * 2);
+        assert_eq!(super::auto_gc_backoff_secs(base, 3), base * 4);
+        assert_eq!(
+            super::auto_gc_backoff_secs(base, 200),
+            super::AUTO_GC_MAX_BACKOFF_SECS
+        );
+        // A base already above the cap is never shortened by the cap.
+        let day = super::AUTO_GC_PACK_GROWTH_COOLDOWN_SECS;
+        assert_eq!(super::auto_gc_backoff_secs(day, 5), day);
+    }
+
+    /// The 2026-11-14 loop: a timed-out gc was retried every 15 minutes
+    /// forever. After three straight failures the next try waits 1h.
+    #[test]
+    fn repeated_failures_lengthen_the_loose_and_garbage_retry_waits() {
+        let now = Instant::now();
+        let mib = 1024 * 1024;
+        let failed = |failures: u32, secs_ago: u64| super::AutoGcState {
+            attempted_at: now - Duration::from_secs(secs_ago),
+            loose_bytes_after_gc: 0,
+            pack_bytes_after_gc: None,
+            succeeded: false,
+            failures,
+        };
+        let loose = |state: super::AutoGcState| {
+            super::auto_gc_trigger(0, 600 * mib, 0, 0, 64 * mib, 0, Some(&state), now)
+        };
+        assert_eq!(
+            loose(failed(1, 900)),
+            Some(super::AutoGcTrigger::LooseObjects)
+        );
+        assert_eq!(
+            loose(failed(3, 900)),
+            None,
+            "third failure must not retry at 15m"
+        );
+        assert_eq!(loose(failed(3, 3599)), None);
+        assert_eq!(
+            loose(failed(3, 3600)),
+            Some(super::AutoGcTrigger::LooseObjects)
+        );
+
+        let garbage_threshold = 2 * 1024 * mib;
+        let garbage = |state: super::AutoGcState| {
+            super::auto_gc_trigger(
+                garbage_threshold,
+                0,
+                0,
+                garbage_threshold,
+                0,
+                0,
+                Some(&state),
+                now,
+            )
+        };
+        assert_eq!(
+            garbage(failed(1, 3600)),
+            Some(super::AutoGcTrigger::Garbage)
+        );
+        assert_eq!(garbage(failed(2, 3600)), None);
+        assert_eq!(
+            garbage(failed(2, 7200)),
+            Some(super::AutoGcTrigger::Garbage)
         );
     }
 
@@ -5951,6 +6181,7 @@ mod auto_gc_tests {
             loose_bytes_after_gc: 0,
             pack_bytes_after_gc: pack_after,
             succeeded,
+            failures: u32::from(!succeeded),
         }
     }
 

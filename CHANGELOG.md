@@ -16,6 +16,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Auto-gc no longer loops a full repack it can never finish.** The
+  loose-object trigger now runs an incremental `git repack -d -l` (pack the
+  loose objects into one new pack) instead of a full `git gc`, which also
+  rewrote every existing pack. On browser-extensions-shared (7.6 GiB of
+  packs, 600 MiB loose) the full gc held 860 MiB, timed out at 600s and was
+  retried every 15 minutes all night, reading ~120 GB. Full `gc` remains
+  for the garbage and pack-growth triggers.
+- **Auto-gc runs outside the daemon's cgroup.** `git gc` and `git repack`
+  now run in a transient unit under `dracon-sync-push.slice`, like pushes
+  and commit hooks, so repository-sized maintenance cannot pin the daemon at
+  its `MemoryHigh` (falls back to a direct `Nice=19` spawn without a user
+  manager).
+- **Failed auto-gc backs off.** Each consecutive failure doubles the retry
+  wait (15 min → 30 → 60 … for the loose trigger, 1h → 2h … for garbage),
+  capped at one day; a success resets it. The failure log now reports the
+  failure count and the next retry time.
+
 - **Operator NixOS module: systemd-oomd no longer kills the daemon for
   its own throttling.** `ManagedOOMMemoryPressure` is now `auto` (was
   `kill`). oomd judged the daemon cgroup's *own* memory pressure, which

@@ -476,7 +476,8 @@ fn spawn_git_command_inner(
     // mid-push; the runner's own deadline still governs normal timeouts.
     if fence.is_none()
         && (super::push_resources::isolated_push(args)
-            || super::push_resources::isolated_hook(args))
+            || super::push_resources::isolated_hook(args)
+            || super::push_resources::isolated_maintenance(args))
     {
         let backstop = progress_hard_timeout_secs(timeout_secs)
             .saturating_add(SIGTERM_GRACE.as_secs())

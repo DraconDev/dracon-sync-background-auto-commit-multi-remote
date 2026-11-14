@@ -167,6 +167,15 @@ pub(super) fn isolated_hook(args: &[&str]) -> bool {
     args.len() >= 2 && args[0] == "hook" && args[1] == "run"
 }
 
+/// `git gc` / `git repack`: the daemon's auto-gc (`maybe_auto_gc`). ADDED
+/// 2026-11-14: a full gc of a 7.6 GiB repository ran `pack-objects` at
+/// 860 MiB inside the daemon's 1 GiB cgroup, pinning the unit at MemoryHigh
+/// for the whole 10-minute attempt. Repository maintenance is sized by the
+/// repository, not by the daemon, so it gets the isolated slice's budget.
+pub(super) fn isolated_maintenance(args: &[&str]) -> bool {
+    matches!(args.first(), Some(&"gc") | Some(&"repack"))
+}
+
 /// Keep the command future in its caller's ownership. Dropping the caller
 /// drops its process runner and kills that runner's owned process group; it
 /// must neither detach publication nor serialize unrelated repositories.
@@ -182,7 +191,7 @@ pub(super) async fn command<T>(_args: &[&str], work: impl Future<Output = Result
 /// gets `Nice=19` there. No memory limit is set by the daemon on either path.
 pub(super) fn configure_child(cmd: &mut tokio::process::Command, args: &[&str]) {
     #[cfg(unix)]
-    if isolated_push(args) {
+    if isolated_push(args) || isolated_maintenance(args) {
         // SAFETY: pre_exec uses only an async-signal-safe syscall and creates
         // an OS error on failure; no allocation, locks or runtime access.
         unsafe {
