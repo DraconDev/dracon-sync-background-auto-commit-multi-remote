@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and commit hooks, so repository-sized maintenance cannot pin the daemon at
   its `MemoryHigh` (falls back to a direct `Nice=19` spawn without a user
   manager).
+- **Git's built-in auto-gc is off for daemon-spawned Git.** The daemon
+  now runs its Git children with `gc.auto=0` and `maintenance.auto=false`
+  (via `GIT_CONFIG_PARAMETERS`, set before the runtime starts, `daemon`
+  subcommand only). A commit or fetch otherwise starts Git's own
+  `gc --auto` as a daemon child, inside the daemon's cgroup and without a
+  timeout: one on `~/.dracon` ran `pack-objects` for 2.6 hours at 1.1 GiB.
+  The daemon's own auto-gc replaces it. Interactive Git is unaffected.
 - **Failed auto-gc backs off.** Each consecutive failure doubles the retry
   wait (15 min → 30 → 60 … for the loose trigger, 1h → 2h … for garbage),
   capped at one day; a success resets it. The failure log now reports the
