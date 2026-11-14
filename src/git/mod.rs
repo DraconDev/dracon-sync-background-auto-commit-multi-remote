@@ -6009,6 +6009,41 @@ mod auto_gc_tests {
     /// the repository's existing packs. A full gc of browser-extensions-shared
     /// (7.6 GiB of packs) re-read and re-wrote everything to tidy 600 MiB of
     /// loose objects, never finished inside its timeout, and looped all night.
+
+    /// ADDED 2026-11-14: a repack under an in-flight push makes Git upload the
+    /// whole history (`repo_maintenance`). The trigger must defer instead,
+    /// without counting the skip as a failed attempt, and run once the push
+    /// has finished.
+    #[tokio::test]
+    async fn loose_trigger_defers_while_a_push_is_in_flight() {
+        let repo = crate::test_helpers::create_test_repo();
+        std::fs::write(repo.join("new.txt"), "fresh loose content\n").unwrap();
+        for args in [&["add", "new.txt"][..], &["commit", "-q", "-m", "add new"][..]] {
+            let out = crate::policy::std_git_command()
+                .args(args)
+                .current_dir(&repo)
+                .output()
+                .unwrap();
+            assert!(out.status.success());
+        }
+
+        let push = super::repo_maintenance::begin_push(&repo).await;
+        assert!(super::maybe_auto_gc(&repo, 0, 1, 0).await.is_none());
+        assert!(
+            super::attempts_for(&repo).get(&repo).is_none(),
+            "a deferred repack is not an attempt and must not start a backoff"
+        );
+        drop(push);
+
+        super::AUTO_GC_PROBES
+            .get()
+            .expect("probe map initialised by the first call")
+            .lock()
+            .unwrap()
+            .remove(&repo);
+        assert!(super::maybe_auto_gc(&repo, 0, 1, 0).await.is_some());
+    }
+
     #[tokio::test]
     async fn loose_trigger_repacks_incrementally_and_keeps_existing_packs() {
         let repo = crate::test_helpers::create_test_repo();
