@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`dracon-freeze-watchdog` backstops the dracon-system guard's watchdog.** On 2026-11-14 the guard and `dracon-system-guard-watchdog.timer` were stopped together and nothing could restart a stopped timer (15 min unguarded). The freeze watchdog (a different unit, from this repo) now re-arms that timer when it is ENABLED but inactive. It does nothing when `~/.dracon/dracon-system.maintenance-hold` exists or when the timer was deliberately disabled.
 - **A repack no longer turns a one-commit push into a full-history upload.**
   `git push` reads the pack list once, early, and after the pre-push hook
   checks the remote's tips with a lookup that does not re-read it. An
