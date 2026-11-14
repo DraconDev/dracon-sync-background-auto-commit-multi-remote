@@ -16,7 +16,7 @@ async fn push_commands_overlap_and_cancellation_drops_only_owned_work() {
         .scope(true, async {
             let signal = entered.clone();
             let cleanup = dropped.clone();
-            let mut first = Box::pin(command(&["push"], async move {
+            let mut first = Box::pin(command(std::path::Path::new("/nonexistent/push-resources-test"), &["push"], async move {
                 let _guard = Dropped(cleanup);
                 signal.store(true, Ordering::SeqCst);
                 std::future::pending::<()>().await;
@@ -28,7 +28,7 @@ async fn push_commands_overlap_and_cancellation_drops_only_owned_work() {
             let second_dropped = Arc::new(AtomicBool::new(false));
             let signal = second_entered.clone();
             let cleanup = second_dropped.clone();
-            let mut second = Box::pin(command(&["push"], async move {
+            let mut second = Box::pin(command(std::path::Path::new("/nonexistent/push-resources-test"), &["push"], async move {
                 let _guard = Dropped(cleanup);
                 signal.store(true, Ordering::SeqCst);
                 std::future::pending::<()>().await;
@@ -39,11 +39,11 @@ async fn push_commands_overlap_and_cancellation_drops_only_owned_work() {
             assert!(!dropped.load(Ordering::SeqCst));
             // A third enrolled push starts while both earlier commands remain
             // blocked: no replacement process-wide push-count cap exists.
-            command(&["push"], async { Ok(()) }).await.unwrap();
+            command(std::path::Path::new("/nonexistent/push-resources-test"), &["push"], async { Ok(()) }).await.unwrap();
             // Inspection and unenrolled/manual push also remain independent.
-            command(&["status"], async { Ok(()) }).await.unwrap();
+            command(std::path::Path::new("/nonexistent/push-resources-test"), &["status"], async { Ok(()) }).await.unwrap();
             PUSH_PHASE
-                .scope(false, command(&["push"], async { Ok(()) }))
+                .scope(false, command(std::path::Path::new("/nonexistent/push-resources-test"), &["push"], async { Ok(()) }))
                 .await
                 .unwrap();
             drop(first);
@@ -139,8 +139,8 @@ async fn push_phase_restores_local_capacity_on_error_and_nested_mirror_work() {
         let result: Result<()> = push_phase(async {
             assert_eq!(local.available_permits(), 1);
             let (a, b) = tokio::join!(
-                command(&["push"], async { Ok(()) }),
-                push_phase(command(&["push"], async { Ok(()) })),
+                command(std::path::Path::new("/nonexistent/push-resources-test"), &["push"], async { Ok(()) }),
+                push_phase(command(std::path::Path::new("/nonexistent/push-resources-test"), &["push"], async { Ok(()) })),
             );
             a.unwrap();
             b.unwrap();
