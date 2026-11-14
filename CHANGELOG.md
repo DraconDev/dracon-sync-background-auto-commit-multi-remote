@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **A repack no longer turns a one-commit push into a full-history upload.**
+  `git push` reads the pack list once, early, and after the pre-push hook
+  checks the remote's tips with a lookup that does not re-read it. An
+  auto-gc `repack -d` during the hook packed the freshly committed loose
+  objects (including the remote's tip) and deleted the loose files, so the
+  push treated the tip as unknown and sent the whole history.
+  browser-extensions-shared (7.6 GiB of packs, ~3-minute pre-push gates) had
+  three such pushes rejected by GitHub as "pack exceeds maximum allowed size
+  (2.00 GiB)" on 2026-11-14, each overlapping an incremental repack, while
+  the same deltas pack to ~20 MiB. Auto-gc now defers while a push to the
+  same repository is in flight (no failure or backoff recorded; it retries on
+  a later probe), and a push that arrives during a repack waits for it. A
+  test reproduces the inflation against a local bare remote.
+
 ## [0.113.99] - 2026-11-14
 
 ### Fixed
