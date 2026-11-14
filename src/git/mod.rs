@@ -6005,11 +6005,6 @@ mod auto_gc_tests {
         );
     }
 
-    /// REGRESSION (2026-11-14): the loose-object trigger must not rewrite
-    /// the repository's existing packs. A full gc of browser-extensions-shared
-    /// (7.6 GiB of packs) re-read and re-wrote everything to tidy 600 MiB of
-    /// loose objects, never finished inside its timeout, and looped all night.
-
     /// ADDED 2026-11-14: a repack under an in-flight push makes Git upload the
     /// whole history (`repo_maintenance`). The trigger must defer instead,
     /// without counting the skip as a failed attempt, and run once the push
@@ -6044,6 +6039,10 @@ mod auto_gc_tests {
         assert!(super::maybe_auto_gc(&repo, 0, 1, 0).await.is_some());
     }
 
+    /// REGRESSION (2026-11-14): the loose-object trigger must not rewrite
+    /// the repository's existing packs. A full gc of browser-extensions-shared
+    /// (7.6 GiB of packs) re-read and re-wrote everything to tidy 600 MiB of
+    /// loose objects, never finished inside its timeout, and looped all night.
     #[tokio::test]
     async fn loose_trigger_repacks_incrementally_and_keeps_existing_packs() {
         let repo = crate::test_helpers::create_test_repo();
