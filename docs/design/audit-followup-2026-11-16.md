@@ -158,3 +158,15 @@ additional GitLab capacity or an explicit change to the mirror policy.
 The daemon also logged this rejection as a missing forge repository and evicted
 its forge cache. The independently advertised existing main ref disproves that
 diagnosis; this secondary error-classification defect remains to be corrected.
+The classifier matches a bare `404` anywhere in its input; the pushed commit
+ID `9ee70a04049378568a64574c7708f466ab9b520e` itself contains that sequence.
+This is not evidence of an HTTP 404 response.
+
+GitLab's project API independently confirms the repository exists, is not
+marked for deletion and accounts for 10,161,969,648 bytes of repository storage
+(approximately 10.16 GB). The project-specific `repository_size_limit` field is
+null; no exact inherited quota was inferred from that field. The explicit
+server refusal establishes the capacity blocker. Installed-hook tests, exact
+scan replay, remote observations, storage statistics and the rejection line
+are retained with the hook backup under
+`~/.local/state/dracon-sync/deployments/browser-secret-review-20261116T220805Z/`.
