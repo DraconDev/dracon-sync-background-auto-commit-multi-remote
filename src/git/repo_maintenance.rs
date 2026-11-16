@@ -36,8 +36,10 @@ fn registry() -> &'static Mutex<HashMap<PathBuf, RepoActivity>> {
     REGISTRY.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-fn key(repo: &Path) -> PathBuf {
-    std::fs::canonicalize(repo).unwrap_or_else(|_| repo.to_path_buf())
+fn key(repo: &Path) -> anyhow::Result<PathBuf> {
+    // Linked worktrees have different checkout/gitdir paths, but repack the
+    // same object store. Use the same identity as the repository leases.
+    super::sync_lease::repository_identity(repo)
 }
 
 fn with_registry<T>(work: impl FnOnce(&mut HashMap<PathBuf, RepoActivity>) -> T) -> T {
@@ -88,8 +90,8 @@ const PUSH_WAIT_POLL: Duration = Duration::from_millis(200);
 
 /// Register a push, first waiting out any maintenance already running on the
 /// same repository.
-pub(crate) async fn begin_push(repo: &Path) -> PushActivity {
-    let key = key(repo);
+pub(crate) async fn begin_push(repo: &Path) -> anyhow::Result<PushActivity> {
+    let key = key(repo)?;
     let mut announced = false;
     loop {
         let admitted = with_registry(|map| {
@@ -102,7 +104,7 @@ pub(crate) async fn begin_push(repo: &Path) -> PushActivity {
             }
         });
         if admitted {
-            return PushActivity { key };
+            return Ok(PushActivity { key });
         }
         if !announced {
             announced = true;
@@ -118,7 +120,7 @@ pub(crate) async fn begin_push(repo: &Path) -> PushActivity {
 /// Claim the repository for maintenance, or `None` while any push is in
 /// flight for it.
 pub(crate) fn try_begin_maintenance(repo: &Path) -> Option<MaintenanceActivity> {
-    let key = key(repo);
+    let key = key(repo).ok()?;
     with_registry(|map| {
         let activity = map.entry(key.clone()).or_default();
         if activity.pushes > 0 || activity.maintenance {
@@ -134,43 +136,45 @@ pub(crate) fn try_begin_maintenance(repo: &Path) -> Option<MaintenanceActivity> 
 mod tests {
     use super::*;
 
-    fn unique_repo(name: &str) -> PathBuf {
-        PathBuf::from(format!(
-            "/nonexistent/repo-maintenance-test-{name}-{}",
-            std::process::id()
-        ))
+    fn unique_repo(name: &str) -> tempfile::TempDir {
+        let root = tempfile::Builder::new().prefix(name).tempdir().unwrap();
+        std::fs::create_dir(root.path().join(".git")).unwrap();
+        root
     }
 
     #[tokio::test]
     async fn maintenance_is_refused_while_a_push_is_in_flight() {
-        let repo = unique_repo("refused");
-        let push = begin_push(&repo).await;
-        assert!(try_begin_maintenance(&repo).is_none());
+        let root = unique_repo("refused");
+        let repo = root.path();
+        let push = begin_push(repo).await.unwrap();
+        assert!(try_begin_maintenance(repo).is_none());
         drop(push);
-        let maintenance = try_begin_maintenance(&repo);
+        let maintenance = try_begin_maintenance(repo);
         assert!(maintenance.is_some());
         drop(maintenance);
-        assert!(with_registry(|map| !map.contains_key(&key(&repo))));
+        assert!(with_registry(|map| !map.contains_key(&key(repo).unwrap())));
     }
 
     #[tokio::test]
     async fn concurrent_pushes_all_block_maintenance_until_the_last_ends() {
-        let repo = unique_repo("concurrent");
-        let first = begin_push(&repo).await;
-        let second = begin_push(&repo).await;
+        let root = unique_repo("concurrent");
+        let repo = root.path();
+        let first = begin_push(repo).await.unwrap();
+        let second = begin_push(repo).await.unwrap();
         drop(first);
-        assert!(try_begin_maintenance(&repo).is_none());
+        assert!(try_begin_maintenance(repo).is_none());
         drop(second);
-        assert!(try_begin_maintenance(&repo).is_some());
+        assert!(try_begin_maintenance(repo).is_some());
     }
 
     #[tokio::test]
     async fn push_waits_for_running_maintenance() {
-        let repo = unique_repo("waits");
-        let maintenance = try_begin_maintenance(&repo).expect("free repo");
+        let root = unique_repo("waits");
+        let repo = root.path();
+        let maintenance = try_begin_maintenance(repo).expect("free repo");
         let waiter = {
-            let repo = repo.clone();
-            tokio::spawn(async move { begin_push(&repo).await })
+            let repo = repo.to_path_buf();
+            tokio::spawn(async move { begin_push(&repo).await.unwrap() })
         };
         tokio::time::sleep(PUSH_WAIT_POLL * 3).await;
         assert!(
@@ -182,7 +186,7 @@ mod tests {
             .await
             .expect("push admitted after maintenance")
             .expect("task");
-        assert!(try_begin_maintenance(&repo).is_none());
+        assert!(try_begin_maintenance(repo).is_none());
         drop(push);
     }
 
@@ -190,8 +194,43 @@ mod tests {
     async fn other_repositories_are_unaffected() {
         let busy = unique_repo("busy");
         let idle = unique_repo("idle");
-        let _push = begin_push(&busy).await;
-        assert!(try_begin_maintenance(&idle).is_some());
+        let _push = begin_push(busy.path()).await.unwrap();
+        assert!(try_begin_maintenance(idle.path()).is_some());
+    }
+
+    #[tokio::test]
+    async fn linked_worktrees_share_push_and_maintenance_exclusion() {
+        let root = unique_repo("linked-maintenance");
+        let repo = root.path();
+        let linked = tempfile::tempdir().unwrap();
+        let gitdir = repo.join(".git/worktrees/linked");
+        std::fs::create_dir_all(&gitdir).unwrap();
+        std::fs::write(
+            linked.path().join(".git"),
+            format!("gitdir: {}", gitdir.display()),
+        )
+        .unwrap();
+        std::fs::write(gitdir.join("commondir"), "../..").unwrap();
+        let push = begin_push(repo).await.unwrap();
+        assert!(try_begin_maintenance(linked.path()).is_none());
+        drop(push);
+        let maintenance = try_begin_maintenance(linked.path()).unwrap();
+        assert!(
+            tokio::time::timeout(Duration::from_millis(50), begin_push(repo))
+                .await
+                .is_err()
+        );
+        drop(maintenance);
+        let push = begin_push(repo).await.unwrap();
+        drop(push);
+        assert!(try_begin_maintenance(linked.path()).is_some());
+    }
+
+    #[tokio::test]
+    async fn unresolved_repository_cannot_admit_maintenance_or_push() {
+        let root = tempfile::tempdir().unwrap();
+        assert!(try_begin_maintenance(root.path()).is_none());
+        assert!(begin_push(root.path()).await.is_err());
     }
 
     /// The mechanism this module exists for, end to end against a local bare

@@ -269,18 +269,43 @@ pub(crate) fn own_unit(cgroup: &str) -> Option<(bool, String)> {
     Some((path.contains("/user@"), name.to_owned()))
 }
 
-/// The daemon's sandbox, read once per process. Empty when the daemon is not
-/// a service (CLI, tests) or the manager cannot be asked; the latter is logged
-/// because the push would then run less confined than its daemon.
-fn mirrored_sandbox() -> &'static [String] {
-    static SANDBOX: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
-    SANDBOX.get_or_init(|| {
-        let Some((user, unit)) = std::fs::read_to_string("/proc/self/cgroup")
-            .ok()
-            .as_deref()
-            .and_then(own_unit)
-        else {
-            return Vec::new();
+/// Cache only successful sandbox reads. A transient manager failure must never
+/// authorize an unconfined service or prevent a later attempt from recovering.
+fn cached_sandbox(
+    cache: &Mutex<Option<Vec<String>>>,
+    load: impl FnOnce() -> anyhow::Result<Vec<String>>,
+) -> anyhow::Result<Vec<String>> {
+    let mut cached = cache.lock().unwrap_or_else(|p| p.into_inner());
+    if let Some(properties) = cached.as_ref() {
+        return Ok(properties.clone());
+    }
+    let properties = load()?;
+    *cached = Some(properties.clone());
+    Ok(properties)
+}
+
+fn checked_mirror_properties(show: &str) -> anyhow::Result<Vec<String>> {
+    // A successful exit with incomplete output is not a sandbox policy.
+    for key in MIRRORED_SANDBOX {
+        anyhow::ensure!(
+            show.lines()
+                .filter(|line| line.split_once('=').is_some_and(|(k, _)| k == *key))
+                .count()
+                == 1,
+            "incomplete sandbox property {key}"
+        );
+    }
+    Ok(mirror_properties(show))
+}
+
+/// The daemon's sandbox. Lookup failures leave the cache empty and cause the
+/// caller to retain direct execution inside the daemon's existing sandbox.
+fn mirrored_sandbox() -> anyhow::Result<Vec<String>> {
+    static SANDBOX: Mutex<Option<Vec<String>>> = Mutex::new(None);
+    cached_sandbox(&SANDBOX, || {
+        let cgroup = std::fs::read_to_string("/proc/self/cgroup")?;
+        let Some((user, unit)) = own_unit(&cgroup) else {
+            return Ok(Vec::new());
         };
         let mut command = std::process::Command::new("systemctl");
         if user {
@@ -290,21 +315,12 @@ fn mirrored_sandbox() -> &'static [String] {
         for key in MIRRORED_SANDBOX {
             command.args(["-p", key]);
         }
-        match command
+        let output = command
             .stdin(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
-            .output()
-        {
-            Ok(output) if output.status.success() => {
-                mirror_properties(&String::from_utf8_lossy(&output.stdout))
-            }
-            _ => {
-                eprintln!(
-                    "⚠️ push isolation: could not read {unit}'s sandbox; push units will run WITHOUT it"
-                );
-                Vec::new()
-            }
-        }
+            .output()?;
+        anyhow::ensure!(output.status.success(), "cannot read {unit}'s sandbox");
+        checked_mirror_properties(std::str::from_utf8(&output.stdout)?)
     })
 }
 
@@ -366,6 +382,13 @@ pub(super) fn wrap(
     runtime_max_secs: u64,
 ) -> Option<(tokio::process::Command, String)> {
     let manager = manager()?;
+    let sandbox = match mirrored_sandbox() {
+        Ok(properties) => properties,
+        Err(error) => {
+            eprintln!("⚠️ push isolation: {error:#}; retaining direct execution in the daemon sandbox (will retry lookup)");
+            return None;
+        }
+    };
     let env = effective_environment(git);
     let program = PathBuf::from(git.get_program());
     let program = if program.is_absolute() {
@@ -396,7 +419,7 @@ pub(super) fn wrap(
         &keys,
         runtime_max_secs,
         super::ops::SIGTERM_GRACE,
-        mirrored_sandbox(),
+        &sandbox,
     ));
     command.stdin(std::process::Stdio::null());
     Some((command, unit))

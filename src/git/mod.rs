@@ -6022,7 +6022,7 @@ mod auto_gc_tests {
             assert!(out.status.success());
         }
 
-        let push = super::repo_maintenance::begin_push(&repo).await;
+        let push = super::repo_maintenance::begin_push(&repo).await.unwrap();
         assert!(super::maybe_auto_gc(&repo, 0, 1, 0).await.is_none());
         assert!(
             super::attempts_for(&repo).get(&repo).is_none(),

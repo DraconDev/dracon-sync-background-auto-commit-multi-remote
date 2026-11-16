@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Bound daemon stderr reads and progress frames before allocating a whole line.
+  Hooks that emit a large line without a newline can no longer bypass the
+  diagnostic limit; progress notifications are coalesced instead of queued.
+- Coordinate pushes and maintenance by the common Git directory so linked
+  worktrees sharing an object store cannot repack underneath each other's push.
+- Failed or incomplete sandbox lookups now retain execution inside the daemon's
+  sandbox and retry later. Only successful sandbox policies are cached.
+- Ship the memory-pressure guard and a verified, pidfd-based graceful recovery
+  helper. Owned pressure pauses request recovery after two minutes (30-minute
+  restart cooldown) and release after sync's footprint falls, even if other
+  processes keep host PSI high. Manual pauses remain untouched. The operator
+  module's soft memory limit is 1280 MiB, below the unchanged 1400 MiB hard cap,
+  to let the measured ~1130 MiB working set process shutdown rather than remain
+  trapped in reclaim. See `docs/design/audit-remediation-2026-11-16.md`.
+
 - **`dracon-freeze-watchdog` backstops the dracon-system guard's watchdog.** On 2026-11-14 the guard and `dracon-system-guard-watchdog.timer` were stopped together and nothing could restart a stopped timer (15 min unguarded). The freeze watchdog (a different unit, from this repo) now re-arms that timer when it is ENABLED but inactive. It does nothing when `~/.dracon/dracon-system.maintenance-hold` exists or when the timer was deliberately disabled.
 - **A repack no longer turns a one-commit push into a full-history upload.**
   `git push` reads the pack list once, early, and after the pre-push hook

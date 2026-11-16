@@ -1,6 +1,39 @@
 use super::*;
 
 #[test]
+fn failed_sandbox_lookup_is_not_cached_and_retry_keeps_restrictions() {
+    let cache = Mutex::new(None);
+    assert!(cached_sandbox(&cache, || anyhow::bail!("manager unavailable")).is_err());
+    assert!(cache.lock().unwrap().is_none());
+    let properties = vec!["ProtectHome=read-only".into()];
+    assert_eq!(
+        cached_sandbox(&cache, || Ok(properties.clone())).unwrap(),
+        properties
+    );
+    assert_eq!(
+        cached_sandbox(&cache, || panic!("successful read must be cached")).unwrap(),
+        properties
+    );
+}
+
+#[test]
+fn incomplete_sandbox_output_is_refused_instead_of_cached_as_unconfined() {
+    let cache = Mutex::new(None);
+    assert!(cached_sandbox(&cache, || checked_mirror_properties(
+        "ProtectHome=read-only\n"
+    ))
+    .is_err());
+    assert!(cache.lock().unwrap().is_none());
+    let show = MIRRORED_SANDBOX
+        .iter()
+        .map(|key| format!("{key}=no\n"))
+        .collect::<String>();
+    assert!(cached_sandbox(&cache, || checked_mirror_properties(&show))
+        .unwrap()
+        .is_empty());
+}
+
+#[test]
 fn runner_args_isolate_into_the_push_slice_without_leaking_values() {
     let args = runner_args(
         "dracon-push-test-00.service",

@@ -3802,6 +3802,10 @@ fn run_git_bounded(
     stdin_data: &[u8],
     timeout: std::time::Duration,
 ) -> BoundedProbe {
+    let deadline = std::time::Instant::now() + timeout;
+    if timeout.is_zero() {
+        return BoundedProbe::TimedOut;
+    }
     struct TmpCleanup(std::path::PathBuf);
     impl Drop for TmpCleanup {
         fn drop(&mut self) {
@@ -3852,6 +3856,9 @@ fn run_git_bounded(
         Ok(file) => file,
         Err(_) => return BoundedProbe::Failed,
     };
+    if std::time::Instant::now() >= deadline {
+        return BoundedProbe::TimedOut;
+    }
     let mut child = match crate::policy::std_git_command()
         .args(args)
         .current_dir(repo)
@@ -3863,8 +3870,12 @@ fn run_git_bounded(
         Ok(child) => child,
         Err(_) => return BoundedProbe::Failed,
     };
-    let deadline = std::time::Instant::now() + timeout;
     loop {
+        if std::time::Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            return BoundedProbe::TimedOut;
+        }
         match child.try_wait() {
             Ok(Some(status)) => {
                 if !status.success() {
@@ -11210,8 +11221,9 @@ mod tests {
     /// `PUSH 🩹 BROKEN` on a loaded host (`rev-list --objects HEAD` exited 0 in
     /// 3.6-8.2 s against the 10 s bound).
     ///
-    /// Driven through the real bounded runner with a duration no subprocess can
-    /// beat, so the assertion covers the deadline path rather than a mock.
+    /// Driven through the real bounded runner with an expired budget, so the
+    /// assertion covers the deadline path rather than a mock. No Git process
+    /// may start when no time remains.
     #[test]
     fn probe_timeout_is_unmeasured_not_broken_history() {
         let dir = tempfile::tempdir().unwrap();

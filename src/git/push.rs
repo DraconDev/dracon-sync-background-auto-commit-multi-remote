@@ -1786,7 +1786,7 @@ mod tests {
             fake_git.to_str().unwrap(),
         );
         let repo = tmp.path().join("repo");
-        std::fs::create_dir_all(&repo).unwrap();
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
         let result = push_with_retries(&repo, 5, 3, "r3-l04").await;
         assert!(result.is_err(), "protected-branch push must fail");
         let argv = std::fs::read_to_string(&log).unwrap();
@@ -1834,7 +1834,7 @@ mod tests {
             fake_git.to_str().unwrap(),
         );
         let repo = tmp.path().join("repo");
-        std::fs::create_dir_all(&repo).unwrap();
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
         // retries=3: pre-fix this ran 4 pushes (SSH + retries) after a
         // pointless pull probe.
         let result = push_with_retries(&repo, 5, 3, "f111").await;
@@ -1882,7 +1882,7 @@ mod tests {
             fake_git.to_str().unwrap(),
         );
         let repo = tmp.path().join("repo");
-        std::fs::create_dir_all(&repo).unwrap();
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
         let result =
             super::super::multi_remote::push_to_named_remote(&repo, "origin", 5, 3, false).await;
         assert!(result.is_err(), "a local hook refusal must still fail");
@@ -1960,7 +1960,7 @@ mod tests {
         let _home_guard =
             crate::test_helpers::EnvRestorer::new("HOME", fake_home.to_str().unwrap());
         let repo = tmp.path().join("repo");
-        std::fs::create_dir_all(&repo).unwrap();
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
         let url = "git@github.com:DraconDev/fixture.git";
 
         // Case 1: GH_TOKEN set → askpass-backed attempt.

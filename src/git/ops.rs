@@ -4,9 +4,9 @@ use super::write_fence::WriteFence;
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::{AsyncRead, AsyncReadExt};
 use tokio::process::Command as TokioCommand;
-use tokio::sync::mpsc;
+use tokio::sync::watch;
 
 /// Progress output extends the idle timeout, but it must not keep a network
 /// operation alive forever when a remote emits an endless stream of plausible
@@ -213,12 +213,83 @@ impl Drop for GroupKillGuard {
     }
 }
 
+const MAX_STDERR_BYTES: usize = 1024 * 1024;
+const MAX_PROGRESS_LINE_BYTES: usize = 8192;
+
+/// Drain all stderr, retaining only bounded diagnostics and bounded progress
+/// frames. A missing newline must not grow an allocation in the daemon.
+async fn drain_stderr<F>(
+    mut stderr: impl AsyncRead + Unpin,
+    mut progress_predicate: Option<F>,
+    progress: watch::Sender<Instant>,
+) -> String
+where
+    F: FnMut(&str) -> bool,
+{
+    let mut captured = Vec::new();
+    let mut line = Vec::new();
+    let mut oversized_line = false;
+    let mut truncated = false;
+    let mut chunk = vec![0u8; 8192];
+    loop {
+        let count = match stderr.read(&mut chunk).await {
+            Ok(0) => break,
+            Ok(count) => count,
+            Err(error) => {
+                eprintln!("stderr pipe error during git op (likely child crashed): {error}");
+                let diagnostic = format!("<stderr pipe error: {error}>");
+                let keep = diagnostic
+                    .len()
+                    .min(MAX_STDERR_BYTES.saturating_sub(captured.len()));
+                captured.extend_from_slice(&diagnostic.as_bytes()[..keep]);
+                truncated |= keep < diagnostic.len();
+                break;
+            }
+        };
+        let keep = count.min(MAX_STDERR_BYTES.saturating_sub(captured.len()));
+        captured.extend_from_slice(&chunk[..keep]);
+        truncated |= keep < count;
+        if let Some(predicate) = progress_predicate.as_mut() {
+            for &byte in &chunk[..count] {
+                if matches!(byte, b'\n' | b'\r') {
+                    if !oversized_line && predicate(&String::from_utf8_lossy(&line)) {
+                        // Coalesce progress rather than accumulating one queued
+                        // allocation per line while a chatty hook is drained.
+                        progress.send_replace(Instant::now());
+                    }
+                    line.clear();
+                    oversized_line = false;
+                } else if !oversized_line {
+                    if line.len() < MAX_PROGRESS_LINE_BYTES {
+                        line.push(byte);
+                    } else {
+                        line.clear();
+                        oversized_line = true;
+                    }
+                }
+            }
+        }
+    }
+    if !oversized_line {
+        if let Some(predicate) = progress_predicate.as_mut() {
+            if !line.is_empty() && predicate(&String::from_utf8_lossy(&line)) {
+                progress.send_replace(Instant::now());
+            }
+        }
+    }
+    let mut output = String::from_utf8_lossy(&captured).into_owned();
+    if truncated {
+        output.push_str("\n<stderr truncated at 1 MiB>");
+    }
+    output
+}
+
 async fn run_child_inner<F>(
     mut child: tokio::process::Child,
     workdir: &Path,
     timeout_secs: u64,
     label: &str,
-    mut progress_predicate: Option<F>,
+    progress_predicate: Option<F>,
 ) -> Result<()>
 where
     F: FnMut(&str) -> bool + Send + 'static,
@@ -229,60 +300,13 @@ where
     let mut group_guard = GroupKillGuard(pid);
     let stderr_handle = child.stderr.take();
     let stdout_handle = child.stdout.take();
-    let (progress_tx, mut progress_rx) = mpsc::unbounded_channel::<Instant>();
+    let (progress_tx, mut progress_rx) = watch::channel(Instant::now());
     // Keep capture owned by this future so cancellation cannot detach it.
     let stderr_task = async move {
-        let mut stderr_output = String::new();
-        let mut stderr_truncated = false;
-        const MAX_STDERR_BYTES: usize = 1024 * 1024;
-        if let Some(mut stderr) = stderr_handle {
-            let mut lines = BufReader::new(&mut stderr).lines();
-            loop {
-                // F50 (2026-07-18): a broken pipe (subprocess OOM-killed,
-                // pipe closed early) returns Err; the previous
-                // `while let Ok(Some(line))` silently dropped the
-                // error. Surface the pipe break so the caller's
-                // diagnostic distinguishes pipe error from timeout.
-                match lines.next_line().await {
-                    Ok(Some(line)) => {
-                        if let Some(is_progress) = progress_predicate.as_mut() {
-                            if is_progress(&line) {
-                                let _ = progress_tx.send(Instant::now());
-                            }
-                        }
-                        if stderr_output.len() < MAX_STDERR_BYTES {
-                            if !stderr_output.is_empty() {
-                                stderr_output.push('\n');
-                            }
-                            let remaining = MAX_STDERR_BYTES.saturating_sub(stderr_output.len());
-                            let mut end = remaining.min(line.len());
-                            while end > 0 && !line.is_char_boundary(end) {
-                                end -= 1;
-                            }
-                            stderr_output.push_str(&line[..end]);
-                            if end < line.len() {
-                                stderr_truncated = true;
-                            }
-                        } else {
-                            stderr_truncated = true;
-                        }
-                    }
-                    Ok(None) => break,
-                    Err(e) => {
-                        eprintln!(
-                            "stderr pipe error during git op (likely child crashed): {}",
-                            e
-                        );
-                        stderr_output.push_str(&format!("<stderr pipe error: {}>", e));
-                        break;
-                    }
-                }
-            }
+        match stderr_handle {
+            Some(stderr) => drain_stderr(stderr, progress_predicate, progress_tx).await,
+            None => String::new(),
         }
-        if stderr_truncated {
-            stderr_output.push_str("\n<stderr truncated at 1 MiB>");
-        }
-        stderr_output
     };
     let stderr_task = Box::pin(stderr_task);
     let capture = async move {
@@ -374,7 +398,7 @@ where
             output = &mut stderr_task, if captured_stderr.is_none() => {
                 captured_stderr = Some(output);
             }
-            Some(_) = progress_rx.recv() => {
+            Ok(()) = progress_rx.changed() => {
                 deadline = std::cmp::min(
                     Instant::now() + Duration::from_secs(timeout_secs),
                     hard_deadline,
@@ -1001,7 +1025,8 @@ fn askpass_dir() -> PathBuf {
                 // SAFETY: getuid has no preconditions.
                 if meta.is_dir() && meta.uid() == unsafe { libc::getuid() } {
                     if meta.permissions().mode() & 0o077 != 0 {
-                        let _ = std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700));
+                        let _ =
+                            std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700));
                     }
                     return dir;
                 }
@@ -1103,6 +1128,59 @@ pub(crate) fn filter_repo_available_for_tests() -> bool {
 #[cfg(test)]
 mod tests {
     use super::is_git_push_progress_line;
+
+    #[tokio::test]
+    async fn newline_free_stderr_is_drained_in_bounded_chunks() {
+        struct HugeLine(usize);
+        impl tokio::io::AsyncRead for HugeLine {
+            fn poll_read(
+                mut self: std::pin::Pin<&mut Self>,
+                _: &mut std::task::Context<'_>,
+                buf: &mut tokio::io::ReadBuf<'_>,
+            ) -> std::task::Poll<std::io::Result<()>> {
+                assert!(
+                    buf.remaining() <= 8192,
+                    "stderr read request must stay bounded"
+                );
+                let count = self.0.min(buf.remaining());
+                buf.put_slice(&vec![b'x'; count]);
+                self.0 -= count;
+                std::task::Poll::Ready(Ok(()))
+            }
+        }
+        let (tx, _rx) = tokio::sync::watch::channel(std::time::Instant::now());
+        let output = super::drain_stderr(
+            HugeLine(8 * 1024 * 1024),
+            Some(is_git_push_progress_line),
+            tx,
+        )
+        .await;
+        assert!(output.starts_with(&"x".repeat(super::MAX_STDERR_BYTES)));
+        assert!(output.ends_with("<stderr truncated at 1 MiB>"));
+        assert!(output.len() < super::MAX_STDERR_BYTES + 64);
+    }
+
+    #[tokio::test]
+    async fn progress_survives_truncation_cr_frames_and_oversized_lines() {
+        let mut input = vec![b'x'; super::MAX_STDERR_BYTES + 1];
+        input.extend_from_slice(b"\nWriting objects: 50%\rremote: gate complete");
+        let initial = std::time::Instant::now();
+        let (tx, mut rx) = tokio::sync::watch::channel(initial);
+        let mut seen = Vec::new();
+        let output = super::drain_stderr(
+            &input[..],
+            Some(|line: &str| {
+                seen.push(line.to_owned());
+                is_git_push_progress_line(line)
+            }),
+            tx,
+        )
+        .await;
+        assert_eq!(seen, ["Writing objects: 50%", "remote: gate complete"]);
+        assert!(*rx.borrow_and_update() > initial);
+        assert!(rx.borrow_and_update().elapsed() < std::time::Duration::from_secs(5));
+        assert!(output.ends_with("<stderr truncated at 1 MiB>"));
+    }
 
     #[test]
     fn captured_pipe_future_does_not_embed_its_io_buffer() {

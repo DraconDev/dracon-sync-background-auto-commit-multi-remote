@@ -189,7 +189,7 @@ pub(super) async fn command<T>(
     work: impl Future<Output = Result<T>>,
 ) -> Result<T> {
     let _push = if args.first() == Some(&"push") {
-        Some(super::repo_maintenance::begin_push(repo).await)
+        Some(super::repo_maintenance::begin_push(repo).await?)
     } else {
         None
     };

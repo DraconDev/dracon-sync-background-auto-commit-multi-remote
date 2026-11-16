@@ -2304,6 +2304,7 @@ mod tests {
     async fn cancelled_mirror_parent_terminates_push_process_group() {
         use std::os::unix::fs::PermissionsExt;
         let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir(tmp.path().join(".git")).unwrap();
         let script = tmp.path().join("fake-git");
         std::fs::write(
             &script,

@@ -115,7 +115,12 @@
       #     push needs more, the daemon is OOM-killed and restarted, which
       #     is the intended trade: a restarted sync is cheap, a wedged
       #     desktop is not.
-      MemoryHigh = "1024M";
+      # 2026-11-16: 1024M left a paused daemon holding ~1130 MiB anon
+      # trapped in mem_cgroup_handle_over_high (68% full PSI), unable even
+      # to process a graceful SIGTERM. Allow that observed working set plus
+      # shutdown headroom; the hard ceiling is unchanged. The memory guard
+      # requests a bounded graceful recycle before prolonged global pauses.
+      MemoryHigh = "1280M";
       MemoryMax = "1400M";
       MemorySwapMax = "128M";
       # CHANGED 2026-11-11: IOWeight 10 (default 100). The daemon read
