@@ -47,17 +47,24 @@ The shipped guard now:
   changes memory limits.
 - Requires `Restart=always`, a matching installed executable, matching UID and
   the `daemon` subcommand before sending SIGTERM through a pinned pidfd.
+- If the pinned daemon has not exited after five seconds, and its cgroup is
+  above `memory.high` with at least 50% local full PSI, cancels only verified
+  read-only Git probes belonging to that daemon, through their own pidfds.
+  The allowlist is the exact observed `diff --cached --unified=0` and remote
+  reachability `rev-list --objects --no-object-names` forms. It verifies the
+  Git executable, UID, PPID and same cgroup again before signalling. Fetches,
+  index mutations, hooks, commits and other workloads are excluded.
 - Releases its pause after three checks below the existing sync footprint floor,
   even when unrelated host PSI remains high. Existing healthy-host exit rules
   remain available as well.
 - Preserves independent/manual markers, including the alternate freeze path,
   and retains ownership when `resume` fails so it can retry.
 
-The operator Nix module raises `MemoryHigh` to 1280 MiB to accommodate the
-observed working set and allow shutdown. `MemoryMax=1400M` and
-`MemorySwapMax=128M` remain enforced. This is a measured headroom adjustment,
-not an unlimited cgroup. The live Nix source is
-`~/nixos/modules/dracon-sync-operator.nix`; applying it requires root.
+Memory limits remain `MemoryHigh=1024M`, `MemoryMax=1400M` and
+`MemorySwapMax=128M`. Targeted cancellation released the stalled readers' memory
+and enabled a clean shutdown within the existing limits. A temporary 1280 MiB
+headroom increase was initially proposed, then withdrawn after this recovery
+path was verified; no privileged limit adjustment was applied.
 
 ## Installation and live verification
 
@@ -67,23 +74,20 @@ user timer's script location, `~/.dracon/scripts/`. Backups and a digest receipt
 for the initial installation are under
 `~/.local/state/dracon-sync/deployments/memory-guard-20261116T030736Z/`.
 
-A process already trapped in reclaim needs privileged temporary headroom:
+At 03:22 UTC two direct Git children of PID 3522953 were independently verified
+as read-only probes holding approximately 151 and 169 MiB RSS. SIGTERM through
+their pinned pidfds released enough headroom for the daemon's pending graceful
+shutdown. The system journal records a clean exit at 03:22:42, systemd's
+`Restart=always` replacement PID 929428 at 03:23:12, and the memory guard
+releasing its owned pause at 03:23:44. At 03:25 the journal records fresh automatic
+commits (including 37 files in dracon-platform) and successful syncs of this
+project, junk-runner and capture-anime-girls.
 
-```sh
-sudo systemctl set-property --runtime dracon-sync-operator.service MemoryHigh=1280M
-```
-
-The pending graceful SIGTERM can then complete; inspect the same service's
-MainPID and journal rather than repeatedly signalling it. Verify that the new
-PID's memory falls, the guard removes its own pause, and actual new commit
-messages appear in the system journal. A cleared marker alone does not prove
-that commits resumed.
-
-Apply the updated Nix module for persistence. After that, remove only the
-temporary `MemoryHigh` control override created by `set-property` and reload
-systemd; retain unrelated control properties. Verify the final effective
-`MemoryHigh=1342177280` and `MemoryMax=1468006400` with `systemctl show`.
-Do not restore 1024 MiB while the old ~1130 MiB process is still trapped.
+A cleared marker alone is not a recovery witness: inspect a replacement PID,
+its cgroup footprint and fresh automatic commit messages. The installed helper
+now performs the same narrowly scoped cancellation if severe cgroup throttling
+prevents its graceful TERM request from completing. It never sends SIGKILL or
+removes repository lock files.
 
 ## Validation
 
@@ -92,8 +96,11 @@ carriage returns, linked-worktree exclusion in both directions, unresolved
 repository identities, failed sandbox reads followed by successful retry, and
 incomplete sandbox output. `python3 scripts/test_memory_guard.py -v` tests
 pressure recovery with fixture procfs/cgroups and mocked control commands, plus
-the recovery helper's PID identity and signal constraints.
+the recovery helper's PID identity and signal constraints. Eleven guard/helper
+regressions pass, including the positive reader cancellation and negative fetch,
+commit, index mutation, foreign executable, unrelated parent and other-cgroup
+cases.
 
-Live recovery remains unproven until a replacement PID and fresh automatic
-commits are observed. The root-only adjustment above is necessary for the
-currently throttled process; user-owned script installation cannot apply it.
+Live commit recovery is verified by the journal witnesses above. Deployment of
+the Rust audit fixes is a separate step after final source-matching workspace
+validation and release-build verification.
