@@ -40,5 +40,29 @@ a temporary file and atomic rename. This prevents lost concurrent evidence and
 partial JSON reads. Serialization is process-local, not a cross-process lock.
 Three new regressions cover future corroboration, recovery preserving valid
 evidence, and concurrent updates with simultaneous JSON readers. All 12 forge
-tests pass. Full workspace validation and deployment results are recorded below
-when complete.
+tests pass.
+
+## Qualification status
+
+The release build, workspace Clippy with warnings denied, and `cargo deny check`
+passed. Debug and release helpers reported the same compiled source identity:
+`c169093474c075de63349483a0edeef615cd5718cc09565c994028903ff5b610`.
+The release SHA-256 is
+`e0dcd69d0bbb4296e753e0878a843b668d1151e1c81048eda0e98a47ee7df65e`.
+
+The first full workspace run failed only
+`integrated_failure_recovery_harness`: its healthy fixture exceeded a staging
+deadline. The other 1,722 daemon tests passed, with five ignored. A focused
+retry also exceeded the existing epoch deadline during severe host load. The
+deadline has not been increased. A full rerun is pending; this candidate has
+not been installed. Logs and command results are under
+`/tmp/dracon-sync-followup-*.log` and
+`/tmp/dracon-sync-followup-validation.json`.
+
+The first browser hook after the lockfile repair reached 193 passing checks
+before returning failure with two advisory diagnostics (de-addict typecheck and
+tabmon tests). Its retained manifest is
+`~/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.xyVMQP/manifest.json`.
+Later manifests `dracon-pre-push.1f2bmm` and `dracon-pre-push.FnLfXJ` passed
+at 15:21 and 15:23 respectively; subsequent daemon push attempts still failed.
+A passing hook alone is not proof that either remote accepted the current tip.
