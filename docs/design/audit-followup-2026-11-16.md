@@ -124,3 +124,11 @@ ranges for browser checkpoint `ee8f97ee3f5de158cfbcc117b7fb239983bb73ef`,
 against GitHub tip `be47efe4ea99a3d089ef289448163f332b2e8fff` and GitLab tip
 `84cc5542be9722a08a9df30459e2a822b4bdab86`. Replay evidence is in
 `/tmp/browser-hook-review-5_r2yyen/phase1-both-remotes.json`.
+The live product attempt `dracon-pre-push.yGI5eV` completed 45 passing checks
+and three advisory test failures (Reddit Pro, Tab Hero and Tabmon), with no
+gate-machinery failure. GitHub subsequently accepted checkpoint
+`b81e6dbc18648f5c78df0852f88027d5e6b729a9`; an independent non-multiplexed
+`ls-remote` verified the advertised ref at 22:22. The daemon's ahead backlog
+fell from 324 to 32 while other agents continued editing. GitLab verification
+remained pending at that observation; this is not an all-mirror convergence
+claim.
