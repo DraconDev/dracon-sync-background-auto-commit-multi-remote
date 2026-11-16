@@ -170,6 +170,30 @@ class RecoveryTests(unittest.TestCase):
             self.assertFalse(self.module.throttled_above_high("/system.slice/sync.service", root))
             self.assertFalse(self.module.throttled_above_high("/../escape", root))
 
+    def test_pending_shutdown_only_cancels_readers_when_local_throttling_is_proven(self):
+        for throttled in (False, True):
+            with self.subTest(throttled=throttled), \
+                 patch.object(self.module.subprocess, "run", return_value=Mock(stdout="MainPID=123\nRestart=always\nControlGroup=/system.slice/sync.service\n")), \
+                 patch.object(self.module.os, "pidfd_open", return_value=456), \
+                 patch.object(self.module.os, "close"), \
+                 patch.object(self.module.Path, "stat", return_value=Mock(st_uid=os.getuid())), \
+                 patch.object(self.module.Path, "resolve", return_value=Path("/installed/dracon-sync")), \
+                 patch.object(self.module.os, "readlink", return_value="/installed/dracon-sync"), \
+                 patch.object(self.module.Path, "read_bytes", return_value=b"/installed/dracon-sync\0daemon\0"), \
+                 patch.object(self.module.signal, "pidfd_send_signal") as send, \
+                 patch.object(self.module, "wait_for_exit", return_value=False), \
+                 patch.object(self.module, "throttled_above_high", return_value=throttled), \
+                 patch.object(self.module.shutil, "which", return_value="/installed/git"), \
+                 patch.object(self.module, "cancel_readonly_probes", return_value=[111]) as cancel:
+                self.module.request_recovery("sync.service", "/installed/dracon-sync")
+                send.assert_called_once_with(456, self.module.signal.SIGTERM)
+                if throttled:
+                    self.assertEqual(cancel.call_count, 1)
+                    self.assertEqual(cancel.call_args.args[0], 123)
+                    self.assertEqual(cancel.call_args.args[2], 456)
+                else:
+                    cancel.assert_not_called()
+
     def test_shutdown_cancels_only_matching_readonly_git_children_in_the_same_unit(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
