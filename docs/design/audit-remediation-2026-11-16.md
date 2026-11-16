@@ -133,4 +133,3 @@ systemd started PID 2050114 at 03:58:33. The installer independently hashed
 backup and full deployment receipt are at
 `~/.local/state/dracon-sync/deployments/20261116T035807Z-audit-20261116/`.
 The service remains enabled with its original memory limits.
-
