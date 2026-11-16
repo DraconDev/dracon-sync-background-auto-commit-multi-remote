@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   worktrees sharing an object store cannot repack underneath each other's push.
 - Failed or incomplete sandbox lookups now retain execution inside the daemon's
   sandbox and retry later. Only successful sandbox policies are cached.
+- History probes check their deadline before spawning or accepting a child
+  result, including an already-expired budget.
 - Ship the memory-pressure guard and a verified, pidfd-based graceful recovery
   helper. Owned pressure pauses request recovery after two minutes (30-minute
   restart cooldown) and release after sync's footprint falls, even if other

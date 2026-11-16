@@ -23,6 +23,12 @@ retries discovery. Missing properties in otherwise successful `systemctl show`
 output are also refused. Resource isolation may temporarily be unavailable on
 this fallback, but a query failure never authorizes an unconfined transient unit.
 
+The full test run also exposed a deadline-ordering race in the history probe.
+An already-expired budget could still accept a child that exited before its
+first poll. The existing deadline regression now checks the deadline at entry,
+before spawn and before observing a child result, keeping expired probes
+unmeasured rather than presenting a late result as timely evidence.
+
 ## Why commits remained paused
 
 At 02:57 UTC the live system daemon (PID 3522953) held approximately 1.1 GiB of
@@ -96,7 +102,7 @@ carriage returns, linked-worktree exclusion in both directions, unresolved
 repository identities, failed sandbox reads followed by successful retry, and
 incomplete sandbox output. `python3 scripts/test_memory_guard.py -v` tests
 pressure recovery with fixture procfs/cgroups and mocked control commands, plus
-the recovery helper's PID identity and signal constraints. Eleven guard/helper
+the recovery helper's PID identity and signal constraints. Twelve guard/helper
 regressions pass, including the positive reader cancellation and negative fetch,
 commit, index mutation, foreign executable, unrelated parent and other-cgroup
 cases.
