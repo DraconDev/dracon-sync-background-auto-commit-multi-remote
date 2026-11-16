@@ -85,3 +85,36 @@ A passing hook alone is not proof that either remote accepted the current tip.
 The 17:23:57 GitLab attempt specifically reports Warden's possible-plaintext
 secret refusal. No secret values were inspected or reproduced, no security gate
 was bypassed, and no published history was rewritten during this follow-up.
+
+## Evening publishing repair
+
+At 22:00 the browser hook still refused publication. A read-only scan of all
+319 commits ahead of the observed GitHub tip found one unreviewed match:
+commit `5b3299db448ea2a52bd6795cb4af17524f7f4c32` introduced a deterministic
+repeated-byte seed in Reddit Pro's `tests/comment-identity.test.ts`. The seed
+is used by local author-alias tests and is not a service credential.
+
+An exact review receipt was added to the existing hook mechanism, binding
+added-content SHA-256
+`a7dbcaf262f1ab03c427d06dd95b6424b323dd6abc21cb6909973a081b5e56be`
+to match SHA-256
+`9a8fdd7ec276b681d824ea6676faf7297eee66fa9127b185d93a17f9bf658f56`.
+The historical content passes with a logged receipt; changing the match or
+unrelated added content remains rejected. All 17 hook tests passed both before
+and after atomic installation, with executable permissions preserved. No
+detector, product gate or history rule changed. The daemon committed the hook
+as `c0f540e6c3`. The supported stuck-unstuck command released its retry hold.
+Backup and candidate-test receipt:
+`~/.local/state/dracon-sync/deployments/browser-secret-review-20261116T220805Z/`.
+The installed-hook test log is `/tmp/browser-hook-installed-tests.log`.
+
+The `.dracon` report subsequently observed an actual publication phase instead
+of UNKNOWN. Recent automatic commits and syncs establish continued activity,
+not a claim that a constantly edited repository stays clean.
+
+A separate transport stall affected multiple GitHub operations: the shared SSH
+master accepted control requests but its Git sessions waited for minutes,
+while a new connection with multiplexing disabled returned the advertised tip
+immediately. At approximately 22:10, `ssh -O exit git@github.com` closed that
+shared connection so normal Git retry handling could reconnect. The daemon
+service stayed active and repository history was unchanged.
