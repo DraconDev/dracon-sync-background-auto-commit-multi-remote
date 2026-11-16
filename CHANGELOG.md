@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Reject future outage evidence when pruning forge incidents. Serialize the
+  daemon's concurrent forge-health updates and publish JSON atomically, so
+  stale timestamps cannot extend outages and readers cannot see partial files.
+  See `docs/design/audit-followup-2026-11-16.md`.
 - Bound daemon stderr reads and progress frames before allocating a whole line.
   Hooks that emit a large line without a newline can no longer bypass the
   diagnostic limit; progress notifications are coalesced instead of queued.
