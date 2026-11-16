@@ -107,6 +107,30 @@ regressions pass, including the positive reader cancellation and negative fetch,
 commit, index mutation, foreign executable, unrelated parent and other-cgroup
 cases.
 
-Live commit recovery is verified by the journal witnesses above. Deployment of
-the Rust audit fixes is a separate step after final source-matching workspace
-validation and release-build verification.
+Live commit recovery is verified by the journal witnesses above.
+
+## Final qualification and deployment
+
+The following gates passed against the final Rust source:
+
+- `cargo test --workspace --locked --no-fail-fast` (exit 0; the dracon-sync main
+  target reports 1720 passed, 5 existing ignored helper/operational tests).
+- `cargo build --release --locked` (exit 0).
+- `cargo clippy --workspace --locked -- -D warnings` (exit 0).
+- `cargo deny check` (advisories, bans, licenses and sources passed).
+- 73 focused Rust regressions and 12 memory-guard/helper tests passed;
+  `shellcheck scripts/dracon-memory-guard.sh` also passed.
+
+The release executable and workspace test helper both report compiled source
+identity `7dcb82f743661d88e65c8b829d3ed9bb990b34b6e7f03e1a9a7c4cc092dbe647`.
+The deployed release artifact SHA-256 is
+`5cbaa109c1f663225db6a8261721a43bf9484af1cf5472bc7cd861816ba8470e`.
+
+At 03:58 UTC `scripts/install-qualified-daemon.py` atomically replaced the
+installed binary and sent a pidfd-bound SIGTERM. PID 929428 exited cleanly;
+systemd started PID 2050114 at 03:58:33. The installer independently hashed
+`/proc/2050114/exe` and verified that it matches the qualified artifact. The
+backup and full deployment receipt are at
+`~/.local/state/dracon-sync/deployments/20261116T035807Z-audit-20261116/`.
+The service remains enabled with its original memory limits.
+
