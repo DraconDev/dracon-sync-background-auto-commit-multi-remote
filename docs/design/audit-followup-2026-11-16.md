@@ -66,3 +66,6 @@ tabmon tests). Its retained manifest is
 Later manifests `dracon-pre-push.1f2bmm` and `dracon-pre-push.FnLfXJ` passed
 at 15:21 and 15:23 respectively; subsequent daemon push attempts still failed.
 A passing hook alone is not proof that either remote accepted the current tip.
+The 17:23:57 GitLab attempt specifically reports Warden's possible-plaintext
+secret refusal. No secret values were inspected or reproduced, no security gate
+was bypassed, and no published history was rewritten during this follow-up.
