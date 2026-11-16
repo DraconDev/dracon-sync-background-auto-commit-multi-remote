@@ -133,3 +133,8 @@ systemd started PID 2050114 at 03:58:33. The installer independently hashed
 backup and full deployment receipt are at
 `~/.local/state/dracon-sync/deployments/20261116T035807Z-audit-20261116/`.
 The service remains enabled with its original memory limits.
+
+The new process's journal records a fresh automatic commit in this project at
+03:59:49 UTC and a successful sync at 03:59:54. Both supported freeze markers
+are absent. This verifies resumed commits and publication after deployment,
+in addition to the loaded-executable digest witness.
