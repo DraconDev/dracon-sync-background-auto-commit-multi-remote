@@ -18,10 +18,10 @@ def wait_for_exit(owned, seconds):
     return bool(select.select([owned], [], [], seconds)[0])
 
 
-def throttled_above_high(cgroup):
+def throttled_above_high(cgroup, cgroup_root=Path("/sys/fs/cgroup")):
     if not cgroup.startswith("/") or ".." in Path(cgroup).parts:
         return False
-    root = Path("/sys/fs/cgroup") / cgroup.lstrip("/")
+    root = cgroup_root / cgroup.lstrip("/")
     try:
         high = (root / "memory.high").read_text().strip()
         if high == "max" or int((root / "memory.current").read_text()) <= int(high):
@@ -43,10 +43,12 @@ def readonly_probe(args):
              and len(args) > 5 and all(arg.startswith(b"refs/remotes/") for arg in args[5:])))
 
 
-def cancel_readonly_probes(parent, git, proc_root=Path("/proc")):
+def cancel_readonly_probes(parent, git, parent_owned, proc_root=Path("/proc")):
     parent_cgroup = (proc_root / str(parent) / "cgroup").read_bytes()
     cancelled = []
     for proc in proc_root.iterdir():
+        if wait_for_exit(parent_owned, 0):
+            break
         if not proc.name.isdigit():
             continue
         owned = None
@@ -58,13 +60,16 @@ def cancel_readonly_probes(parent, git, proc_root=Path("/proc")):
             # Recheck after pinning: a PID reuse or a child leaving the unit
             # must not turn this shutdown cancellation into another workload.
             status = dict(line.split(":", 1) for line in (proc / "status").read_text().splitlines() if ":" in line)
-            if int(status.get("PPid", "0")) != parent or (proc / "cgroup").read_bytes() != parent_cgroup:
+            if (int(status.get("PPid", "0")) != parent or proc.stat().st_uid != os.getuid()
+                    or (proc / "cgroup").read_bytes() != parent_cgroup):
                 continue
             if Path(os.readlink(proc / "exe")) != git:
                 continue
             args = (proc / "cmdline").read_bytes().rstrip(b"\0").split(b"\0")
             if not readonly_probe(args):
                 continue
+            if wait_for_exit(parent_owned, 0):
+                break
             signal.pidfd_send_signal(owned, signal.SIGTERM)
             cancelled.append(int(proc.name))
         except (OSError, ValueError):
@@ -110,7 +115,7 @@ def request_recovery(unit, executable):
             # or interrupting repository mutations.
             git = shutil.which("git")
             if git:
-                cancelled = cancel_readonly_probes(pid, Path(git).resolve())
+                cancelled = cancel_readonly_probes(pid, Path(git).resolve(), owned)
                 if cancelled:
                     print(f"guard: cancelled read-only shutdown probes via SIGTERM: {cancelled}")
                     wait_for_exit(owned, 5)

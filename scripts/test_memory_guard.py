@@ -143,6 +143,7 @@ class RecoveryTests(unittest.TestCase):
 
     def test_verified_daemon_receives_only_term_via_owned_pidfd(self):
         with patch.object(self.module.subprocess, "run", return_value=Mock(stdout="MainPID=123\nRestart=always\n")), \
+             patch.object(self.module, "wait_for_exit", return_value=True), \
              patch.object(self.module.os, "pidfd_open", return_value=456), \
              patch.object(self.module.os, "close") as close, \
              patch.object(self.module.Path, "stat", return_value=Mock(st_uid=os.getuid())), \
@@ -153,6 +154,58 @@ class RecoveryTests(unittest.TestCase):
             self.module.request_recovery("sync.service", "/installed/dracon-sync")
             send.assert_called_once_with(456, self.module.signal.SIGTERM)
             close.assert_called_once_with(456)
+
+    def test_probe_cleanup_requires_both_over_high_and_severe_local_pressure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cg = root / "system.slice/sync.service"
+            cg.mkdir(parents=True)
+            (cg / "memory.high").write_text("1024")
+            (cg / "memory.current").write_text("1200")
+            (cg / "memory.pressure").write_text("full avg10=68.00 avg60=0 avg300=0\n")
+            self.assertTrue(self.module.throttled_above_high("/system.slice/sync.service", root))
+            (cg / "memory.pressure").write_text("full avg10=2.00 avg60=0 avg300=0\n")
+            self.assertFalse(self.module.throttled_above_high("/system.slice/sync.service", root))
+            (cg / "memory.high").write_text("max")
+            self.assertFalse(self.module.throttled_above_high("/system.slice/sync.service", root))
+            self.assertFalse(self.module.throttled_above_high("/../escape", root))
+
+    def test_shutdown_cancels_only_matching_readonly_git_children_in_the_same_unit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            parent = root / "123"
+            parent.mkdir()
+            cgroup = "0::/system.slice/sync.service\n"
+            (parent / "cgroup").write_text(cgroup)
+
+            def child(pid, args, ppid=123, group=cgroup, binary="/installed/git"):
+                proc = root / str(pid)
+                proc.mkdir()
+                (proc / "status").write_text(f"PPid:\t{ppid}\n")
+                (proc / "cgroup").write_text(group)
+                (proc / "cmdline").write_bytes(b"\0".join(args) + b"\0")
+                (proc / "exe").symlink_to(binary)
+
+            child(1, [b"git", b"diff", b"--cached", b"--unified=0"])
+            child(2, [b"git", b"--no-replace-objects", b"rev-list", b"--objects", b"--no-object-names", b"refs/remotes/origin/main"])
+            child(3, [b"git", b"fetch", b"origin"])
+            child(4, [b"git", b"commit", b"-m", b"work"])
+            child(5, [b"git", b"diff", b"--cached", b"--unified=0"], ppid=999)
+            child(6, [b"git", b"diff", b"--cached", b"--unified=0"], group="0::/another.service\n")
+            child(7, [b"git", b"diff", b"--cached", b"--unified=0"], binary="/repository/fake-git")
+            child(8, [b"git", b"update-index", b"--refresh"])
+            with patch.object(self.module.os, "pidfd_open", side_effect=lambda pid: pid + 1000), \
+                 patch.object(self.module.os, "close"), \
+                 patch.object(self.module, "wait_for_exit", return_value=False), \
+                 patch.object(self.module.signal, "pidfd_send_signal") as send:
+                cancelled = self.module.cancel_readonly_probes(123, Path("/installed/git"), 9999, root)
+                self.assertEqual(set(cancelled), {1, 2})
+                self.assertEqual({call.args for call in send.call_args_list},
+                                 {(1001, self.module.signal.SIGTERM), (1002, self.module.signal.SIGTERM)})
+            with patch.object(self.module, "wait_for_exit", return_value=True), \
+                 patch.object(self.module.signal, "pidfd_send_signal") as send:
+                self.assertEqual(self.module.cancel_readonly_probes(123, Path("/installed/git"), 9999, root), [])
+                send.assert_not_called()
 
     def test_foreign_executable_is_never_signalled_and_fd_is_closed(self):
         with patch.object(self.module.subprocess, "run", return_value=Mock(stdout="MainPID=123\nRestart=always\n")), \
