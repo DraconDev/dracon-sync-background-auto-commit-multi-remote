@@ -54,10 +54,26 @@ The first full workspace run failed only
 `integrated_failure_recovery_harness`: its healthy fixture exceeded a staging
 deadline. The other 1,722 daemon tests passed, with five ignored. A focused
 retry also exceeded the existing epoch deadline during severe host load. The
-deadline has not been increased. A full rerun is pending; this candidate has
-not been installed. Logs and command results are under
+deadline has not been increased. A focused retry with `TOKIO_WORKER_THREADS=2`
+also exceeded the staging deadline. The full rerun's daemon target finished
+with 1,720 passing tests, three failures and five ignored tests. Its failures
+were:
+
+- `integrated_failure_recovery_harness`: healthy fixture epoch deadline expired.
+- `shared_git_runner_deadline_and_drop_terminate_owned_descendant`: the fixture
+  observed its PID marker before the marker contained an integer.
+- `bootstrap_absolute_staging_deadline_cancels_hardener_descendants`: private
+  staging initialization exceeded its deadline.
+
+The host had load averages above 80 and less than 700 MiB available RAM during
+focused checks. This is relevant context, not proof of causation or a waiver.
+This candidate has not been installed because workspace validation failed.
+The previously qualified daemon remains installed. Logs and command results are under
 `/tmp/dracon-sync-followup-*.log` and
 `/tmp/dracon-sync-followup-validation.json`.
+The complete workspace rerun exited 101 at approximately 18:02 UTC with only
+the daemon target failing; the other workspace targets, including Warden's
+large-file streaming checks, passed.
 
 The first browser hook after the lockfile repair reached 193 passing checks
 before returning failure with two advisory diagnostics (de-addict typecheck and
