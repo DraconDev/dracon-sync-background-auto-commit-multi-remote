@@ -517,7 +517,8 @@ mod tests {
             .collect();
         let declarations = writers
             .into_iter()
-            .filter(|writer| writer.join().unwrap())
+            .map(|writer| writer.join().unwrap())
+            .filter(|declared| *declared)
             .count();
         reader.join().unwrap();
         assert_eq!(declarations, 1);
