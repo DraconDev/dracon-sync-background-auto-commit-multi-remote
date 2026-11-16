@@ -118,3 +118,9 @@ while a new connection with multiplexing disabled returned the advertised tip
 immediately. At approximately 22:10, `ssh -O exit git@github.com` closed that
 shared connection so normal Git retry handling could reconnect. The daemon
 service stayed active and repository history was unchanged.
+Fresh `.dracon` syncs were observed at 22:10:35, 22:11:45, 22:12:35 and
+22:13:01. A read-only replay of the installed secret phase passed both remote
+ranges for browser checkpoint `ee8f97ee3f5de158cfbcc117b7fb239983bb73ef`,
+against GitHub tip `be47efe4ea99a3d089ef289448163f332b2e8fff` and GitLab tip
+`84cc5542be9722a08a9df30459e2a822b4bdab86`. Replay evidence is in
+`/tmp/browser-hook-review-5_r2yyen/phase1-both-remotes.json`.
