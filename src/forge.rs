@@ -29,6 +29,11 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::sync::Mutex;
+
+// Multiple repository workers can report failures concurrently. Keep each
+// load/update/publish transaction together so corroborating hits are not lost.
+static FORGE_HEALTH_WRITE_LOCK: Mutex<()> = Mutex::new(());
 
 /// Window in which transient hits corroborate an incident (10 min).
 pub(crate) const FORGE_INCIDENT_WINDOW_SECS: u64 = 600;
@@ -88,11 +93,19 @@ pub(crate) fn load_forge_health() -> ForgeHealth {
 
 pub(crate) fn save_forge_health(health: &ForgeHealth) {
     let path = forge_health_path();
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    if let Ok(text) = serde_json::to_string(health) {
-        let _ = std::fs::write(&path, text);
+    let result = (|| -> std::io::Result<()> {
+        let parent = path
+            .parent()
+            .ok_or_else(|| std::io::Error::other("forge state has no parent"))?;
+        std::fs::create_dir_all(parent)?;
+        let mut prepared = tempfile::NamedTempFile::new_in(parent)?;
+        serde_json::to_writer(&mut prepared, health).map_err(std::io::Error::other)?;
+        prepared.as_file().sync_all()?;
+        prepared.persist(&path).map_err(|error| error.error)?;
+        Ok(())
+    })();
+    if let Err(error) = result {
+        eprintln!("⚠️ could not publish forge health state: {error}");
     }
 }
 
@@ -158,13 +171,19 @@ pub(crate) fn forge_host_of_url(url: &str) -> Option<String> {
 
 fn prune_host(host: &mut ForgeHostHealth, now_unix: u64) {
     let cutoff = now_unix.saturating_sub(FORGE_INCIDENT_WINDOW_SECS);
-    host.hits.retain(|h| h.at_unix >= cutoff);
+    // A future timestamp is not fresh outage evidence. Otherwise a clock
+    // error or stale fixture can keep the incident latched for weeks.
+    host.hits
+        .retain(|h| h.at_unix >= cutoff && h.at_unix <= now_unix);
 }
 
 /// Record a transient-class failure for `host` from `repo` at
 /// `now_unix`. Returns true exactly on the none->incident transition
 /// (caller alerts once); subsequent hits return false.
 pub(crate) fn observe_forge_hit(host: &str, repo: &str, now_unix: u64) -> bool {
+    let _guard = FORGE_HEALTH_WRITE_LOCK
+        .lock()
+        .unwrap_or_else(|p| p.into_inner());
     let mut health = load_forge_health();
     let entry = health.hosts.entry(host.to_string()).or_default();
     prune_host(entry, now_unix);
@@ -200,6 +219,9 @@ pub(crate) fn forge_incident_hosts() -> HashSet<String> {
 /// hosts (caller alerts once each). Runs once per daemon scan; the
 /// file read is one small JSON, the write happens only on change.
 pub(crate) fn poll_forge_recovery(now_unix: u64) -> Vec<String> {
+    let _guard = FORGE_HEALTH_WRITE_LOCK
+        .lock()
+        .unwrap_or_else(|p| p.into_inner());
     let mut health = load_forge_health();
     let mut recovered = Vec::new();
     for (host, entry) in health.hosts.iter_mut() {
@@ -345,7 +367,11 @@ pub(crate) fn duplicate_mirror_names(
         claimed.insert((host, slug));
     }
     let mut ordered: Vec<&ForgeMirror> = mirrors.iter().collect();
-    ordered.sort_by(|a, b| a.priority.cmp(&b.priority).then_with(|| a.name.cmp(&b.name)));
+    ordered.sort_by(|a, b| {
+        a.priority
+            .cmp(&b.priority)
+            .then_with(|| a.name.cmp(&b.name))
+    });
     let mut dropped = Vec::new();
     for mirror in ordered {
         match remote_project_identity(&mirror.url) {
@@ -381,6 +407,124 @@ pub(crate) fn forge_label_of_url(url: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn future_hits_cannot_corroborate_a_current_outage() {
+        let state = tempfile::tempdir().unwrap();
+        let _state = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state.path().to_str().unwrap(),
+        );
+        let now = 10_000;
+        let health = ForgeHealth {
+            hosts: HashMap::from([(
+                "github.com".into(),
+                ForgeHostHealth {
+                    hits: vec![
+                        ForgeHit {
+                            repo: "/future/a".into(),
+                            at_unix: now + 1,
+                        },
+                        ForgeHit {
+                            repo: "/future/b".into(),
+                            at_unix: now + 50_000,
+                        },
+                    ],
+                    incident: false,
+                },
+            )]),
+        };
+        save_forge_health(&health);
+        assert!(!observe_forge_hit("github.com", "/current/repo", now));
+        let health = load_forge_health();
+        let host = &health.hosts["github.com"];
+        assert_eq!(host.hits.len(), 1);
+        assert_eq!(host.hits[0].repo, "/current/repo");
+        assert!(!host.incident);
+    }
+
+    #[test]
+    fn recovery_clears_a_future_only_incident_and_keeps_current_evidence() {
+        let state = tempfile::tempdir().unwrap();
+        let _state = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state.path().to_str().unwrap(),
+        );
+        let now = 10_000;
+        save_forge_health(&ForgeHealth {
+            hosts: HashMap::from([
+                (
+                    "github.com".into(),
+                    ForgeHostHealth {
+                        hits: vec![ForgeHit {
+                            repo: "/future/repo".into(),
+                            at_unix: now + 50_000,
+                        }],
+                        incident: true,
+                    },
+                ),
+                (
+                    "gitlab.com".into(),
+                    ForgeHostHealth {
+                        hits: vec![ForgeHit {
+                            repo: "/current/repo".into(),
+                            at_unix: now,
+                        }],
+                        incident: true,
+                    },
+                ),
+            ]),
+        });
+        assert_eq!(poll_forge_recovery(now), vec!["github.com"]);
+        assert!(!forge_incident_hosts().contains("github.com"));
+        assert!(forge_incident_hosts().contains("gitlab.com"));
+        assert!(load_forge_health().hosts["github.com"].hits.is_empty());
+        assert!(poll_forge_recovery(now).is_empty());
+    }
+
+    #[test]
+    fn concurrent_forge_reports_preserve_every_hit_and_publish_complete_json() {
+        let state = tempfile::tempdir().unwrap();
+        let _state = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state.path().to_str().unwrap(),
+        );
+        save_forge_health(&ForgeHealth::default());
+        let path = forge_health_path();
+        let count = 16;
+        let barrier = std::sync::Arc::new(std::sync::Barrier::new(count + 1));
+        let reader_start = barrier.clone();
+        let reader = std::thread::spawn(move || {
+            reader_start.wait();
+            for _ in 0..1000 {
+                let bytes = std::fs::read(&path).unwrap();
+                serde_json::from_slice::<ForgeHealth>(&bytes)
+                    .expect("readers must never see a truncated forge ledger");
+            }
+        });
+        let writers: Vec<_> = (0..count)
+            .map(|id| {
+                let start = barrier.clone();
+                std::thread::spawn(move || {
+                    start.wait();
+                    observe_forge_hit(
+                        "forge.invalid",
+                        &format!("/repo/{id}/{}", "x".repeat(1024)),
+                        10_000,
+                    )
+                })
+            })
+            .collect();
+        let declarations = writers
+            .into_iter()
+            .filter(|writer| writer.join().unwrap())
+            .count();
+        reader.join().unwrap();
+        assert_eq!(declarations, 1);
+        let health = load_forge_health();
+        assert_eq!(health.hosts["forge.invalid"].hits.len(), count);
+        assert!(health.hosts["forge.invalid"].incident);
+    }
 
     /// MOVED here 2026-11-09 with the definition. The shapes below are the
     /// ones the live fleet actually uses; the dedupe depends on them
@@ -565,7 +709,10 @@ mod tests {
                 priority: 50,
             },
         ];
-        assert_eq!(duplicate_mirror_names(None, &tied), vec!["zeta".to_string()]);
+        assert_eq!(
+            duplicate_mirror_names(None, &tied),
+            vec!["zeta".to_string()]
+        );
     }
 
     #[test]
