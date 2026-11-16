@@ -115,10 +115,16 @@ def request_recovery(unit, executable):
             # or interrupting repository mutations.
             git = shutil.which("git")
             if git:
-                cancelled = cancel_readonly_probes(pid, Path(git).resolve(), owned)
-                if cancelled:
-                    print(f"guard: cancelled read-only shutdown probes via SIGTERM: {cancelled}")
-                    wait_for_exit(owned, 5)
+                try:
+                    cancelled = cancel_readonly_probes(pid, Path(git).resolve(), owned)
+                    if cancelled:
+                        print(f"guard: cancelled read-only shutdown probes via SIGTERM: {cancelled}")
+                        wait_for_exit(owned, 5)
+                except OSError as error:
+                    # TERM was already delivered. Exiting during inspection
+                    # must not discard that request and bypass the guard's
+                    # restart cooldown on its next pressure check.
+                    print(f"guard: graceful shutdown requested; probe cleanup unavailable: {error}")
     finally:
         os.close(owned)
 

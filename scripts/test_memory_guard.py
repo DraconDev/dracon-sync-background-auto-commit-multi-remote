@@ -171,8 +171,10 @@ class RecoveryTests(unittest.TestCase):
             self.assertFalse(self.module.throttled_above_high("/../escape", root))
 
     def test_pending_shutdown_only_cancels_readers_when_local_throttling_is_proven(self):
-        for throttled in (False, True):
-            with self.subTest(throttled=throttled), \
+        for scenario in ("healthy", "throttled", "exited_during_cleanup"):
+            throttled = scenario != "healthy"
+            cleanup_error = FileNotFoundError("daemon exited") if scenario == "exited_during_cleanup" else None
+            with self.subTest(scenario=scenario), \
                  patch.object(self.module.subprocess, "run", return_value=Mock(stdout="MainPID=123\nRestart=always\nControlGroup=/system.slice/sync.service\n")), \
                  patch.object(self.module.os, "pidfd_open", return_value=456), \
                  patch.object(self.module.os, "close"), \
@@ -183,7 +185,7 @@ class RecoveryTests(unittest.TestCase):
                  patch.object(self.module, "wait_for_exit", return_value=False), \
                  patch.object(self.module, "throttled_above_high", return_value=throttled), \
                  patch.object(self.module.shutil, "which", return_value="/installed/git"), \
-                 patch.object(self.module, "cancel_readonly_probes", return_value=[111]) as cancel:
+                 patch.object(self.module, "cancel_readonly_probes", return_value=[111], side_effect=cleanup_error) as cancel:
                 self.module.request_recovery("sync.service", "/installed/dracon-sync")
                 send.assert_called_once_with(456, self.module.signal.SIGTERM)
                 if throttled:
