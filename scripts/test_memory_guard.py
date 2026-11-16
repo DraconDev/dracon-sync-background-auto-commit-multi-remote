@@ -177,7 +177,6 @@ class RecoveryTests(unittest.TestCase):
                  patch.object(self.module.os, "pidfd_open", return_value=456), \
                  patch.object(self.module.os, "close"), \
                  patch.object(self.module.Path, "stat", return_value=Mock(st_uid=os.getuid())), \
-                 patch.object(self.module.Path, "resolve", return_value=Path("/installed/dracon-sync")), \
                  patch.object(self.module.os, "readlink", return_value="/installed/dracon-sync"), \
                  patch.object(self.module.Path, "read_bytes", return_value=b"/installed/dracon-sync\0daemon\0"), \
                  patch.object(self.module.signal, "pidfd_send_signal") as send, \
@@ -188,9 +187,7 @@ class RecoveryTests(unittest.TestCase):
                 self.module.request_recovery("sync.service", "/installed/dracon-sync")
                 send.assert_called_once_with(456, self.module.signal.SIGTERM)
                 if throttled:
-                    self.assertEqual(cancel.call_count, 1)
-                    self.assertEqual(cancel.call_args.args[0], 123)
-                    self.assertEqual(cancel.call_args.args[2], 456)
+                    cancel.assert_called_once_with(123, Path("/installed/git"), 456)
                 else:
                     cancel.assert_not_called()
 
