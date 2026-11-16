@@ -132,3 +132,29 @@ gate-machinery failure. GitHub subsequently accepted checkpoint
 fell from 324 to 32 while other agents continued editing. GitLab verification
 remained pending at that observation; this is not an all-mirror convergence
 claim.
+
+## Final mirror result: GitLab storage quota
+
+The next full-scope attempt, `dracon-pre-push.UOuiI5`, completed 193 passing
+checks and three advisory failures (AI Web Scraper Pro and de-addict typechecks,
+Tabmon tests). GitHub accepted the newer checkpoint
+`9ee70a04049378568a64574c7708f466ab9b520e`, including the hook receipt.
+Independent `ls-remote` verification is recorded in
+`/tmp/browser-publish-remote-verification.json`.
+
+The GitLab leg reused that revision's completed product result in
+`dracon-pre-push.0M5MfA`, passed its secret phase with the exact receipt logged,
+and uploaded its pack. At 22:48:07 GitLab rejected the checkpoint in its
+server-side pre-receive check: the push would exceed the project's allocated
+storage. Its advertised main ref remained
+`84cc5542be9722a08a9df30459e2a822b4bdab86`.
+
+This is a confirmed storage-capacity blocker, not a remaining local secret
+refusal or product gate veto. No quota purchase, mirror removal, security
+exception, repository deletion or history rewrite was performed. Clearing the
+retry ledger again cannot fix this refusal. All-mirror convergence requires
+additional GitLab capacity or an explicit change to the mirror policy.
+
+The daemon also logged this rejection as a missing forge repository and evicted
+its forge cache. The independently advertised existing main ref disproves that
+diagnosis; this secondary error-classification defect remains to be corrected.
