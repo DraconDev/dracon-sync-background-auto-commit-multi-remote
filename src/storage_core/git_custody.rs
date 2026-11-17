@@ -192,7 +192,7 @@ pub async fn preserve_git_blob(
         }
         ensure!(child.wait().await?.success(), "Git custody copy failed");
         ensure!(bytes == expected, "Git custody source was truncated");
-        Ok::<_, anyhow::Error>(Fingerprint::new(format!("{:x}", sha.finalize()), bytes)?)
+        Fingerprint::new(format!("{:x}", sha.finalize()), bytes)
     })
     .await;
     let fingerprint = match result {
