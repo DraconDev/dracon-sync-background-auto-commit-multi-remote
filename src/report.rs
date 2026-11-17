@@ -5110,21 +5110,19 @@ pub(crate) async fn run_repos_report(
             last_push: crate::daemon::push_history::load(&repo),
             ..Default::default()
         };
-        if !ownership_blocked && !push_budget_exhausted {
-            if let Some(failure) = stuck_info.as_ref().filter(|entry| {
+        let failure_matches_tip = stuck_info.as_ref().is_some_and(|entry| {
                 entry.failed_tip.as_deref() == Some(last_hash.as_str())
                     && entry.last_error_at > 0
                     && health.last_push.as_ref().is_none_or(|push| {
                         !push.succeeded || push.attempted_at < entry.last_error_at
                     })
-            }) {
-                if let Some(error) = stuck_last_error_redacted.as_deref().filter(|s| !s.is_empty()) {
-                    hint = format!(
-                        "last push failed for this revision: {}",
-                        truncate_unicode_width(error.lines().next().unwrap_or_default(), 160)
-                    );
-                }
-                debug_assert_eq!(failure.failed_tip.as_deref(), Some(last_hash.as_str()));
+        });
+        if !ownership_blocked && !push_budget_exhausted && failure_matches_tip {
+            if let Some(error) = stuck_last_error_redacted.as_deref().filter(|s| !s.is_empty()) {
+                hint = format!(
+                    "last push failed for this revision: {}",
+                    truncate_unicode_width(error.lines().next().unwrap_or_default(), 160)
+                );
             }
         }
         let row = RepoReportRow {
