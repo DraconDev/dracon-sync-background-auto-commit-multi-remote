@@ -186,7 +186,7 @@ impl ApprovedEnrollment {
         let mut versions = BTreeMap::<String, Fingerprint>::new();
         let mut total = 0u64;
         for asset in &self.review.assets {
-            let path = super::index::decode_path(&asset.path_hex)?;
+            let path = super::staging::decode_path(&asset.path_hex)?;
             ensure!(paths.insert(path), "duplicate reviewed enrollment path");
             for version in asset
                 .head
@@ -256,7 +256,7 @@ impl ApprovedEnrollment {
         );
         let mut paths = BTreeSet::new();
         for asset in &self.review.assets {
-            let path = super::index::decode_path(&asset.path_hex)?;
+            let path = super::staging::decode_path(&asset.path_hex)?;
             let job = bundle
                 .jobs()
                 .iter()
@@ -750,6 +750,70 @@ mod tests {
             .unwrap()
             .get_path(Path::new("manual.txt"), 0)
             .is_some());
+    }
+
+    #[tokio::test]
+    async fn approval_binds_exact_review_and_rejects_changed_custody() {
+        let fixture = Fixture::new();
+        let mut receipt = prepare_review(fixture.request()).await.unwrap();
+        let original = receipt.review_sha256.clone();
+        receipt.review_sha256 = "b".repeat(64);
+        assert!(approve_review(
+            &fixture.repo,
+            &fixture.id,
+            &receipt,
+            fixture.request().limits
+        )
+        .await
+        .is_err());
+        receipt.review_sha256 = original;
+        assert!(approve_review(
+            &fixture.repo,
+            &fixture.id,
+            &receipt,
+            fixture.request().limits
+        )
+        .await
+        .is_ok());
+        let review: Review =
+            serde_json::from_slice(&std::fs::read(&receipt.manifest_path).unwrap()).unwrap();
+        std::fs::write(
+            receipt
+                .manifest_path
+                .parent()
+                .unwrap()
+                .join(&review.assets[0].index.as_ref().unwrap().file),
+            b"corrupt",
+        )
+        .unwrap();
+        assert!(approve_review(
+            &fixture.repo,
+            &fixture.id,
+            &receipt,
+            fixture.request().limits
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn approval_cannot_follow_a_forged_artifact_path() {
+        let fixture = Fixture::new();
+        let mut receipt = prepare_review(fixture.request()).await.unwrap();
+        let mut review: Review =
+            serde_json::from_slice(&std::fs::read(&receipt.manifest_path).unwrap()).unwrap();
+        review.assets[0].worktree.file = "../outside.bin".into();
+        let bytes = serde_json::to_vec(&review).unwrap();
+        std::fs::write(&receipt.manifest_path, &bytes).unwrap();
+        receipt.review_sha256 = format!("{:x}", Sha256::digest(&bytes));
+        assert!(approve_review(
+            &fixture.repo,
+            &fixture.id,
+            &receipt,
+            fixture.request().limits
+        )
+        .await
+        .is_err());
     }
 }
 

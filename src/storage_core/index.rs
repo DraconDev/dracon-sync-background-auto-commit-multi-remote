@@ -1441,4 +1441,125 @@ mod tests {
             );
         }
     }
+    async fn raw_migration_fixture(root: &Path) -> Fixture {
+        let f = fixture(root).await;
+        let repo = &f.transaction.repo;
+        let mut index = fresh_index(repo).unwrap();
+        let old = repo.blob(b"old committed artwork").unwrap();
+        index.add(&entry(b"asset.bin", old, 0o100644, 21)).unwrap();
+        index.write().unwrap();
+        let tree = repo.find_tree(index.write_tree().unwrap()).unwrap();
+        let parent = repo.head().unwrap().peel_to_commit().unwrap();
+        let signature =
+            git2::Signature::now("Enrollment Fixture", "enrollment@example.invalid").unwrap();
+        repo.commit(
+            Some("HEAD"),
+            &signature,
+            &signature,
+            "tracked baseline",
+            &tree,
+            &[&parent],
+        )
+        .unwrap();
+        let staged = repo.blob(b"staged original artwork").unwrap();
+        index
+            .add(&entry(b"asset.bin", staged, 0o100644, 23))
+            .unwrap();
+        index.write().unwrap();
+        f
+    }
+
+    async fn approve_fixture(
+        f: &Fixture,
+        root: &Path,
+    ) -> super::super::enrollment_review::ApprovedEnrollment {
+        use crate::storage_core::enrollment_review::{
+            approve_review, prepare_review, ReviewLimits, ReviewRequest,
+        };
+        let output = std::process::Command::new("sh")
+            .args(["-c", "command -v git"])
+            .output()
+            .unwrap();
+        let git = PathBuf::from(std::str::from_utf8(&output.stdout).unwrap().trim())
+            .canonicalize()
+            .unwrap();
+        let paths = [PathBuf::from("asset.bin")];
+        let limits = ReviewLimits {
+            max_blob_bytes: 1024 * 1024,
+            max_total_bytes: 4 * 1024 * 1024,
+            max_retained_bytes: 8 * 1024 * 1024,
+            timeout: Duration::from_secs(20),
+        };
+        let repo = f.transaction.repo.workdir().unwrap();
+        let receipt = prepare_review(ReviewRequest {
+            repo,
+            repo_id: f.manifest.repo_id(),
+            paths: &paths,
+            custody_root: &root.join("review-custody"),
+            git: &git,
+            limits,
+        })
+        .await
+        .unwrap();
+        approve_review(repo, f.manifest.repo_id(), &receipt, limits)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn reviewed_forward_enrollment_preserves_staged_art_and_still_requires_verified_jobs() {
+        let temp = tempfile::tempdir().unwrap();
+        let f = raw_migration_fixture(temp.path()).await;
+        let before = std::fs::read(f.transaction.repo.path().join("index")).unwrap();
+        assert!(
+            stage(&f).is_err(),
+            "ordinary staging must still refuse tracked raw art"
+        );
+        assert_eq!(
+            std::fs::read(f.transaction.repo.path().join("index")).unwrap(),
+            before
+        );
+        let approval = approve_fixture(&f, temp.path()).await;
+        let lease = f.journal.lease(&f.job).unwrap();
+        let bundle = StageBundle::build(&f.store, &f.prepared, &f.manifest, vec![&lease]).unwrap();
+        let snapshot = f.transaction.snapshot().unwrap();
+        f.transaction
+            .stage_reviewed(&snapshot, &bundle, &approval)
+            .unwrap();
+        let index = fresh_index(&f.transaction.repo).unwrap();
+        let oid = index.get_path(Path::new("asset.bin"), 0).unwrap().id;
+        assert!(Pointer::parse(f.transaction.repo.find_blob(oid).unwrap().content()).is_ok());
+        assert_eq!(
+            std::fs::read(f.transaction.repo.workdir().unwrap().join("asset.bin")).unwrap(),
+            b"explicitly approved non-sensitive fixture asset"
+        );
+        // The already-verified pair is idempotent; an expired old index anchor
+        // is not used to authorize another raw migration during reconciliation.
+        f.transaction
+            .stage_reviewed(&snapshot, &bundle, &approval)
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn reviewed_enrollment_refuses_source_edits_without_overwriting_the_index() {
+        let temp = tempfile::tempdir().unwrap();
+        let f = raw_migration_fixture(temp.path()).await;
+        let approval = approve_fixture(&f, temp.path()).await;
+        let before = std::fs::read(f.transaction.repo.path().join("index")).unwrap();
+        let lease = f.journal.lease(&f.job).unwrap();
+        let bundle = StageBundle::build(&f.store, &f.prepared, &f.manifest, vec![&lease]).unwrap();
+        std::fs::write(
+            f.transaction.repo.workdir().unwrap().join("asset.bin"),
+            "new operator bytes",
+        )
+        .unwrap();
+        assert!(f
+            .transaction
+            .stage_reviewed(&f.transaction.snapshot().unwrap(), &bundle, &approval)
+            .is_err());
+        assert_eq!(
+            std::fs::read(f.transaction.repo.path().join("index")).unwrap(),
+            before
+        );
+    }
 }
