@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-11-17T20:25:42.713305+00:00",
+  "local_main": "b02db78aeacb5ffee1e817ed15bf67c9eb3d1b44",
+  "github_main": "b02db78aeacb5ffee1e817ed15bf67c9eb3d1b44",
+  "gitlab_main": "b02db78aeacb5ffee1e817ed15bf67c9eb3d1b44",
+  "verification": "direct authenticated git ls-remote on both configured remotes",
+  "art_commits": [
+    "fd298d5219b7ba6cb56fbcf1a2d2ccc2ba80394d",
+    "c4c5c5f118009386eb9161e145bbf81f8c883e17"
+  ],
+  "bucket_asset_placement_changed": false
+}

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "scope": "independent SDK conditional-write diagnostic; synthetic 64-byte object only",
+  "key_sha256": "bcdc8b5df0bfe25b413ba7b00fa10c2879b4075c2628a0ec9013215c87030705",
+  "creates": [
+    {
+      "status": 200
+    },
+    {
+      "status": 412,
+      "code": "PreconditionFailed"
+    }
+  ],
+  "initialReadback": true,
+  "conflict": {
+    "status": 412,
+    "code": "PreconditionFailed"
+  },
+  "finalReadback": true,
+  "consumerReadback": true,
+  "anonymousStatus": 400,
+  "sourceUploaded": false,
+  "objectsDeleted": false
+}
