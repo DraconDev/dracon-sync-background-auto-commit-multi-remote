@@ -757,7 +757,7 @@ mod tests {
                 repo,
                 &[
                     "-c",
-                    "alias.intent-probe=!sleep 30 & echo $! > helper.pid; wait",
+                    "alias.intent-probe=!sleep 30 & echo $! > helper.pid.tmp; mv helper.pid.tmp helper.pid; wait",
                     "intent-probe",
                 ],
                 "intent cancellation fixture",
