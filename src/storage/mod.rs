@@ -1526,10 +1526,6 @@ fn capture_update_job(command: &StorageCommand) -> Result<()> {
         max_snapshot_bytes,
         max_retained_snapshot_bytes,
         json,
-        #[cfg(unix)]
-        review_manifest,
-        #[cfg(unix)]
-        review_sha256,
         path,
     } = command
     else {
@@ -1537,14 +1533,6 @@ fn capture_update_job(command: &StorageCommand) -> Result<()> {
     };
     validate_sha256(repo_id)?;
     let repo = root(repo)?;
-    #[cfg(unix)]
-    let _review_owner = if review_manifest.is_some() {
-        Some(crate::git::sync_lease::try_acquire(&repo)?.context(
-            "repository is busy; retry reviewed capture after the current Sync operation",
-        )?)
-    } else {
-        None
-    };
     // Validate confinement before any Git query or source access.
     let path_hex = encode_relative_path(path.as_os_str().as_encoded_bytes())?;
     encode_relative_path(manifest_path.as_os_str().as_encoded_bytes())?;
@@ -1714,12 +1702,24 @@ fn capture_job(command: &StorageCommand) -> Result<()> {
         max_snapshot_bytes,
         max_retained_snapshot_bytes,
         json,
+        #[cfg(unix)]
+        review_manifest,
+        #[cfg(unix)]
+        review_sha256,
         path,
     } = command
     else {
         unreachable!("capture matched")
     };
     let repo = root(repo)?;
+    #[cfg(unix)]
+    let _review_owner = if review_manifest.is_some() {
+        Some(crate::git::sync_lease::try_acquire(&repo)?.context(
+            "repository is busy; retry reviewed capture after the current Sync operation",
+        )?)
+    } else {
+        None
+    };
     // Validate confinement before any Git query or source access.
     let path_hex = encode_relative_path(path.as_os_str().as_encoded_bytes())?;
     let repository = git2::Repository::open(&repo)?;
