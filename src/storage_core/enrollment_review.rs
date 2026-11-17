@@ -63,8 +63,10 @@ pub struct PreparedReview {
     pub assets: usize,
     /// Number of independently verified preserved content versions.
     pub preserved_versions: usize,
-    /// Total bytes copied into the private review.
+    /// Preserved payload bytes; index/review metadata is accounted separately.
     pub preserved_bytes: u64,
+    /// Retained index snapshot and review manifest bytes.
+    pub metadata_bytes: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -103,6 +105,7 @@ struct Review {
     git_inode: u64,
     head: Option<Head>,
     index: Option<Fingerprint>,
+    index_copy: Option<String>,
     assets: Vec<Asset>,
     grants_enrollment: bool,
 }
@@ -150,7 +153,11 @@ fn fingerprint_file(
     Fingerprint::new(format!("{:x}", sha.finalize()), bytes)
 }
 
-fn index_fingerprint(path: &Path) -> Result<Option<Fingerprint>> {
+fn index_fingerprint(
+    path: &Path,
+    max: u64,
+    copy: Option<&mut File>,
+) -> Result<Option<Fingerprint>> {
     let mut file = match OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
@@ -165,10 +172,10 @@ fn index_fingerprint(path: &Path) -> Result<Option<Fingerprint>> {
         before.is_file()
             && before.uid() == unsafe { libc::geteuid() }
             && before.mode() & 0o022 == 0
-            && before.len() <= MAX_INDEX_BYTES,
+            && before.len() <= max.min(MAX_INDEX_BYTES),
         "unsafe review index"
     );
-    let fingerprint = fingerprint_file(&mut file, MAX_INDEX_BYTES, None)?;
+    let fingerprint = fingerprint_file(&mut file, max.min(MAX_INDEX_BYTES), copy)?;
     let after = file.metadata()?;
     let named = std::fs::symlink_metadata(path)?;
     ensure!(
@@ -223,13 +230,18 @@ fn retained_bytes(root: &Path, deadline: Instant) -> Result<u64> {
             let entry = entry?;
             let metadata = std::fs::symlink_metadata(entry.path())?;
             ensure!(
-                !metadata.is_symlink() && metadata.uid() == unsafe { libc::geteuid() },
+                !metadata.is_symlink()
+                    && metadata.uid() == unsafe { libc::geteuid() }
+                    && metadata.mode() & 0o077 == 0,
                 "unsafe retained review entry"
             );
             if metadata.is_dir() {
                 directories.push(entry.path());
             } else {
-                ensure!(metadata.is_file(), "unsupported retained review entry");
+                ensure!(
+                    metadata.is_file() && metadata.nlink() == 1,
+                    "unsupported retained review entry"
+                );
                 bytes = bytes
                     .checked_add(metadata.len())
                     .context("review retention overflow")?;
@@ -330,9 +342,10 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
         retained < limits.max_retained_bytes,
         "review retention capacity exceeded"
     );
-    let capacity = limits
-        .max_total_bytes
-        .min(limits.max_retained_bytes - retained);
+    let directory = tempfile::Builder::new()
+        .prefix("enrollment-review-")
+        .tempdir_in(custody_root)?
+        .keep();
     // Release all libgit2 borrows before asynchronous subprocess capture.
     let (git_directory, git_identity, original_head, original_index, selected) = {
         let repository = git2::Repository::open(repo)?;
@@ -359,8 +372,27 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
             identity.uid() == unsafe { libc::geteuid() } && identity.mode() & 0o022 == 0,
             "unsafe review Git directory"
         );
-        let index_fingerprint = index_fingerprint(&git_directory.join("index"))?;
-        let index = repository.index()?;
+        let private_index_path = directory.join("index.before");
+        let mut private_index = private_file(&private_index_path)?;
+        let index_fingerprint = index_fingerprint(
+            &git_directory.join("index"),
+            limits.max_retained_bytes - retained,
+            Some(&mut private_index),
+        )?;
+        private_index.sync_all()?;
+        if let Some(expected) = &index_fingerprint {
+            ensure!(
+                fingerprint_file(&mut private_index, MAX_INDEX_BYTES, None)? == *expected,
+                "review index readback mismatch"
+            );
+        }
+        // Parse the captured index, not a second canonical-index read that
+        // could observe an intervening replacement between anchor checks.
+        let index = if index_fingerprint.is_some() {
+            git2::Index::open(&private_index_path)?
+        } else {
+            git2::Index::new()?
+        };
         ensure!(
             !index.has_conflicts(),
             "unmerged index blocks enrollment review"
@@ -403,10 +435,10 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
             selected,
         )
     };
-    let directory = tempfile::Builder::new()
-        .prefix("enrollment-review-")
-        .tempdir_in(custody_root)?
-        .keep();
+    let index_bytes = original_index.as_ref().map_or(0, Fingerprint::bytes);
+    let capacity = limits
+        .max_total_bytes
+        .min(limits.max_retained_bytes - retained - index_bytes);
     let mut versions = BTreeMap::<String, Version>::new();
     let mut copied = 0u64;
     let mut assets = Vec::new();
@@ -521,7 +553,8 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
     ensure!(
         (identity.dev(), identity.ino()) == git_identity
             && head(&repository)? == original_head
-            && index_fingerprint(&git_directory.join("index"))? == original_index,
+            && index_fingerprint(&git_directory.join("index"), MAX_INDEX_BYTES, None)?
+                == original_index,
         "HEAD or index changed during enrollment review"
     );
     ensure!(
@@ -536,6 +569,7 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
         git_device: git_identity.0,
         git_inode: git_identity.1,
         head: original_head,
+        index_copy: original_index.as_ref().map(|_| "index.before".into()),
         index: original_index,
         assets,
         grants_enrollment: false,
@@ -543,7 +577,7 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
     let bytes = serde_json::to_vec(&review)?;
     ensure!(
         bytes.len() <= MAX_REVIEW_BYTES
-            && (bytes.len() as u64) <= limits.max_retained_bytes - retained - copied,
+            && (bytes.len() as u64) <= limits.max_retained_bytes - retained - index_bytes - copied,
         "review metadata capacity exceeded"
     );
     let manifest_path = directory.join("review.json");
@@ -557,5 +591,6 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
         assets: review.assets.len(),
         preserved_versions: versions.len(),
         preserved_bytes: copied,
+        metadata_bytes: index_bytes + bytes.len() as u64,
     })
 }
