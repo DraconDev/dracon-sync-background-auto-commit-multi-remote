@@ -1,6 +1,18 @@
 --- a/web/scripts/bucket-strategy-core.mjs
 +++ b/web/scripts/bucket-strategy-core.mjs
-@@ -1694,12 +1694,85 @@
+@@ -1057,7 +1057,10 @@
+ }
+ 
+ export function effectiveRemoteLimit(repoRoot, policy) {
+-  const configured = remotes(repoRoot);
++  return limitForRemotes(remotes(repoRoot), policy);
++}
++
++function limitForRemotes(configured, policy) {
+   if (!configured.length) fail('BUCKET_STRATEGY_GUARD_UNMEASURABLE', 'no configured push remotes; refusing to guess a provider limit');
+   const unknown = [];
+   const known = configured.map((r) => ({ ...r, provider: providerFor(r.url, policy) }));
+@@ -1694,16 +1697,92 @@
    return matches[0];
  }
  
@@ -87,7 +99,15 @@
    assertPortableTraversal(repoRoot);
    const configured = remotes(repoRoot);
    const target = targetRemote(configured, targetRemoteName, targetRemoteUrl);
-@@ -1712,89 +1785,105 @@
+-  const effective = effectiveRemoteLimit(repoRoot, policy);
++  // A pre-push verdict governs its actual destination. Other mirrors are
++  // checked on their own attempts; their backlog cannot reject this transfer.
++  const selectedRemotes = scope === 'outgoing' && target ? [target] : configured;
++  const effective = limitForRemotes(selectedRemotes, policy);
+   const requested = normalizeRequestedRefs(repoRoot, refs, { targetRemoteName, targetRemoteUrl, allowUnborn: includeStaged });
+   if (Array.isArray(refs) && refs.some((item) => item?.deletion)) {
+     fail('BUCKET_STRATEGY_GUARD_FORWARD_ONLY', 'forward-only policy does not permit ref deletion');
+@@ -1712,89 +1791,105 @@
      fail('BUCKET_STRATEGY_GUARD_INVALID_TARGET', 'remote tips were supplied without a target pre-push remote');
    }
    const prospective = includeStaged ? prospectiveRefs(repoRoot, requested) : { refs: requested.map((item) => item.localOid), stagedBytes: 0, stagedTree: null, env: null, prospectiveCommitMessageBytes: 0, cleanup: null };
@@ -113,7 +133,7 @@
 +        prospectiveCommitMessageBytes: prospective.prospectiveCommitMessageBytes
 +      });
 +    }
-+    for (const remote of configured) {
++    for (const remote of selectedRemotes) {
 +      const provider = providerFor(remote.url, policy);
 +      if (!provider) fail('BUCKET_STRATEGY_GUARD_UNMEASURABLE', 'unknown remote provider; add an explicit provider limit', [`${remote.name}: ${remote.url}`]);
 +      const limitBytes = policy.providerLimits[provider].bytes;
@@ -292,9 +312,9 @@
        includeStaged: options.staged,
        refs,
        targetRemoteName: options.remoteName,
---- /dev/null
+--- a/web/scripts/bucket-strategy-outgoing.test.mjs
 +++ b/web/scripts/bucket-strategy-outgoing.test.mjs
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,121 @@
 +import { afterEach, expect, test } from 'bun:test';
 +import { randomBytes } from 'node:crypto';
 +import { execFileSync } from 'node:child_process';
@@ -395,4 +415,24 @@
 +  expect(strategy.evaluateHighWater(await measure(root, localPolicy)).ok).toBe(false);
 +  writeFileSync(join(root, 'too-large.bin'), randomBytes(200 * 1024)); git(root, 'add', '--', 'too-large.bin');
 +  expect(strategy.evaluateHighWater(await strategy.measureCommitPreparation(root, localPolicy)).ok).toBe(false);
++});
++
++
++test('a pinned OID push checks only its actual destination despite other mirror backlogs', async () => {
++  const { root, base } = fixture();
++  const head = git(root, 'rev-parse', 'HEAD');
++  git(root, 'remote', 'add', 'github', github);
++  git(root, 'remote', 'add', 'gitlab', gitlab);
++  git(root, 'remote', 'add', 'unrecognized', 'ssh://example.invalid/unclassified.git');
++  const refs = [{ localRef: head, localOid: head, remoteRef: 'refs/heads/main', remoteTip: base }];
++  const result = await measure(root, policy, { refs, targetRemoteName: 'origin', targetRemoteUrl: github });
++  expect(strategy.evaluateHighWater(result).ok).toBe(true);
++  expect(result.scenarios.map(s => s.remote)).toEqual(['origin']);
++  expect(result.projectedBytes).toBeLessThan(128 * 1024);
++  const newTarget = await measure(root, policy, {
++    refs: [{ ...refs[0], remoteTip: '0'.repeat(40) }], targetRemoteName: 'gitlab', targetRemoteUrl: gitlab
++  });
++  expect(strategy.evaluateHighWater(newTarget).ok).toBe(false);
++  expect(newTarget.scenarios.map(s => s.remote)).toEqual(['gitlab']);
++  expect(newTarget.projectedBytes).toBeGreaterThan(256 * 1024);
 +});

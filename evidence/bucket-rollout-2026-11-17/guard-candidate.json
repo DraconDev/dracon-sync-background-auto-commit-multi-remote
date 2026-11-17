@@ -1,12 +1,12 @@
 {
-  "scope": "candidate only; not installed",
-  "candidate_root": "/tmp/bucket-guard-repair-3orn_zhx",
+  "scope": "installed and hash verified; forward-only history retained",
+  "candidate_root": "/home/dracon/.local/state/dracon-sync/asset-rollout/guard-candidate-20261117",
   "source_root": "/home/dracon/Dev/dracon-platform",
   "files": [
     {
       "path": "web/scripts/bucket-strategy-core.mjs",
       "before_sha256": "c9d5f4458e40790c1a6b1e93c85f38e99eb421b8658069f66a33af712184499b",
-      "candidate_sha256": "fe6919f516003f40c5f57f21e3109a0fea2681f5b04685e5095ceee1b28586f4"
+      "candidate_sha256": "3e9ca6468a2ce37cd78dcf37ebf567deec804169b9a784091c22031861e68e96"
     },
     {
       "path": "web/scripts/bucket-strategy.mjs",
@@ -16,12 +16,12 @@
     {
       "path": "web/scripts/bucket-strategy-outgoing.test.mjs",
       "before_sha256": null,
-      "candidate_sha256": "602a05baf3fe5984d5592ba9b5b7ab3bfa103b44aa4e5a4bec3adf7e2675f3f5"
+      "candidate_sha256": "915ece52f18b07e141dea3d51243439c360b40049c38ae575eafdd2e7d2a522b"
     }
   ],
   "tests": {
     "command": "bun test --timeout 30000 web/scripts/bucket-strategy*.test.mjs",
-    "passed": 83,
+    "passed": 84,
     "failed": 0,
     "fixture_timeout_basis": "Subprocess-heavy hook installation controls; production operation deadlines unchanged"
   },

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "installed_at": "2026-11-17T18:30:37.567742+00:00",
+  "source_root": "/home/dracon/Dev/dracon-platform",
+  "backup": "/home/dracon/.local/state/dracon-sync/asset-rollout/guard-target-install-lom6pems",
+  "files": [
+    {
+      "path": "web/scripts/bucket-strategy-core.mjs",
+      "before_sha256": "fe6919f516003f40c5f57f21e3109a0fea2681f5b04685e5095ceee1b28586f4",
+      "candidate_sha256": "3e9ca6468a2ce37cd78dcf37ebf567deec804169b9a784091c22031861e68e96"
+    },
+    {
+      "path": "web/scripts/bucket-strategy.mjs",
+      "before_sha256": "4877be733cf6974fcccb5628fe83a576135aa366272801fd3763d24426ca9804",
+      "candidate_sha256": "4877be733cf6974fcccb5628fe83a576135aa366272801fd3763d24426ca9804"
+    },
+    {
+      "path": "web/scripts/bucket-strategy-outgoing.test.mjs",
+      "before_sha256": "602a05baf3fe5984d5592ba9b5b7ab3bfa103b44aa4e5a4bec3adf7e2675f3f5",
+      "candidate_sha256": "915ece52f18b07e141dea3d51243439c360b40049c38ae575eafdd2e7d2a522b"
+    }
+  ],
+  "tests_passed": 84,
+  "tests_failed": 0,
+  "real_pinned_deathrun_guard_passed": true,
+  "manual_git_mutation": false,
+  "art_placement_changed": false
+}
