@@ -1524,10 +1524,14 @@ mod tests {
         );
         let approval = approve_fixture(&f, temp.path()).await;
         let unverified = StageBundle::build(&f.store, &f.prepared, &f.manifest, vec![]).unwrap();
-        assert!(f.transaction
+        assert!(f
+            .transaction
             .stage_reviewed(&f.transaction.snapshot().unwrap(), &unverified, &approval)
             .is_err());
-        assert_eq!(std::fs::read(f.transaction.repo.path().join("index")).unwrap(), before);
+        assert_eq!(
+            std::fs::read(f.transaction.repo.path().join("index")).unwrap(),
+            before
+        );
         let lease = f.journal.lease(&f.job).unwrap();
         let bundle = StageBundle::build(&f.store, &f.prepared, &f.manifest, vec![&lease]).unwrap();
         let snapshot = f.transaction.snapshot().unwrap();
