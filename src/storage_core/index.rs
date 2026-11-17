@@ -1466,6 +1466,9 @@ mod tests {
             .add(&entry(b"asset.bin", staged, 0o100644, 23))
             .unwrap();
         index.write().unwrap();
+        drop(parent);
+        drop(tree);
+        drop(index);
         f
     }
 
