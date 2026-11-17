@@ -1,0 +1,79 @@
+{
+  "ref": "c4c5c5f118009386eb9161e145bbf81f8c883e17",
+  "refs": [
+    {
+      "name": "c4c5c5f118009386eb9161e145bbf81f8c883e17",
+      "ref": "c4c5c5f118009386eb9161e145bbf81f8c883e17",
+      "remoteRef": "refs/heads/main",
+      "objectId": "c4c5c5f118009386eb9161e145bbf81f8c883e17",
+      "remoteTip": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3"
+    }
+  ],
+  "targetRemote": {
+    "name": "origin",
+    "url": "git@github.com:DraconDev/web-games-deathrun.git"
+  },
+  "effectiveLimitBytes": 2056257536,
+  "limitingRemote": "origin",
+  "limitingProvider": "github",
+  "scenarios": [
+    {
+      "remote": "origin",
+      "url": "git@github.com:DraconDev/web-games-deathrun.git",
+      "provider": "github",
+      "limitBytes": 2056257536,
+      "target": true,
+      "refs": [
+        {
+          "name": "c4c5c5f118009386eb9161e145bbf81f8c883e17",
+          "ref": "c4c5c5f118009386eb9161e145bbf81f8c883e17",
+          "remoteRef": "refs/heads/main",
+          "objectId": "c4c5c5f118009386eb9161e145bbf81f8c883e17",
+          "remoteTip": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3",
+          "trackingTip": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3"
+        }
+      ],
+      "measurementBasis": "outgoing-raw-plus-pack-reserve",
+      "trackingTips": [
+        "1e9e8bb1b49c61eb72d478a6406086b8b98095b3"
+      ],
+      "objectCount": 79,
+      "reachableObjectCount": 79,
+      "deltaBaseCount": 0,
+      "uncompressedBytes": 57997985,
+      "storedBytes": 59596551,
+      "storedPackBytes": 62576379,
+      "storedPackReserveBytes": 2979828,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 63873432,
+      "policyEstimateBytes": 63873432,
+      "packPolicyEstimateBytes": 63873432,
+      "packUpperBoundBytes": 63873432,
+      "prospectiveCommitAllowanceBytes": 0,
+      "prospectiveCommitMessageBytes": 0,
+      "basisBytes": 63873432
+    }
+  ],
+  "maxBasisBytes": 63873432,
+  "stagedBytes": 0,
+  "stagedTree": null,
+  "projectedBytes": 63873432,
+  "highWaterBytes": 2056257536,
+  "atOrAboveLimit": false,
+  "measurable": true,
+  "ok": true,
+  "code": "OK",
+  "limitBytes": 2056257536,
+  "remainingBytes": 1992384104,
+  "errors": [],
+  "forwardOnly": {
+    "ok": true,
+    "code": "OK",
+    "checked": {
+      "staged": false,
+      "refs": 1
+    },
+    "violations": [],
+    "errors": []
+  }
+}
