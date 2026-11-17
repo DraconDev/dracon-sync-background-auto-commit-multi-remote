@@ -6135,52 +6135,73 @@ fn build_repos_compact_table(
     full_path: bool,
     terminal_cols: u16,
 ) -> comfy_table::Table {
-    use comfy_table::{
-        presets::UTF8_FULL_CONDENSED, Cell, ColumnConstraint, Table, Width,
-    };
+    use comfy_table::{presets::UTF8_FULL_CONDENSED, Cell, ColumnConstraint, Table, Width};
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL_CONDENSED);
-    let counts = terminal_cols >= 72;
+    let changes = terminal_cols >= 96;
+    let divergence = terminal_cols >= 72;
     let status_width = status_column_width();
-    let fixed = 6 + status_width + 12;
-    let counts_width = if counts { 13 + 13 } else { 0 };
-    let borders = if counts { 7 } else { 5 };
-    let name_width = usize::from(terminal_cols).saturating_sub(fixed + counts_width + borders)
+    let fixed = 5 + status_width + 11 + 5;
+    let optional = if changes { 14 } else { 0 } + if divergence { 12 } else { 0 };
+    let name_width = usize::from(terminal_cols)
+        .saturating_sub(fixed + optional)
         .clamp(3, 72);
 
-    let mut headers = vec!["#", "Status", "Repository"];
-    let mut widths = vec![6, status_width, name_width];
-    if counts {
-        headers.extend(["M/S/U", "↑/↓"]);
-        widths.extend([13, 13]);
+    let mut headers = vec![
+        "#",
+        "Status",
+        if name_width >= 12 { "Repository" } else { "R" },
+    ];
+    let mut widths = vec![5, status_width, name_width];
+    if changes {
+        headers.push("M/S/U");
+        widths.push(13);
+    }
+    if divergence {
+        headers.push("↑/↓");
+        widths.push(11);
     }
     headers.push("Push");
-    widths.push(12);
+    widths.push(11);
     table.set_header(headers);
-    table.set_constraints(widths.into_iter().map(|width|
-        ColumnConstraint::Absolute(Width::Fixed(width as u16))
-    ));
+    table.set_constraints(
+        widths
+            .into_iter()
+            .map(|width| ColumnConstraint::Absolute(Width::Fixed(width as u16))),
+    );
 
     for (index, row) in rows.iter().enumerate() {
         let (status, status_color) = status_pair(row);
         let name = if full_path {
             row.repo.as_str()
         } else {
-            Path::new(&row.repo).file_name().and_then(|name| name.to_str()).unwrap_or(&row.repo)
+            Path::new(&row.repo)
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or(&row.repo)
         };
         let mut cells = vec![
             Cell::new(index + 1),
             Cell::new(status).fg(status_color),
             Cell::new(truncate_unicode_width(name, name_width - 2)),
         ];
-        if counts {
-            cells.push(Cell::new([row.modified, row.staged, row.untracked]
-                .map(format_compact_count).join("/")));
-            cells.push(Cell::new(ahead_behind_cell(row.ahead, row.behind)));
+        if changes {
+            cells.push(Cell::new(
+                [row.modified, row.staged, row.untracked]
+                    .map(format_compact_count)
+                    .join("/"),
+            ));
+        }
+        if divergence {
+            cells.push(Cell::new(format!(
+                "{}/{}",
+                format_compact_count(row.ahead),
+                format_compact_count(row.behind)
+            )));
         }
         let (push, color) = current_health::push(row);
-        cells.push(Cell::new(truncate_unicode_width(&push, 10)).fg(color));
+        cells.push(Cell::new(truncate_unicode_width(&push, 9)).fg(color));
         table.add_row(cells);
     }
     table
@@ -16347,7 +16368,10 @@ mod v011315_tests {
         let github_origin = rem_cell_content(&["github".to_string(), "gitlab".to_string()]);
         let gitlab_origin = rem_cell_content(&["gitlab".to_string(), "github".to_string()]);
         assert_eq!(github_origin, "🐙🦊");
-        assert_eq!(gitlab_origin, "🐙🦊", "leg order must not leak: {gitlab_origin:?}");
+        assert_eq!(
+            gitlab_origin, "🐙🦊",
+            "leg order must not leak: {gitlab_origin:?}"
+        );
 
         // Codeberg sits after GitLab regardless of arrival order.
         assert_eq!(
@@ -16593,8 +16617,12 @@ mod v011316_tests {
             codeberg_public_only: false,
             ..test_sync_policy()
         };
-        let remotes =
-            report_effective_remote_legs(&origin_only_policy, &RepoPolicyOverride::default(), &dir, false);
+        let remotes = report_effective_remote_legs(
+            &origin_only_policy,
+            &RepoPolicyOverride::default(),
+            &dir,
+            false,
+        );
         assert_eq!(
             remotes.legs,
             vec!["origin".to_string()],
@@ -17435,11 +17463,22 @@ mod v011321_tests {
                 wrapped_body_lines(&rendered)
             );
         }
-        let compact = build_repos_compact_table(&rows, false, 80).to_string();
-        assert!(
-            wrapped_body_lines(&compact).is_empty(),
-            "compact tier wrapped a cell:\n{compact}"
-        );
+        for columns in [40, 71, 72, 80, 95, 96, 120, RICH_TIER_MIN_COLS - 1] {
+            let compact = build_repos_compact_table(&rows, true, columns).to_string();
+            assert!(
+                wrapped_body_lines(&compact).is_empty(),
+                "compact tier at {columns} columns wrapped a cell:\n{compact}"
+            );
+            assert!(
+                compact
+                    .lines()
+                    .all(|line| { UnicodeWidthStr::width(line) <= usize::from(columns) }),
+                "compact table exceeds {columns} columns:\n{compact}"
+            );
+        }
+        let browser = worst_case_row("/watch/browser-extensions-shared");
+        let compact = build_repos_compact_table(&[browser], false, 80).to_string();
+        assert!(compact.contains("browser-extensions-shared"), "{compact}");
         let full = build_repos_full_table(&rows, &filter, 0, 0, 0, false).to_string();
         assert!(
             wrapped_body_lines(&full).is_empty(),
