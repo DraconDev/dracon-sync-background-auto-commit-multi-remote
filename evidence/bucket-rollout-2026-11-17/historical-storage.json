@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-11-17T18:20:07.616116+00:00",
+  "scope": "read-only local object metadata; no fetch, GC, upload or rewrite",
+  "caveats": [
+    "Disk object sizes are existing representations, not outgoing pack or provider billing estimates.",
+    "Tracking refs are cached local observations, not fresh remote acceptance witnesses.",
+    "Full reachable closure includes retained refs and historical versions; HEAD raw bytes include only current unique blobs.",
+    "Bucket enrollment changes future versions; it does not remove historical reachable objects."
+  ],
+  "repositories": [
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+      "head": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3",
+      "ref_count": 8,
+      "object_store": {
+        "count": 72,
+        "size": 59468,
+        "in-pack": 86782,
+        "packs": 6,
+        "size-pack": 1907693,
+        "prune-packable": 0,
+        "garbage": 0,
+        "size-garbage": 0
+      },
+      "reachable_object_disk_bytes": 1943036395,
+      "head_unique_blob_count": 3130,
+      "head_unique_raw_blob_bytes": 987215074,
+      "tracking_closures": [
+        {
+          "tracking_ref": "refs/remotes/gitlab/main",
+          "observed_tip": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3",
+          "reachable_object_disk_bytes": 1943028222,
+          "remote_acceptance_verified": false
+        },
+        {
+          "tracking_ref": "refs/remotes/origin/main",
+          "observed_tip": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3",
+          "reachable_object_disk_bytes": 1943028222,
+          "remote_acceptance_verified": false
+        }
+      ],
+      "head_unchanged_during_inspection": true,
+      "refs_unchanged_during_inspection": true
+    },
+    {
+      "repository": "/home/dracon/Dev/browser-extensions-shared",
+      "head": "45a9040ace69f4c17870de25f1573457da35261b",
+      "ref_count": 37,
+      "object_store": {
+        "count": 169,
+        "size": 20064,
+        "in-pack": 619121,
+        "packs": 40,
+        "size-pack": 12902161,
+        "prune-packable": 0,
+        "garbage": 0,
+        "size-garbage": 0
+      },
+      "reachable_object_disk_bytes": 13173472026,
+      "head_unique_blob_count": 15836,
+      "head_unique_raw_blob_bytes": 4934973263,
+      "tracking_closures": [
+        {
+          "tracking_ref": "refs/remotes/github/main",
+          "observed_tip": "6cfbc67c517929ae7f67a28347f2ec8f1a027570",
+          "reachable_object_disk_bytes": 12961166254,
+          "remote_acceptance_verified": false
+        },
+        {
+          "tracking_ref": "refs/remotes/gitlab/main",
+          "observed_tip": "84cc5542be9722a08a9df30459e2a822b4bdab86",
+          "reachable_object_disk_bytes": 10176697528,
+          "remote_acceptance_verified": false
+        },
+        {
+          "tracking_ref": "refs/remotes/origin/main",
+          "observed_tip": "6cfbc67c517929ae7f67a28347f2ec8f1a027570",
+          "reachable_object_disk_bytes": 12961166254,
+          "remote_acceptance_verified": false
+        }
+      ],
+      "head_unchanged_during_inspection": true,
+      "refs_unchanged_during_inspection": true
+    }
+  ]
+}
