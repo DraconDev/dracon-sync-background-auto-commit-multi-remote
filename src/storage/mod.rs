@@ -1202,22 +1202,38 @@ fn journal_status(
 pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
     #[cfg(unix)]
     if let StorageCommand::PrepareEnrollmentReview {
-        repo, repo_id, custody_root, git, max_blob_bytes, max_total_bytes,
-        max_retained_bytes, timeout_secs, json, paths,
-    } = command {
-        use dracon_sync::storage_core::enrollment_review::{prepare_review, ReviewLimits, ReviewRequest};
+        repo,
+        repo_id,
+        custody_root,
+        git,
+        max_blob_bytes,
+        max_total_bytes,
+        max_retained_bytes,
+        timeout_secs,
+        json,
+        paths,
+    } = command
+    {
+        use dracon_sync::storage_core::enrollment_review::{
+            prepare_review, ReviewLimits, ReviewRequest,
+        };
         let repo = root(repo)?;
         let _owner = crate::git::sync_lease::try_acquire(&repo)?
             .context("repository is busy; retry review after the current Sync operation")?;
         let receipt = prepare_review(ReviewRequest {
-            repo: &repo, repo_id, paths, custody_root, git,
+            repo: &repo,
+            repo_id,
+            paths,
+            custody_root,
+            git,
             limits: ReviewLimits {
                 max_blob_bytes: *max_blob_bytes,
                 max_total_bytes: *max_total_bytes,
                 max_retained_bytes: *max_retained_bytes,
                 timeout: std::time::Duration::from_secs(*timeout_secs),
             },
-        }).await?;
+        })
+        .await?;
         if *json {
             println!("{}", serde_json::to_string_pretty(&receipt)?);
         } else {
@@ -1510,6 +1526,10 @@ fn capture_update_job(command: &StorageCommand) -> Result<()> {
         max_snapshot_bytes,
         max_retained_snapshot_bytes,
         json,
+        #[cfg(unix)]
+        review_manifest,
+        #[cfg(unix)]
+        review_sha256,
         path,
     } = command
     else {
@@ -1517,6 +1537,14 @@ fn capture_update_job(command: &StorageCommand) -> Result<()> {
     };
     validate_sha256(repo_id)?;
     let repo = root(repo)?;
+    #[cfg(unix)]
+    let _review_owner = if review_manifest.is_some() {
+        Some(crate::git::sync_lease::try_acquire(&repo)?.context(
+            "repository is busy; retry reviewed capture after the current Sync operation",
+        )?)
+    } else {
+        None
+    };
     // Validate confinement before any Git query or source access.
     let path_hex = encode_relative_path(path.as_os_str().as_encoded_bytes())?;
     encode_relative_path(manifest_path.as_os_str().as_encoded_bytes())?;
@@ -1713,13 +1741,42 @@ fn capture_job(command: &StorageCommand) -> Result<()> {
     if !compiled.policy.enabled {
         bail!("external storage is disabled");
     }
+    #[cfg(unix)]
+    let approval = match (review_manifest, review_sha256) {
+        (Some(path), Some(digest)) => {
+            use dracon_sync::storage_core::enrollment_review::{
+                approve_review_digest, ReviewLimits,
+            };
+            Some(futures::executor::block_on(approve_review_digest(
+                &repo,
+                repo_id,
+                path,
+                digest,
+                ReviewLimits {
+                    max_blob_bytes: *max_snapshot_bytes,
+                    max_total_bytes: *max_retained_snapshot_bytes,
+                    max_retained_bytes: *max_retained_snapshot_bytes,
+                    timeout: std::time::Duration::from_secs(120),
+                },
+            ))?)
+        }
+        (None, None) => None,
+        _ => bail!("review manifest and exact digest are required together"),
+    };
+    #[cfg(unix)]
+    let reviewed = approval.is_some();
+    #[cfg(not(unix))]
+    let reviewed = false;
     let index = repository.index()?;
-    if index.get_path(path, 0).is_some() {
+    if !reviewed && index.get_path(path, 0).is_some() {
         bail!("tracked content requires verified enrollment or reviewed forward migration");
     }
     match repository.head() {
         Ok(head) => match head.peel_to_tree()?.get_path(path) {
-            Ok(_) => bail!("committed HEAD content requires reviewed forward migration"),
+            Ok(_) if !reviewed => {
+                bail!("committed HEAD content requires reviewed forward migration")
+            }
+            Ok(_) => {}
             Err(error) if error.code() == git2::ErrorCode::NotFound => {}
             Err(error) => return Err(error.into()),
         },
@@ -1754,6 +1811,12 @@ fn capture_job(command: &StorageCommand) -> Result<()> {
     {
         bail!("existing Git filter requires verified composition before enrollment");
     }
+    #[cfg(unix)]
+    let (mut source, fingerprint) = match &approval {
+        Some(approval) => approval.select_source(&repo, repo_id, path)?,
+        None => select_source(&repo, path, *max_snapshot_bytes)?,
+    };
+    #[cfg(not(unix))]
     let (mut source, fingerprint) = select_source(&repo, path, *max_snapshot_bytes)?;
     let decision = compiled.decide(path, fingerprint.bytes());
     if decision.placement != Placement::External {

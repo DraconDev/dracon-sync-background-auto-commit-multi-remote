@@ -87,10 +87,28 @@ pub async fn approve_review(
     receipt: &PreparedReview,
     limits: ReviewLimits,
 ) -> Result<ApprovedEnrollment> {
+    approve_review_digest(
+        repo,
+        repo_id,
+        &receipt.manifest_path,
+        &receipt.review_sha256,
+        limits,
+    )
+    .await
+}
+
+/// Load one exact digest selected by an operator command, never by a repo file.
+pub async fn approve_review_digest(
+    repo: &Path,
+    repo_id: &str,
+    manifest_path: &Path,
+    review_sha256: &str,
+    limits: ReviewLimits,
+) -> Result<ApprovedEnrollment> {
     let repo = repo.to_path_buf();
     let repo_id = repo_id.to_owned();
-    let path = receipt.manifest_path.clone();
-    let expected = receipt.review_sha256.clone();
+    let path = manifest_path.to_path_buf();
+    let expected = review_sha256.to_owned();
     tokio::task::spawn_blocking(move || {
         super::reference::validate_sha256(&expected)?;
         ensure!(
@@ -138,23 +156,28 @@ impl ApprovedEnrollment {
     /// Select only an exact working version covered by this private review.
     /// The caller still enforces placement/security policy and owns the Sync
     /// mutation lease. This grants no upload or staging authority by itself.
-    pub fn select_source(
-        &self,
-        root: &Path,
-        id: &str,
-        path: &Path,
-    ) -> Result<(File, Fingerprint)> {
+    pub fn select_source(&self, root: &Path, id: &str, path: &Path) -> Result<(File, Fingerprint)> {
         let deadline = Instant::now()
             .checked_add(self.limits.timeout)
             .context("invalid reviewed capture deadline")?;
         self.validate_preservation_before(root, id, deadline)?;
         let path_hex = journal::encode_relative_path(path.as_os_str().as_bytes())?;
-        let asset = self.review.assets.iter().find(|a| a.path_hex == path_hex)
+        let asset = self
+            .review
+            .assets
+            .iter()
+            .find(|a| a.path_hex == path_hex)
             .context("source path is outside the approved enrollment review")?;
         let (source, actual) = capture::select_source_before(
-            root, path, self.limits.max_blob_bytes, Some(deadline.into_std()),
+            root,
+            path,
+            self.limits.max_blob_bytes,
+            Some(deadline.into_std()),
         )?;
-        ensure!(actual == asset.worktree.fingerprint, "reviewed source version changed");
+        ensure!(
+            actual == asset.worktree.fingerprint,
+            "reviewed source version changed"
+        );
         Ok((source, actual))
     }
 
