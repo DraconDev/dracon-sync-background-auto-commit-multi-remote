@@ -130,9 +130,9 @@ pub async fn preserve_git_blob(
         use std::os::unix::fs::MetadataExt;
         ensure!(
             metadata.uid() == unsafe { libc::geteuid() }
-                && metadata.nlink() == 1
+                && metadata.nlink() <= 1
                 && metadata.mode() & 0o077 == 0,
-            "Git custody destination must be private and singly owned"
+            "Git custody destination must be private and not hard-linked"
         );
     }
     let deadline = Instant::now()
@@ -235,6 +235,13 @@ mod tests {
             .unwrap()
     }
 
+    fn private_file() -> File {
+        let file = tempfile::tempfile().unwrap();
+        file.set_permissions(std::fs::Permissions::from_mode(0o600))
+            .unwrap();
+        file
+    }
+
     fn fixture(bytes: &[u8]) -> (tempfile::TempDir, String) {
         let root = tempfile::tempdir().unwrap();
         let repo = git2::Repository::init(root.path()).unwrap();
@@ -246,7 +253,7 @@ mod tests {
     async fn streams_and_rewinds_a_blob_larger_than_the_io_buffer() {
         let bytes: Vec<u8> = (0..3 * 1024 * 1024).map(|i| (i % 251) as u8).collect();
         let (repo, oid) = fixture(&bytes);
-        let mut destination = tempfile::tempfile().unwrap();
+        let mut destination = private_file();
         let fingerprint = preserve_git_blob(
             repo.path(),
             &git(),
@@ -294,7 +301,7 @@ mod tests {
             .join(&oid[..2])
             .join(&oid[2..])
             .exists());
-        let mut destination = tempfile::tempfile().unwrap();
+        let mut destination = private_file();
         preserve_git_blob(
             root.path(),
             &git(),
@@ -314,7 +321,7 @@ mod tests {
     #[tokio::test]
     async fn capacity_refusal_happens_before_copying_payload_bytes() {
         let (repo, oid) = fixture(b"larger than the selected custody capacity");
-        let mut destination = tempfile::tempfile().unwrap();
+        let mut destination = private_file();
         assert!(preserve_git_blob(
             repo.path(),
             &git(),
@@ -333,7 +340,7 @@ mod tests {
         let (root, _) = fixture(b"blob");
         let repo = git2::Repository::open(root.path()).unwrap();
         let oid = repo.treebuilder(None).unwrap().write().unwrap().to_string();
-        let mut destination = tempfile::tempfile().unwrap();
+        let mut destination = private_file();
         assert!(preserve_git_blob(
             root.path(),
             &git(),
@@ -350,7 +357,7 @@ mod tests {
     #[tokio::test]
     async fn existing_custody_bytes_are_never_truncated_or_overwritten() {
         let (repo, oid) = fixture(b"new source");
-        let mut destination = tempfile::tempfile().unwrap();
+        let mut destination = private_file();
         destination.write_all(b"retained original").unwrap();
         destination.rewind().unwrap();
         assert!(preserve_git_blob(
@@ -371,7 +378,7 @@ mod tests {
     #[tokio::test]
     async fn nonprivate_destinations_and_zero_deadlines_are_refused() {
         let (repo, oid) = fixture(b"source");
-        let mut destination = tempfile::tempfile().unwrap();
+        let mut destination = private_file();
         destination
             .set_permissions(std::fs::Permissions::from_mode(0o644))
             .unwrap();
@@ -411,7 +418,7 @@ mod tests {
         )
         .unwrap();
         std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
-        let mut destination = tempfile::tempfile().unwrap();
+        let mut destination = private_file();
         assert!(preserve_git_blob(
             root.path(),
             &executable,
@@ -441,7 +448,7 @@ mod tests {
         let executable = root.path().join("owned-git-fixture");
         std::fs::write(&executable, "#!/bin/sh\ntouch must-not-run\n").unwrap();
         std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
-        let mut destination = tempfile::tempfile().unwrap();
+        let mut destination = private_file();
         for oid in ["--batch", "../HEAD", "ABCD", &"f".repeat(41)] {
             assert!(preserve_git_blob(
                 root.path(),
@@ -455,5 +462,80 @@ mod tests {
             .is_err());
         }
         assert!(!root.path().join("must-not-run").exists());
+    }
+
+    #[tokio::test]
+    async fn oversized_metadata_is_refused_before_payload_copy() {
+        let (root, oid) = fixture(b"source");
+        let executable = root.path().join("owned-git-fixture");
+        std::fs::write(&executable, "#!/bin/sh\nprintf '%02000d\\n' 0\n").unwrap();
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let mut destination = private_file();
+        assert!(preserve_git_blob(
+            root.path(),
+            &executable,
+            &oid,
+            &mut destination,
+            1024,
+            Duration::from_secs(5)
+        )
+        .await
+        .is_err());
+        assert_eq!(destination.metadata().unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn same_length_corruption_cannot_return_verified_custody() {
+        let (root, oid) = fixture(b"original");
+        let executable = root.path().join("owned-git-fixture");
+        let real = git().to_string_lossy().replace('\'', "'\\''");
+        // Delegate metadata and independent hash verification to the real Git,
+        // but corrupt the raw blob stream without changing its declared size.
+        std::fs::write(&executable, format!(
+            "#!/bin/sh\nif [ \"$4\" = cat-file ] && [ \"$5\" = blob ]; then printf modified; else exec '{real}' \"$@\"; fi\n"
+        )).unwrap();
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let mut destination = private_file();
+        assert!(preserve_git_blob(
+            root.path(),
+            &executable,
+            &oid,
+            &mut destination,
+            1024,
+            Duration::from_secs(5)
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn inherited_git_directory_does_not_redirect_custody() {
+        struct Restore(Option<std::ffi::OsString>);
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                match &self.0 {
+                    Some(value) => std::env::set_var("GIT_DIR", value),
+                    None => std::env::remove_var("GIT_DIR"),
+                }
+            }
+        }
+        let (root, oid) = fixture(b"correct indexed source");
+        let (foreign, _) = fixture(b"another repository");
+        let _restore = Restore(std::env::var_os("GIT_DIR"));
+        std::env::set_var("GIT_DIR", foreign.path().join(".git"));
+        let mut destination = private_file();
+        preserve_git_blob(
+            root.path(),
+            &git(),
+            &oid,
+            &mut destination,
+            1024,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+        let mut bytes = Vec::new();
+        destination.read_to_end(&mut bytes).unwrap();
+        assert_eq!(bytes, b"correct indexed source");
     }
 }
