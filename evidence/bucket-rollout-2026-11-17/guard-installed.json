@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "installed_at": "2026-11-17T18:28:03.208934+00:00",
+  "source_root": "/home/dracon/Dev/dracon-platform",
+  "backup": "/home/dracon/.local/state/dracon-sync/asset-rollout/guard-install-4qjg9ps6",
+  "files": [
+    {
+      "path": "web/scripts/bucket-strategy-core.mjs",
+      "before_sha256": "c9d5f4458e40790c1a6b1e93c85f38e99eb421b8658069f66a33af712184499b",
+      "candidate_sha256": "fe6919f516003f40c5f57f21e3109a0fea2681f5b04685e5095ceee1b28586f4"
+    },
+    {
+      "path": "web/scripts/bucket-strategy.mjs",
+      "before_sha256": "710e3268810a73b9ef768b36feb0a37c44a153f16156da192e00f21e7cc6bca3",
+      "candidate_sha256": "4877be733cf6974fcccb5628fe83a576135aa366272801fd3763d24426ca9804"
+    },
+    {
+      "path": "web/scripts/bucket-strategy-outgoing.test.mjs",
+      "before_sha256": null,
+      "candidate_sha256": "602a05baf3fe5984d5592ba9b5b7ab3bfa103b44aa4e5a4bec3adf7e2675f3f5"
+    }
+  ],
+  "qualification": "83 applicable tests passed; no Git index/ref mutation by installer",
+  "art_placement_changed": false
+}
