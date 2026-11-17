@@ -1,0 +1,16 @@
+{
+  "backend": "archive",
+  "checked_at_unix": 1794939879,
+  "competing_creates_verified": true,
+  "conflicting_write_refused": true,
+  "full_readback_verified": true,
+  "live_provider_certified": false,
+  "probe_object_bytes": 64,
+  "probe_object_retained": true,
+  "schema_version": 1,
+  "bucket": "dracon-lfs",
+  "prefix": "games/native-archival-v1/deathrun",
+  "source_uploaded": false,
+  "iam_changed": false,
+  "scope": "64-byte synthetic immutable-write/readback control; no production enrollment"
+}
