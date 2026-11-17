@@ -218,7 +218,8 @@ pub(crate) fn effective_push_targets(
             priority: remote.priority,
         })
         .collect();
-    let duplicate_mirrors = crate::forge::duplicate_mirror_names(origin_url, &candidates_for_dedupe);
+    let duplicate_mirrors =
+        crate::forge::duplicate_mirror_names(origin_url, &candidates_for_dedupe);
 
     let mut push_to: Vec<PushTarget> = Vec::new();
     if let Some(origin) = origin_url {
@@ -1673,7 +1674,21 @@ pub(crate) fn ls_remote_indicates_missing(stderr: &str) -> bool {
         || lower.contains("push to create is not enabled")
         || lower.contains("cannot find repository")
         || lower.contains("not allowed to push code to this project")
-        || lower.contains("404")
+        || lower.lines().any(|line| {
+            // A commit ID, URL path or byte count can contain 404. Only a
+            // protocol-status diagnostic establishes a missing HTTP resource.
+            line.contains("requested url returned error: 404")
+                || line
+                    .split_ascii_whitespace()
+                    .collect::<Vec<_>>()
+                    .windows(2)
+                    .any(|words| {
+                        matches!(
+                            words[0],
+                            "http" | "http/1.0" | "http/1.1" | "http/2" | "http/2.0"
+                        ) && words[1] == "404"
+                    })
+        })
 }
 
 async fn remote_repo_exists(repo: &Path, remote_name: &str) -> RemoteExistence {
@@ -1792,11 +1807,7 @@ mod tests {
     /// github mirror. Both forges must be reported, both push legs kept.
     #[test]
     fn effective_push_targets_keeps_every_distinct_forge() {
-        let candidates = [remote(
-            "gitlab",
-            "git@gitlab.com:DraconDev/{repo}.git",
-            50,
-        )];
+        let candidates = [remote("gitlab", "git@gitlab.com:DraconDev/{repo}.git", 50)];
         let targets = effective_push_targets(
             Some("git@github.com:DraconDev/browser-extensions-shared.git"),
             &candidates,
@@ -1821,7 +1832,11 @@ mod tests {
     fn effective_push_targets_keeps_two_projects_on_one_forge_as_two_legs() {
         let candidates = [
             remote("github", "git@github.com:DraconDev/{repo}.git", 50),
-            remote("github-backup", "git@github.com:DraconDev/{repo}-backup.git", 60),
+            remote(
+                "github-backup",
+                "git@github.com:DraconDev/{repo}-backup.git",
+                60,
+            ),
         ];
         let targets = effective_push_targets(
             Some("git@github.com:DraconDev/db-gateway.git"),
@@ -1991,6 +2006,18 @@ mod tests {
         ));
         assert!(ls_remote_indicates_missing("repository does not exist"));
         assert!(ls_remote_indicates_missing("HTTP 404 Not Found"));
+        assert!(ls_remote_indicates_missing("fatal: HTTP/2 404"));
+        assert!(ls_remote_indicates_missing(
+            "fatal: unable to access remote: The requested URL returned error: 404"
+        ));
+        for diagnostic in [
+            "remote: storage allocation exceeded\n ! [remote rejected] 9ee70a04049378568a64574c7708f466ab9b520e -> main (pre-receive hook declined)",
+            "fatal: unable to access 'https://example.invalid/repos/404.git': HTTP 403",
+            "Writing objects: 100% (404/404), done.",
+            "server reports status 1404",
+        ] {
+            assert!(!ls_remote_indicates_missing(diagnostic), "{diagnostic}");
+        }
         assert!(ls_remote_indicates_missing(
             "Forgejo: Push to create is not enabled for users."
         ));
@@ -2045,6 +2072,10 @@ mod tests {
         // Transport failure: Unknown, not Missing. No evict.
         assert!(!push_err_indicates_repo_missing(&anyhow::anyhow!(
             "ssh: connect to host github.com port 22: Connection timed out"
+        )));
+        assert!(!push_err_indicates_repo_missing(&anyhow::anyhow!(
+            "remote: Your push has been rejected because this repository has exceeded its storage allocation.\n\
+             ! [remote rejected] 9ee70a04049378568a64574c7708f466ab9b520e -> main (pre-receive hook declined)"
         )));
     }
 

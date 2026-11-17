@@ -8,10 +8,10 @@
 pub mod backend;
 pub mod bindings;
 pub mod capture;
-pub mod git_custody;
 pub mod clean;
 #[cfg(unix)]
 pub mod enrollment_review;
+pub mod git_custody;
 #[cfg(target_os = "linux")]
 pub mod hydration;
 pub mod index;
