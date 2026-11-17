@@ -11,7 +11,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, Write};
 use std::os::unix::ffi::{OsStrExt, OsStringExt};
-use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio::time::Instant;
@@ -869,6 +869,10 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
         .prefix("enrollment-review-")
         .tempdir_in(custody_root)?
         .keep();
+    // The enclosing custody root is already private. tempfile follows the
+    // process umask for directories, so explicitly seal the retained child.
+    std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700))?;
+    journal::private_directory(&directory, false)?;
     // Release all libgit2 borrows before asynchronous subprocess capture.
     let (git_directory, git_identity, original_head, original_index, selected) = {
         let repository = git2::Repository::open(repo)?;
