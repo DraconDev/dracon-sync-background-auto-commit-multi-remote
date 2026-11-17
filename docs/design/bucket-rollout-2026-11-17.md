@@ -108,3 +108,25 @@ enrollment of tracked paths without a reviewed forward-migration mechanism.
 The implementation must preserve this default refusal and add an explicit,
 version-bound migration path under the daemon's mutation owner; merely setting
 the feature flag or removing that check would not satisfy the custody contract.
+
+## Live bucket pilot
+
+The native review command preserved 412 versions across 402 Deathrun paths and
+saved the exact index before the guard deployment. The capture command accepts
+an explicit review digest and refuses a path or version outside that review.
+The library test exercises replacement of reviewed raw blobs with pointers
+while keeping the original working bytes and verifying required copies.
+
+The `dracon-lfs` bucket passed the conditional-write control within the scoped
+`games/native-archival-v1/deathrun` prefix. A separate consumer key retrieved
+the exact synthetic control. The scoped uploader conditionally created an
+encrypted copy of the published orb source at its ciphertext digest. The
+consumer downloaded matching ciphertext, and Warden decrypted it from an
+empty Git repository to bytes identical to the published source. The pilot
+used the available local Warden identity. Production staging, recovery of a
+protected manifest in a fresh checkout, and consumer build bootstrap still
+need qualification. See `deathrun-orb-bucket-pilot.json` in the evidence directory.
+
+The browser extensions still require a separate scoped bucket binding. The
+measured history and proposed archival cutover are recorded in
+`historical-storage-migration-2026-11-17.md`.
