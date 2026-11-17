@@ -5111,11 +5111,11 @@ pub(crate) async fn run_repos_report(
             ..Default::default()
         };
         let failure_matches_tip = stuck_info.as_ref().is_some_and(|entry| {
-                entry.failed_tip.as_deref() == Some(last_hash.as_str())
-                    && entry.last_error_at > 0
-                    && health.last_push.as_ref().is_none_or(|push| {
-                        !push.succeeded || push.attempted_at < entry.last_error_at
-                    })
+            entry.failed_tip.as_deref() == Some(last_hash.as_str())
+                && entry.last_error_at > 0
+                && health.last_push.as_ref().is_none_or(|push| {
+                    !push.succeeded || push.attempted_at < entry.last_error_at
+                })
         });
         if !ownership_blocked && !push_budget_exhausted && failure_matches_tip {
             if let Some(error) = stuck_last_error_redacted.as_deref().filter(|s| !s.is_empty()) {
@@ -16383,10 +16383,7 @@ mod v011315_tests {
         let github_origin = rem_cell_content(&["github".to_string(), "gitlab".to_string()]);
         let gitlab_origin = rem_cell_content(&["gitlab".to_string(), "github".to_string()]);
         assert_eq!(github_origin, "🐙🦊");
-        assert_eq!(
-            gitlab_origin, "🐙🦊",
-            "leg order must not leak: {gitlab_origin:?}"
-        );
+        assert_eq!(gitlab_origin, "🐙🦊", "leg order must not leak: {gitlab_origin:?}");
 
         // Codeberg sits after GitLab regardless of arrival order.
         assert_eq!(
@@ -16632,12 +16629,8 @@ mod v011316_tests {
             codeberg_public_only: false,
             ..test_sync_policy()
         };
-        let remotes = report_effective_remote_legs(
-            &origin_only_policy,
-            &RepoPolicyOverride::default(),
-            &dir,
-            false,
-        );
+        let remotes =
+            report_effective_remote_legs(&origin_only_policy, &RepoPolicyOverride::default(), &dir, false);
         assert_eq!(
             remotes.legs,
             vec!["origin".to_string()],
