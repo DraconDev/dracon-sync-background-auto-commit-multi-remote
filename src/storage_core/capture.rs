@@ -134,6 +134,22 @@ fn open_source(_: &Path, _: &Path) -> Result<File> {
 mod tests {
     use super::*;
     #[test]
+    fn source_selection_respects_an_expired_whole_operation_deadline() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(root.path().join("asset"), b"retained").unwrap();
+        assert!(select_source_before(
+            root.path(),
+            Path::new("asset"),
+            100,
+            Some(std::time::Instant::now())
+        )
+        .is_err());
+        assert_eq!(
+            std::fs::read(root.path().join("asset")).unwrap(),
+            b"retained"
+        );
+    }
+    #[test]
     fn exact_source_selection_is_bounded_and_rewound() {
         let root = tempfile::tempdir().unwrap();
         std::fs::write(root.path().join("asset"), b"exact retained bytes").unwrap();

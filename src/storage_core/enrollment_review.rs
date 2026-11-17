@@ -880,6 +880,44 @@ mod tests {
         .await
         .is_err());
     }
+
+    #[tokio::test]
+    async fn approved_capture_is_path_version_and_index_bound() {
+        let fixture = Fixture::new();
+        let receipt = prepare_review(fixture.request()).await.unwrap();
+        let approval = approve_review(
+            &fixture.repo,
+            &fixture.id,
+            &receipt,
+            fixture.request().limits,
+        )
+        .await
+        .unwrap();
+        let (mut input, _) = approval
+            .select_source(&fixture.repo, &fixture.id, Path::new("art.bin"))
+            .unwrap();
+        let mut bytes = Vec::new();
+        input.read_to_end(&mut bytes).unwrap();
+        assert_eq!(bytes, b"working latest");
+        std::fs::write(fixture.repo.join("other.bin"), b"working latest").unwrap();
+        assert!(approval
+            .select_source(&fixture.repo, &fixture.id, Path::new("other.bin"))
+            .is_err());
+        std::fs::write(fixture.repo.join("art.bin"), b"new operator version").unwrap();
+        assert!(approval
+            .select_source(&fixture.repo, &fixture.id, Path::new("art.bin"))
+            .is_err());
+        std::fs::write(fixture.repo.join("art.bin"), b"working latest").unwrap();
+        let repository = git2::Repository::open(&fixture.repo).unwrap();
+        let mut index = repository.index().unwrap();
+        index.add_path(Path::new("other.bin")).unwrap();
+        index.write().unwrap();
+        let changed_index = fixture.index();
+        assert!(approval
+            .select_source(&fixture.repo, &fixture.id, Path::new("art.bin"))
+            .is_err());
+        assert_eq!(fixture.index(), changed_index);
+    }
 }
 
 async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<PreparedReview> {
