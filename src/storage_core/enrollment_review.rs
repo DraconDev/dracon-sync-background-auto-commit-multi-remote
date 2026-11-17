@@ -294,6 +294,252 @@ pub async fn prepare_review(request: ReviewRequest<'_>) -> Result<PreparedReview
     .context("enrollment review worker failed")?
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::fs::{symlink, PermissionsExt};
+    use std::process::Command;
+
+    struct Fixture {
+        _root: tempfile::TempDir,
+        repo: PathBuf,
+        custody: PathBuf,
+        git: PathBuf,
+        id: String,
+        paths: Vec<PathBuf>,
+    }
+
+    impl Fixture {
+        fn new() -> Self {
+            let root = tempfile::tempdir().unwrap();
+            let base = root.path().canonicalize().unwrap();
+            let repo_path = base.join("repo");
+            std::fs::create_dir(&repo_path).unwrap();
+            let repo = git2::Repository::init(&repo_path).unwrap();
+            std::fs::write(repo_path.join("art.bin"), b"committed original").unwrap();
+            let mut index = repo.index().unwrap();
+            index.add_path(Path::new("art.bin")).unwrap();
+            index.write().unwrap();
+            let tree = repo.find_tree(index.write_tree().unwrap()).unwrap();
+            let signature =
+                git2::Signature::now("Enrollment Fixture", "enrollment@example.invalid").unwrap();
+            repo.commit(Some("HEAD"), &signature, &signature, "baseline", &tree, &[])
+                .unwrap();
+            std::fs::write(repo_path.join("art.bin"), b"staged intermediate").unwrap();
+            index.add_path(Path::new("art.bin")).unwrap();
+            index.write().unwrap();
+            std::fs::write(repo_path.join("art.bin"), b"working latest").unwrap();
+            let output = Command::new("sh")
+                .args(["-c", "command -v git"])
+                .output()
+                .unwrap();
+            let git = PathBuf::from(std::str::from_utf8(&output.stdout).unwrap().trim())
+                .canonicalize()
+                .unwrap();
+            Self {
+                _root: root,
+                repo: repo_path,
+                custody: base.join("custody"),
+                git,
+                id: "a".repeat(64),
+                paths: vec![PathBuf::from("art.bin")],
+            }
+        }
+
+        fn request(&self) -> ReviewRequest<'_> {
+            ReviewRequest {
+                repo: &self.repo,
+                repo_id: &self.id,
+                paths: &self.paths,
+                custody_root: &self.custody,
+                git: &self.git,
+                limits: ReviewLimits {
+                    max_blob_bytes: 1024 * 1024,
+                    max_total_bytes: 8 * 1024 * 1024,
+                    max_retained_bytes: 16 * 1024 * 1024,
+                    timeout: Duration::from_secs(20),
+                },
+            }
+        }
+
+        fn index(&self) -> Vec<u8> {
+            std::fs::read(self.repo.join(".git/index")).unwrap()
+        }
+
+        fn manifests(&self) -> Vec<PathBuf> {
+            if !self.custody.exists() {
+                return vec![];
+            }
+            std::fs::read_dir(&self.custody)
+                .unwrap()
+                .filter_map(|e| {
+                    let path = e.unwrap().path().join("review.json");
+                    path.exists().then_some(path)
+                })
+                .collect()
+        }
+
+        fn shim(&self, action: &str) -> PathBuf {
+            let path = self._root.path().join("review-git-shim");
+            let real = self.git.to_string_lossy().replace('\'', "'\\''");
+            std::fs::write(&path, format!(
+                "#!/bin/sh\nif [ ! -e review-fixture-switched ]; then touch review-fixture-switched; {action}; fi\nexec '{real}' \"$@\"\n"
+            )).unwrap();
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+            path
+        }
+    }
+
+    #[tokio::test]
+    async fn preserves_three_distinct_versions_and_the_exact_index_without_enrollment() {
+        let fixture = Fixture::new();
+        let before = fixture.index();
+        let result = prepare_review(fixture.request()).await.unwrap();
+        let bytes = std::fs::read(&result.manifest_path).unwrap();
+        assert_eq!(
+            result.review_sha256,
+            format!("{:x}", Sha256::digest(&bytes))
+        );
+        let review: Review = serde_json::from_slice(&bytes).unwrap();
+        assert!(!review.grants_enrollment);
+        assert_eq!(review.assets.len(), 1);
+        assert_eq!(result.preserved_versions, 3);
+        let directory = result.manifest_path.parent().unwrap();
+        let asset = &review.assets[0];
+        assert_eq!(
+            std::fs::read(directory.join(&asset.head.as_ref().unwrap().file)).unwrap(),
+            b"committed original"
+        );
+        assert_eq!(
+            std::fs::read(directory.join(&asset.index.as_ref().unwrap().file)).unwrap(),
+            b"staged intermediate"
+        );
+        assert_eq!(
+            std::fs::read(directory.join(&asset.worktree.file)).unwrap(),
+            b"working latest"
+        );
+        assert_eq!(
+            std::fs::read(directory.join(review.index_copy.unwrap())).unwrap(),
+            before
+        );
+        assert_eq!(fixture.index(), before);
+        assert_eq!(
+            std::fs::read(fixture.repo.join("art.bin")).unwrap(),
+            b"working latest"
+        );
+        assert!(git2::Repository::open(&fixture.repo)
+            .unwrap()
+            .config()
+            .unwrap()
+            .get_string("dracon.storageRepoId")
+            .is_err());
+        for entry in std::fs::read_dir(directory).unwrap() {
+            assert_eq!(entry.unwrap().metadata().unwrap().mode() & 0o077, 0);
+        }
+    }
+
+    #[tokio::test]
+    async fn duplicate_or_escaping_paths_are_refused_before_creating_custody() {
+        let mut fixture = Fixture::new();
+        fixture.paths.push(PathBuf::from("art.bin"));
+        assert!(prepare_review(fixture.request()).await.is_err());
+        assert!(!fixture.custody.exists());
+        fixture.paths = vec![PathBuf::from("../outside.bin")];
+        assert!(prepare_review(fixture.request()).await.is_err());
+        assert!(!fixture.custody.exists());
+    }
+
+    #[tokio::test]
+    async fn source_symlinks_do_not_produce_a_complete_review() {
+        let fixture = Fixture::new();
+        let outside = fixture._root.path().join("outside.bin");
+        std::fs::write(&outside, b"not authorized").unwrap();
+        std::fs::remove_file(fixture.repo.join("art.bin")).unwrap();
+        symlink(outside, fixture.repo.join("art.bin")).unwrap();
+        assert!(prepare_review(fixture.request()).await.is_err());
+        assert!(fixture.manifests().is_empty());
+    }
+
+    #[tokio::test]
+    async fn byte_and_retention_limits_never_publish_partial_review_authority() {
+        let fixture = Fixture::new();
+        let before = fixture.index();
+        let mut request = fixture.request();
+        request.limits.max_blob_bytes = 3;
+        assert!(prepare_review(request).await.is_err());
+        assert!(fixture.manifests().is_empty());
+        let mut request = fixture.request();
+        request.limits.max_retained_bytes = 1;
+        assert!(prepare_review(request).await.is_err());
+        assert!(fixture.manifests().is_empty());
+        assert_eq!(fixture.index(), before);
+    }
+
+    #[tokio::test]
+    async fn another_repository_id_cannot_be_reviewed_under_an_existing_binding() {
+        let fixture = Fixture::new();
+        git2::Repository::open(&fixture.repo)
+            .unwrap()
+            .config()
+            .unwrap()
+            .set_str("dracon.storageRepoId", &"b".repeat(64))
+            .unwrap();
+        assert!(prepare_review(fixture.request()).await.is_err());
+        assert!(fixture.manifests().is_empty());
+    }
+
+    #[tokio::test]
+    async fn head_changes_during_capture_refuse_the_review_and_keep_custody() {
+        let fixture = Fixture::new();
+        let repo = git2::Repository::open(&fixture.repo).unwrap();
+        let parent = repo.head().unwrap().peel_to_commit().unwrap();
+        let signature =
+            git2::Signature::now("Enrollment Fixture", "enrollment@example.invalid").unwrap();
+        let next = repo
+            .commit(
+                None,
+                &signature,
+                &signature,
+                "new fixture head",
+                &parent.tree().unwrap(),
+                &[&parent],
+            )
+            .unwrap();
+        let real = fixture.git.to_string_lossy().replace('\'', "'\\''");
+        let shim = fixture.shim(&format!("'{real}' update-ref HEAD {next}"));
+        let request = ReviewRequest {
+            git: &shim,
+            ..fixture.request()
+        };
+        assert!(prepare_review(request).await.is_err());
+        assert!(fixture.manifests().is_empty());
+        assert!(std::fs::read_dir(&fixture.custody)
+            .unwrap()
+            .any(|e| e.unwrap().path().is_dir()));
+    }
+
+    #[tokio::test]
+    async fn an_index_edit_during_capture_is_preserved_and_refuses_completion() {
+        let fixture = Fixture::new();
+        std::fs::write(fixture.repo.join("manual.txt"), b"operator note").unwrap();
+        let real = fixture.git.to_string_lossy().replace('\'', "'\\''");
+        let shim = fixture.shim(&format!("'{real}' add -- manual.txt"));
+        assert!(prepare_review(ReviewRequest {
+            git: &shim,
+            ..fixture.request()
+        })
+        .await
+        .is_err());
+        assert!(fixture.manifests().is_empty());
+        assert!(git2::Repository::open(&fixture.repo)
+            .unwrap()
+            .index()
+            .unwrap()
+            .get_path(Path::new("manual.txt"), 0)
+            .is_some());
+    }
+}
+
 async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<PreparedReview> {
     let ReviewRequest {
         repo,
