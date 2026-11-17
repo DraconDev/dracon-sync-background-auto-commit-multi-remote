@@ -1,0 +1,148 @@
+{
+  "ref": "refs/heads/main",
+  "refs": [
+    {
+      "name": "refs/heads/main",
+      "ref": "refs/heads/main",
+      "remoteRef": "refs/heads/main",
+      "objectId": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3",
+      "remoteTip": null
+    }
+  ],
+  "targetRemote": null,
+  "effectiveLimitBytes": 2056257536,
+  "limitingRemote": "github",
+  "limitingProvider": "github",
+  "scenarios": [
+    {
+      "remote": "github",
+      "url": "git@github.com:DraconDev/web-games-deathrun.git",
+      "provider": "github",
+      "limitBytes": 2056257536,
+      "target": false,
+      "refs": [
+        {
+          "name": "refs/heads/main",
+          "ref": "refs/heads/main",
+          "remoteRef": "refs/heads/main",
+          "objectId": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3",
+          "remoteTip": null,
+          "trackingTip": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3"
+        }
+      ],
+      "measurementBasis": "staged-raw-plus-pack-reserve",
+      "trackingTips": [
+        "1e9e8bb1b49c61eb72d478a6406086b8b98095b3"
+      ],
+      "objectCount": 7,
+      "reachableObjectCount": 7,
+      "deltaBaseCount": 0,
+      "uncompressedBytes": 27510895,
+      "storedBytes": 28976831,
+      "storedPackBytes": 30425673,
+      "storedPackReserveBytes": 1448842,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 30394011,
+      "policyEstimateBytes": 30394011,
+      "packPolicyEstimateBytes": 30328417,
+      "packUpperBoundBytes": 30328417,
+      "prospectiveCommitAllowanceBytes": 65594,
+      "prospectiveCommitMessageBytes": 58,
+      "basisBytes": 30394011
+    },
+    {
+      "remote": "gitlab",
+      "url": "git@gitlab.com:DraconDev/web-games-deathrun.git",
+      "provider": "gitlab",
+      "limitBytes": 2056257536,
+      "target": false,
+      "refs": [
+        {
+          "name": "refs/heads/main",
+          "ref": "refs/heads/main",
+          "remoteRef": "refs/heads/main",
+          "objectId": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3",
+          "remoteTip": null,
+          "trackingTip": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3"
+        }
+      ],
+      "measurementBasis": "staged-raw-plus-pack-reserve",
+      "trackingTips": [
+        "1e9e8bb1b49c61eb72d478a6406086b8b98095b3"
+      ],
+      "objectCount": 7,
+      "reachableObjectCount": 7,
+      "deltaBaseCount": 0,
+      "uncompressedBytes": 27510895,
+      "storedBytes": 28976831,
+      "storedPackBytes": 30425673,
+      "storedPackReserveBytes": 1448842,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 30394011,
+      "policyEstimateBytes": 30394011,
+      "packPolicyEstimateBytes": 30328417,
+      "packUpperBoundBytes": 30328417,
+      "prospectiveCommitAllowanceBytes": 65594,
+      "prospectiveCommitMessageBytes": 58,
+      "basisBytes": 30394011
+    },
+    {
+      "remote": "origin",
+      "url": "git@github.com:DraconDev/web-games-deathrun.git",
+      "provider": "github",
+      "limitBytes": 2056257536,
+      "target": false,
+      "refs": [
+        {
+          "name": "refs/heads/main",
+          "ref": "refs/heads/main",
+          "remoteRef": "refs/heads/main",
+          "objectId": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3",
+          "remoteTip": null,
+          "trackingTip": "1e9e8bb1b49c61eb72d478a6406086b8b98095b3"
+        }
+      ],
+      "measurementBasis": "staged-raw-plus-pack-reserve",
+      "trackingTips": [
+        "1e9e8bb1b49c61eb72d478a6406086b8b98095b3"
+      ],
+      "objectCount": 7,
+      "reachableObjectCount": 7,
+      "deltaBaseCount": 0,
+      "uncompressedBytes": 27510895,
+      "storedBytes": 28976831,
+      "storedPackBytes": 30425673,
+      "storedPackReserveBytes": 1448842,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 30394011,
+      "policyEstimateBytes": 30394011,
+      "packPolicyEstimateBytes": 30328417,
+      "packUpperBoundBytes": 30328417,
+      "prospectiveCommitAllowanceBytes": 65594,
+      "prospectiveCommitMessageBytes": 58,
+      "basisBytes": 30394011
+    }
+  ],
+  "maxBasisBytes": 30394011,
+  "stagedBytes": 27494437,
+  "stagedTree": "a570ef729cb033017ac2b33a21e04d3dfae7d9d5",
+  "projectedBytes": 30394011,
+  "highWaterBytes": 2056257536,
+  "atOrAboveLimit": false,
+  "measurable": true,
+  "ok": true,
+  "code": "OK",
+  "limitBytes": 2056257536,
+  "remainingBytes": 2025863525,
+  "errors": [],
+  "forwardOnly": {
+    "ok": true,
+    "code": "OK",
+    "checked": {
+      "staged": true,
+      "refs": 0
+    },
+    "violations": [],
+    "errors": []
+  }
+}

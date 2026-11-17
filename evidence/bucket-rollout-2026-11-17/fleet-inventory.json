@@ -1,0 +1,1481 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-17T11:08:07.572889+00:00",
+  "scope": "Git-visible tracked and nonignored untracked paths; nested repos separate",
+  "statusRows": 37,
+  "statusFailures": 0,
+  "explicitFailedRepositories": [],
+  "repositoryCount": 37,
+  "warning": "Filename hints and extensions never establish enrollment eligibility",
+  "repositories": [
+    {
+      "repository": "/home/dracon/.dracon",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [],
+      "mediaPaths": 0,
+      "generatorNameHints": [],
+      "reason": "No Git-visible supported media candidates"
+    },
+    {
+      "repository": "/home/dracon/.dracon/convos",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "extension-profit/affiliate",
+          "paths": 240
+        },
+        {
+          "path": "try/h3-check",
+          "paths": 26
+        },
+        {
+          "path": "extension-profit/extensions",
+          "paths": 5
+        },
+        {
+          "path": ".",
+          "paths": 1
+        },
+        {
+          "path": "videos",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 273,
+      "generatorNameHints": [],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/browser-extensions-shared",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "extensions/standalones",
+          "paths": 6536
+        },
+        {
+          "path": "extensions/archived",
+          "paths": 350
+        },
+        {
+          "path": "extensions/collections",
+          "paths": 350
+        },
+        {
+          "path": "docs/audit-artifacts",
+          "paths": 206
+        },
+        {
+          "path": "extensions/theme",
+          "paths": 7
+        },
+        {
+          "path": "recovered/dracon-new-tab",
+          "paths": 7
+        },
+        {
+          "path": "affiliate/extensions",
+          "paths": 6
+        },
+        {
+          "path": "recovered/auto-fullscreen",
+          "paths": 6
+        },
+        {
+          "path": "recovered/de-addict",
+          "paths": 6
+        },
+        {
+          "path": "docs/audit-shots",
+          "paths": 4
+        },
+        {
+          "path": "recovered/dracon-black-red",
+          "paths": 2
+        }
+      ],
+      "mediaPaths": 7480,
+      "generatorNameHints": [
+        "extensions/archived/ai-ats/scripts/generate-icons.js",
+        "extensions/archived/ai-ats/scripts/generate-test-files.js",
+        "extensions/archived/ai-ats/scripts/smoke-generate-test-files.mjs",
+        "extensions/archived/ai-tts-pro/lib/generation.ts",
+        "extensions/archived/ai-tts-pro/tests/generation.test.ts",
+        "extensions/collections/new-tab/new-tab-ultimate/entrypoints/results/siteRanks.generated.ts",
+        "extensions/collections/new-tab/scripts/generate-portfolio-assets.mjs",
+        "extensions/collections/toolkit/chatgpt-toolkit/scripts/generate-icons.py",
+        "extensions/collections/toolkit/chatgpt-toolkit/scripts/generate-promo-tile.py",
+        "extensions/collections/toolkit/gemini-toolkit/tools/generate-icons.py",
+        "extensions/collections/toolkit/gemini-toolkit/tools/generate-store-assets.py",
+        "extensions/standalones/SamAI/scripts/check-generated-manifests.mjs",
+        "extensions/standalones/SamAI/test/generate-request-contract.test.ts",
+        "extensions/standalones/SamAI/utils/formFiller/aiGenerator.ts",
+        "extensions/standalones/adblock-pro/scripts/generate-icons.py",
+        "extensions/standalones/ai-chat-toolkit/scripts/generate-icons.py",
+        "extensions/standalones/ai-search/lib/siteRanks.generated.ts",
+        "extensions/standalones/amazon-price-watch/scripts/generate-icons.py",
+        "extensions/standalones/amazon-price-watch/scripts/generate-mockup-html.mjs",
+        "extensions/standalones/api-debugger/scripts/generate-icons.js"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/db-gateway",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [],
+      "mediaPaths": 0,
+      "generatorNameHints": [],
+      "reason": "No Git-visible supported media candidates"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform",
+      "configuration": {
+        "path": "bucket-assets.json",
+        "enabled": true,
+        "assetRoot": "web/games",
+        "manifest": "web/config/bucket-manifests/games-private.json"
+      },
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "web/games",
+          "paths": 730
+        },
+        {
+          "path": "docs/audits",
+          "paths": 96
+        },
+        {
+          "path": "web/music",
+          "paths": 83
+        },
+        {
+          "path": "web/ai-hub",
+          "paths": 56
+        },
+        {
+          "path": "web/books",
+          "paths": 36
+        },
+        {
+          "path": "seo/evidence",
+          "paths": 33
+        },
+        {
+          "path": "web/products",
+          "paths": 30
+        },
+        {
+          "path": "web/jobs",
+          "paths": 24
+        },
+        {
+          "path": "web/home",
+          "paths": 21
+        },
+        {
+          "path": "web/tests",
+          "paths": 15
+        },
+        {
+          "path": "infra/static",
+          "paths": 9
+        },
+        {
+          "path": "web/tools",
+          "paths": 7
+        },
+        {
+          "path": "web/dashboard",
+          "paths": 4
+        },
+        {
+          "path": "docs/audit-attachments",
+          "paths": 2
+        },
+        {
+          "path": "web/chat",
+          "paths": 2
+        },
+        {
+          "path": "apis/services",
+          "paths": 1
+        },
+        {
+          "path": "seo/research",
+          "paths": 1
+        },
+        {
+          "path": "web/generated_images",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 1151,
+      "generatorNameHints": [
+        "scripts/tests/generated-artifact-ignore.test.sh",
+        "web/books/scripts/generate-books-redirect-map.ts",
+        "web/chat/src/lib/search/public-suffixes.generated.ts",
+        "web/chat/src/lib/search/site-ranks.generated.ts",
+        "web/games/libs/art/src/generated-assets-template.test.ts",
+        "web/games/libs/art/src/generated-assets-template.ts",
+        "web/games/scripts/generate-2d-character.sh",
+        "web/games/scripts/generate-brand-favicon.mjs",
+        "web/games/scripts/generate-character-sheet.sh",
+        "web/games/scripts/generate-game-cover.py",
+        "web/games/wip/deathrun-audit-copy/scripts/fixtures/legacy-chunk-generator.snapshot.mjs",
+        "web/games/wip/deathrun-audit-copy/scripts/generate-ach-badges-v2.sh",
+        "web/games/wip/deathrun-audit-copy/scripts/generate-assets-entrypoint.vitest.spec.mjs",
+        "web/games/wip/deathrun-audit-copy/scripts/generate-assets-premium.sh",
+        "web/games/wip/deathrun-audit-copy/scripts/generate-assets-v0.6.0.sh",
+        "web/games/wip/deathrun-audit-copy/scripts/generate-assets-v0.6.1.sh",
+        "web/games/wip/deathrun-audit-copy/scripts/generate-assets-v0.6.2.sh",
+        "web/games/wip/deathrun-audit-copy/scripts/generate-assets-v0.6.3.sh",
+        "web/games/wip/deathrun-audit-copy/scripts/generate-assets-v0.7.0.sh",
+        "web/games/wip/deathrun-audit-copy/scripts/generate-assets-v0.7.1.sh"
+      ],
+      "reason": "Explicit workflow exists; existing registrations do not prove discovery eligibility for additional files"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/released/come-get-me",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "static/art",
+          "paths": 80
+        },
+        {
+          "path": "static/audio",
+          "paths": 51
+        },
+        {
+          "path": "docs/journey-evidence",
+          "paths": 39
+        },
+        {
+          "path": "scripts/art-sources",
+          "paths": 13
+        },
+        {
+          "path": "static",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 184,
+      "generatorNameHints": [
+        "scripts/generate-ship-candidates.ts",
+        "scripts/generate_all_fx.sh",
+        "scripts/generate_asteroid_variants.py",
+        "scripts/generate_gameplay_assets.py",
+        "scripts/generate_metal_songs.py",
+        "scripts/generate_premium_sfx.py",
+        "scripts/generate_sfx_mmx.py",
+        "scripts/generate_sfx_stingers_mmx.py",
+        "scripts/generate_space_fleet_assets.py",
+        "src/lib/game/audit-2026-09-28-generated-hull-trim.test.ts",
+        "src/lib/game/lootGenerator.ts",
+        "src/lib/game/shipGenerator.ts"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/released/one-mil-girls",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "docs/audit",
+          "paths": 54
+        },
+        {
+          "path": "static/audio",
+          "paths": 51
+        },
+        {
+          "path": "static/images",
+          "paths": 21
+        },
+        {
+          "path": "static/video",
+          "paths": 3
+        },
+        {
+          "path": "static",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 130,
+      "generatorNameHints": [
+        "scripts/generate-assets.sh"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "art/cards-archived",
+          "paths": 411
+        },
+        {
+          "path": "static/images",
+          "paths": 344
+        },
+        {
+          "path": "art/cityscapes-v3",
+          "paths": 50
+        },
+        {
+          "path": "static/audio",
+          "paths": 26
+        },
+        {
+          "path": "art/assets-archived",
+          "paths": 15
+        },
+        {
+          "path": "docs/design",
+          "paths": 7
+        },
+        {
+          "path": "static",
+          "paths": 3
+        }
+      ],
+      "mediaPaths": 856,
+      "generatorNameHints": [
+        "docs/archived/generator-pre-phase70.ts",
+        "docs/archived/generator-pre-yield-removal.ts",
+        "scripts/bulk-generate-city.mjs",
+        "scripts/bulk-generate-premium.mjs",
+        "scripts/bulk-generate.mjs",
+        "scripts/generate-artsy-portraits.mjs",
+        "scripts/generate-audio.mjs",
+        "scripts/generate-backgrounds.mjs",
+        "scripts/generate-candidates-r7.mjs",
+        "scripts/generate-candidates-r8.mjs",
+        "scripts/generate-candidates-r9.mjs",
+        "scripts/generate-card-art.mjs",
+        "scripts/generate-cityscapes.mjs",
+        "scripts/generate-construct-art.mjs",
+        "scripts/generate-cyberpunk-portraits.mjs",
+        "scripts/generate-menu-candidates-r2.mjs",
+        "scripts/generate-menu-candidates-r3.mjs",
+        "scripts/generate-menu-candidates-r4.mjs",
+        "scripts/generate-menu-candidates-r5.mjs",
+        "scripts/generate-menu-candidates-r6.mjs"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/darklord",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "out/ux-shots",
+          "paths": 27
+        },
+        {
+          "path": "docs/visual-refs",
+          "paths": 12
+        },
+        {
+          "path": "out/ux-shots-after",
+          "paths": 10
+        },
+        {
+          "path": "scripts/v091ap-shots",
+          "paths": 9
+        },
+        {
+          "path": "docs/audits",
+          "paths": 4
+        },
+        {
+          "path": "scripts/phase1-out",
+          "paths": 3
+        },
+        {
+          "path": "static",
+          "paths": 2
+        },
+        {
+          "path": "scripts/smoke-out",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 68,
+      "generatorNameHints": [
+        "src/lib/dev/generatedAssetDeletionRuleSourceContract.test.ts",
+        "src/lib/game/generatedAssets.draconArt.test.ts",
+        "src/lib/game/generatedAssets.draconArt.ts",
+        "src/lib/game/generatedAssets.ts",
+        "src/lib/game/generatedAssetsDraconArtAssetRoleUnionCountSourceContract.test.ts",
+        "src/lib/game/generatedAssetsManifestHeaderCountAndCitationsAuditLoopSourceContract.test.ts",
+        "src/lib/sim/g6PoiGeneration.test.ts",
+        "src/lib/tickGeneratePoisForChunkRngPlumbedAuditLoopSourceContract.test.ts",
+        "src/lib/ui/hudManaBarDegenerateZeroStateUiHSourceContract.test.ts",
+        "src/lib/ui/victoryEvidenceIsGeneratedSourceContract.test.ts"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "assets-source",
+          "paths": 190
+        },
+        {
+          "path": "audit-evidence/premium-pass-2026-10-17",
+          "paths": 123
+        },
+        {
+          "path": "docs/screenshots",
+          "paths": 83
+        },
+        {
+          "path": "docs/audit-a11y-v1",
+          "paths": 80
+        },
+        {
+          "path": "docs/audit-buttons-v1",
+          "paths": 80
+        },
+        {
+          "path": "static/images",
+          "paths": 75
+        },
+        {
+          "path": "docs/audit-browser-v3",
+          "paths": 61
+        },
+        {
+          "path": "audit-evidence/fullscreen-2026-11-14",
+          "paths": 56
+        },
+        {
+          "path": "docs/audit-buttons-v2",
+          "paths": 54
+        },
+        {
+          "path": "audit-evidence/2026-10-17",
+          "paths": 42
+        },
+        {
+          "path": "docs/audit-touch-v1",
+          "paths": 40
+        },
+        {
+          "path": "docs/audit-howto-visual",
+          "paths": 35
+        },
+        {
+          "path": "assets-source/badges-2026-11-04",
+          "paths": 24
+        },
+        {
+          "path": "audit-evidence/asset-pass-2026-10-26",
+          "paths": 22
+        },
+        {
+          "path": "audit-evidence/premium-pass-2026-09-27",
+          "paths": 21
+        },
+        {
+          "path": "docs/audit-browser-v2",
+          "paths": 20
+        },
+        {
+          "path": "audit-evidence/ninja-runner-regen-2026-10-23",
+          "paths": 19
+        },
+        {
+          "path": "audit-evidence/art-regen-2026-10-24",
+          "paths": 18
+        },
+        {
+          "path": "assets-source/world-kit-2026-11-16",
+          "paths": 17
+        },
+        {
+          "path": "audit-evidence/premium-pass-2026-10-25",
+          "paths": 16
+        },
+        {
+          "path": "audit-evidence/art-audit-2026-11-04",
+          "paths": 15
+        },
+        {
+          "path": "docs/asset-audit-2026-10-30",
+          "paths": 15
+        },
+        {
+          "path": "docs/audit-svelte-rebuild",
+          "paths": 14
+        },
+        {
+          "path": "static/audio",
+          "paths": 14
+        },
+        {
+          "path": "assets-source/runner-family-2026-11-16",
+          "paths": 12
+        },
+        {
+          "path": "assets-source/runner-family-ungraded-2026-10-31",
+          "paths": 10
+        },
+        {
+          "path": "audit-evidence/art-audit-2026-10-24",
+          "paths": 9
+        },
+        {
+          "path": "assets-source/world-kit-2026-10-31",
+          "paths": 8
+        },
+        {
+          "path": "assets-source/world-kit-2026-11-08",
+          "paths": 8
+        },
+        {
+          "path": "assets-source/world-kit-2026-11-09",
+          "paths": 8
+        },
+        {
+          "path": "audit-evidence/visual-fix-2026-10-22",
+          "paths": 8
+        },
+        {
+          "path": "audit-evidence/visual-pass-2026-09-27",
+          "paths": 8
+        },
+        {
+          "path": "docs",
+          "paths": 8
+        },
+        {
+          "path": "docs/visual-pass-2026-09-27",
+          "paths": 8
+        },
+        {
+          "path": "_archive/2026-08-12-pre-regen",
+          "paths": 7
+        },
+        {
+          "path": ".pi/art-gen",
+          "paths": 3
+        },
+        {
+          "path": "assets-source/parallax-2026-10-31",
+          "paths": 3
+        },
+        {
+          "path": "assets-source/pre-swap-2026-10-03",
+          "paths": 3
+        },
+        {
+          "path": "audit-evidence/asset-pass-2026-10-26-b",
+          "paths": 2
+        },
+        {
+          "path": "audit-evidence/gameplay-audit-2026-11-14",
+          "paths": 2
+        },
+        {
+          "path": "docs/audit-browser-v6-tall",
+          "paths": 2
+        },
+        {
+          "path": "static/icons",
+          "paths": 2
+        },
+        {
+          "path": "static",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 1246,
+      "generatorNameHints": [
+        ".agents/teamwork/explorer_m5_1/generate_patch.mjs",
+        "scripts/fixtures/legacy-chunk-generator.snapshot.mjs",
+        "scripts/generate-ach-badges-v2.sh",
+        "scripts/generate-assets-entrypoint.vitest.spec.mjs",
+        "scripts/generate-assets-premium.sh",
+        "scripts/generate-assets-v0.6.0.sh",
+        "scripts/generate-assets-v0.6.1.sh",
+        "scripts/generate-assets-v0.6.2.sh",
+        "scripts/generate-assets-v0.6.3.sh",
+        "scripts/generate-assets-v0.7.0.sh",
+        "scripts/generate-assets-v0.7.1.sh",
+        "scripts/generate-assets-v0.8.0.sh",
+        "scripts/generate-assets-v0.9.0.sh",
+        "scripts/generate-assets-v1.0.0.sh",
+        "scripts/generate-assets-v1.1.0.sh",
+        "scripts/generate-assets-v1.2.0.sh",
+        "scripts/generate-assets-v3.1.0-bg-ground.sh",
+        "scripts/generate-assets-v3.1.0-characters.sh",
+        "scripts/generate-assets-v3.1.0-hazards.sh",
+        "scripts/generate-assets-v3.1.0-hud.sh"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "static/assets",
+          "paths": 332
+        },
+        {
+          "path": "src/lib",
+          "paths": 330
+        },
+        {
+          "path": "docs/audit",
+          "paths": 197
+        },
+        {
+          "path": "docs/screenshots",
+          "paths": 106
+        },
+        {
+          "path": "docs/art-audit",
+          "paths": 24
+        },
+        {
+          "path": ".agents/teamwork_preview_explorer_survey_r2_2",
+          "paths": 14
+        },
+        {
+          "path": "docs/loop-audit",
+          "paths": 13
+        },
+        {
+          "path": "art/codex",
+          "paths": 7
+        },
+        {
+          "path": "art/trophy-crest",
+          "paths": 1
+        },
+        {
+          "path": "static",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 1025,
+      "generatorNameHints": [
+        "scripts/generate-assets-fallback.mjs",
+        "scripts/generate-assets.mjs",
+        "scripts/lib/generate-assets-check.test.mjs",
+        "src/lib/sim/equipment-generation.test.ts",
+        "src/lib/sim/equipment-generation.ts"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "static/assets",
+          "paths": 228
+        },
+        {
+          "path": "docs/shots",
+          "paths": 66
+        },
+        {
+          "path": "audit-screens",
+          "paths": 55
+        },
+        {
+          "path": "audit-screens/2026-11-14-ux05",
+          "paths": 34
+        },
+        {
+          "path": "audit-screens/abilities-index",
+          "paths": 18
+        },
+        {
+          "path": "uiux-audit-screens",
+          "paths": 16
+        },
+        {
+          "path": "audit-screens/2026-10-31",
+          "paths": 14
+        },
+        {
+          "path": "audit-screens/2026-11-15-ux04-zoom",
+          "paths": 6
+        },
+        {
+          "path": ".etd-shot-audit",
+          "paths": 5
+        },
+        {
+          "path": ".",
+          "paths": 5
+        },
+        {
+          "path": "audit-screens/2026-11-12-ux01",
+          "paths": 4
+        },
+        {
+          "path": "audit-screens/2026-11-13-ux-polish",
+          "paths": 4
+        },
+        {
+          "path": "audit-screens/bestiary-roster-final",
+          "paths": 3
+        },
+        {
+          "path": "static",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 459,
+      "generatorNameHints": [
+        "scripts/declare-generator-outputs.mjs",
+        "src/lib/game/generatedAssets.test.ts",
+        "src/lib/game/generatedAssets.ts"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/football-forever",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "static/menu",
+          "paths": 88
+        },
+        {
+          "path": "docs/audit",
+          "paths": 58
+        },
+        {
+          "path": "docs/premium",
+          "paths": 29
+        },
+        {
+          "path": "static/audio",
+          "paths": 6
+        },
+        {
+          "path": "static/catalog",
+          "paths": 3
+        },
+        {
+          "path": "tests/browser",
+          "paths": 2
+        },
+        {
+          "path": "static",
+          "paths": 1
+        },
+        {
+          "path": "tmp/imagegen",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 188,
+      "generatorNameHints": [
+        "src/lib/sim/generate-name.test.ts"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/freeport",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "static/assets",
+          "paths": 109
+        },
+        {
+          "path": "art-source/processed",
+          "paths": 99
+        },
+        {
+          "path": "art-source/vectors",
+          "paths": 34
+        },
+        {
+          "path": "art-source/key-art",
+          "paths": 10
+        },
+        {
+          "path": "static",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 253,
+      "generatorNameHints": [
+        "src/client/path-generator.ts",
+        "tests/unit/generated-art.test.ts",
+        "tests/unit/path-generator-start-clear.test.ts",
+        "tests/unit/path-generator.test.ts",
+        "tests/unit/perception-generation.test.ts"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/hellhunter",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "static/art",
+          "paths": 288
+        },
+        {
+          "path": "screenshots",
+          "paths": 171
+        },
+        {
+          "path": "docs/audit",
+          "paths": 111
+        },
+        {
+          "path": "src/lib",
+          "paths": 63
+        },
+        {
+          "path": "static/img",
+          "paths": 16
+        },
+        {
+          "path": ".pi-glla/audit-loop",
+          "paths": 3
+        },
+        {
+          "path": "static",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 653,
+      "generatorNameHints": [
+        ".agents/teamwork_preview_explorer_survey_1/generate_survey.py",
+        "scripts/characters_v3/generate-parallel.ts",
+        "scripts/characters_v3/generate-sheets.ts",
+        "scripts/generate-assets-mmx.mjs",
+        "src/lib/game/v47-low-generate-assets-perspective-source-path.test.ts"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "static/_gen",
+          "paths": 186
+        },
+        {
+          "path": "src/assets",
+          "paths": 78
+        },
+        {
+          "path": "docs/premium",
+          "paths": 57
+        },
+        {
+          "path": "static/assets",
+          "paths": 50
+        },
+        {
+          "path": "static/portraits",
+          "paths": 13
+        },
+        {
+          "path": ".agents/teamwork",
+          "paths": 12
+        },
+        {
+          "path": "static",
+          "paths": 3
+        },
+        {
+          "path": "docs/evidence",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 400,
+      "generatorNameHints": [
+        "src/lib/meta/audit/aud-271-state-generate-sector-map-tier-spacing-comment-2026-08-24.test.ts",
+        "src/lib/meta/audit/aud-271-state-generatesectormap-object-seed-honored-2026-08-13.test.ts"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/neonbreak",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "static/images",
+          "paths": 70
+        },
+        {
+          "path": "docs/snapshots",
+          "paths": 30
+        },
+        {
+          "path": "static/audio",
+          "paths": 11
+        },
+        {
+          "path": "static",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 112,
+      "generatorNameHints": [
+        "src/lib/game/generatedAssets.draconArt.test.ts",
+        "src/lib/game/generatedAssets.draconArt.ts",
+        "tools/check-generated-assets.mjs",
+        "tools/check-generated-assets.test.mjs",
+        "vendor/art/src/generated-assets-template.test.ts",
+        "vendor/art/src/generated-assets-template.ts"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "static/images",
+          "paths": 204
+        },
+        {
+          "path": "scripts/sprite-regen",
+          "paths": 185
+        },
+        {
+          "path": "docs/audits",
+          "paths": 45
+        },
+        {
+          "path": "docs/polish",
+          "paths": 28
+        },
+        {
+          "path": "static/audio",
+          "paths": 18
+        },
+        {
+          "path": "docs/audio-proof",
+          "paths": 11
+        },
+        {
+          "path": "static",
+          "paths": 2
+        }
+      ],
+      "mediaPaths": 493,
+      "generatorNameHints": [
+        "scripts/_archive/generate-icons.sh",
+        "scripts/_archive/generate-wave-a-walkers.sh",
+        "scripts/_archive/generate-wave-a.sh",
+        "scripts/_archive/generate-wave-b.sh",
+        "scripts/_archive/generate-wave-c-buildings.sh",
+        "scripts/_archive/generate-wave-c-misc-buildings.sh",
+        "scripts/_archive/generate-wave-c-walkers.sh",
+        "scripts/_archive/generate-wave-d-isometric-sprites.sh",
+        "scripts/_archive/generate-wave-p-tall-sprites.py",
+        "scripts/_archive/wave-v-generate-procedural-tiles.py",
+        "scripts/generate-ao-shadow-patch.py",
+        "scripts/generate-assets.sh",
+        "scripts/generate-terrain-tiles.sh",
+        "scripts/generate-wave-e-caesar3-sprites.sh",
+        "scripts/regenerate.sh",
+        "src/lib/assets-manifest-generatedat-freshness-pin.test.ts"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/space-trucker",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "docs/screen-audit-2026-09-18",
+          "paths": 13
+        },
+        {
+          "path": "public/audio",
+          "paths": 5
+        },
+        {
+          "path": "public",
+          "paths": 2
+        },
+        {
+          "path": "static",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 21,
+      "generatorNameHints": [],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-strategy",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "ai-job-apply/chrome-screenshots",
+          "paths": 98
+        },
+        {
+          "path": "market-research/rising-stars",
+          "paths": 45
+        },
+        {
+          "path": "assets/linkedin",
+          "paths": 11
+        },
+        {
+          "path": "ai-job-apply/evidence",
+          "paths": 2
+        },
+        {
+          "path": "marketing/preview",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 157,
+      "generatorNameHints": [
+        "ai-auto-music/scripts/generate.mjs",
+        "ai-auto-music/scripts/generation-contract.test.mjs",
+        "ai-auto-music/scripts/sanitize-generation-args.mjs",
+        "ai-job-apply/evidence/portfolio/sources/api-debugger/scripts/generate-icons.js",
+        "market-research/scripts/generate-fresh-captures.py",
+        "market-research/scripts/generate-real-captures.py"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-strategy/DraconDev",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [],
+      "mediaPaths": 0,
+      "generatorNameHints": [],
+      "reason": "No Git-visible supported media candidates"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "strategy/research",
+          "paths": 304
+        },
+        {
+          "path": "demos/better-2026-11-09",
+          "paths": 116
+        },
+        {
+          "path": "examples",
+          "paths": 53
+        },
+        {
+          "path": "strategy/thumbnails",
+          "paths": 42
+        },
+        {
+          "path": "data/references",
+          "paths": 11
+        },
+        {
+          "path": ".",
+          "paths": 9
+        },
+        {
+          "path": "assets/brand",
+          "paths": 8
+        },
+        {
+          "path": "data/assets",
+          "paths": 6
+        },
+        {
+          "path": "recipes/showdown",
+          "paths": 6
+        },
+        {
+          "path": "docs/research",
+          "paths": 4
+        },
+        {
+          "path": "videos/luxury-travel-wyr-ep15",
+          "paths": 4
+        },
+        {
+          "path": "videos/food-wyr-ep17",
+          "paths": 3
+        },
+        {
+          "path": "videos/tech-wyr-ep16",
+          "paths": 3
+        },
+        {
+          "path": "videos/time-travel-wyr-ep18",
+          "paths": 3
+        },
+        {
+          "path": "youtube-uploader/tests",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 573,
+      "generatorNameHints": [
+        "scripts/video/generate_scene_illustrations.py"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "authors/fiction",
+          "paths": 3120
+        },
+        {
+          "path": "authors/topic",
+          "paths": 47
+        },
+        {
+          "path": "temp-images",
+          "paths": 5
+        },
+        {
+          "path": "tests/fixtures",
+          "paths": 5
+        }
+      ],
+      "mediaPaths": 3177,
+      "generatorNameHints": [
+        "plan/regenerate_snapshots.py",
+        "scripts/generate_reconcile_manifest.py",
+        "scripts/regenerate_batch_covers.py"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-utilities",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [],
+      "mediaPaths": 0,
+      "generatorNameHints": [],
+      "reason": "No Git-visible supported media candidates"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "docs",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 1,
+      "generatorNameHints": [],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-utilities/dracon-system",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "docs",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 1,
+      "generatorNameHints": [],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/dracon-utilities/dracon-warden",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "docs",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 1,
+      "generatorNameHints": [],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/mcode-plugins",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "mcode-agnes",
+          "paths": 1
+        },
+        {
+          "path": "mcode-chrome",
+          "paths": 1
+        },
+        {
+          "path": "mcode-codex",
+          "paths": 1
+        },
+        {
+          "path": "mcode-retry-on-error",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 4,
+      "generatorNameHints": [],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/opencode-plugins",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": ".opencode/generated-images",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 1,
+      "generatorNameHints": [],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/pi-plugins",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "extensions/pi-chrome-always",
+          "paths": 6
+        },
+        {
+          "path": "pi-pro-ask-question-image-draft/benchmark",
+          "paths": 6
+        },
+        {
+          "path": "pi-pro-ask-question-image-draft/tests",
+          "paths": 2
+        },
+        {
+          "path": "pi-agnes-tools/.github",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 15,
+      "generatorNameHints": [
+        "pi-pro-ask-question-image-draft/scripts/benchmark/generate-images.mjs",
+        "pi-pro-ask-question-image-draft/src/image-generator.ts"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/pi-plugins/pi-agnes-tools",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": ".github",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 1,
+      "generatorNameHints": [],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/pi-plugins/pi-codebuddy-sdk",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [],
+      "mediaPaths": 0,
+      "generatorNameHints": [],
+      "reason": "No Git-visible supported media candidates"
+    },
+    {
+      "repository": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "audit/audit-status-captures",
+          "paths": 4
+        },
+        {
+          "path": "audit/full-ui-audit-2026-10-03",
+          "paths": 4
+        },
+        {
+          "path": "audit/summary-captures",
+          "paths": 4
+        },
+        {
+          "path": "audit/wait-status-captures",
+          "paths": 4
+        },
+        {
+          "path": "media",
+          "paths": 4
+        },
+        {
+          "path": "audit/audit-action-captures",
+          "paths": 2
+        },
+        {
+          "path": "audit/infrastructure-diagnostics-captures",
+          "paths": 2
+        },
+        {
+          "path": "audit/recovery-ui-captures",
+          "paths": 2
+        },
+        {
+          "path": "audit/ui-captures",
+          "paths": 2
+        },
+        {
+          "path": "audit",
+          "paths": 1
+        },
+        {
+          "path": "audit/audit-glance-2026-10-03",
+          "paths": 1
+        },
+        {
+          "path": "audit/lifecycle-evidence-2026-09-25",
+          "paths": 1
+        },
+        {
+          "path": "audit/respec-builder-2026-10-04",
+          "paths": 1
+        },
+        {
+          "path": "audit/respec-project-ui-2026-10-04",
+          "paths": 1
+        },
+        {
+          "path": "audit/semantic-summary-2026-10-03",
+          "paths": 1
+        },
+        {
+          "path": "audit/ui-survey-2026-09-20",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 35,
+      "generatorNameHints": [
+        "scripts/generate-inventory.mjs"
+      ],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/pi-plugins/pi-use-last-selected-thinking-level",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [],
+      "mediaPaths": 0,
+      "generatorNameHints": [],
+      "reason": "No Git-visible supported media candidates"
+    },
+    {
+      "repository": "/home/dracon/Dev/terhub",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "assets",
+          "paths": 3
+        }
+      ],
+      "mediaPaths": 3,
+      "generatorNameHints": [],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/Dev/tiles-tui-file-manager",
+      "configuration": null,
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "assets",
+          "paths": 1
+        },
+        {
+          "path": ".",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 2,
+      "generatorNameHints": [],
+      "reason": "Media candidates found; no verified generator and consumer capability established by this read-only inventory"
+    },
+    {
+      "repository": "/home/dracon/dracon/bridge-fixture",
+      "configuration": {
+        "path": "bucket-runner.json",
+        "enabled": true,
+        "assetRoot": ".",
+        "manifest": "bucket-assets.manifest.json"
+      },
+      "enrollment": "not_qualified",
+      "candidateAssetRoots": [
+        {
+          "path": "public",
+          "paths": 3
+        },
+        {
+          "path": "public/qualification-20261018",
+          "paths": 1
+        },
+        {
+          "path": "public/qualification-20261019",
+          "paths": 1
+        },
+        {
+          "path": "public/qualification-retry-20261019",
+          "paths": 1
+        }
+      ],
+      "mediaPaths": 6,
+      "generatorNameHints": [],
+      "reason": "Explicit workflow exists; existing registrations do not prove discovery eligibility for additional files"
+    }
+  ]
+}

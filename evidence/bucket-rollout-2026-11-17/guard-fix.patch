@@ -1,0 +1,398 @@
+--- a/web/scripts/bucket-strategy-core.mjs
++++ b/web/scripts/bucket-strategy-core.mjs
+@@ -1694,12 +1694,85 @@
+   return matches[0];
+ }
+ 
++// A tracking ref describes a fetch URL, not every push URL attached to its
++// remote name. Exact-URL aliases may share evidence; another repository may
++// never borrow it. The pre-push stream overrides this offline hint for its
++// actual target, including an advertised new/empty remote.
++function outgoingTrackingTip(repoRoot, configured, remote, localRef, localOid) {
++  const branch = branchNameForRef(localRef);
++  if (!branch) return null;
++  const aliases = [...new Set(configured.filter(r => r.url === remote.url).map(r => r.name))];
++  const candidates = [];
++  for (const name of aliases) {
++    const fetchUrl = tryGit(repoRoot, ['remote', 'get-url', name]);
++    if (fetchUrl !== remote.url) continue;
++    const tip = trackingTip(repoRoot, { name }, localRef, localOid);
++    if (tip) candidates.push(tip);
++  }
++  // All candidates are ancestral to the local commit. The newest ancestral
++  // observation excludes the most already-published objects safely.
++  return candidates.reduce((best, tip) => !best || isAncestor(repoRoot, best, tip) ? tip : best, null);
++}
++
++function outgoingObjects(repoRoot, refs, tips, env) {
++  const known = [...new Set(tips.filter(Boolean))];
++  const args = ['rev-list', '--objects', ...refs];
++  if (known.length) args.push('--not', ...known);
++  try {
++    const outgoing = parseObjectListOutput(gitRaw(repoRoot, args, undefined, env));
++    if (!known.length) return outgoing;
++    // A prospective tree is an independent rev-list root. Git can emit its
++    // unchanged blobs even when their owning commit is excluded. Subtract the
++    // known remote object closure explicitly, so staged edits do not bring
++    // already-published artwork back into the transfer estimate.
++    const published = new Set(parseObjectListOutput(gitRaw(repoRoot,
++      ['rev-list', '--objects', ...known], undefined, env)));
++    return outgoing.filter(oid => !published.has(oid));
++  } catch (error) {
++    if (error instanceof BucketStrategyError) throw error;
++    fail('BUCKET_STRATEGY_GUARD_UNMEASURABLE', `cannot enumerate outgoing objects: ${error.message}`);
++  }
++}
++
++function outgoingObjectBytes(repoRoot, ids, env, options) {
++  if (!ids.length && !options.prospectiveCommit) return reachableStoredBytes(repoRoot, [], env);
++  const inspected = inspectObjects(repoRoot, ids, env);
++  const sizing = calculatePackUpperBound({
++    rawBytes: inspected.rawBytes,
++    storedBytes: inspected.storedBytes,
++    objectCount: inspected.records.length,
++    ...options
++  });
++  // Repacking an outgoing delta may use a different base. Bound the transfer
++  // using reconstructed object bytes and framing reserve, never just a tiny
++  // local delta representation. Already-published bases are not re-counted as
++  // complete repository history.
++  return { ...sizing, bytes: sizing.policyEstimateBytes, pushableBytes: sizing.policyEstimateBytes,
++    deltaBaseCount: inspected.records.filter(r => !/^0+$/u.test(r.deltaBase)).length,
++    prospectiveCommitMessageBytes: options.prospectiveCommitMessageBytes };
++}
++
++/** Per-provider outgoing-transfer guard. Full repository storage remains a
++ * separate measurement via measurePushableBranch's default scope. */
++export async function measureOutgoingPush(repoRoot, policy, options = {}) {
++  return measurePushableBranch(repoRoot, policy, { ...options, scope: 'outgoing' });
++}
++
++/** Local staged admission: inspect the captured staged tree against HEAD.
++ * Asset integrity/secret checks remain separate mandatory pre-commit gates;
++ * remote backlog limits remain mandatory in the pre-push path. */
++export async function measureCommitPreparation(repoRoot, policy) {
++  return measurePushableBranch(repoRoot, policy, { includeStaged: true, scope: 'staged' });
++}
++
+ export async function measurePushableBranch(repoRoot, policy, {
+   includeStaged = false,
+   refs = null,
+   targetRemoteName = null,
+-  targetRemoteUrl = null
++  targetRemoteUrl = null,
++  scope = 'repository'
+ } = {}) {
++  if (!['repository', 'outgoing', 'staged'].includes(scope)) fail('BUCKET_STRATEGY_GUARD_UNMEASURABLE', 'unknown measurement scope');
+   assertPortableTraversal(repoRoot);
+   const configured = remotes(repoRoot);
+   const target = targetRemote(configured, targetRemoteName, targetRemoteUrl);
+@@ -1712,89 +1785,105 @@
+     fail('BUCKET_STRATEGY_GUARD_INVALID_TARGET', 'remote tips were supplied without a target pre-push remote');
+   }
+   const prospective = includeStaged ? prospectiveRefs(repoRoot, requested) : { refs: requested.map((item) => item.localOid), stagedBytes: 0, stagedTree: null, env: null, prospectiveCommitMessageBytes: 0, cleanup: null };
+-  let shas;
+-  let sizing;
++  const scenarios = [];
++  let completeShas;
++  let completeSizing;
+   try {
+-    shas = objectList(repoRoot, prospective.refs, prospective.env);
+-    // Measure the complete local reachable graph without invoking the
+-    // prohibitively expensive fresh-pack pass. `reachableStoredBytes` closes
+-    // over packed delta bases and returns a conservative provider-facing
+-    // upper bound; a staged tree also receives a commit-metadata allowance.
+-    sizing = reachableStoredBytes(repoRoot, shas, prospective.env, {
+-      prospectiveCommit: Boolean(prospective.stagedTree),
+-      prospectiveCommitMessageBytes: prospective.prospectiveCommitMessageBytes
+-    });
++    if (scope === 'repository') {
++      completeShas = objectList(repoRoot, prospective.refs, prospective.env);
++      completeSizing = reachableStoredBytes(repoRoot, completeShas, prospective.env, {
++        prospectiveCommit: Boolean(prospective.stagedTree),
++        prospectiveCommitMessageBytes: prospective.prospectiveCommitMessageBytes
++      });
++    }
++    for (const remote of configured) {
++      const provider = providerFor(remote.url, policy);
++      if (!provider) fail('BUCKET_STRATEGY_GUARD_UNMEASURABLE', 'unknown remote provider; add an explicit provider limit', [`${remote.name}: ${remote.url}`]);
++      const limitBytes = policy.providerLimits[provider].bytes;
++      const isTarget = target && remote.name === target.name && remote.url === target.url;
++      const tips = requested.map((item) => {
++        // Local commit admission depends on new staged objects, never on a
++        // lagging, empty or unavailable publication destination.
++        if (scope === 'staged') return item.localOid;
++        if (isTarget) {
++          return item.remoteTip === null ? null : usableRemoteTip(repoRoot, item.remoteTip, item.localOid);
++        }
++        // A pre-push stream describes only the target remote. Never apply its
++        // remote tip to another configured URL: use that URL's tracking ref,
++        // or measure the complete local ref when no safe tip is available.
++        return scope !== 'repository'
++          ? outgoingTrackingTip(repoRoot, configured, remote, item.localRef, item.localOid)
++          : trackingTip(repoRoot, remote, item.localRef, item.localOid);
++      });
++      const shas = scope !== 'repository'
++        ? outgoingObjects(repoRoot, prospective.refs, tips, prospective.env)
++        : completeShas;
++      const sizing = scope !== 'repository'
++        ? outgoingObjectBytes(repoRoot, shas, prospective.env, {
++          prospectiveCommit: Boolean(prospective.stagedTree),
++          prospectiveCommitMessageBytes: prospective.prospectiveCommitMessageBytes
++        })
++        : completeSizing;
++      const basisBytes = sizing.bytes;
++      scenarios.push({
++        remote: remote.name,
++        url: remote.url,
++        provider,
++        limitBytes,
++        target: Boolean(isTarget),
++        refs: requested.map((item, index) => ({
++          name: item.name,
++          ref: item.localRef,
++          remoteRef: item.remoteRef,
++          objectId: item.localOid,
++          remoteTip: item.remoteTip,
++          trackingTip: tips[index]
++        })),
++        measurementBasis: scope === 'staged' ? 'staged-raw-plus-pack-reserve'
++          : scope === 'outgoing' ? 'outgoing-raw-plus-pack-reserve' : 'complete-reachable-stored-pack-plus-repack-reserve',
++        trackingTips: tips,
++        objectCount: sizing.objectCount,
++        reachableObjectCount: shas.length,
++        deltaBaseCount: sizing.deltaBaseCount,
++        uncompressedBytes: sizing.rawBytes,
++        storedBytes: sizing.storedBytes,
++        storedPackBytes: sizing.storedPackBytes,
++        storedPackReserveBytes: sizing.storedPackReserveBytes,
++        storedPackReservePercent: sizing.storedPackReservePercent,
++        pushableBytes: sizing.pushableBytes,
++        policyEstimateBytes: sizing.policyEstimateBytes,
++        packPolicyEstimateBytes: sizing.packPolicyEstimateBytes,
++        packUpperBoundBytes: sizing.packUpperBoundBytes,
++        prospectiveCommitAllowanceBytes: sizing.prospectiveCommitAllowanceBytes,
++        prospectiveCommitMessageBytes: sizing.prospectiveCommitMessageBytes,
++        basisBytes
++      });
++    }
+   } finally {
+-    // The staged tree lives in an isolated object database. Keep it alive
+-    // through the complete cat-file graph walk, then remove every temporary
+-    // index/object regardless of whether measurement succeeded.
+     prospective.cleanup?.();
+   }
+-  const raw = sizing.rawBytes;
+-  const basisBytes = sizing.bytes;
+-  const scenarios = [];
+-  for (const remote of configured) {
+-    const provider = providerFor(remote.url, policy);
+-    if (!provider) fail('BUCKET_STRATEGY_GUARD_UNMEASURABLE', 'unknown remote provider; add an explicit provider limit', [`${remote.name}: ${remote.url}`]);
+-    const limitBytes = policy.providerLimits[provider].bytes;
+-    const isTarget = target && remote.name === target.name && remote.url === target.url;
+-    const tips = requested.map((item) => {
+-      if (isTarget) {
+-        return item.remoteTip === null ? null : usableRemoteTip(repoRoot, item.remoteTip, item.localOid);
+-      }
+-      // A pre-push stream describes only the target remote. Never apply its
+-      // remote tip to another configured URL: use that URL's tracking ref,
+-      // or measure the complete local ref when no safe tip is available.
+-      return trackingTip(repoRoot, remote, item.localRef, item.localOid);
+-    });
+-    scenarios.push({
+-      remote: remote.name,
+-      url: remote.url,
+-      provider,
+-      limitBytes,
+-      target: Boolean(isTarget),
+-      refs: requested.map((item, index) => ({
+-        name: item.name,
+-        ref: item.localRef,
+-        remoteRef: item.remoteRef,
+-        objectId: item.localOid,
+-        remoteTip: item.remoteTip,
+-        trackingTip: tips[index]
+-      })),
+-      measurementBasis: 'complete-reachable-stored-pack-plus-repack-reserve',
+-      trackingTips: tips,
+-      objectCount: sizing.objectCount,
+-      reachableObjectCount: shas.length,
+-      deltaBaseCount: sizing.deltaBaseCount,
+-      uncompressedBytes: raw,
+-      storedBytes: sizing.storedBytes,
+-      storedPackBytes: sizing.storedPackBytes,
+-      storedPackReserveBytes: sizing.storedPackReserveBytes,
+-      storedPackReservePercent: sizing.storedPackReservePercent,
+-      pushableBytes: sizing.pushableBytes,
+-      policyEstimateBytes: sizing.policyEstimateBytes,
+-      packPolicyEstimateBytes: sizing.packPolicyEstimateBytes,
+-      packUpperBoundBytes: sizing.packUpperBoundBytes,
+-      prospectiveCommitAllowanceBytes: sizing.prospectiveCommitAllowanceBytes,
+-      prospectiveCommitMessageBytes: sizing.prospectiveCommitMessageBytes,
+-      basisBytes
+-    });
+-  }
+-  const max = basisBytes;
++  const max = Math.max(...scenarios.map(s => s.basisBytes));
++  // A small provider's limit must not be compared to a different provider's
++  // backlog. Prefer an actual violation, then the greatest relative pressure.
++  const violations = scenarios.filter(s => s.basisBytes >= s.limitBytes);
++  const limiting = (violations.length ? violations : scenarios)
++    .reduce((a, b) => b.basisBytes / b.limitBytes > a.basisBytes / a.limitBytes ? b : a);
++  const limit = scope !== 'repository' ? limiting.limitBytes : effective.limitBytes;
++  const projected = scope !== 'repository' ? limiting.basisBytes : max;
+   return {
+     ref: requested.map((item) => item.localRef).join(','),
+     refs: requested.map((item) => ({ name: item.name, ref: item.localRef, remoteRef: item.remoteRef, objectId: item.localOid, remoteTip: item.remoteTip })),
+     targetRemote: target ? { name: target.name, url: target.url } : null,
+-    effectiveLimitBytes: effective.limitBytes,
+-    limitingRemote: effective.name,
+-    limitingProvider: effective.provider,
++    effectiveLimitBytes: limit,
++    limitingRemote: scope !== 'repository' ? limiting.remote : effective.name,
++    limitingProvider: scope !== 'repository' ? limiting.provider : effective.provider,
+     scenarios,
+     maxBasisBytes: max,
+     stagedBytes: prospective.stagedBytes,
+     stagedTree: prospective.stagedTree,
+-    projectedBytes: max,
+-    highWaterBytes: effective.limitBytes,
+-    atOrAboveLimit: max >= effective.limitBytes,
++    projectedBytes: projected,
++    highWaterBytes: limit,
++    atOrAboveLimit: projected >= limit,
+     measurable: true
+   };
+ }
+--- a/web/scripts/bucket-strategy.mjs
++++ b/web/scripts/bucket-strategy.mjs
+@@ -19,6 +19,8 @@
+   loadPolicy,
+   loadRepositoryManifest,
+   measurePushableBranch,
++  measureOutgoingPush,
++  measureCommitPreparation,
+   parsePushRefStream
+ } from './bucket-strategy-core.mjs';
+ import { readFileSync } from 'node:fs';
+@@ -147,6 +149,7 @@
+   const inventoryPolicy = platformRoot === policyRoot ? policy : loadPolicy(platformRoot).policy;
+ 
+   if (options.command === 'guard') {
++    if (options.staged && (options.ref || options.refsFile || options.remoteName || options.remoteUrl || options.remoteTip)) throw new BucketStrategyError('BUCKET_STRATEGY_INVALID_ARGUMENT', '--staged cannot be combined with publication ref/remote arguments');
+     if (options.ref && options.refsFile) throw new BucketStrategyError('BUCKET_STRATEGY_INVALID_ARGUMENT', '--ref and --refs-file are mutually exclusive');
+     if (options.refsFile && options.remoteTip) throw new BucketStrategyError('BUCKET_STRATEGY_INVALID_ARGUMENT', '--remote-tip cannot be combined with --refs-file');
+     if (options.remoteName !== null || options.remoteUrl !== null) {
+@@ -191,7 +194,7 @@
+       print(diagnostic, options.json);
+       return 0;
+     }
+-    const measurement = await measurePushableBranch(repo, policy, {
++    const measurement = await (options.staged ? measureCommitPreparation : measureOutgoingPush)(repo, policy, {
+       includeStaged: options.staged,
+       refs,
+       targetRemoteName: options.remoteName,
+--- /dev/null
++++ b/web/scripts/bucket-strategy-outgoing.test.mjs
+@@ -0,0 +1,101 @@
++import { afterEach, expect, test } from 'bun:test';
++import { randomBytes } from 'node:crypto';
++import { execFileSync } from 'node:child_process';
++import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import * as strategy from './bucket-strategy-core.mjs';
++const measure = strategy.measureOutgoingPush ?? strategy.measurePushableBranch;
++const roots = [];
++const github = 'git@github.com:example/guard.git';
++const gitlab = 'git@gitlab.com:example/guard.git';
++const policy = {
++  schemaVersion: 1,
++  buckets: { games: { name: 'dracon-games', endpoint: 'https://s3.uk.io.cloud.ovh.net/', publicBaseUrl: 'https://dracon-games.s3.uk.io.cloud.ovh.net' } },
++  namespaces: { games: 'games' },
++  providerLimits: { github: { bytes: 128 * 1024 }, gitlab: { bytes: 128 * 1024 } },
++  guard: { failClosed: true, mode: 'pushable-branch', blockAtOrAbove: true }
++};
++function git(root, ...args) {
++  return execFileSync('git', ['-c', 'core.hooksPath=/dev/null', '-C', root, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
++}
++function fixture() {
++  const root = mkdtempSync(join(tmpdir(), 'outgoing-limit-')); roots.push(root);
++  git(root, '-c', 'init.templateDir=', 'init', '-q', '-b', 'main');
++  git(root, 'config', 'user.name', 'Sizing Fixture'); git(root, 'config', 'user.email', 'sizing@example.invalid');
++  writeFileSync(join(root, 'art.bin'), randomBytes(256 * 1024));
++  git(root, 'add', '--', 'art.bin'); git(root, 'commit', '-qm', 'published art baseline');
++  const base = git(root, 'rev-parse', 'HEAD');
++  git(root, 'remote', 'add', 'origin', github); git(root, 'update-ref', 'refs/remotes/origin/main', base);
++  writeFileSync(join(root, 'README.md'), 'ordinary code change\n');
++  git(root, 'add', '--', 'README.md'); git(root, 'commit', '-qm', 'small change');
++  return { root, base };
++}
++afterEach(() => { while (roots.length) rmSync(roots.pop(), { recursive: true, force: true }); });
++test('ordinary increment passes while repository storage remains above the transfer limit', async () => {
++  const { root } = fixture();
++  const storage = await strategy.measurePushableBranch(root, policy);
++  expect(strategy.evaluateHighWater(storage).ok).toBe(false);
++  const outgoing = await measure(root, policy);
++  expect(strategy.evaluateHighWater(outgoing).ok).toBe(true);
++  expect(outgoing.projectedBytes).toBeLessThan(128 * 1024);
++});
++test('a new mirror still measures the complete requested history', async () => {
++  const { root } = fixture(); git(root, 'remote', 'add', 'gitlab', gitlab);
++  const result = await measure(root, policy);
++  expect(strategy.evaluateHighWater(result).ok).toBe(false);
++  expect(result.scenarios.find(r => r.remote === 'origin').basisBytes).toBeLessThan(128 * 1024);
++  expect(result.scenarios.find(r => r.remote === 'gitlab').basisBytes).toBeGreaterThan(256 * 1024);
++});
++test('an advertised new ref overrides a cached tracking tip', async () => {
++  const { root } = fixture(); const head = git(root, 'rev-parse', 'HEAD');
++  const result = await measure(root, policy, { refs: [{ localRef: 'refs/heads/main', localOid: head, remoteTip: '0'.repeat(40) }], targetRemoteName: 'origin', targetRemoteUrl: github });
++  expect(strategy.evaluateHighWater(result).ok).toBe(false);
++});
++test('unrelated local refs do not become bytes in a main-only push', async () => {
++  const { root } = fixture();
++  git(root, 'checkout', '--orphan', 'local-archive'); git(root, 'rm', '-rf', '.');
++  writeFileSync(join(root, 'archive.bin'), randomBytes(512 * 1024));
++  git(root, 'add', '--', 'archive.bin'); git(root, 'commit', '-qm', 'local-only archive'); git(root, 'checkout', 'main');
++  expect(strategy.evaluateHighWater(await measure(root, policy)).ok).toBe(true);
++});
++test('same-URL aliases share evidence but another repository cannot borrow it', async () => {
++  const { root } = fixture(); git(root, 'remote', 'add', 'github', github);
++  expect(strategy.evaluateHighWater(await measure(root, policy)).ok).toBe(true);
++  git(root, 'remote', 'add', 'foreign', 'git@github.com:example/another.git');
++  expect(strategy.evaluateHighWater(await measure(root, policy)).ok).toBe(false);
++});
++test('a push URL distinct from the fetch URL cannot inherit its tracking evidence', async () => {
++  const { root } = fixture(); git(root, 'remote', 'set-url', '--push', 'origin', 'git@github.com:example/another.git');
++  expect(strategy.evaluateHighWater(await measure(root, policy)).ok).toBe(false);
++});
++test('staged assets are sized without changing the real index', async () => {
++  const { root } = fixture();
++  writeFileSync(join(root, 'new-art.bin'), randomBytes(200 * 1024)); git(root, 'add', '--', 'new-art.bin');
++  // Staged commits reserve both pack framing and prospective metadata.
++  const stagedPolicy = { ...policy, providerLimits: { github: { bytes: 192 * 1024 } } };
++  const index = readFileSync(join(root, '.git/index'));
++  expect(strategy.evaluateHighWater(await measure(root, stagedPolicy, { includeStaged: true })).ok).toBe(false);
++  expect(readFileSync(join(root, '.git/index')).equals(index)).toBe(true);
++  git(root, 'rm', '--cached', '--', 'new-art.bin');
++  writeFileSync(join(root, 'README.md'), 'small staged edit\n'); git(root, 'add', '--', 'README.md');
++  expect(strategy.evaluateHighWater(await measure(root, stagedPolicy, { includeStaged: true })).ok).toBe(true);
++});
++test('each provider limit is compared to its own outgoing set', async () => {
++  const { root } = fixture();
++  const bigger = { ...policy, providerLimits: { github: { bytes: 1024 * 1024 }, gitlab: { bytes: 128 * 1024 } } };
++  git(root, 'remote', 'add', 'gitlab', gitlab);
++  git(root, 'update-ref', 'refs/remotes/gitlab/main', git(root, 'rev-parse', 'HEAD'));
++  git(root, 'update-ref', '-d', 'refs/remotes/origin/main');
++  expect(strategy.evaluateHighWater(await measure(root, bigger)).ok).toBe(true);
++});
++
++test('a lagging or new mirror cannot block a small local commit, but publication stays guarded', async () => {
++  const { root } = fixture(); git(root, 'remote', 'add', 'gitlab', gitlab);
++  const localPolicy = { ...policy, providerLimits: { github: { bytes: 192 * 1024 }, gitlab: { bytes: 192 * 1024 } } };
++  writeFileSync(join(root, 'README.md'), 'pending small update\n'); git(root, 'add', '--', 'README.md');
++  expect(strategy.evaluateHighWater(await strategy.measureCommitPreparation(root, localPolicy)).ok).toBe(true);
++  expect(strategy.evaluateHighWater(await measure(root, localPolicy)).ok).toBe(false);
++  writeFileSync(join(root, 'too-large.bin'), randomBytes(200 * 1024)); git(root, 'add', '--', 'too-large.bin');
++  expect(strategy.evaluateHighWater(await strategy.measureCommitPreparation(root, localPolicy)).ok).toBe(false);
++});

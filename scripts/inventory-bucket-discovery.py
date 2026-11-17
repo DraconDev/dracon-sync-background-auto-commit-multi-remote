@@ -24,8 +24,11 @@ def excluded(path):
 
 
 def config_summary(repo):
-    # Mirror current root-first discovery order; do not read credential files.
-    for relative in ('bucket-assets.json', '.dracon/bucket-assets.json'):
+    # The installed runner precedes the legacy workflow. A disabled runner
+    # falls back to legacy discovery; a disabled root legacy config still
+    # shadows its local override. Configuration never proves enrollment.
+    disabled_runner = None
+    for relative in ('bucket-runner.json', 'bucket-assets.json', '.dracon/bucket-assets.json'):
         path = repo / relative
         if any(p.is_symlink() for p in (path, *path.parents)):
             if path.exists() or path.is_symlink():
@@ -37,11 +40,16 @@ def config_summary(repo):
             if not path.is_file() or path.stat().st_size > 65536:
                 return {'path': relative, 'error': 'not a bounded regular config'}
             data = json.loads(path.read_text())
-            return {'path': relative, 'enabled': data.get('enabled') is True,
-                    'assetRoot': data.get('assetRoot'), 'manifest': data.get('manifest')}
+            summary = {'path': relative, 'enabled': data.get('enabled') is True,
+                       'assetRoot': data.get('assetRoot'),
+                       'manifest': data.get('manifestPath', data.get('manifest'))}
+            if relative == 'bucket-runner.json' and not summary['enabled']:
+                disabled_runner = summary
+                continue
+            return summary
         except (OSError, ValueError, AttributeError):
             return {'path': relative, 'error': 'config unreadable or invalid'}
-    return None
+    return disabled_runner
 
 
 def inspect(repo):

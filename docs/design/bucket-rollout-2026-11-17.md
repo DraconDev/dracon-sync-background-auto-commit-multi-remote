@@ -54,3 +54,56 @@ evidence of live archival-source coverage.
 - Actual commit and both-mirror checkpoint witnesses, with unresolved provider
   quotas reported accurately rather than marked successful.
 - Historical inventory and separately reviewable migration plan.
+
+## Guard candidate and custody checkpoint
+
+The candidate is isolated under `/tmp/bucket-guard-repair-3orn_zhx`; it has not
+been installed into the shared platform guard. The reviewable patch and receipts
+are in `evidence/bucket-rollout-2026-11-17/`. Its complete applicable guard suite
+passes 83 tests, including nine new outgoing/local-admission controls. Hook
+fixture subprocesses receive a 30-second harness timeout; production operation
+deadlines are unchanged. An offline probe against Deathrun's real staged state
+passed with approximately 30.4 MB outgoing against the 2.056 GB provider budget.
+
+The candidate distinguishes local staged admission from per-provider outgoing
+publication, keeps complete reachable storage as a separate diagnostic, and
+shares tracking evidence only between exact matching push/fetch URLs. A fresh
+or unknown mirror still gets a full requested-history publication check. New
+over-limit staged assets, unrelated destination URLs and uninspectable objects
+remain refused. The staged index is not mutated by measurement.
+
+Before placement changes, 148 Deathrun art, provenance and evidence files
+(133,976,928 bytes) were copied and read-back hash verified outside the watched
+repositories. The receipt is
+`~/.local/state/dracon-sync/asset-rollout/deathrun-custody-20261117T105613Z/custody.json`.
+This local custody snapshot is not a live bucket or cold-restore qualification.
+
+The old JS runner's current qualified adapter accepts narrowly reproducible
+solid PNGs and a plain-Vite/npm/public-directory consumer. That is not actual
+Deathrun or browser-extension archival coverage. Generic non-regenerable art
+must not be mislabeled regenerable to pass it. The existing native immutable
+storage protocol supports archival payloads, required copies, protected restore
+metadata and staging bundles, but production enrollment/orchestration remains
+an explicit integration task. Investigate and reuse those existing primitives
+before introducing another asset-reference format.
+
+The read-only fleet census accounts for all 37 status-report repositories with
+zero failed status inspections. Thirty-one contain media candidates. Filename
+counts are not enrollment authority. Browser extensions has 7,480 media paths;
+Deathrun has 1,246. The census now recognizes the runner configuration before
+legacy fallback; eight inventory regressions pass.
+
+Deathrun's pre-existing staged art was preserved separately: 352 indexed asset
+versions (283,887,374 bytes), the original index bytes and its digest, and the
+unchanged HEAD anchor. Every saved blob was read-back verified, and HEAD/index
+were checked unchanged across capture. This protects staged versions that may
+differ from currently edited working files. Neither capture modified the real
+index. The private receipt is `staged-index-custody.json` beside the worktree
+custody receipt above.
+
+The native storage planner confirms that external storage is currently
+disabled for Deathrun. Its capture/index APIs deliberately reject first-time
+enrollment of tracked paths without a reviewed forward-migration mechanism.
+The implementation must preserve this default refusal and add an explicit,
+version-bound migration path under the daemon's mutation owner; merely setting
+the feature flag or removing that check would not satisfy the custody contract.

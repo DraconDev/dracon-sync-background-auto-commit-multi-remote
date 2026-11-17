@@ -64,6 +64,24 @@ class InventoryTests(unittest.TestCase):
         (self.repo / 'bucket-assets.json').symlink_to(target)
         self.assertEqual(INVENTORY.config_summary(self.repo)['error'], 'symlink path refused')
 
+    def test_runner_precedes_legacy_without_granting_eligibility(self):
+        self.write('static/icon.png')
+        self.write('bucket-runner.json', json.dumps({
+            'enabled': True, 'assetRoot': '.', 'manifestPath': 'archive.manifest.json',
+            'profilePath': '/credentials/must/not/be/read'}))
+        self.write('bucket-assets.json', '{"enabled": true}')
+        result = INVENTORY.inspect(self.repo)
+        self.assertEqual(result['configuration']['path'], 'bucket-runner.json')
+        self.assertEqual(result['configuration']['manifest'], 'archive.manifest.json')
+        self.assertNotIn('profilePath', result['configuration'])
+        self.assertEqual(result['enrollment'], 'not_qualified')
+
+    def test_disabled_runner_uses_legacy_fallback(self):
+        self.write('bucket-runner.json', '{"enabled": false}')
+        self.assertFalse(INVENTORY.config_summary(self.repo)['enabled'])
+        self.write('bucket-assets.json', '{"enabled": true}')
+        self.assertEqual(INVENTORY.config_summary(self.repo)['path'], 'bucket-assets.json')
+
     def test_configuration_below_symlink_parent_is_refused(self):
         self.write('bucket-assets.json', '{"enabled": true}')
         alias = pathlib.Path(self.temp.name) / 'alias'

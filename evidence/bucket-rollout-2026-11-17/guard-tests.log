@@ -1,0 +1,103 @@
+bun test v1.3.3 (274e01c7)
+
+web/scripts/bucket-strategy-forward-only.test.mjs:
+(pass) pushing a new ref > a new branch is not blocked by history already published elsewhere [1726.03ms]
+(pass) pushing a new ref > an UNPUBLISHED retirement is still refused on a new branch [1248.02ms]
+(pass) pushing a new ref > new-ref exclusion trusts local remote-tracking refs (known limitation) [1336.02ms]
+(pass) forward-only asset protection > a clean tree passes [199.00ms]
+(pass) forward-only asset protection > deleting a protected published asset is refused [204.00ms]
+(pass) forward-only asset protection > renaming a protected published asset away is refused [202.00ms]
+(pass) forward-only asset protection > deleting scratch the inventory does not claim is allowed [155.00ms]
+(pass) forward-only asset protection > deleting a ref is still refused [159.00ms]
+(pass) forward-only asset protection > retired legacy sample namespace preserves canonical and other-format assets [431.01ms]
+(pass) forward-only asset protection > sanctioned retirement > a retired asset can be deleted [200.00ms]
+(pass) forward-only asset protection > sanctioned retirement > a retired asset can be renamed away [189.00ms]
+(pass) forward-only asset protection > sanctioned retirement > retirement exempts only the named path, not its protected siblings [284.01ms]
+(pass) forward-only asset protection > sanctioned retirement > an exact-file retirement list exempts each named sprite, never live siblings [302.01ms]
+(pass) forward-only asset protection > sanctioned retirement > a retired directory covers every asset beneath it [231.00ms]
+(pass) forward-only asset protection > sanctioned retirement > retirement cannot be used to exempt a path outside the repository [224.00ms]
+(pass) forward-only asset protection > sanctioned retirement > a partial-component glob retires by extension, not by whole directory [151.00ms]
+(pass) forward-only asset protection > sanctioned retirement > whole-component globs keep their existing semantics [122.00ms]
+(pass) forward-only asset protection > an inventory is required — the check fails closed without one [149.00ms]
+(pass) the real inventory must not claim scratch directories > the games record does not claim web/games/tmp
+
+web/scripts/bucket-strategy-trusted-roots.test.mjs:
+(pass) trusted external roots > a file inside the repository is always allowed
+(pass) trusted external roots > a file outside the repository is rejected when no root is trusted [1.00ms]
+(pass) trusted external roots > a file inside a trusted root is allowed
+(pass) trusted external roots > a sibling that only shares the trusted root as a name prefix is rejected [1.00ms]
+(pass) trusted external roots > the env override is explicit: empty trusts nothing, relative and missing roots are ignored
+
+web/scripts/bucket-strategy-outgoing.test.mjs:
+(pass) ordinary increment passes while repository storage remains above the transfer limit [201.00ms]
+(pass) a new mirror still measures the complete requested history [169.00ms]
+(pass) an advertised new ref overrides a cached tracking tip [99.00ms]
+(pass) unrelated local refs do not become bytes in a main-only push [160.00ms]
+(pass) same-URL aliases share evidence but another repository cannot borrow it [328.01ms]
+(pass) a push URL distinct from the fetch URL cannot inherit its tracking evidence [122.00ms]
+(pass) staged assets are sized without changing the real index [327.01ms]
+(pass) each provider limit is compared to its own outgoing set [154.00ms]
+(pass) a lagging or new mirror cannot block a small local commit, but publication stays guarded [411.01ms]
+
+web/scripts/bucket-strategy-manifest.test.mjs:
+(pass) explicit manifest boundary > accepts a public regenerable entry and emits a stable plan [115.00ms]
+(pass) explicit manifest boundary > binds a repository manifest to the inventory record [78.00ms]
+(pass) explicit manifest boundary > rejects an undeclared eligible binary and missing source [145.00ms]
+(pass) truncated content-addressed keys > resolves a truncated token to the leading digest characters [26.00ms]
+(pass) truncated content-addressed keys > accepts a full-width token in the same layout [21.00ms]
+(pass) truncated content-addressed keys > rejects tokens too narrow to discriminate content [51.00ms]
+(pass) truncated content-addressed keys > rejects a template whose filename does not end with the content token [43.00ms]
+(pass) truncated content-addressed keys > fails closed when two manifest entries claim one object key [14.00ms]
+
+web/scripts/bucket-strategy-hooks.test.mjs:
+(pass) nested bucket hook installer > uses stable shared dispatch for fresh nested repositories and checks it idempotently [599.01ms]
+(pass) nested bucket hook installer > stable shared dispatch preserves the global Warden chain [544.01ms]
+(pass) nested bucket hook installer > parent pre-commit removes Git hook overrides before the offline guard [126.00ms]
+(pass) nested bucket hook installer > shared pre-commit removes Git hook overrides before the offline guard [115.00ms]
+(pass) nested bucket hook installer > parent pre-push removes Git hook overrides before the offline guard [106.00ms]
+(pass) nested bucket hook installer > shared pre-push removes Git hook overrides before the offline guard [91.00ms]
+(pass) nested bucket hook installer > parent hooks preserve Warden ordering, chaining, failure propagation, and exact push-stream replay [548.01ms]
+(pass) nested bucket hook installer > preserves a custom local hook and refuses to overwrite a conflicting preserved copy [588.01ms]
+(pass) nested bucket hook installer > refuses a broken symlink custom hook instead of silently switching policy [418.01ms]
+(pass) nested bucket hook installer > does not switch policy when the second hook fails preservation [332.01ms]
+
+web/scripts/bucket-strategy-sizing.test.mjs:
+(pass) strict Git sizing metadata > parses canonical cat-file records and rejects malformed or missing records [1.00ms]
+(pass) strict Git sizing metadata > treats a gitlink commit id as an external zero-size reference
+(pass) strict Git sizing metadata > rev-list parsing rejects blank, padded, unterminated, and mixed-ID records
+(pass) strict Git sizing metadata > uses checked arithmetic and exposes each sizing component [1.00ms]
+(pass) strict Git sizing metadata > gate basis follows stored bytes, not the uncompressed object sum
+(pass) reachable object measurement fixtures > measures loose and packed representations without changing the object graph [300.01ms]
+(pass) reachable object measurement fixtures > closes recursively over packed delta bases [2240.04ms]
+(pass) reachable object measurement fixtures > a compressible repository passes a budget sized on its stored pack [354.01ms]
+(pass) reachable object measurement fixtures > supports SHA-256 repositories [152.00ms]
+(pass) reachable object measurement fixtures > measures a linked worktree through the common object database [191.00ms]
+(pass) reachable object measurement fixtures > rejects shallow, grafted, and replacement-ref histories before measurement [618.01ms]
+(pass) reachable object measurement fixtures > rejects repository-discovery and temporary object-database environment overrides [213.00ms]
+(pass) reachable object measurement fixtures > preserves a legitimate alternate index for staged-tree measurement [200.00ms]
+(pass) reachable object measurement fixtures > resolves nested alternates without contacting a remote [320.01ms]
+(pass) reachable object measurement fixtures > includes staged tree data and a bounded prospective commit reserve [301.01ms]
+(pass) reachable object measurement fixtures > fails closed for a genuinely missing promised blob without lazy fetch [279.00ms]
+(pass) measurement never invokes git pack-objects [446.01ms]
+
+web/scripts/bucket-strategy.test.mjs:
+(pass) policy and manifest validation > policy normalizes limits and requires fail-closed guard [1.00ms]
+(pass) policy and manifest validation > safe paths reject absolute, traversal, NUL, and Windows drive forms
+(pass) policy and manifest validation > manifest accepts only explicit public regenerable entries [2.00ms]
+(pass) policy and manifest validation > promotion excludes opaque binaries while inventory still classifies them
+(pass) policy and manifest validation > manifest rejects duplicate ids and logical paths
+(pass) policy and manifest validation > manifest requires source and logical extensions to match [1.00ms]
+(pass) deterministic offline promotion > plan is sorted, content-addressed, and leaves the source unchanged [12.00ms]
+(pass) deterministic offline promotion > missing and modified source files fail closed [18.00ms]
+(pass) provider ceiling and pushable measurement > lowest configured provider limit governs, including GitHub [272.00ms]
+(pass) provider ceiling and pushable measurement > unknown provider and no remote fail closed [95.00ms]
+(pass) provider ceiling and pushable measurement > pushable branch measures objects, not .git directory size [178.00ms]
+(pass) provider ceiling and pushable measurement > staged bytes are included and exact high-water blocks [225.00ms]
+(pass) nested budget policy with shared outer inventory (2026-10-02) > guard keeps the inner budget while resolving the shared outer inventory [1244.02ms]
+(pass) nested budget policy with shared outer inventory (2026-10-02) > policy resolves innermost while the platform resolves outermost [197.00ms]
+(pass) nested budget policy with shared outer inventory (2026-10-02) > empty ref stream is an explicit no-op, not a fail-closed wedge [1698.03ms]
+
+ 83 pass
+ 0 fail
+ 344 expect() calls
+Ran 83 tests across 7 files. [23.27s]

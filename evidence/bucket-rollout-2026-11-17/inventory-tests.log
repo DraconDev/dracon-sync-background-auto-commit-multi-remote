@@ -1,0 +1,13 @@
+test_config_does_not_grant_discovery_eligibility (__main__.InventoryTests.test_config_does_not_grant_discovery_eligibility) ... ok
+test_configuration_below_symlink_parent_is_refused (__main__.InventoryTests.test_configuration_below_symlink_parent_is_refused) ... ok
+test_disabled_runner_uses_legacy_fallback (__main__.InventoryTests.test_disabled_runner_uses_legacy_fallback) ... ok
+test_excluded_and_ignored_paths_do_not_become_candidates (__main__.InventoryTests.test_excluded_and_ignored_paths_do_not_become_candidates) ... ok
+test_missing_repository_is_explicit_not_empty_success (__main__.InventoryTests.test_missing_repository_is_explicit_not_empty_success) ... ok
+test_new_and_tracked_media_are_candidates_not_eligibility (__main__.InventoryTests.test_new_and_tracked_media_are_candidates_not_eligibility) ... ok
+test_runner_precedes_legacy_without_granting_eligibility (__main__.InventoryTests.test_runner_precedes_legacy_without_granting_eligibility) ... ok
+test_symlink_configuration_is_refused_without_reading_target (__main__.InventoryTests.test_symlink_configuration_is_refused_without_reading_target) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.100s
+
+OK
