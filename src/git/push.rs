@@ -880,7 +880,18 @@ pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
 
 /// The remote received and judged the pack, so no local hook stopped it.
 fn remote_answered_the_pack(lower: &str) -> bool {
-    lower.contains("[remote rejected]") || lower.contains("remote unpack failed")
+    lower.contains("[remote rejected]")
+        || lower.contains("remote unpack failed")
+        || remote_storage_quota_exceeded(lower)
+}
+
+fn remote_storage_quota_exceeded(message: &str) -> bool {
+    message.lines().any(|line| {
+        line.trim_start().starts_with("remote:")
+            && (line.contains("exceeded its storage allocation")
+                || line.contains("storage allocation exceeded")
+                || line.contains("storage quota exceeded"))
+    })
 }
 
 /// ADDED 2026-11-13: an isolated push unit (`push_unit`) exhausted the
@@ -1087,7 +1098,9 @@ pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
     // string (local network, not forge infra) but share the transient
     // handling — keep this arm FIRST so the message names DNS, while
     // the predicate order below is unchanged.
-    if is_transient_network_outage(err_msg) {
+    if remote_storage_quota_exceeded(&err_msg.to_ascii_lowercase()) {
+        "remote repository storage quota exceeded"
+    } else if is_transient_network_outage(err_msg) {
         "local network/DNS failure (name resolution; retrying with backoff, excluded from stuck budget)"
     } else if is_transient_forge_outage(err_msg) {
         "forge-side outage (transient infra: Gitaly/5xx; retrying with backoff, excluded from stuck budget)"
@@ -1216,6 +1229,7 @@ pub(crate) fn is_permanent_push_rejection(err_msg: &str) -> bool {
         || err_msg.contains("Push to create is not enabled")
         || err_msg.contains("The project you were looking for could not be found")
         || err_msg.contains("Permission denied (publickey)")
+        || remote_storage_quota_exceeded(&err_msg.to_ascii_lowercase())
 }
 
 /// Check if an error message indicates the push was rejected because the
@@ -2204,8 +2218,7 @@ mod tests {
             The warden filter may have been bypassed.\n\
             Run: dracon-warden once /home/dracon/Dev/empire\n\
             error: failed to push some refs to 'github.com:DraconDev/empire.git'\n";
-        let summary =
-            super::hook_failure_summary(live).expect("secret refusal must yield a cause");
+        let summary = super::hook_failure_summary(live).expect("secret refusal must yield a cause");
         assert!(
             summary.contains("Possible plaintext secrets"),
             "must name the refusal: {summary}"
@@ -2514,6 +2527,23 @@ mod tests {
             passed_then_dropped
         );
         assert!(classify_push_failure(&passed_then_rejected).contains("server-side policy"));
+    }
+
+    #[test]
+    fn remote_quota_overrides_retained_workspace_gate_output() {
+        let quota = concat!(
+            "remote: Your push has been rejected because this repository has exceeded its storage allocation.\n",
+            "Pre-push: 4-gate ADVISORY — pushing anyway"
+        );
+        assert_eq!(
+            classify_push_failure(quota),
+            "remote repository storage quota exceeded"
+        );
+        assert!(is_permanent_push_rejection(quota));
+        assert!(!is_local_hook_rejection(quota));
+        assert!(!is_permanent_push_rejection(
+            "local hook: storage quota exceeded"
+        ));
     }
 
     #[test]
