@@ -179,7 +179,8 @@ impl ApprovedEnrollment {
         match (&self.review.index, &self.review.index_copy) {
             (Some(expected), Some(name)) if name == "index.before" => {
                 ensure!(
-                    index_fingerprint(&self.directory.join(name), MAX_INDEX_BYTES, None, deadline)?.as_ref()
+                    index_fingerprint(&self.directory.join(name), MAX_INDEX_BYTES, None, deadline)?
+                        .as_ref()
                         == Some(expected),
                     "preserved enrollment index changed"
                 );
@@ -278,8 +279,12 @@ impl ApprovedEnrollment {
                 "reviewed enrollment source version mismatch"
             );
             let source_path = PathBuf::from(std::ffi::OsString::from_vec(path.clone()));
-            let (_, actual) =
-                capture::select_source_before(root, &source_path, self.limits.max_blob_bytes, Some(deadline.into_std()))?;
+            let (_, actual) = capture::select_source_before(
+                root,
+                &source_path,
+                self.limits.max_blob_bytes,
+                Some(deadline.into_std()),
+            )?;
             ensure!(
                 actual == asset.worktree.fingerprint,
                 "reviewed working source changed"
@@ -358,7 +363,10 @@ fn fingerprint_file(
     let mut bytes = 0u64;
     let mut buffer = [0u8; 64 * 1024];
     loop {
-        ensure!(Instant::now() < deadline, "enrollment review deadline expired");
+        ensure!(
+            Instant::now() < deadline,
+            "enrollment review deadline expired"
+        );
         let count = file.read(&mut buffer)?;
         if count == 0 {
             break;
@@ -1024,8 +1032,12 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
             Instant::now() < deadline,
             "enrollment review deadline expired"
         );
-        let (mut source, expected) =
-            capture::select_source_before(repo, &selected.path, limits.max_blob_bytes, Some(deadline.into_std()))?;
+        let (mut source, expected) = capture::select_source_before(
+            repo,
+            &selected.path,
+            limits.max_blob_bytes,
+            Some(deadline.into_std()),
+        )?;
         let metadata = source.metadata()?;
         ensure!(
             metadata.uid() == unsafe { libc::geteuid() } && metadata.mode() & 0o022 == 0,
@@ -1048,8 +1060,12 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
                 );
                 let file_name = format!("source-{}.blob", expected.sha256());
                 let mut file = private_file(&directory.join(&file_name))?;
-                let fingerprint =
-                    fingerprint_file(&mut source, limits.max_blob_bytes, Some(&mut file), deadline)?;
+                let fingerprint = fingerprint_file(
+                    &mut source,
+                    limits.max_blob_bytes,
+                    Some(&mut file),
+                    deadline,
+                )?;
                 ensure!(
                     fingerprint == expected,
                     "source changed during enrollment capture"
@@ -1092,8 +1108,12 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
     ensure!(
         (identity.dev(), identity.ino()) == git_identity
             && head(&repository)? == original_head
-            && index_fingerprint(&git_directory.join("index"), MAX_INDEX_BYTES, None, deadline)?
-                == original_index,
+            && index_fingerprint(
+                &git_directory.join("index"),
+                MAX_INDEX_BYTES,
+                None,
+                deadline
+            )? == original_index,
         "HEAD or index changed during enrollment review"
     );
     ensure!(

@@ -12,6 +12,16 @@ use std::path::{Component, Path};
 /// Nested Git repositories are separate owners. Returned descriptor is rewound;
 /// journal capture must revalidate its bytes against this selected fingerprint.
 pub fn select_source(repo: &Path, path: &Path, max_bytes: u64) -> Result<(File, Fingerprint)> {
+    select_source_before(repo, path, max_bytes, None)
+}
+
+/// Apply a caller's whole-operation deadline during bounded source hashing.
+pub(crate) fn select_source_before(
+    repo: &Path,
+    path: &Path,
+    max_bytes: u64,
+    deadline: Option<std::time::Instant>,
+) -> Result<(File, Fingerprint)> {
     if max_bytes == 0
         || !repo.is_absolute()
         || path.as_os_str().is_empty()
@@ -33,6 +43,9 @@ pub fn select_source(repo: &Path, path: &Path, max_bytes: u64) -> Result<(File, 
     let mut total = 0u64;
     let mut buffer = [0u8; 64 * 1024];
     loop {
+        if deadline.is_some_and(|end| std::time::Instant::now() >= end) {
+            bail!("source selection deadline expired");
+        }
         let count = match file.read(&mut buffer) {
             Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
             result => result?,
