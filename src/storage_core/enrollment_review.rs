@@ -143,6 +143,10 @@ impl ApprovedEnrollment {
         let deadline = Instant::now()
             .checked_add(self.limits.timeout)
             .context("invalid approval deadline")?;
+        self.validate_preservation_before(root, id, deadline)
+    }
+
+    fn validate_preservation_before(&self, root: &Path, id: &str, deadline: Instant) -> Result<()> {
         ensure!(
             root.is_absolute()
                 && root.canonicalize()? == root
@@ -167,14 +171,15 @@ impl ApprovedEnrollment {
                 && index_fingerprint(
                     &self.review.git_directory.join("index"),
                     MAX_INDEX_BYTES,
-                    None
+                    None,
+                    deadline
                 )? == self.review.index,
             "enrollment approval HEAD/index changed"
         );
         match (&self.review.index, &self.review.index_copy) {
             (Some(expected), Some(name)) if name == "index.before" => {
                 ensure!(
-                    index_fingerprint(&self.directory.join(name), MAX_INDEX_BYTES, None)?.as_ref()
+                    index_fingerprint(&self.directory.join(name), MAX_INDEX_BYTES, None, deadline)?.as_ref()
                         == Some(expected),
                     "preserved enrollment index changed"
                 );
@@ -222,7 +227,7 @@ impl ApprovedEnrollment {
                 let mut file =
                     journal::open_private(&self.directory.join(&version.file), false, false)?;
                 ensure!(
-                    fingerprint_file(&mut file, self.limits.max_blob_bytes, None)?
+                    fingerprint_file(&mut file, self.limits.max_blob_bytes, None, deadline)?
                         == version.fingerprint,
                     "reviewed custody bytes changed"
                 );
@@ -249,7 +254,10 @@ impl ApprovedEnrollment {
         id: &str,
         bundle: &super::staging::StageBundle<'_>,
     ) -> Result<BTreeSet<Vec<u8>>> {
-        self.validate_preservation(root, id)?;
+        let deadline = Instant::now()
+            .checked_add(self.limits.timeout)
+            .context("invalid staging review deadline")?;
+        self.validate_preservation_before(root, id, deadline)?;
         ensure!(
             bundle.repo_id() == id,
             "reviewed staging repository mismatch"
@@ -271,7 +279,7 @@ impl ApprovedEnrollment {
             );
             let source_path = PathBuf::from(std::ffi::OsString::from_vec(path.clone()));
             let (_, actual) =
-                capture::select_source(root, &source_path, self.limits.max_blob_bytes)?;
+                capture::select_source_before(root, &source_path, self.limits.max_blob_bytes, Some(deadline.into_std()))?;
             ensure!(
                 actual == asset.worktree.fingerprint,
                 "reviewed working source changed"
@@ -343,12 +351,14 @@ fn fingerprint_file(
     file: &mut File,
     max: u64,
     mut output: Option<&mut File>,
+    deadline: Instant,
 ) -> Result<Fingerprint> {
     file.rewind()?;
     let mut sha = Sha256::new();
     let mut bytes = 0u64;
     let mut buffer = [0u8; 64 * 1024];
     loop {
+        ensure!(Instant::now() < deadline, "enrollment review deadline expired");
         let count = file.read(&mut buffer)?;
         if count == 0 {
             break;
@@ -370,6 +380,7 @@ fn index_fingerprint(
     path: &Path,
     max: u64,
     copy: Option<&mut File>,
+    deadline: Instant,
 ) -> Result<Option<Fingerprint>> {
     let mut file = match OpenOptions::new()
         .read(true)
@@ -388,7 +399,7 @@ fn index_fingerprint(
             && before.len() <= max.min(MAX_INDEX_BYTES),
         "unsafe review index"
     );
-    let fingerprint = fingerprint_file(&mut file, max.min(MAX_INDEX_BYTES), copy)?;
+    let fingerprint = fingerprint_file(&mut file, max.min(MAX_INDEX_BYTES), copy, deadline)?;
     let after = file.metadata()?;
     let named = std::fs::symlink_metadata(path)?;
     ensure!(
@@ -905,11 +916,12 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
             &git_directory.join("index"),
             limits.max_retained_bytes - retained,
             Some(&mut private_index),
+            deadline,
         )?;
         private_index.sync_all()?;
         if let Some(expected) = &index_fingerprint {
             ensure!(
-                fingerprint_file(&mut private_index, MAX_INDEX_BYTES, None)? == *expected,
+                fingerprint_file(&mut private_index, MAX_INDEX_BYTES, None, deadline)? == *expected,
                 "review index readback mismatch"
             );
         }
@@ -1013,7 +1025,7 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
             "enrollment review deadline expired"
         );
         let (mut source, expected) =
-            capture::select_source(repo, &selected.path, limits.max_blob_bytes)?;
+            capture::select_source_before(repo, &selected.path, limits.max_blob_bytes, Some(deadline.into_std()))?;
         let metadata = source.metadata()?;
         ensure!(
             metadata.uid() == unsafe { libc::geteuid() } && metadata.mode() & 0o022 == 0,
@@ -1037,7 +1049,7 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
                 let file_name = format!("source-{}.blob", expected.sha256());
                 let mut file = private_file(&directory.join(&file_name))?;
                 let fingerprint =
-                    fingerprint_file(&mut source, limits.max_blob_bytes, Some(&mut file))?;
+                    fingerprint_file(&mut source, limits.max_blob_bytes, Some(&mut file), deadline)?;
                 ensure!(
                     fingerprint == expected,
                     "source changed during enrollment capture"
@@ -1045,7 +1057,7 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
                 file.sync_all()?;
                 file.rewind()?;
                 ensure!(
-                    fingerprint_file(&mut file, limits.max_blob_bytes, None)? == expected,
+                    fingerprint_file(&mut file, limits.max_blob_bytes, None, deadline)? == expected,
                     "enrollment custody readback mismatch"
                 );
                 copied = copied
@@ -1080,7 +1092,7 @@ async fn prepare_inner(request: ReviewRequest<'_>, deadline: Instant) -> Result<
     ensure!(
         (identity.dev(), identity.ino()) == git_identity
             && head(&repository)? == original_head
-            && index_fingerprint(&git_directory.join("index"), MAX_INDEX_BYTES, None)?
+            && index_fingerprint(&git_directory.join("index"), MAX_INDEX_BYTES, None, deadline)?
                 == original_index,
         "HEAD or index changed during enrollment review"
     );
