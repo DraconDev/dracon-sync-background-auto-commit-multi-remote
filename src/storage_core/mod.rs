@@ -8,6 +8,7 @@
 pub mod backend;
 pub mod bindings;
 pub mod capture;
+pub mod git_custody;
 pub mod clean;
 #[cfg(target_os = "linux")]
 pub mod hydration;
