@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, Write};
-use std::os::unix::ffi::OsStrExt;
+use std::os::unix::ffi::{OsStrExt, OsStringExt};
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -93,49 +93,93 @@ pub async fn approve_review(
     let expected = receipt.review_sha256.clone();
     tokio::task::spawn_blocking(move || {
         super::reference::validate_sha256(&expected)?;
-        ensure!(path.is_absolute() && path.file_name().is_some_and(|n| n == "review.json")
-            && !path.starts_with(&repo), "operator-selected private review required");
-        let directory = path.parent().context("review parent unavailable")?.to_path_buf();
+        ensure!(
+            path.is_absolute()
+                && path.file_name().is_some_and(|n| n == "review.json")
+                && !path.starts_with(&repo),
+            "operator-selected private review required"
+        );
+        let directory = path
+            .parent()
+            .context("review parent unavailable")?
+            .to_path_buf();
         journal::private_directory(&directory, false)?;
         let mut file = journal::open_private(&path, false, false)?;
         let mut bytes = Vec::new();
-        file.by_ref().take(MAX_REVIEW_BYTES as u64 + 1).read_to_end(&mut bytes)?;
-        ensure!(bytes.len() <= MAX_REVIEW_BYTES && format!("{:x}", Sha256::digest(&bytes)) == expected,
-            "review digest mismatch");
+        Read::by_ref(&mut file)
+            .take(MAX_REVIEW_BYTES as u64 + 1)
+            .read_to_end(&mut bytes)?;
+        ensure!(
+            bytes.len() <= MAX_REVIEW_BYTES && format!("{:x}", Sha256::digest(&bytes)) == expected,
+            "review digest mismatch"
+        );
         let review: Review = serde_json::from_slice(&bytes)
             .map_err(|_| anyhow::anyhow!("invalid private enrollment review"))?;
-        ensure!(review.schema_version == 1 && !review.grants_enrollment
-            && !review.assets.is_empty() && review.assets.len() <= MAX_PATHS,
-            "invalid enrollment review contract");
-        let approved = ApprovedEnrollment { review, directory, limits };
+        ensure!(
+            review.schema_version == 1
+                && !review.grants_enrollment
+                && !review.assets.is_empty()
+                && review.assets.len() <= MAX_PATHS,
+            "invalid enrollment review contract"
+        );
+        let approved = ApprovedEnrollment {
+            review,
+            directory,
+            limits,
+        };
         approved.validate_preservation(&repo, &repo_id)?;
         Ok(approved)
-    }).await.context("enrollment approval worker failed")?
+    })
+    .await
+    .context("enrollment approval worker failed")?
 }
 
 impl ApprovedEnrollment {
     fn validate_preservation(&self, root: &Path, id: &str) -> Result<()> {
-        ensure!(!self.limits.timeout.is_zero() && self.limits.max_blob_bytes > 0,
-            "positive enrollment approval bounds required");
-        let deadline = Instant::now().checked_add(self.limits.timeout).context("invalid approval deadline")?;
-        ensure!(root.is_absolute() && root.canonicalize()? == root
-            && self.review.repo_id == id && self.review.worktree == root,
-            "enrollment approval repository mismatch");
+        ensure!(
+            !self.limits.timeout.is_zero() && self.limits.max_blob_bytes > 0,
+            "positive enrollment approval bounds required"
+        );
+        let deadline = Instant::now()
+            .checked_add(self.limits.timeout)
+            .context("invalid approval deadline")?;
+        ensure!(
+            root.is_absolute()
+                && root.canonicalize()? == root
+                && self.review.repo_id == id
+                && self.review.worktree == root,
+            "enrollment approval repository mismatch"
+        );
         let repository = git2::Repository::open(root)?;
-        ensure!(repository.workdir().context("bare approval repository")?.canonicalize()? == root
-            && repository.path().canonicalize()? == self.review.git_directory,
-            "enrollment approval Git directory mismatch");
+        ensure!(
+            repository
+                .workdir()
+                .context("bare approval repository")?
+                .canonicalize()?
+                == root
+                && repository.path().canonicalize()? == self.review.git_directory,
+            "enrollment approval Git directory mismatch"
+        );
         let metadata = std::fs::metadata(&self.review.git_directory)?;
-        ensure!((metadata.dev(), metadata.ino()) == (self.review.git_device, self.review.git_inode)
-            && head(&repository)? == self.review.head
-            && index_fingerprint(&self.review.git_directory.join("index"), MAX_INDEX_BYTES, None)? == self.review.index,
-            "enrollment approval HEAD/index changed");
+        ensure!(
+            (metadata.dev(), metadata.ino()) == (self.review.git_device, self.review.git_inode)
+                && head(&repository)? == self.review.head
+                && index_fingerprint(
+                    &self.review.git_directory.join("index"),
+                    MAX_INDEX_BYTES,
+                    None
+                )? == self.review.index,
+            "enrollment approval HEAD/index changed"
+        );
         match (&self.review.index, &self.review.index_copy) {
             (Some(expected), Some(name)) if name == "index.before" => {
-                ensure!(index_fingerprint(&self.directory.join(name), MAX_INDEX_BYTES, None)?.as_ref() == Some(expected),
-                    "preserved enrollment index changed");
-            },
-            (None, None) => {},
+                ensure!(
+                    index_fingerprint(&self.directory.join(name), MAX_INDEX_BYTES, None)?.as_ref()
+                        == Some(expected),
+                    "preserved enrollment index changed"
+                );
+            }
+            (None, None) => {}
             _ => anyhow::bail!("invalid preserved index binding"),
         }
         let mut paths = BTreeSet::new();
@@ -144,28 +188,58 @@ impl ApprovedEnrollment {
         for asset in &self.review.assets {
             let path = super::index::decode_path(&asset.path_hex)?;
             ensure!(paths.insert(path), "duplicate reviewed enrollment path");
-            for version in asset.head.iter().chain(asset.index.iter()).chain(std::iter::once(&asset.worktree)) {
+            for version in asset
+                .head
+                .iter()
+                .chain(asset.index.iter())
+                .chain(std::iter::once(&asset.worktree))
+            {
                 version.fingerprint.validate()?;
-                let named = if let Some(oid) = version.file.strip_prefix("git-").and_then(|s| s.strip_suffix(".blob")) {
-                    matches!(oid.len(), 40 | 64) && oid.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+                let named = if let Some(oid) = version
+                    .file
+                    .strip_prefix("git-")
+                    .and_then(|s| s.strip_suffix(".blob"))
+                {
+                    matches!(oid.len(), 40 | 64)
+                        && oid
+                            .bytes()
+                            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
                 } else {
                     version.file == format!("source-{}.blob", version.fingerprint.sha256())
                 };
                 ensure!(named, "invalid reviewed custody path");
                 if let Some(prior) = versions.get(&version.file) {
-                    ensure!(prior == &version.fingerprint, "conflicting reviewed versions");
+                    ensure!(
+                        prior == &version.fingerprint,
+                        "conflicting reviewed versions"
+                    );
                     continue;
                 }
-                ensure!(Instant::now() < deadline, "enrollment approval deadline expired");
-                let mut file = journal::open_private(&self.directory.join(&version.file), false, false)?;
-                ensure!(fingerprint_file(&mut file, self.limits.max_blob_bytes, None)? == version.fingerprint,
-                    "reviewed custody bytes changed");
-                total = total.checked_add(version.fingerprint.bytes()).context("approval byte overflow")?;
-                ensure!(total <= self.limits.max_total_bytes, "approval capacity exceeded");
+                ensure!(
+                    Instant::now() < deadline,
+                    "enrollment approval deadline expired"
+                );
+                let mut file =
+                    journal::open_private(&self.directory.join(&version.file), false, false)?;
+                ensure!(
+                    fingerprint_file(&mut file, self.limits.max_blob_bytes, None)?
+                        == version.fingerprint,
+                    "reviewed custody bytes changed"
+                );
+                total = total
+                    .checked_add(version.fingerprint.bytes())
+                    .context("approval byte overflow")?;
+                ensure!(
+                    total <= self.limits.max_total_bytes,
+                    "approval capacity exceeded"
+                );
                 versions.insert(version.file.clone(), version.fingerprint.clone());
             }
         }
-        ensure!(Instant::now() < deadline, "enrollment approval deadline expired");
+        ensure!(
+            Instant::now() < deadline,
+            "enrollment approval deadline expired"
+        );
         Ok(())
     }
 
@@ -176,19 +250,32 @@ impl ApprovedEnrollment {
         bundle: &super::staging::StageBundle<'_>,
     ) -> Result<BTreeSet<Vec<u8>>> {
         self.validate_preservation(root, id)?;
-        ensure!(bundle.repo_id() == id, "reviewed staging repository mismatch");
+        ensure!(
+            bundle.repo_id() == id,
+            "reviewed staging repository mismatch"
+        );
         let mut paths = BTreeSet::new();
         for asset in &self.review.assets {
             let path = super::index::decode_path(&asset.path_hex)?;
-            let job = bundle.jobs().iter().find_map(|lease| {
-                let job = lease.load().ok()?;
-                (job.spec().path_hex == asset.path_hex).then_some(job)
-            }).context("reviewed enrollment lacks a verified staging job")?;
-            ensure!(job.spec().source == asset.worktree.fingerprint,
-                "reviewed enrollment source version mismatch");
+            let job = bundle
+                .jobs()
+                .iter()
+                .find_map(|lease| {
+                    let job = lease.load().ok()?;
+                    (job.spec().path_hex == asset.path_hex).then_some(job)
+                })
+                .context("reviewed enrollment lacks a verified staging job")?;
+            ensure!(
+                job.spec().source == asset.worktree.fingerprint,
+                "reviewed enrollment source version mismatch"
+            );
             let source_path = PathBuf::from(std::ffi::OsString::from_vec(path.clone()));
-            let (_, actual) = capture::select_source(root, &source_path, self.limits.max_blob_bytes)?;
-            ensure!(actual == asset.worktree.fingerprint, "reviewed working source changed");
+            let (_, actual) =
+                capture::select_source(root, &source_path, self.limits.max_blob_bytes)?;
+            ensure!(
+                actual == asset.worktree.fingerprint,
+                "reviewed working source changed"
+            );
             paths.insert(path);
         }
         Ok(paths)

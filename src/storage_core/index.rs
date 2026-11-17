@@ -213,6 +213,33 @@ impl IndexTransaction {
     /// Unrelated entries survive; a changed manual index is never overwritten.
     /// Retrying a saved matching transaction reconciles before/after publication.
     pub fn stage(&self, snapshot: &IndexSnapshot, bundle: &StageBundle<'_>) -> Result<IndexProof> {
+        self.stage_authorized(snapshot, bundle, || Ok(BTreeSet::new()))
+    }
+
+    /// Forward-enroll explicitly reviewed raw paths with preserved staged/HEAD
+    /// versions. Verified copies, sticky contracts and index CAS still apply.
+    #[cfg(unix)]
+    pub fn stage_reviewed(
+        &self,
+        snapshot: &IndexSnapshot,
+        bundle: &StageBundle<'_>,
+        review: &super::enrollment_review::ApprovedEnrollment,
+    ) -> Result<IndexProof> {
+        self.stage_authorized(snapshot, bundle, || {
+            review.validate_bundle(
+                self.repo.workdir().ok_or(BackendFailure::Security)?,
+                &self.repo_id,
+                bundle,
+            )
+        })
+    }
+
+    fn stage_authorized(
+        &self,
+        snapshot: &IndexSnapshot,
+        bundle: &StageBundle<'_>,
+        authorize: impl FnOnce() -> Result<BTreeSet<Vec<u8>>>,
+    ) -> Result<IndexProof> {
         if bundle.repo_id() != self.repo_id
             || bundle
                 .manifest()
@@ -259,8 +286,9 @@ impl IndexTransaction {
         if self.snapshot()?.0 != snapshot.0 {
             bail!("manual index change conflicts with staging");
         }
-        self.check_enrollment(&current, bundle)?;
-        self.check_touched(&current, bundle)?;
+        let reviewed = authorize()?;
+        self.check_enrollment(&current, bundle, &reviewed)?;
+        self.check_touched(&current, bundle, &reviewed)?;
         let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
         let filename = format!(".dracon-storage-index-{}-{sequence}", std::process::id());
         let temporary = self.repo.path().join(&filename);
@@ -361,7 +389,12 @@ impl IndexTransaction {
         Ok(output.finalize()?)
     }
 
-    fn check_enrollment(&self, index: &Index, bundle: &StageBundle<'_>) -> Result<()> {
+    fn check_enrollment(
+        &self,
+        index: &Index,
+        bundle: &StageBundle<'_>,
+        reviewed: &BTreeSet<Vec<u8>>,
+    ) -> Result<()> {
         let previous =
             if let Some(entry) = index.iter().find(|entry| entry.path == self.metadata_path) {
                 if entry.mode != 0o100644 {
@@ -401,7 +434,10 @@ impl IndexTransaction {
             let old = previous
                 .as_ref()
                 .and_then(|manifest| manifest.enrollment(&new.path_hex));
-            if previous.is_none() && index.iter().any(|entry| entry.path == path) {
+            if previous.is_none()
+                && index.iter().any(|entry| entry.path == path)
+                && !reviewed.contains(&path)
+            {
                 bail!("existing tracked paths require reviewed enrollment migration");
             }
             if new.payload.is_some()
@@ -420,7 +456,12 @@ impl IndexTransaction {
         Ok(())
     }
 
-    fn check_touched(&self, index: &Index, bundle: &StageBundle<'_>) -> Result<()> {
+    fn check_touched(
+        &self,
+        index: &Index,
+        bundle: &StageBundle<'_>,
+        reviewed: &BTreeSet<Vec<u8>>,
+    ) -> Result<()> {
         if index.has_conflicts() {
             bail!("unresolved index conflicts block staging");
         }
@@ -443,11 +484,13 @@ impl IndexTransaction {
                 .as_ref()
                 .map(|entry| (entry.id(), entry.filemode() as u32))
                 != existing.as_ref().map(|entry| (entry.id, entry.mode))
+                && !reviewed.contains(path)
             {
                 bail!("manual staged edit or deletion conflicts with a managed path");
             }
             if let Some(existing) = existing {
                 if path != &self.metadata_path
+                    && !reviewed.contains(path)
                     && (!matches!(existing.mode, 0o100644 | 0o100755)
                         || bounded_pointer(&self.repo, existing.id)?.is_none())
                 {
