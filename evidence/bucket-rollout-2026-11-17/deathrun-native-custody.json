@@ -1,0 +1,10 @@
+{
+  "manifest_path": "/home/dracon/.local/state/dracon-sync/asset-rollout/native-pilot-20261117/reviews/enrollment-review-x36SGS/review.json",
+  "review_sha256": "8413a465866d8cd807f65722f1210a98474175c8c1d8cc958b32e4b741e1076f",
+  "assets": 402,
+  "preserved_versions": 412,
+  "preserved_bytes": 386859554,
+  "metadata_bytes": 685246,
+  "scope": "private native custody only; no source upload, enrollment, index mutation or history change",
+  "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun"
+}
