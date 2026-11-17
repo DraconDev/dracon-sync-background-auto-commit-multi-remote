@@ -6,7 +6,7 @@
 use anyhow::{ensure, Context, Result};
 use sha2::{Digest, Sha256};
 use std::fs::File;
-use std::io::{Seek, Write};
+use std::io::{Read, Seek, Write};
 use std::path::Path;
 use std::process::Stdio;
 use std::time::Duration;
@@ -212,6 +212,26 @@ pub async fn preserve_git_blob(
     ensure!(
         actual == format!("{oid}\n").as_bytes(),
         "Git custody object ID mismatch"
+    );
+    destination.rewind()?;
+    let mut verified = Sha256::new();
+    let mut bytes = 0u64;
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        ensure!(Instant::now() < deadline, "Git custody deadline expired");
+        let count = destination.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        bytes = bytes
+            .checked_add(count as u64)
+            .context("custody readback overflow")?;
+        ensure!(bytes <= expected, "Git custody readback size mismatch");
+        verified.update(&buffer[..count]);
+    }
+    ensure!(
+        Fingerprint::new(format!("{:x}", verified.finalize()), bytes)? == fingerprint,
+        "Git custody readback mismatch"
     );
     destination.rewind()?;
     Ok(fingerprint)
