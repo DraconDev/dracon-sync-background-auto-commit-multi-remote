@@ -135,6 +135,29 @@ pub async fn approve_review(
 }
 
 impl ApprovedEnrollment {
+    /// Select only an exact working version covered by this private review.
+    /// The caller still enforces placement/security policy and owns the Sync
+    /// mutation lease. This grants no upload or staging authority by itself.
+    pub fn select_source(
+        &self,
+        root: &Path,
+        id: &str,
+        path: &Path,
+    ) -> Result<(File, Fingerprint)> {
+        let deadline = Instant::now()
+            .checked_add(self.limits.timeout)
+            .context("invalid reviewed capture deadline")?;
+        self.validate_preservation_before(root, id, deadline)?;
+        let path_hex = journal::encode_relative_path(path.as_os_str().as_bytes())?;
+        let asset = self.review.assets.iter().find(|a| a.path_hex == path_hex)
+            .context("source path is outside the approved enrollment review")?;
+        let (source, actual) = capture::select_source_before(
+            root, path, self.limits.max_blob_bytes, Some(deadline.into_std()),
+        )?;
+        ensure!(actual == asset.worktree.fingerprint, "reviewed source version changed");
+        Ok((source, actual))
+    }
+
     fn validate_preservation(&self, root: &Path, id: &str) -> Result<()> {
         ensure!(
             !self.limits.timeout.is_zero() && self.limits.max_blob_bytes > 0,

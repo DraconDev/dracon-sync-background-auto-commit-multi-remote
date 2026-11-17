@@ -385,6 +385,32 @@ pub(crate) struct AdvanceOptions {
 
 #[derive(Debug, Clone, Subcommand)]
 pub(crate) enum StorageCommand {
+    /// Preserve HEAD, staged and working versions for explicit forward enrollment.
+    /// Creates a private review only; no upload, binding, filter or Git change.
+    #[cfg(unix)]
+    PrepareEnrollmentReview {
+        #[arg(long)]
+        repo: PathBuf,
+        #[arg(long)]
+        repo_id: String,
+        #[arg(long)]
+        custody_root: PathBuf,
+        /// Absolute operator-selected Git executable.
+        #[arg(long)]
+        git: PathBuf,
+        #[arg(long, default_value_t = 1024 * 1024 * 1024)]
+        max_blob_bytes: u64,
+        #[arg(long, default_value_t = 4 * 1024 * 1024 * 1024)]
+        max_total_bytes: u64,
+        #[arg(long, default_value_t = 8 * 1024 * 1024 * 1024)]
+        max_retained_bytes: u64,
+        #[arg(long, default_value_t = 120)]
+        timeout_secs: u64,
+        #[arg(long)]
+        json: bool,
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+    },
     /// Capture an updated version of an enrolled path; keeps the recorded
     /// contract and refuses unhydrated references; no upload or Git mutation.
     CaptureUpdate {
@@ -432,6 +458,13 @@ pub(crate) enum StorageCommand {
         max_retained_snapshot_bytes: u64,
         #[arg(long)]
         json: bool,
+        /// Exact private review for an existing tracked source; operator input only.
+        #[cfg(unix)]
+        #[arg(long, requires = "review_sha256")]
+        review_manifest: Option<PathBuf>,
+        #[cfg(unix)]
+        #[arg(long, requires = "review_manifest")]
+        review_sha256: Option<String>,
         path: PathBuf,
     },
     /// Prepare/copy one captured version; stops before staging, committing or pushing.
@@ -1167,6 +1200,32 @@ fn journal_status(
 }
 
 pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
+    #[cfg(unix)]
+    if let StorageCommand::PrepareEnrollmentReview {
+        repo, repo_id, custody_root, git, max_blob_bytes, max_total_bytes,
+        max_retained_bytes, timeout_secs, json, paths,
+    } = command {
+        use dracon_sync::storage_core::enrollment_review::{prepare_review, ReviewLimits, ReviewRequest};
+        let repo = root(repo)?;
+        let _owner = crate::git::sync_lease::try_acquire(&repo)?
+            .context("repository is busy; retry review after the current Sync operation")?;
+        let receipt = prepare_review(ReviewRequest {
+            repo: &repo, repo_id, paths, custody_root, git,
+            limits: ReviewLimits {
+                max_blob_bytes: *max_blob_bytes,
+                max_total_bytes: *max_total_bytes,
+                max_retained_bytes: *max_retained_bytes,
+                timeout: std::time::Duration::from_secs(*timeout_secs),
+            },
+        }).await?;
+        if *json {
+            println!("{}", serde_json::to_string_pretty(&receipt)?);
+        } else {
+            println!("Private enrollment review {}: {} paths, {} preserved versions; no Git change or upload.", receipt.review_sha256, receipt.assets, receipt.preserved_versions);
+            println!("{}", receipt.manifest_path.display());
+        }
+        return Ok(());
+    }
     if matches!(
         command,
         StorageCommand::Capture { .. } | StorageCommand::CaptureUpdate { .. }
@@ -1284,6 +1343,8 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
         return Ok(());
     }
     let (repo, policy_path, json) = match command {
+        #[cfg(unix)]
+        StorageCommand::PrepareEnrollmentReview { .. } => unreachable!("review handled above"),
         StorageCommand::Capture { .. }
         | StorageCommand::CaptureUpdate { .. }
         | StorageCommand::AdvanceJob(_)
