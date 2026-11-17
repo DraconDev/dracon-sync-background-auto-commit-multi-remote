@@ -10,6 +10,8 @@ pub mod bindings;
 pub mod capture;
 pub mod git_custody;
 pub mod clean;
+#[cfg(unix)]
+pub mod enrollment_review;
 #[cfg(target_os = "linux")]
 pub mod hydration;
 pub mod index;
