@@ -55,15 +55,16 @@ evidence of live archival-source coverage.
   quotas reported accurately rather than marked successful.
 - Historical inventory and separately reviewable migration plan.
 
-## Guard candidate and custody checkpoint
+## Guard deployment and custody checkpoint
 
-The candidate is isolated under `/tmp/bucket-guard-repair-3orn_zhx`; it has not
-been installed into the shared platform guard. The reviewable patch and receipts
-are in `evidence/bucket-rollout-2026-11-17/`. Its complete applicable guard suite
-passes 83 tests, including nine new outgoing/local-admission controls. Hook
-fixture subprocesses receive a 30-second harness timeout; production operation
-deadlines are unchanged. An offline probe against Deathrun's real staged state
-passed with approximately 30.4 MB outgoing against the 2.056 GB provider budget.
+The corrected guard is installed in the shared platform scripts. Its complete
+applicable suite passed 84 tests. The first deployment restored local commits
+but let an unrelated mirror's backlog reject a pinned push. The final guard
+checks the actual destination for each pre-push invocation. The live pinned
+Deathrun transfer passed at about 64 MB against the 2.056 GB budget. Direct
+authenticated queries confirmed both remotes at `b02db78aeacb5ffee1e817ed15bf67c9eb3d1b44`,
+which contains the recovered art commits. The reviewable patch, install receipts,
+and publication witness are in `evidence/bucket-rollout-2026-11-17/`.
 
 The candidate distinguishes local staged admission from per-provider outgoing
 publication, keeps complete reachable storage as a separate diagnostic, and
