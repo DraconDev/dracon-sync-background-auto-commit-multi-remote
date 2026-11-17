@@ -1,0 +1,1 @@
+{"schema_version":1,"scope":"independent SDK conditional-write diagnostic; synthetic 64-byte object only","key_sha256":"23aba799d137d959afb8f703df4caaf0cc68ea7580fbfe3697f90cd701ef576a","creates":[{"status":403,"code":"AccessDenied"},{"status":403,"code":"AccessDenied"}],"initialReadback":false,"conflict":null,"finalReadback":false,"sourceUploaded":false,"objectsDeleted":false}

@@ -1,0 +1,10 @@
+   Compiling dracon-sync v0.113.99 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 56s
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-6bd9a68fcc389dbf)
+
+running 2 tests
+test git::multi_remote::tests::test_ls_remote_indicates_missing_classification ... ok
+test git::multi_remote::tests::test_push_err_indicates_repo_missing ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1726 filtered out; finished in 0.00s
+

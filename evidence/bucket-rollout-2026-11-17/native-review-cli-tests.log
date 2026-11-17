@@ -1,0 +1,9 @@
+   Compiling dracon-sync v0.113.99 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 31s
+     Running tests/storage_review.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/storage_review-0682a05181c2a538)
+
+running 1 test
+test reviewed_capture_preserves_all_versions_and_refuses_unreviewed_or_changed_sources ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+
