@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "repository": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+  "revision": "b02db78aeacb5ffee1e817ed15bf67c9eb3d1b44",
+  "path": "assets-source/world-kit-2026-11-16/orb-ai-src.png",
+  "source_bytes": 590872,
+  "ciphertext_bytes": 591748,
+  "ciphertext_sha256": "b4f070797f965d25c87796ab4b4147e84e0c67cc985e50760457a89964dd88ff",
+  "local_warden_roundtrip": true,
+  "put_status": 200,
+  "consumer_ciphertext_verified": true,
+  "encrypted_payload_bytes": 591748,
+  "bucket": "dracon-lfs",
+  "prefix": "games/native-archival-v1/deathrun",
+  "independent_empty_repo_decryption_verified": true,
+  "restore_comparison": "published Git blob at pinned revision",
+  "placement_changed": false,
+  "native_enrollment_qualified": false
+}
