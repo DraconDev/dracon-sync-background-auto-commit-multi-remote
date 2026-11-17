@@ -3282,9 +3282,7 @@ pub(crate) enum LayoutTier {
     /// per multi-line block (the detailed per-repo view).
     Vertical,
     /// Auto-picked for < 165 cols (and opt-in via `--layout compact`):
-    /// 16-column narrow table (no 1h/6h/24h split, merged STATE+ACT).
-    /// CORRECTED 2026-10-03 (audit R3-L37): the old "120-200" band
-    /// and "15 columns" predate v0.113.26/v0.113.x.
+    /// Width-bounded overview with per-repo detail available on demand.
     Compact,
     /// Opt-in ONLY via `--layout full` (never auto-picked since
     /// v0.113.26): the 23-column table. CORRECTED 2026-10-03 (audit
@@ -5520,15 +5518,11 @@ pub(crate) async fn run_repos_report(
         LayoutTier::Compact => {
             println!(
                 "{}",
-                build_repos_compact_table(
-                    &rows,
-                    &filter,
-                    concern_count_all,
-                    warn_count_all,
-                    ok_count_all,
-                    full_path,
-                )
+                build_repos_compact_table(&rows, full_path, terminal_width().unwrap_or(120))
             );
+            if let Some(detail) = rich_hint_link_out(&rows) {
+                println!("{detail}");
+            }
         }
         LayoutTier::Full => {
             println!(
@@ -6135,213 +6129,59 @@ fn human_bytes(b: u64) -> String {
     }
 }
 // ---------------------------------------------------------------------------
-// Layout tier 2: compact (auto-picked for < 165 cols; opt-in otherwise)
-// 16 columns. Drops: 1h/6h/24h split, AUTHOR, PUSHED, REM, SIZE, TOUCHED.
-// Merges STATE+ACT into one column. Keeps STATUS, REPO, ROLE, BRANCH,
-// PUBLISH, MOD/STG/UT counts, AHEAD/BEHIND, PUSH, PUSH-TO, LAST COMMIT,
-// HINT. CORRECTED 2026-10-03 (audit R3-L37): was "120-200 cols,
-// 14 columns" with a stale keeps/drops list.
-// ---------------------------------------------------------------------------
+// Layout tier 2: compact. Repository details remain available by row number.
 fn build_repos_compact_table(
     rows: &[RepoReportRow],
-    _filter: &RepoFilter,
-    _concern_count_all: usize,
-    _warn_count_all: usize,
-    _ok_count_all: usize,
     full_path: bool,
+    terminal_cols: u16,
 ) -> comfy_table::Table {
     use comfy_table::{
-        presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ColumnConstraint, ContentArrangement,
-        Table, Width,
+        presets::UTF8_FULL_CONDENSED, Cell, ColumnConstraint, Table, Width,
     };
-    let _ = (_filter, _concern_count_all, _warn_count_all, _ok_count_all);
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL_CONDENSED);
-    table.set_content_arrangement(ContentArrangement::Dynamic);
-    // Force the table to fit the actual terminal width. Without this, comfy-table's
-    // Dynamic arrangement uses each column's natural content width, producing 553+
-    // char rows in 200-299 col terminals (Compact tier). With set_width, columns
-    // shrink to fit and cell content is truncated (with …) instead of letter-wrapped.
-    if let Some(w) = terminal_width() {
-        if (40..=2000).contains(&w) {
-            table.set_width(w);
-        }
+    let counts = terminal_cols >= 72;
+    let status_width = status_column_width();
+    let fixed = 6 + status_width + 12;
+    let counts_width = if counts { 13 + 13 } else { 0 };
+    let borders = if counts { 7 } else { 5 };
+    let name_width = usize::from(terminal_cols).saturating_sub(fixed + counts_width + borders)
+        .clamp(3, 72);
+
+    let mut headers = vec!["#", "Status", "Repository"];
+    let mut widths = vec![6, status_width, name_width];
+    if counts {
+        headers.extend(["M/S/U", "↑/↓"]);
+        widths.extend([13, 13]);
     }
+    headers.push("Push");
+    widths.push(12);
+    table.set_header(headers);
+    table.set_constraints(widths.into_iter().map(|width|
+        ColumnConstraint::Absolute(Width::Fixed(width as u16))
+    ));
 
-    let mk_h = |icon: &str, label: &str| -> Cell {
-        Cell::new(format!("{icon} {label}")).add_attribute(Attribute::Bold)
-    };
-
-    table.set_header(vec![
-        Cell::new("#"),
-        mk_h("🏷", "STATUS"),
-        mk_h("📦", "REPO"),
-        mk_h("🔗", "ROLE"),
-        mk_h("🌿", "BRANCH"),
-        mk_h("🔗", "PUBLISH"),
-        mk_h("M", "MOD"),
-        mk_h("S", "STG"),
-        mk_h("U", "UT"),
-        mk_h("↑", "AHEAD"),
-        mk_h("↓", "BEHIND"),
-        mk_h("🚀", "PUSH"),
-        mk_h("🛰", "PUSH-TO"),
-        mk_h("📜", "LAST COMMIT"),
-        mk_h("🩺", "STATE+ACT"),
-        mk_h("💡", "HINT"),
-    ]);
-
-    // Set minimum widths so the table never letter-wraps content.
-    // Each minimum = max(header_text_width + 2 padding, content_min_width).
-    // Sum: 3+11+18+7+11+18+8+8+7+9+11+13+18+18+17+22 = 199 + 16 borders = 215 cols min
-    // CORRECTED 2026-10-03 (audit R3-L37): was "Compact tier is 250-299
-    // cols" — Compact is auto-picked for < 165 (opt-in otherwise), so
-    // the 215 floor EXCEEDS narrow terminals and comfy-table squashes
-    // gracefully (Dynamic arrangement); the floor is advisory.
-    // F30v2 (2026-07-19): LAST COMMIT and HINT must be Absolute, not
-    // LowerBoundary, so long content is truncated in the cell (not
-    // wrapped). PUSH-TO is a string with multi-word remotes — keep
-    // LowerBoundary(32) so it can fit when terminal is wide.
-    table.set_constraints(vec![
-        // 2026-07-19 (goal `4555eaf6`): REPO and PUBLISH were
-        // LowerBoundary(18). On narrow terminals (220-260 cols) the
-        // table's set_width() shrinks all LowerBoundary columns to
-        // whatever fits, but `LowerBoundary` only enforces a MINIMUM
-        // — if a column's content is short, the column shrinks; if
-        // the content is long, the column grows. Result: cells with
-        // variable-length content (REPO names like
-        // `pully-fully-pull-based-fleet-reconciler` = 38 chars, or
-        // `wip/hegemon` ROLE labels) would letter-wrap onto a second
-        // line on narrow terminals.
-        //
-        // Fix: switch REPO, ROLE, PUBLISH, STATE+ACT, HINT to
-        // Absolute widths and apply `truncate_unicode_width(..., N-2)`
-        // to the cell content before passing to comfy-table. Column
-        // sum drops from 232 → 217, so the table now fits at 220+ cols.
-        ColumnConstraint::Absolute(Width::Fixed(4)), // # (R3-L39: fits up to 99 repos; 100+ wraps the index cell, never clips — probed on comfy-table 7.2.2)
-        ColumnConstraint::Absolute(Width::Fixed(status_column_width() as u16)), // STATUS (derived: widest label + padding)
-        ColumnConstraint::Absolute(Width::Fixed(18)), // REPO (truncate to 16 cols of content; fits 'browser-extensions-shared' = 24 chars as 'browser-extensions…')
-        ColumnConstraint::Absolute(Width::Fixed(14)), // ROLE (was LowerBoundary(7); was bug — 7 < min content 'standalone' = 10 chars, wraps; now fits 'parent·10' = 9, 'wip/hegemon' = 11, 'released/one-mil-girls' = 22 → truncate to 12)
-        ColumnConstraint::Absolute(Width::Fixed(11)), // BRANCH (header 7 + 2 + 2 buffer)
-        ColumnConstraint::Absolute(Width::Fixed(18)), // PUBLISH (truncate to 16 cols; fits 'gitlab/main', 'github/main')
-        ColumnConstraint::Absolute(Width::Fixed(8)),  // M (header 4 + 2 + 2 for digit)
-        ColumnConstraint::Absolute(Width::Fixed(8)),  // S (header 4 + 2 + 2 for digit)
-        ColumnConstraint::Absolute(Width::Fixed(7)),  // U (header 4 + 2 + 1 buffer)
-        ColumnConstraint::Absolute(Width::Fixed(9)),  // AHEAD (header 5 + 2 + 2 buffer)
-        ColumnConstraint::Absolute(Width::Fixed(11)), // BEHIND (header 6 + 2 + 3 buffer)
-        ColumnConstraint::Absolute(Width::Fixed(13)), // PUSH (header 7 + 2 + 4 for '🟣 PENDING')
-        ColumnConstraint::Absolute(Width::Fixed(32)), // PUSH-TO (truncate to 30 cols; was LowerBoundary(32) — same effect)
-        ColumnConstraint::Absolute(Width::Fixed(18)), // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
-        ColumnConstraint::Absolute(Width::Fixed(17)), // STATE+ACT (truncate to 15)
-        ColumnConstraint::Absolute(Width::Fixed(26)), // HINT (2026-07-19 bump 22→26; truncate to 24 to fit 'daemon handles after changes settle' = 33 → 'daemon handles after chan…')
-    ]);
-
-    for (idx, row) in rows.iter().enumerate() {
-        let (status_text, status_color) = status_pair(row);
-
-        let repo_name = if full_path {
-            row.repo.clone()
+    for (index, row) in rows.iter().enumerate() {
+        let (status, status_color) = status_pair(row);
+        let name = if full_path {
+            row.repo.as_str()
         } else {
-            std::path::Path::new(&row.repo)
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| row.repo.clone())
+            Path::new(&row.repo).file_name().and_then(|name| name.to_str()).unwrap_or(&row.repo)
         };
-        // 2026-07-19 (goal `4555eaf6`): REPO column is Absolute(18);
-        // truncate to 16 cols (minus 2 padding) so names like
-        // `pully-fully-pull-based-fleet-reconciler` (38 chars) don't
-        // letter-wrap on narrow terminals. Truncation already happens
-        // implicitly when content exceeds the column width — but
-        // comfy-table's truncation is non-unicode-aware, so we apply
-        // `truncate_unicode_width` explicitly for emoji-width safety.
-        let repo_name = truncate_unicode_width(&repo_name, 16);
-
-        let commit_summary = if row.last_hash == "-" {
-            "-".to_string()
-        } else {
-            // F30v2 (2026-07-19): truncate to fit the LAST COMMIT column.
-            // The column constraint is Absolute(18) which means total
-            // column width including comfy-table's default left+right
-            // cell padding (1 col each side, so 16 cols of content).
-            // Without subtracting the padding, content exactly at the
-            // column limit overflows by 2 cols and wraps to a 2nd line.
-            commit_summary_cell(&row.last_hash, &row.last_msg, 16)
-        };
-
-        // Combine state + activity into one cell to save horizontal space.
-        // 2026-07-19 (goal `4555eaf6` v0.112.25 follow-up): use
-        // `state_plus_act_cell` so the activity part is dropped
-        // cleanly when the 15-col budget is tight, instead of being
-        // truncated mid-emoji (e.g., `🟠 dirty · ⏳ …`). Activity
-        // is informative but secondary — the state component
-        // (healthy/dirty/cold/etc.) is what the operator needs.
-        let state_plus_act = truncate_unicode_width(&current_health::label(row), 15);
-        let state_plus_act_color = status_color;
-
-        // HINT — author suffix intentionally omitted (v0.112.27 R2).
-        // The author is `git log -1 --format=%an`; for a solo
-        // operator who freestyles git identities, appending
-        // `· by DraconDev` to the hint is misleading noise.
-        let mut hint_text = row.hint.clone();
-        // F30v2 (2026-07-19): truncate to fit the HINT column.
-        // HINT is Absolute(26) (was LowerBoundary(22) in v0.112.24),
-        // so without truncation the column grows to 80+ chars to fit
-        // long content like
-        // "daemon handles after changes settle; run sync-now --warns to force now · by dracon".
-        // With 250-col terminal and 23 columns, HINT can swallow half the table.
-        // Truncate to the column width minus 2 padding = 24 cols.
-        hint_text = truncate_unicode_width(&hint_text, 24);
-        let hint_color = status_color;
-
-        // Last daemon-recorded push, independent of current changes.
-        let (push_text, push_color) = current_health::push(row);
-
-        // Classify each row's topology role (parent / submod / standalone).
-        // Computed once before the row loop, not per-row at render time.
-        let roles = crate::role::classify_roles(rows);
-
-        table.add_row(vec![
-            Cell::new(idx + 1),
-            Cell::new(status_text).fg(status_color),
-            Cell::new(repo_name),
-            role_cell(&roles[idx], 12),
-            // FIXED 2026-10-03 (audit L17): shared branch shaper —
-            // explicit truncate instead of comfy-table's clip.
-            Cell::new(branch_cell_content(&row.branch)).fg(branch_color_for(&row.branch)),
-            Cell::new(publish_cell_label(&row.upstream, row.publish_state, 16))
-                .fg(publish_state_color(row.publish_state)),
-            Cell::new(row.modified).fg(if row.modified > 0 {
-                Color::Yellow
-            } else {
-                Color::White
-            }),
-            Cell::new(row.staged).fg(if row.staged > 0 {
-                Color::Cyan
-            } else {
-                Color::White
-            }),
-            Cell::new(row.untracked),
-            Cell::new(row.ahead).fg(if row.ahead > 0 {
-                Color::Yellow
-            } else {
-                Color::White
-            }),
-            Cell::new(row.behind).fg(if row.behind > 0 {
-                Color::Red
-            } else {
-                Color::White
-            }),
-            Cell::new(push_text).fg(push_color),
-            format_push_to_remotes_cell(
-                &row.push_to_remotes,
-                &row.excluded_remotes,
-                row.codeberg_skip_reason.as_deref(),
-            ),
-            Cell::new(commit_summary),
-            Cell::new(state_plus_act).fg(state_plus_act_color),
-            Cell::new(hint_text).fg(hint_color),
-        ]);
+        let mut cells = vec![
+            Cell::new(index + 1),
+            Cell::new(status).fg(status_color),
+            Cell::new(truncate_unicode_width(name, name_width - 2)),
+        ];
+        if counts {
+            cells.push(Cell::new([row.modified, row.staged, row.untracked]
+                .map(format_compact_count).join("/")));
+            cells.push(Cell::new(ahead_behind_cell(row.ahead, row.behind)));
+        }
+        let (push, color) = current_health::push(row);
+        cells.push(Cell::new(truncate_unicode_width(&push, 10)).fg(color));
+        table.add_row(cells);
     }
     table
 }
@@ -14823,63 +14663,6 @@ mod tests {
         );
     }
 
-    /// Verify the sum of all 16 column minimums in `print_repos_compact_table`
-    /// plus 15 borders stays within the advisory 244-col floor (REFRESHED
-    /// 2026-10-03, audit R3-L38: was "< 220 cols (Vertical is for < 220)"
-    /// — Compact is auto-picked for < 165 since v0.113.26, so the 242
-    /// floor exceeds narrow terminals and comfy-table squashes).
-    ///
-    /// 2026-07-19 (goal `4555eaf6`): REPO (18), ROLE (14), PUBLISH (18),
-    /// PUSH-TO (32), LAST COMMIT (18), STATE+ACT (17), HINT (26) all
-    /// became Absolute so cells with variable-length content
-    /// (`pully-fully-pull-based-fleet-reconciler`, `released/one-mil-girls`,
-    /// `⚠️ origin/main (gone)`, etc.) are truncated rather than letter-wrapped
-    /// onto a second line on narrow terminals.
-    #[test]
-    fn test_branch_cell_content_truncates_to_nine() {
-        // ADDED 2026-10-03 (audit L17): shared compact/full BRANCH
-        // shaper (Absolute(11) − padding). Grapheme-safe: no half-flag.
-        assert_eq!(branch_cell_content("main"), "main");
-        let flag = "\u{1f1eb}\u{1f1f7}";
-        let cell = branch_cell_content(&format!("ab{flag}cdefghij"));
-        let w: usize = cell
-            .chars()
-            .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
-            .sum();
-        assert!(w <= 9, "branch cell must fit 9 cols: {cell:?} ({w})");
-        assert!(cell.ends_with('…'), "long branch truncates: {cell:?}");
-        assert!(
-            cell.contains(flag),
-            "grapheme kept whole, not split: {cell:?}"
-        );
-    }
-
-    #[test]
-    fn test_compact_table_min_width_within_250() {
-        // The values here MUST match the set_constraints in print_repos_compact_table.
-        // If you change the table layout, update both at once.
-        // 16 cols: #, STATUS, REPO, ROLE, BRANCH, PUBLISH, MOD, STG, UT,
-        // AHEAD, BEHIND, PUSH, PUSH-TO, LAST COMMIT, STATE+ACT, HINT.
-        // R3-L38 (2026-10-03): HINT 22 → 26 — the array never caught
-        // the 2026-07-19 bump production carries (its own MUST-match
-        // contract was violated).
-        let minimums: [u16; 16] = [4, 13, 18, 14, 11, 18, 8, 8, 7, 9, 11, 13, 32, 18, 17, 26];
-        let sum: u32 = minimums.iter().map(|&x| x as u32).sum();
-        let borders: u32 = 15;
-        let total = sum + borders;
-        // 2026-07-19 (goal `4555eaf6` v0.112.25): threshold bumped
-        // 240 → 244 to match the new HINT column bump (22 → 26).
-        // The 227 cols minimum + 15 borders + 2 headroom is
-        // unavoidable because PUSH-TO 32, HINT 26, REPO 18, ROLE 14,
-        // PUBLISH 18 are all needed to fit variable-length content
-        // on narrow terminals.
-        assert_eq!(
-            total, 242,
-            "Compact table floor moved from the advisory 242 cols: update \
-             the array above and the constraints together."
-        );
-    }
-
     /// F30v2 regression (2026-07-19): a 152-char commit subject must
     /// be truncated to fit the LAST COMMIT column (17 chars for full
     /// tier, 18 for compact) — NOT passed through to comfy-table,
@@ -17652,7 +17435,7 @@ mod v011321_tests {
                 wrapped_body_lines(&rendered)
             );
         }
-        let compact = build_repos_compact_table(&rows, &filter, 0, 0, 0, false).to_string();
+        let compact = build_repos_compact_table(&rows, false, 80).to_string();
         assert!(
             wrapped_body_lines(&compact).is_empty(),
             "compact tier wrapped a cell:\n{compact}"
