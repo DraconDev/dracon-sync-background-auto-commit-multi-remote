@@ -309,19 +309,28 @@ impl ApprovedEnrollment {
             bundle.repo_id() == id,
             "reviewed staging repository mismatch"
         );
+        // Read each leased job once. Reopening the journal for every
+        // asset/job pair makes a large review spend its deadline on metadata.
+        let mut sources = BTreeMap::new();
+        for lease in bundle.jobs() {
+            ensure!(Instant::now() < deadline, "staging review deadline expired");
+            let job = lease.load()?;
+            let spec = job.spec();
+            ensure!(
+                sources
+                    .insert(spec.path_hex.clone(), spec.source.clone())
+                    .is_none(),
+                "duplicate reviewed staging job"
+            );
+        }
         let mut paths = BTreeSet::new();
         for asset in &self.review.assets {
             let path = super::staging::decode_path(&asset.path_hex)?;
-            let job = bundle
-                .jobs()
-                .iter()
-                .find_map(|lease| {
-                    let job = lease.load().ok()?;
-                    (job.spec().path_hex == asset.path_hex).then_some(job)
-                })
+            let source = sources
+                .get(&asset.path_hex)
                 .context("reviewed enrollment lacks a verified staging job")?;
             ensure!(
-                job.spec().source == asset.worktree.fingerprint,
+                source == &asset.worktree.fingerprint,
                 "reviewed enrollment source version mismatch"
             );
             let source_path = PathBuf::from(std::ffi::OsString::from_vec(path.clone()));
