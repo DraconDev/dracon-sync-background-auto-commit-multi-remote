@@ -153,3 +153,11 @@ The staging CLI and new cold-checkout fixture are still undergoing validation.
 The fixture exercises the command wiring with a local backend and a Warden
 protocol stand-in. Live provider read-back and real Deathrun build and runtime
 checks are separate rollout evidence.
+
+A consumer can bind `storage filter-clean --restore-root ...` in place of a
+producer journal. Successful authenticated recovery writes a private receipt
+for that repository, path, payload and placement contract. The filter checks
+the receipt against the protected indexed manifest and rehashes the retained
+source before accepting identical input. Neither a changed working file nor a
+corrupted cache file can produce a pointer. A cache made before receipt
+support needs one authenticated recovery to create the receipt.

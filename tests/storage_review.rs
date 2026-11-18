@@ -205,6 +205,8 @@ fn reviewed_capture_preserves_all_versions_and_refuses_unreviewed_or_changed_sou
     assert!(!early.status.success());
     assert!(String::from_utf8_lossy(&early.stderr).contains("verified copies"));
     assert!(!metadata.join(&id).exists());
+    // The transfer CLI intentionally opens only operator-provisioned backends.
+    dracon_sync::storage_core::backend::LocalBackend::open(&root.join("archive"), 1024).unwrap();
     let advanced = sync(
         &[
             "storage",
