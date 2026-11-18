@@ -55,5 +55,15 @@
     "copied_journal_clean_outputs_equal_to_trial_pointers": 17,
     "shared_kernel_lease_control_passed": true,
     "canonical_checkout_changed": false
+  },
+  "platform_guard_rehearsal": {
+    "source_revision": "ac6d839fbbcfcc3109b59b2e5537ff68506a0033",
+    "enrolled_revision": "e0d874e39652caaa8efb84ca6036ea2d606be1ed",
+    "disposable_clone_without_object_alternates": true,
+    "staged_admission_projected_bytes": 525088,
+    "github_target_projected_bytes": 496512,
+    "gitlab_target_projected_bytes": 496512,
+    "forward_only_passed": true,
+    "network_push_attempted": false
   }
 }
