@@ -5168,7 +5168,12 @@ pub(crate) async fn run_repos_report(
                 .map(|(remote, count)| format!("{remote} missing {count}"))
                 .collect::<Vec<_>>()
                 .join(", ");
-            let detail = hint.strip_prefix("healthy; ").unwrap_or(&hint);
+            let detail = hint
+                .strip_prefix("healthy; ")
+                .or_else(|| {
+                    hint.strip_prefix("run dracon-sync repair concerns --apply (push or rewrite); ")
+                })
+                .unwrap_or(&hint);
             hint = format!("pending mirror publication ({lag}); {detail}");
         }
         let row = RepoReportRow {
@@ -5579,9 +5584,7 @@ pub(crate) async fn run_repos_report(
         LayoutTier::Compact => {
             let width = terminal_width().unwrap_or(120);
             println!("{}", build_repos_compact_table(&rows, full_path, width));
-            if let Some(detail) = rich_hint_link_out(&rows) {
-                println!("{}", wrap_legend_text(&detail, usize::from(width)));
-            }
+            print_repos_attention(&rows, width);
         }
         LayoutTier::Full => {
             println!(
@@ -7307,6 +7310,14 @@ fn rich_hint_link_out(rows: &[RepoReportRow]) -> Option<String> {
     ))
 }
 
+fn print_repos_attention(rows: &[RepoReportRow], width: u16) {
+    if let Some(details) = rich_hint_link_out(rows) {
+        for line in details.lines() {
+            println!("{}", wrap_legend_text(line, usize::from(width)));
+        }
+    }
+}
+
 /// ADDED 2026-07-22 (v0.112.38): the default table view — a rich
 /// 16-column table (`#` · STATUS · REPO · MIRROR LAG · 📝📦🆕🚫 · A/B ·
 /// PUSH · REM · 1H/6H/24H · SIZE · TOUCHED), auto-picked for terminals
@@ -7330,23 +7341,9 @@ fn print_repos_rich_table(
     _ok_count: usize,
     full_path: bool,
 ) {
-    println!(
-        "{}",
-        build_repos_rich_table(
-            rows,
-            full_path,
-            terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16)
-        )
-    );
-    if let Some(line) = rich_hint_link_out(rows) {
-        println!(
-            "{}",
-            wrap_legend_text(
-                &line,
-                usize::from(terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16))
-            )
-        );
-    }
+    let width = terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16);
+    println!("{}", build_repos_rich_table(rows, full_path, width));
+    print_repos_attention(rows, width);
 }
 
 fn build_repos_rich_table(
