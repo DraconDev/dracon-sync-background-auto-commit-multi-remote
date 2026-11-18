@@ -48,5 +48,12 @@
     "source_bytes_verified": 590872,
     "fresh_cache": true,
     "consumer_only": true
+  },
+  "canonical_staging_preflight": {
+    "head_reviewed": "c4426cea6518b3d4a11523c19d8034bb8355ab5a",
+    "copied_metadata_verified_against_disposable_index": true,
+    "copied_journal_clean_outputs_equal_to_trial_pointers": 17,
+    "shared_kernel_lease_control_passed": true,
+    "canonical_checkout_changed": false
   }
 }
