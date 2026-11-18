@@ -130,3 +130,26 @@ need qualification. See `deathrun-orb-bucket-pilot.json` in the evidence directo
 The browser extensions still require a separate scoped bucket binding. The
 measured history and proposed archival cutover are recorded in
 `historical-storage-migration-2026-11-17.md`.
+
+## Reviewed staging command
+
+The source tree now has a CLI path from reviewed capture through staging.
+`storage prepare-enrollment-manifest` checks the exact review against the
+leased jobs and requires every declared bucket copy to have a verification
+receipt. Its optional `--ciphertext-out` exports the protected manifest to a
+new path outside the checkout.
+
+`storage stage-enrollment` takes the same review, job IDs and prepared
+metadata ID. It requires the proposed append to root `.gitattributes` and the
+exact protected manifest to be installed in the worktree, plus the required
+clean driver bound to the same operator paths. It acquires the repository
+operation lease, verifies the candidate index and publishes the attributes,
+pointers and protected manifest together. It then checks and binds the
+commit guard before releasing the lease. An interrupted guard setup can be
+finished with `storage setup-guard` using the same repository and manifest
+bindings. Publication of the Git commit remains the daemon's job.
+
+The staging CLI and new cold-checkout fixture are still undergoing validation.
+The fixture exercises the command wiring with a local backend and a Warden
+protocol stand-in. Live provider read-back and real Deathrun build and runtime
+checks are separate rollout evidence.

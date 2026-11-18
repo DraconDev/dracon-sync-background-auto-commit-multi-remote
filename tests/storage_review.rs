@@ -166,6 +166,7 @@ fn reviewed_capture_preserves_all_versions_and_refuses_unreviewed_or_changed_sou
     .unwrap();
     std::fs::set_permissions(&warden, std::fs::Permissions::from_mode(0o700)).unwrap();
     let metadata = root.join("metadata");
+    let ciphertext_out = root.join("verified-manifest.age");
     std::fs::DirBuilder::new()
         .mode(0o700)
         .create(&metadata)
@@ -192,6 +193,8 @@ fn reviewed_capture_preserves_all_versions_and_refuses_unreviewed_or_changed_sou
                 &bad_digest,
                 "--warden",
                 warden.to_str().unwrap(),
+                "--ciphertext-out",
+                ciphertext_out.to_str().unwrap(),
                 "--job-id",
                 job_id,
             ],
@@ -237,45 +240,98 @@ fn reviewed_capture_preserves_all_versions_and_refuses_unreviewed_or_changed_sou
     let store =
         dracon_sync::storage_core::metadata::MetadataStore::open(&metadata, &id, Limits::default())
             .unwrap();
-    let (protected, decoded) = store.load_prepared_manifest(prepared_metadata_id).unwrap();
+    let (_, decoded) = store.load_prepared_manifest(prepared_metadata_id).unwrap();
     assert_eq!(decoded.enrollments().len(), 1);
     assert_eq!(
         std::fs::read(repo.path().join("index")).unwrap(),
         index_before
     );
 
-    use dracon_sync::storage_core::{
-        enrollment_review::{approve_review_digest, ReviewLimits},
-        index::IndexTransaction,
-        staging::StageBundle,
-    };
-    let runtime = tokio::runtime::Runtime::new().unwrap();
-    let approval = runtime
-        .block_on(approve_review_digest(
-            &work,
-            &id,
-            Path::new(review),
-            digest,
-            ReviewLimits {
-                max_blob_bytes: 1024,
-                max_total_bytes: 4096,
-                max_retained_bytes: 128 * 1024,
-                timeout: std::time::Duration::from_secs(30),
-            },
-        ))
-        .unwrap();
-    let lease = jobs.lease(job_id).unwrap();
-    let bundle = StageBundle::build(&store, &protected, &decoded, vec![&lease]).unwrap();
+    use sha2::{Digest, Sha256};
     let manifest_path = ".dracon/assets.manifest";
-    let tx = IndexTransaction::open(
-        &work,
-        &id,
-        &root.join("transactions"),
-        manifest_path.as_bytes(),
-    )
-    .unwrap();
-    tx.stage_reviewed(&tx.snapshot().unwrap(), &bundle, &approval)
+    std::fs::create_dir(work.join(".dracon")).unwrap();
+    std::fs::copy(&ciphertext_out, work.join(manifest_path)).unwrap();
+    let attributes = b"art.bin filter=dracon-storage -text\n";
+    std::fs::write(work.join(".gitattributes"), attributes).unwrap();
+    let digest_attrs = format!("{:x}", Sha256::digest(attributes));
+    let tx_root = root.join("transactions");
+    std::fs::DirBuilder::new()
+        .mode(0o700)
+        .create(&tx_root)
         .unwrap();
+    let executable = Path::new(env!("CARGO_BIN_EXE_dracon-sync"))
+        .canonicalize()
+        .unwrap();
+    let quote = |value: &str| format!("'{}'", value.replace('\'', "'\\''"));
+    let driver = [
+        executable.to_str().unwrap(),
+        "storage",
+        "filter-clean",
+        "--repo",
+        work.to_str().unwrap(),
+        "--repo-id",
+        &id,
+        "--journal-root",
+        journal.to_str().unwrap(),
+        "--metadata-root",
+        metadata.to_str().unwrap(),
+        "--manifest-path",
+        manifest_path,
+    ]
+    .into_iter()
+    .map(quote)
+    .collect::<Vec<_>>()
+    .join(" ")
+        + " -- %f";
+    let mut config = repo
+        .config()
+        .unwrap()
+        .open_level(git2::ConfigLevel::Local)
+        .unwrap();
+    config
+        .set_str("filter.dracon-storage.clean", &driver)
+        .unwrap();
+    config
+        .set_bool("filter.dracon-storage.required", true)
+        .unwrap();
+    let result = sync(
+        &[
+            "storage",
+            "stage-enrollment",
+            "--repo",
+            work.to_str().unwrap(),
+            "--repo-id",
+            &id,
+            "--review-manifest",
+            review,
+            "--review-sha256",
+            digest,
+            "--journal-root",
+            journal.to_str().unwrap(),
+            "--metadata-root",
+            metadata.to_str().unwrap(),
+            "--metadata-id",
+            prepared_metadata_id,
+            "--manifest-path",
+            manifest_path,
+            "--transaction-root",
+            tx_root.to_str().unwrap(),
+            "--attributes-sha256",
+            &digest_attrs,
+            "--job-id",
+            job_id,
+        ],
+        &[],
+    );
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert_eq!(
+        std::fs::read(work.join("art.bin")).unwrap(),
+        b"working latest"
+    );
     // Commit inside the disposable fixture, then recover without producer state.
     let parent = repo.head().unwrap().peel_to_commit().unwrap();
     let mut index = repo.index().unwrap();

@@ -402,6 +402,39 @@ pub(crate) struct EnrollmentManifestOptions {
     metadata_policy_sha256: String,
     #[arg(long)]
     warden: PathBuf,
+    /// Create an operator-owned copy of the protected bytes outside the worktree.
+    #[arg(long)]
+    ciphertext_out: Option<PathBuf>,
+    #[arg(long, default_value_t = 120)]
+    timeout_secs: u64,
+    #[arg(long = "job-id", required = true)]
+    job_ids: Vec<String>,
+}
+
+#[cfg(unix)]
+#[derive(Debug, Clone, clap::Args)]
+pub(crate) struct StageEnrollmentOptions {
+    #[arg(long)]
+    repo: PathBuf,
+    #[arg(long)]
+    repo_id: String,
+    #[arg(long)]
+    review_manifest: PathBuf,
+    #[arg(long)]
+    review_sha256: String,
+    #[arg(long)]
+    journal_root: PathBuf,
+    #[arg(long)]
+    metadata_root: PathBuf,
+    #[arg(long)]
+    metadata_id: String,
+    #[arg(long)]
+    manifest_path: PathBuf,
+    #[arg(long)]
+    transaction_root: PathBuf,
+    /// SHA-256 of the proposed root .gitattributes already in the worktree.
+    #[arg(long)]
+    attributes_sha256: String,
     #[arg(long, default_value_t = 120)]
     timeout_secs: u64,
     #[arg(long = "job-id", required = true)]
@@ -414,6 +447,10 @@ pub(crate) enum StorageCommand {
     /// Reads verified jobs and writes private metadata without changing Git.
     #[cfg(unix)]
     PrepareEnrollmentManifest(Box<EnrollmentManifestOptions>),
+    /// Stage reviewed pointers, protected metadata and root filter attributes.
+    /// Requires an operator-installed required local clean driver.
+    #[cfg(unix)]
+    StageEnrollment(Box<StageEnrollmentOptions>),
     /// Preserve HEAD, staged and working versions for explicit forward enrollment.
     /// Creates a private review only; no upload, binding, filter or Git change.
     #[cfg(unix)]
@@ -1229,6 +1266,192 @@ fn journal_status(
 }
 
 #[cfg(unix)]
+async fn stage_enrollment(options: &StageEnrollmentOptions) -> Result<()> {
+    use dracon_sync::storage_core::{
+        capture::select_source,
+        enrollment_review::{approve_review_digest, ReviewLimits},
+        index::IndexTransaction,
+        journal::{Journal, Limits},
+        manifest::MAX_ENROLLMENTS,
+        metadata::MetadataStore,
+        reference::validate_sha256,
+        staging::StageBundle,
+    };
+    use sha2::{Digest, Sha256};
+    use std::io::Read;
+    use std::os::unix::ffi::OsStrExt;
+    use std::time::Duration;
+
+    let repo = root(&options.repo)?;
+    let _owner = crate::git::sync_lease::try_acquire(&repo)?
+        .context("repository is busy; retry enrollment after the current Sync operation")?;
+    for path in [
+        &options.journal_root,
+        &options.metadata_root,
+        &options.transaction_root,
+    ] {
+        anyhow::ensure!(
+            path.is_absolute() && path.canonicalize()? == *path && !path.starts_with(&repo),
+            "enrollment state requires canonical private directories outside the worktree"
+        );
+    }
+    let repository = git2::Repository::open(&repo)?;
+    validate_sha256(&options.repo_id)?;
+    let config = repository.config()?;
+    let local = config.open_level(git2::ConfigLevel::Local)?;
+    anyhow::ensure!(
+        local.get_bool("filter.dracon-storage.required").ok() == Some(true)
+            && local
+                .get_string("filter.dracon-storage.clean")
+                .is_ok_and(|c| !c.is_empty()),
+        "install the required local storage clean driver before staging enrollment"
+    );
+    let executable = std::env::current_exe()?.canonicalize()?;
+    let path_arg = |path: &Path| -> Result<String> {
+        let text = path
+            .to_str()
+            .context("storage clean binding must be UTF-8")?;
+        anyhow::ensure!(
+            !text.contains(['%', '\n', '\r']),
+            "unsupported storage clean binding"
+        );
+        Ok(format!("'{}'", text.replace('\'', "'\\''")))
+    };
+    let expected_clean = format!(
+        "{} 'storage' 'filter-clean' '--repo' {} '--repo-id' '{}' '--journal-root' {} '--metadata-root' {} '--manifest-path' {} -- %f",
+        path_arg(&executable)?,
+        path_arg(&repo)?,
+        options.repo_id,
+        path_arg(&options.journal_root)?,
+        path_arg(&options.metadata_root)?,
+        path_arg(&options.manifest_path)?,
+    );
+    anyhow::ensure!(
+        config
+            .get_string("filter.dracon-storage.clean")
+            .ok()
+            .as_deref()
+            == Some(expected_clean.as_str()),
+        "storage clean driver does not match this enrollment's bindings"
+    );
+    match config.get_entry("filter.dracon-storage.process") {
+        Ok(_) => bail!("storage clean driver cannot coexist with a process override"),
+        Err(error) if error.code() == git2::ErrorCode::NotFound => {}
+        Err(error) => return Err(error.into()),
+    }
+    match local.get_string(GUARD_VERSION_KEY) {
+        Ok(_) => bail!("initial enrollment requires a repository without an active storage guard"),
+        Err(error) if error.code() == git2::ErrorCode::NotFound => {}
+        Err(error) => return Err(error.into()),
+    }
+    validate_sha256(&options.attributes_sha256)?;
+    validate_sha256(&options.metadata_id)?;
+    let attrs_path = Path::new(".gitattributes");
+    let read_attributes = || -> Result<Vec<u8>> {
+        const LIMIT: u64 = 1024 * 1024;
+        let (source, identity) = select_source(&repo, attrs_path, LIMIT)?;
+        let mut bytes = Vec::new();
+        source.take(LIMIT + 1).read_to_end(&mut bytes)?;
+        anyhow::ensure!(
+            bytes.len() as u64 == identity.bytes()
+                && format!("{:x}", Sha256::digest(&bytes)) == options.attributes_sha256,
+            "working root attributes differ from the approved digest"
+        );
+        Ok(bytes)
+    };
+    let attributes = read_attributes()?;
+    let mut ids = options.job_ids.clone();
+    ids.sort_unstable();
+    anyhow::ensure!(
+        !ids.is_empty()
+            && ids.len() <= MAX_ENROLLMENTS
+            && ids.windows(2).all(|pair| pair[0] != pair[1]),
+        "a bounded unique set of verified jobs is required"
+    );
+    for id in &ids {
+        validate_sha256(id)?;
+    }
+    let approval = approve_review_digest(
+        &repo,
+        &options.repo_id,
+        &options.review_manifest,
+        &options.review_sha256,
+        ReviewLimits {
+            max_blob_bytes: 1024 * 1024 * 1024,
+            max_total_bytes: 4 * 1024 * 1024 * 1024,
+            max_retained_bytes: 8 * 1024 * 1024 * 1024,
+            timeout: Duration::from_secs(options.timeout_secs),
+        },
+    )
+    .await?;
+    let tx = IndexTransaction::open(
+        &repo,
+        &options.repo_id,
+        &options.transaction_root,
+        options.manifest_path.as_os_str().as_bytes(),
+    )?;
+    let snapshot = tx.snapshot()?;
+    let journal = Journal::open(&options.journal_root, &options.repo_id, Limits::default())?;
+    let leases = ids
+        .iter()
+        .map(|id| journal.lease(id))
+        .collect::<Result<Vec<_>>>()?;
+    let refs: Vec<_> = leases.iter().collect();
+    let store = MetadataStore::open(&options.metadata_root, &options.repo_id, Limits::default())?;
+    let (prepared, manifest) = store.load_prepared_manifest(&options.metadata_id)?;
+    let check_worktree_manifest = || -> Result<()> {
+        let (_, identity) = select_source(
+            &repo,
+            &options.manifest_path,
+            dracon_sync::storage_core::metadata::MAX_PROTECTED_MANIFEST_BYTES,
+        )
+        .context("place the prepared ciphertext at the working manifest path before enrollment")?;
+        anyhow::ensure!(
+            &identity == prepared.payload(),
+            "working manifest differs from the prepared ciphertext"
+        );
+        Ok(())
+    };
+    check_worktree_manifest()?;
+    let paths = approval.validate_jobs(&repo, &options.repo_id, &refs)?;
+    anyhow::ensure!(
+        paths.len() == refs.len() && paths.len() == manifest.enrollments().len(),
+        "manifest and jobs must match the exact enrollment review"
+    );
+    let bundle = StageBundle::build(&store, &prepared, &manifest, refs)?;
+    let proof = tx.stage_reviewed_with_attributes(
+        &snapshot,
+        &bundle,
+        &approval,
+        &attributes,
+        |candidate| {
+            read_attributes()?;
+            check_worktree_manifest()?;
+            let indexed = indexed_manifest_at(
+                &repo,
+                &options.repo_id,
+                &options.metadata_root,
+                &options.manifest_path,
+                Some(candidate.to_path_buf()),
+            )?;
+            verify_guard_entries(&indexed)
+        },
+    )?;
+    setup_guard(&repo, &options.repo_id, &options.metadata_root, &options.manifest_path)
+        .context("enrollment staged; repair the local guard binding with storage setup-guard before committing")?;
+    println!(
+        "{}",
+        serde_json::json!({
+            "schema_version": 1,
+            "metadata_oid": proof.metadata_oid(),
+            "staged_paths": paths.len(),
+            "committed": false
+        })
+    );
+    Ok(())
+}
+
+#[cfg(unix)]
 async fn prepare_enrollment_manifest(options: &EnrollmentManifestOptions) -> Result<()> {
     use dracon_sync::storage_core::{
         enrollment_review::{approve_review_digest, ReviewLimits},
@@ -1328,6 +1551,25 @@ async fn prepare_enrollment_manifest(options: &EnrollmentManifestOptions) -> Res
         .prepare(&manifest, &options.metadata_policy_sha256, &adapter, now)
         .await?;
     let bundle = StageBundle::build(&store, &prepared, &manifest, references)?;
+    if let Some(path) = &options.ciphertext_out {
+        let parent = path
+            .parent()
+            .context("ciphertext export requires an existing parent")?;
+        anyhow::ensure!(
+            path.is_absolute() && parent.canonicalize()? == parent && !parent.starts_with(&repo),
+            "ciphertext export requires an absolute path outside the worktree"
+        );
+        let mut destination = tempfile::NamedTempFile::new_in(parent)?;
+        let mut ciphertext = store.open_prepared(&prepared)?;
+        anyhow::ensure!(
+            std::io::copy(&mut ciphertext, destination.as_file_mut())?
+                == prepared.payload().bytes(),
+            "protected manifest export length mismatch"
+        );
+        destination.as_file().sync_all()?;
+        destination.persist_noclobber(path)?;
+        std::fs::File::open(parent)?.sync_all()?;
+    }
     println!(
         "{}",
         serde_json::json!({
@@ -1342,6 +1584,10 @@ async fn prepare_enrollment_manifest(options: &EnrollmentManifestOptions) -> Res
 }
 
 pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
+    #[cfg(unix)]
+    if let StorageCommand::StageEnrollment(options) = command {
+        return stage_enrollment(options).await;
+    }
     #[cfg(unix)]
     if let StorageCommand::PrepareEnrollmentManifest(options) = command {
         return prepare_enrollment_manifest(options).await;
@@ -1507,7 +1753,8 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
     let (repo, policy_path, json) = match command {
         #[cfg(unix)]
         StorageCommand::PrepareEnrollmentReview { .. }
-        | StorageCommand::PrepareEnrollmentManifest(_) => unreachable!("enrollment handled above"),
+        | StorageCommand::PrepareEnrollmentManifest(_)
+        | StorageCommand::StageEnrollment(_) => unreachable!("enrollment handled above"),
         StorageCommand::Capture { .. }
         | StorageCommand::CaptureUpdate { .. }
         | StorageCommand::AdvanceJob(_)
