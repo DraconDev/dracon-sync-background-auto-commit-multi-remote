@@ -215,7 +215,11 @@ impl SignedHttpTransport {
         file: Option<File>,
     ) -> Result<Response> {
         self.credentials.check_expiration()?;
-        let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
+        let now = time::OffsetDateTime::now_utc();
+        let (year, month, day) = now.to_calendar_date();
+        let (hour, minute, second) = now.to_hms();
+        let month = u8::from(month);
+        let timestamp = format!("{year:04}{month:02}{day:02}T{hour:02}{minute:02}{second:02}Z");
         let hash = if file.is_some() {
             id.sha256()
         } else {
