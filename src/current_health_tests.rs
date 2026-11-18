@@ -57,7 +57,10 @@ fn configured_mirror_lag_is_current_work_after_the_primary_catches_up() {
         "main",
         &["origin".into(), "gitlab".into(), "current-mirror".into()],
     );
-    assert_eq!(row.health.mirror_unpublished, BTreeMap::from([("gitlab".into(), 1)]));
+    assert_eq!(
+        row.health.mirror_unpublished,
+        BTreeMap::from([("gitlab".into(), 1)])
+    );
     assert_eq!(classify(&row), Current::Unknown);
     row.health.scheduler = Some(RepoEvidence {
         phase: Some(Phase::Pushing),
