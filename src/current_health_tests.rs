@@ -28,6 +28,45 @@ fn current_failed_publication_remains_visible_when_the_upstream_is_current() {
 }
 
 #[test]
+fn configured_mirror_lag_is_current_work_after_the_primary_catches_up() {
+    let directory = tempfile::tempdir().unwrap();
+    let git = git2::Repository::init(directory.path()).unwrap();
+    let signature = git2::Signature::now("Report fixture", "report@invalid").unwrap();
+    let tree_id = git.treebuilder(None).unwrap().write().unwrap();
+    let tree = git.find_tree(tree_id).unwrap();
+    let initial = git
+        .commit(Some("HEAD"), &signature, &signature, "Initial", &tree, &[])
+        .unwrap();
+    let parent = git.find_commit(initial).unwrap();
+    let latest = git
+        .commit(Some("HEAD"), &signature, &signature, "Latest", &tree, &[&parent])
+        .unwrap();
+    for (remote, tip) in [
+        ("origin", latest),
+        ("gitlab", initial),
+        ("current-mirror", latest),
+        ("excluded", initial),
+    ] {
+        git.reference(&format!("refs/remotes/{remote}/main"), tip, false, "fixture")
+            .unwrap();
+    }
+    let mut row = RepoReportRow::for_tests("/fixture");
+    row.health.mirror_unpublished = super::super::mirror_unpublished(
+        directory.path(),
+        &latest.to_string(),
+        "main",
+        &["origin".into(), "gitlab".into(), "current-mirror".into()],
+    );
+    assert_eq!(row.health.mirror_unpublished, BTreeMap::from([("gitlab".into(), 1)]));
+    assert_eq!(classify(&row), Current::Unknown);
+    row.health.scheduler = Some(RepoEvidence {
+        phase: Some(Phase::Pushing),
+        ..Default::default()
+    });
+    assert_eq!(classify(&row), Current::Publishing);
+}
+
+#[test]
 fn current_convergence_output_table_is_independent_of_push_history_and_commit_age() {
     // name, dirty, ahead, phase, eligible dirty age, admission age, excluded,
     // legacy dispatch status, expected current state, visible label.
