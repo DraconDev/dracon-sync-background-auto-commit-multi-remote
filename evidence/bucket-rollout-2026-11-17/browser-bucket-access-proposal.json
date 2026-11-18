@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "scope": "review draft for two fresh non-owner OVH S3 identities",
+  "bucket": "dracon-lfs",
+  "prefix": "browser-extensions-shared/native-archival-v1/",
+  "provider_validated": false,
+  "live_applied": false,
+  "policies": {
+    "uploader": {
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:PutObject"
+          ],
+          "Resource": [
+            "arn:aws:s3:::dracon-lfs/browser-extensions-shared/native-archival-v1/*"
+          ]
+        },
+        {
+          "Effect": "Deny",
+          "Action": [
+            "s3:AbortMultipartUpload",
+            "s3:BypassGovernanceRetention",
+            "s3:CreateBucket",
+            "s3:DeleteBucket",
+            "s3:DeleteBucketTagging",
+            "s3:DeleteBucketWebsite",
+            "s3:DeleteIntelligentTieringConfiguration",
+            "s3:DeleteObject",
+            "s3:DeleteObjectTagging",
+            "s3:GetBucketAcl",
+            "s3:GetBucketCORS",
+            "s3:GetBucketLocation",
+            "s3:GetBucketLogging",
+            "s3:GetBucketObjectLockConfiguration",
+            "s3:GetBucketTagging",
+            "s3:GetBucketVersioning",
+            "s3:GetBucketWebsite",
+            "s3:GetEncryptionConfiguration",
+            "s3:GetIntelligentTieringConfiguration",
+            "s3:GetLifecycleConfiguration",
+            "s3:GetObjectAcl",
+            "s3:GetObjectAttributes",
+            "s3:GetObjectLegalHold",
+            "s3:GetObjectRetention",
+            "s3:GetObjectTagging",
+            "s3:GetReplicationConfiguration",
+            "s3:ListAllMyBuckets",
+            "s3:ListBucket",
+            "s3:ListBucketMultipartUploads",
+            "s3:ListBucketVersions",
+            "s3:ListMultipartUploadParts",
+            "s3:PutBucketAcl",
+            "s3:PutBucketCORS",
+            "s3:PutBucketLogging",
+            "s3:PutBucketObjectLockConfiguration",
+            "s3:PutBucketTagging",
+            "s3:PutBucketVersioning",
+            "s3:PutBucketWebsite",
+            "s3:PutEncryptionConfiguration",
+            "s3:PutIntelligentTieringConfiguration",
+            "s3:PutLifecycleConfiguration",
+            "s3:PutObjectAcl",
+            "s3:PutObjectLegalHold",
+            "s3:PutObjectRetention",
+            "s3:PutObjectTagging",
+            "s3:PutReplicationConfiguration",
+            "s3:RestoreObject"
+          ],
+          "Resource": [
+            "*"
+          ]
+        }
+      ]
+    },
+    "consumer": {
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject"
+          ],
+          "Resource": [
+            "arn:aws:s3:::dracon-lfs/browser-extensions-shared/native-archival-v1/*"
+          ]
+        },
+        {
+          "Effect": "Deny",
+          "Action": [
+            "s3:AbortMultipartUpload",
+            "s3:BypassGovernanceRetention",
+            "s3:CreateBucket",
+            "s3:DeleteBucket",
+            "s3:DeleteBucketTagging",
+            "s3:DeleteBucketWebsite",
+            "s3:DeleteIntelligentTieringConfiguration",
+            "s3:DeleteObject",
+            "s3:DeleteObjectTagging",
+            "s3:GetBucketAcl",
+            "s3:GetBucketCORS",
+            "s3:GetBucketLocation",
+            "s3:GetBucketLogging",
+            "s3:GetBucketObjectLockConfiguration",
+            "s3:GetBucketTagging",
+            "s3:GetBucketVersioning",
+            "s3:GetBucketWebsite",
+            "s3:GetEncryptionConfiguration",
+            "s3:GetIntelligentTieringConfiguration",
+            "s3:GetLifecycleConfiguration",
+            "s3:GetObjectAcl",
+            "s3:GetObjectAttributes",
+            "s3:GetObjectLegalHold",
+            "s3:GetObjectRetention",
+            "s3:GetObjectTagging",
+            "s3:GetReplicationConfiguration",
+            "s3:ListAllMyBuckets",
+            "s3:ListBucket",
+            "s3:ListBucketMultipartUploads",
+            "s3:ListBucketVersions",
+            "s3:ListMultipartUploadParts",
+            "s3:PutBucketAcl",
+            "s3:PutBucketCORS",
+            "s3:PutBucketLogging",
+            "s3:PutBucketObjectLockConfiguration",
+            "s3:PutBucketTagging",
+            "s3:PutBucketVersioning",
+            "s3:PutBucketWebsite",
+            "s3:PutEncryptionConfiguration",
+            "s3:PutIntelligentTieringConfiguration",
+            "s3:PutLifecycleConfiguration",
+            "s3:PutObject",
+            "s3:PutObjectAcl",
+            "s3:PutObjectLegalHold",
+            "s3:PutObjectRetention",
+            "s3:PutObjectTagging",
+            "s3:PutReplicationConfiguration",
+            "s3:RestoreObject"
+          ],
+          "Resource": [
+            "*"
+          ]
+        }
+      ]
+    }
+  }
+}

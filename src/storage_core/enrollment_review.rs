@@ -301,21 +301,33 @@ impl ApprovedEnrollment {
         id: &str,
         bundle: &super::staging::StageBundle<'_>,
     ) -> Result<BTreeSet<Vec<u8>>> {
-        let deadline = Instant::now()
-            .checked_add(self.limits.timeout)
-            .context("invalid staging review deadline")?;
-        self.validate_preservation_before(root, id, deadline)?;
         ensure!(
             bundle.repo_id() == id,
             "reviewed staging repository mismatch"
         );
+        self.validate_jobs(root, id, bundle.jobs())
+    }
+
+    /// Recheck custody, index and working versions against leased jobs.
+    /// This validates source correspondence, not transfer receipts or policy.
+    pub fn validate_jobs(
+        &self,
+        root: &Path,
+        id: &str,
+        jobs: &[&journal::JobLease],
+    ) -> Result<BTreeSet<Vec<u8>>> {
+        let deadline = Instant::now()
+            .checked_add(self.limits.timeout)
+            .context("invalid staging review deadline")?;
+        self.validate_preservation_before(root, id, deadline)?;
         // Read each leased job once. Reopening the journal for every
         // asset/job pair makes a large review spend its deadline on metadata.
         let mut sources = BTreeMap::new();
-        for lease in bundle.jobs() {
+        for lease in jobs {
             ensure!(Instant::now() < deadline, "staging review deadline expired");
             let job = lease.load()?;
             let spec = job.spec();
+            ensure!(spec.repo_id == id, "reviewed job repository mismatch");
             ensure!(
                 sources
                     .insert(spec.path_hex.clone(), spec.source.clone())

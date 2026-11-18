@@ -383,8 +383,37 @@ pub(crate) struct AdvanceOptions {
     json: bool,
 }
 
+#[cfg(unix)]
+#[derive(Debug, Clone, clap::Args)]
+pub(crate) struct EnrollmentManifestOptions {
+    #[arg(long)]
+    repo: PathBuf,
+    #[arg(long)]
+    repo_id: String,
+    #[arg(long)]
+    review_manifest: PathBuf,
+    #[arg(long)]
+    review_sha256: String,
+    #[arg(long)]
+    journal_root: PathBuf,
+    #[arg(long)]
+    metadata_root: PathBuf,
+    #[arg(long)]
+    metadata_policy_sha256: String,
+    #[arg(long)]
+    warden: PathBuf,
+    #[arg(long, default_value_t = 120)]
+    timeout_secs: u64,
+    #[arg(long = "job-id", required = true)]
+    job_ids: Vec<String>,
+}
+
 #[derive(Debug, Clone, Subcommand)]
 pub(crate) enum StorageCommand {
+    /// Prepare the protected manifest for an initial reviewed enrollment.
+    /// Reads verified jobs and writes private metadata without changing Git.
+    #[cfg(unix)]
+    PrepareEnrollmentManifest(Box<EnrollmentManifestOptions>),
     /// Preserve HEAD, staged and working versions for explicit forward enrollment.
     /// Creates a private review only; no upload, binding, filter or Git change.
     #[cfg(unix)]
@@ -1199,7 +1228,124 @@ fn journal_status(
     })
 }
 
+#[cfg(unix)]
+async fn prepare_enrollment_manifest(options: &EnrollmentManifestOptions) -> Result<()> {
+    use dracon_sync::storage_core::{
+        enrollment_review::{approve_review_digest, ReviewLimits},
+        journal::{Journal, Limits, Phase},
+        manifest::{Enrollment, Manifest, MAX_ENROLLMENTS},
+        metadata::MetadataStore,
+        reference::validate_sha256,
+        security::WardenAdapter,
+        staging::StageBundle,
+    };
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    let repo = root(&options.repo)?;
+    let _owner = crate::git::sync_lease::try_acquire(&repo)?.context(
+        "repository is busy; retry manifest preparation after the current Sync operation",
+    )?;
+    let local = git2::Repository::open(&repo)?
+        .config()?
+        .open_level(git2::ConfigLevel::Local)?;
+    anyhow::ensure!(
+        local.get_string("dracon.storageRepoId").ok().as_deref() == Some(&options.repo_id),
+        "manifest preparation requires the matching local repository binding"
+    );
+    for path in [&options.journal_root, &options.metadata_root] {
+        anyhow::ensure!(
+            path.is_absolute() && path.canonicalize()? == *path && !path.starts_with(&repo),
+            "journal and metadata roots must be canonical private directories outside the worktree"
+        );
+    }
+    let mut ids = options.job_ids.clone();
+    ids.sort_unstable();
+    anyhow::ensure!(
+        !ids.is_empty()
+            && ids.len() <= MAX_ENROLLMENTS
+            && ids.windows(2).all(|pair| pair[0] != pair[1]),
+        "a bounded unique set of verified jobs is required"
+    );
+    for id in &ids {
+        validate_sha256(id)?;
+    }
+    validate_sha256(&options.metadata_policy_sha256)?;
+    let timeout = Duration::from_secs(options.timeout_secs);
+    let approval = approve_review_digest(
+        &repo,
+        &options.repo_id,
+        &options.review_manifest,
+        &options.review_sha256,
+        ReviewLimits {
+            max_blob_bytes: 1024 * 1024 * 1024,
+            max_total_bytes: 4 * 1024 * 1024 * 1024,
+            max_retained_bytes: 8 * 1024 * 1024 * 1024,
+            timeout,
+        },
+    )
+    .await?;
+    let journal = Journal::open(&options.journal_root, &options.repo_id, Limits::default())?;
+    let leases = ids
+        .iter()
+        .map(|id| journal.lease(id))
+        .collect::<Result<Vec<_>>>()?;
+    let references: Vec<_> = leases.iter().collect();
+    let reviewed = approval.validate_jobs(&repo, &options.repo_id, &references)?;
+    anyhow::ensure!(
+        reviewed.len() == leases.len(),
+        "job set must match the exact review"
+    );
+    let mut entries = Vec::with_capacity(leases.len());
+    for lease in &leases {
+        let job = lease.load()?;
+        anyhow::ensure!(
+            job.phase() == Phase::ReadyToStage && job.failure().is_none(),
+            "every enrollment job must have all required verified copies"
+        );
+        lease.source_snapshot()?;
+        lease.payload_snapshot()?;
+        let spec = job.spec();
+        let mut required_copies = spec.required_copies.clone();
+        required_copies.sort_unstable();
+        entries.push(Enrollment {
+            path_hex: spec.path_hex.clone(),
+            contract_sha256: spec.policy_sha256.clone(),
+            primary: spec.primary.clone(),
+            required_copies,
+            encryption: spec.encryption,
+            payload: Some(
+                job.payload()
+                    .context("verified payload identity unavailable")?
+                    .clone(),
+            ),
+        });
+    }
+    let manifest = Manifest::new(options.repo_id.clone(), entries)?;
+    let adapter = WardenAdapter::new(&options.warden, &repo, &options.repo_id, timeout)?;
+    let store = MetadataStore::open(&options.metadata_root, &options.repo_id, Limits::default())?;
+    let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+    let prepared = store
+        .prepare(&manifest, &options.metadata_policy_sha256, &adapter, now)
+        .await?;
+    let bundle = StageBundle::build(&store, &prepared, &manifest, references)?;
+    println!(
+        "{}",
+        serde_json::json!({
+            "schema_version": 1,
+            "metadata_id": prepared.id(),
+            "ciphertext": prepared.payload(),
+            "verified_paths": bundle.pointers().len(),
+            "git_changed": false
+        })
+    );
+    Ok(())
+}
+
 pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
+    #[cfg(unix)]
+    if let StorageCommand::PrepareEnrollmentManifest(options) = command {
+        return prepare_enrollment_manifest(options).await;
+    }
     #[cfg(unix)]
     if let StorageCommand::PrepareEnrollmentReview {
         repo,
@@ -1360,7 +1506,8 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
     }
     let (repo, policy_path, json) = match command {
         #[cfg(unix)]
-        StorageCommand::PrepareEnrollmentReview { .. } => unreachable!("review handled above"),
+        StorageCommand::PrepareEnrollmentReview { .. }
+        | StorageCommand::PrepareEnrollmentManifest(_) => unreachable!("enrollment handled above"),
         StorageCommand::Capture { .. }
         | StorageCommand::CaptureUpdate { .. }
         | StorageCommand::AdvanceJob(_)

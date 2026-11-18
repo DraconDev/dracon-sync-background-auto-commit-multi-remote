@@ -889,6 +889,7 @@ fn remote_storage_quota_exceeded(message: &str) -> bool {
     message.lines().any(|line| {
         line.trim_start().starts_with("remote:")
             && (line.contains("exceeded its storage allocation")
+                || line.contains("would exceed the allocated storage for your project")
                 || line.contains("storage allocation exceeded")
                 || line.contains("storage quota exceeded"))
     })
@@ -2544,6 +2545,15 @@ mod tests {
         assert!(!is_permanent_push_rejection(
             "local hook: storage quota exceeded"
         ));
+        let live_gitlab = concat!(
+            "remote: GitLab: Your push to this repository cannot be completed as it would exceed ",
+            "the allocated storage for your project. Contact your GitLab administrator for more information."
+        );
+        assert_eq!(
+            classify_push_failure(live_gitlab),
+            "remote repository storage quota exceeded"
+        );
+        assert!(is_permanent_push_rejection(live_gitlab));
     }
 
     #[test]
