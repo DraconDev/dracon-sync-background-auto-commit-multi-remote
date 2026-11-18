@@ -40,7 +40,18 @@
     "art_and_icon_tests": 28,
     "offline_chromium_start_and_reload": true,
     "offline_town_images": 7,
-    "offline_packaged_icon_bytes": 17206
+    "offline_packaged_icon_bytes": 17206,
+    "pillow_version": "13.0.0",
+    "regenerated_art_byte_identical_to_shipped": 36,
+    "regenerated_icons_byte_identical_to_shipped": 5
+  },
+  "local_policy_preflight": {
+    "prefix": "browser-extensions-shared/native-archival-v1/tab-hero",
+    "uploader_config_valid": true,
+    "consumer_config_valid": true,
+    "exact_external_candidates": 37,
+    "source_bytes": 583814592,
+    "provider_checked": false
   },
   "production_placement_changed": false
 }

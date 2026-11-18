@@ -220,3 +220,12 @@ footing. For Tab Hero, the candidate archival sources are the original
 icon generators read these files. Qualify both WXT build targets and the
 existing art and generator tests after recovery. Browser transfer remains
 subject to the separate scoped uploader and consumer grant.
+
+The pinned Tab Hero baseline used Bun 1.3.14 and a frozen dependency install,
+then ran Tab Hero's preparation explicitly. Both WXT builds passed, along
+with the 28 selected art and icon tests and a packaged Chromium offline
+startup and reload. The two generators, run in a disposable copy with
+Pillow 13.0.0, reproduced the shipped 36 JPEGs and five icons byte for byte.
+Repeat these checks after authenticated restore. The locally validated upload
+and read-only policy drafts target `browser-extensions-shared/native-archival-v1/tab-hero`
+and select only the 37 preserved files, totaling 583,814,592 bytes.
