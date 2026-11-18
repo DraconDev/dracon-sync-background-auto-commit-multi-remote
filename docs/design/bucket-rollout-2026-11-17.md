@@ -184,3 +184,24 @@ declared local report and tool directories now render identically when
 absent, while the census still rejects unclassified directories. The
 independent fixture now regenerates the inventory after staging the manifest
 so it includes the new tracked file in the count.
+
+For a cold consumer, pin the enrollment commit and use separate private
+metadata, recovery and hydration roots. Import the committed ciphertext with
+`storage import-manifest`, the approved metadata-policy digest and the approved
+Warden executable. Configure the local repository ID and the required
+`storage filter-clean --restore-root ...` driver, then run
+`storage setup-guard`. Run `storage hydrate` at that commit for each reviewed
+path with the explicit read-only backend binding, consumer credential root
+and private recovery roots. Verify the recovered source bytes against the
+custody inventory and each clean result against its indexed pointer before
+running the existing product gates. The trial used a Git stat refresh only
+in the disposable checkout and compared every index entry before and after.
+
+Keep the asset download at build or authoring time. The packaged game
+continues to use the existing optimized, bundled art, and the browser
+extension pilot should keep its packaged `public/` assets on the same
+footing. For Tab Hero, the candidate archival sources are the original
+`assets/*-master.png` files and `assets/icon-1024.png`. Its existing art and
+icon generators read these files. Qualify both WXT build targets and the
+existing art and generator tests after recovery. Browser transfer remains
+subject to the separate scoped uploader and consumer grant.
