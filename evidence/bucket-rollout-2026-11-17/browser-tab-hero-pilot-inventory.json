@@ -32,5 +32,15 @@
     "preserved_bytes": 583814592,
     "browser_bucket_upload_attempted": false
   },
+  "pinned_raw_source_baseline": {
+    "bun": "1.3.14",
+    "frozen_dependency_install": "passed with lifecycle scripts disabled, then Tab Hero preparation run explicitly",
+    "chromium_artifact_files": 68,
+    "firefox_artifact_files": 68,
+    "art_and_icon_tests": 28,
+    "offline_chromium_start_and_reload": true,
+    "offline_town_images": 7,
+    "offline_packaged_icon_bytes": 17206
+  },
   "production_placement_changed": false
 }

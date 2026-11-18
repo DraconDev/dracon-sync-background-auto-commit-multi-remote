@@ -41,5 +41,12 @@
   "product_trial_followup_changes": [
     "docs/DOC-INVENTORY.md"
   ],
-  "protected_manifest_same_in_product_trial": true
+  "protected_manifest_same_in_product_trial": true,
+  "subsequent_signed_readback": {
+    "binary_sha256": "fc0566216c53ceb5d0edf8d774e7f09cfe73e4b10fb3b1ba99be8a98f6237baf",
+    "timestamp_dependency": "time 0.3.47",
+    "source_bytes_verified": 590872,
+    "fresh_cache": true,
+    "consumer_only": true
+  }
 }
