@@ -185,6 +185,14 @@ absent, while the census still rejects unclassified directories. The
 independent fixture now regenerates the inventory after staging the manifest
 so it includes the new tracked file in the count.
 
+The restored fixture at `e0d874e39652caaa8efb84ca6036ea2d606be1ed` passed
+the product check, WebP check, production build, release artifact verification,
+all 182 art tests across 16 files, and the Chromium test that reloads the game,
+opens the manual, and starts a run offline. A separate read-only review of
+canonical Deathrun at `c4426cea6518b3d4a11523c19d8034bb8355ab5a` verified
+the same 17 source blobs and 30,547,253 bytes against its HEAD, index and
+working tree.
+
 For a cold consumer, pin the enrollment commit and use separate private
 metadata, recovery and hydration roots. Import the committed ciphertext with
 `storage import-manifest`, the approved metadata-policy digest and the approved
