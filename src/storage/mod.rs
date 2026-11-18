@@ -1550,6 +1550,9 @@ async fn prepare_enrollment_manifest(options: &EnrollmentManifestOptions) -> Res
             ),
         });
     }
+    // Acquire leases by job ID to keep lock order consistent. The portable
+    // manifest has a separate canonical order by losslessly encoded path.
+    entries.sort_unstable_by(|a, b| a.path_hex.cmp(&b.path_hex));
     let manifest = Manifest::new(options.repo_id.clone(), entries)?;
     let adapter = WardenAdapter::new(&options.warden, &repo, &options.repo_id, timeout)?;
     let store = MetadataStore::open(&options.metadata_root, &options.repo_id, Limits::default())?;
