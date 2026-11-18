@@ -29,5 +29,10 @@
   "producer_review_digest": "dd600469b73987056547811c80672a10b475b91f82cf74de019b0d910e08f0ed",
   "manifest_verified_and_imported_in_independent_checkout": true,
   "tracked_status_refresh": "git add of exact managed paths in disposable consumer checkout after verifying content; all staged IDs and modes compared before and after",
-  "product_gates": "run separately against restored checkout"
+  "product_gates": "run separately against restored checkout",
+  "product_trial_commit": "e0d874e39652caaa8efb84ca6036ea2d606be1ed",
+  "product_trial_followup_changes": [
+    "docs/DOC-INVENTORY.md"
+  ],
+  "protected_manifest_same_in_product_trial": true
 }
