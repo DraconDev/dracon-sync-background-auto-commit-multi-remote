@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-11-18T18:24:45.835720+00:00",
+  "native_enrollment_commit": "f2ee2832151e848cfed134d9cd8db766a2e3b4be",
+  "tested_revision": "03f03b6ace8d889f91d656bef5ae1114afd568fe",
+  "local_main": "03f03b6ace8d889f91d656bef5ae1114afd568fe",
+  "github_main": "03f03b6ace8d889f91d656bef5ae1114afd568fe",
+  "gitlab_main": "03f03b6ace8d889f91d656bef5ae1114afd568fe",
+  "mirror_witness": "direct authenticated ls-remote against each main",
+  "local_worktree_clean": true,
+  "published_manifest_oid": "6d838c28e0b8df9a241a1a6332bd8bf4ed3e8ee4",
+  "source_recovery": {
+    "revision": "03f03b6ace8d889f91d656bef5ae1114afd568fe",
+    "authenticated_bucket_restores": 17,
+    "recovered_bytes": 30547253,
+    "source_and_index_verified": true,
+    "no_object_alternates": true
+  },
+  "product_gates": {
+    "check": "passed",
+    "webp": "passed",
+    "build": "passed",
+    "release_verification": "passed",
+    "art_custody_tests_passed": 182,
+    "chromium_offline_startup": "passed"
+  },
+  "deployment": {
+    "unit": "dracon-sync-operator.service",
+    "new_pid": 2030348,
+    "running_sha256": "9b57925cffa0892a6bea65c095b4d5dc33afd3b17320d21df106e2e8606f0731",
+    "finished_at": "2026-11-18T18:10:02Z"
+  },
+  "workspace_gates": [
+    "clippy",
+    "locked workspace tests",
+    "locked release build",
+    "dependency audit"
+  ],
+  "service_writable_state_verified": true,
+  "git_stat_refresh": {
+    "head": "03f03b6ace8d889f91d656bef5ae1114afd568fe",
+    "all_index_modes_oids_and_stages_unchanged": true,
+    "tracked_worktree_clean": true
+  },
+  "gitlab_external_object_storage": {
+    "project": "DraconDev/web-games-deathrun",
+    "project_id": 83906612,
+    "previous_lfs_enabled": true,
+    "current_lfs_enabled": false,
+    "hosted_lfs_bytes": 0,
+    "existing_lfs_pointers": 0,
+    "new_verified_external_pointers": 17,
+    "main_branch_protected": true
+  }
+}

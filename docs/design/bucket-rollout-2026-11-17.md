@@ -229,3 +229,32 @@ Pillow 13.0.0, reproduced the shipped 36 JPEGs and five icons byte for byte.
 Repeat these checks after authenticated restore. The locally validated upload
 and read-only policy drafts target `browser-extensions-shared/native-archival-v1/tab-hero`
 and select only the 37 preserved files, totaling 583,814,592 bytes.
+
+## Live Deathrun enrollment
+
+The daemon committed the 17 reviewed source pointers and protected manifest
+at `f2ee2832151e848cfed134d9cd8db766a2e3b4be`. The documentation follow-up
+`03f03b6ace8d889f91d656bef5ae1114afd568fe` matches local and both remote
+`main` tips in the authenticated witness. A new independent checkout at that
+revision recovered all 30,547,253 source bytes through the separate OVH
+consumer credential and passed the product checks, production build, release
+verification, 182 art tests, and offline Chromium startup. See
+`evidence/bucket-rollout-2026-11-17/deathrun-production-enrollment.json`.
+
+The installed daemon's private journal and metadata must live in a path
+writable in its systemd mount namespace because filtering needs journal
+locks. The canonical binding uses an operator-owned directory under
+`~/.local/state/dracon/`. The first binding was readable from the shell but
+read-only for the service. The corrected binding preserved every staged
+entry, and the post-commit stat refresh preserved every index path, mode,
+stage and object ID.
+
+GitLab sees the native pointer format as standard Git LFS and requires
+GitLab-hosted payloads while project LFS is enabled. For Deathrun, the
+pre-enrollment GitLab refs contained zero Git LFS pointers, GitLab reported
+zero hosted LFS bytes, and the 17 incoming pointers matched the reviewed
+external assets. The Deathrun project now uses GitLab's supported external
+storage configuration with project LFS disabled and `main` protected.
+The protected manifest, native storage guard and Warden continue to verify
+the enrolled references. Check for existing hosted LFS separately for each
+future project. [GitLab external LFS documentation](https://docs.gitlab.com/topics/git/lfs/troubleshooting/#hosting-lfs-objects-externally)
