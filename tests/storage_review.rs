@@ -404,4 +404,39 @@ fn reviewed_capture_preserves_all_versions_and_refuses_unreviewed_or_changed_sou
         .unwrap();
     assert_eq!(std::fs::read(restored).unwrap(), b"working latest");
     assert_eq!(std::fs::read(cold.join("art.bin")).unwrap(), pointer);
+
+    use std::io::Write;
+    use std::process::Stdio;
+    let clean = |input: &[u8]| {
+        let mut child = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+            .args(["storage", "filter-clean"])
+            .args(cold_args)
+            .args([
+                "--restore-root",
+                restore_root.to_str().unwrap(),
+                "--",
+                "art.bin",
+            ])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child.stdin.take().unwrap().write_all(input).unwrap();
+        child.wait_with_output().unwrap()
+    };
+    let unchanged = clean(b"working latest");
+    assert!(
+        unchanged.status.success(),
+        "{}",
+        String::from_utf8_lossy(&unchanged.stderr)
+    );
+    assert_eq!(unchanged.stdout, pointer);
+    let edited = clean(b"working edited");
+    assert!(!edited.status.success());
+    assert!(edited.stdout.is_empty());
+    std::fs::write(restored, b"corrupt cache!").unwrap();
+    let corrupt = clean(b"working latest");
+    assert!(!corrupt.status.success());
+    assert!(corrupt.stdout.is_empty());
 }

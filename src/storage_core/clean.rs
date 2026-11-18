@@ -63,41 +63,74 @@ impl<'a> PreparedClean<'a> {
     /// Read requests/memory are bounded; input length is capped by the selected
     /// source length plus the small pointer recognition window.
     pub fn clean(&self, input: &mut dyn Read, output: &mut dyn Write) -> Result<()> {
-        let mut prefix = Vec::with_capacity(1025);
-        input.take(1025).read_to_end(&mut prefix)?;
-        if Pointer::parse(&prefix).ok().as_ref() == Some(&self.pointer) {
-            output.write_all(&self.pointer.encode())?;
-            return Ok(());
-        }
-        let mut bytes = prefix.len() as u64;
-        if bytes > self.source.bytes() {
-            bail!("asset changed; prepare its exact version before staging");
-        }
-        let mut hash = Sha256::new();
-        hash.update(&prefix);
-        let mut buffer = [0u8; 64 * 1024];
-        loop {
-            let available = self.source.bytes().saturating_sub(bytes).saturating_add(1);
-            let requested = usize::try_from(available.min(buffer.len() as u64))?;
-            let count = input.read(&mut buffer[..requested])?;
-            if count == 0 {
-                break;
-            }
-            bytes = bytes
-                .checked_add(count as u64)
-                .ok_or(BackendFailure::Capacity)?;
-            if bytes > self.source.bytes() {
-                bail!("asset changed; prepare its exact version before staging");
-            }
-            hash.update(&buffer[..count]);
-        }
-        if bytes != self.source.bytes() || format!("{:x}", hash.finalize()) != self.source.sha256()
-        {
-            bail!("asset changed; prepare its exact version before staging");
-        }
-        output.write_all(&self.pointer.encode())?;
-        Ok(())
+        clean_exact(&self.source, &self.pointer, input, output)
     }
+}
+
+/// Clean hydrated bytes using a verified recovery instead of a producer job.
+/// The protected manifest must be the exact indexed version.
+pub fn clean_restored(
+    metadata: &MetadataStore,
+    prepared: &PreparedMetadata,
+    manifest: &Manifest,
+    path_hex: &str,
+    restore: &super::restore::RestoreStore,
+    input: &mut dyn Read,
+    output: &mut dyn Write,
+) -> Result<()> {
+    metadata.check_manifest(prepared, manifest)?;
+    let enrollment = manifest
+        .enrollment(path_hex)
+        .ok_or(BackendFailure::Security)?;
+    let pointer = Pointer::new(
+        enrollment
+            .payload
+            .clone()
+            .ok_or(BackendFailure::Integrity)?,
+    )?;
+    let source = restore.verified_source(manifest, enrollment)?;
+    clean_exact(&source, &pointer, input, output)
+}
+
+fn clean_exact(
+    source: &Fingerprint,
+    pointer: &Pointer,
+    input: &mut dyn Read,
+    output: &mut dyn Write,
+) -> Result<()> {
+    let mut prefix = Vec::with_capacity(1025);
+    input.take(1025).read_to_end(&mut prefix)?;
+    if Pointer::parse(&prefix).ok().as_ref() == Some(pointer) {
+        output.write_all(&pointer.encode())?;
+        return Ok(());
+    }
+    let mut bytes = prefix.len() as u64;
+    if bytes > source.bytes() {
+        bail!("asset changed; prepare its exact version before staging");
+    }
+    let mut hash = Sha256::new();
+    hash.update(&prefix);
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        let available = source.bytes().saturating_sub(bytes).saturating_add(1);
+        let requested = usize::try_from(available.min(buffer.len() as u64))?;
+        let count = input.read(&mut buffer[..requested])?;
+        if count == 0 {
+            break;
+        }
+        bytes = bytes
+            .checked_add(count as u64)
+            .ok_or(BackendFailure::Capacity)?;
+        if bytes > source.bytes() {
+            bail!("asset changed; prepare its exact version before staging");
+        }
+        hash.update(&buffer[..count]);
+    }
+    if bytes != source.bytes() || format!("{:x}", hash.finalize()) != source.sha256() {
+        bail!("asset changed; prepare its exact version before staging");
+    }
+    output.write_all(&pointer.encode())?;
+    Ok(())
 }
 
 #[cfg(test)]

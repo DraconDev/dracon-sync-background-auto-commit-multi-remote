@@ -619,8 +619,15 @@ pub(crate) enum StorageCommand {
         repo: PathBuf,
         #[arg(long)]
         repo_id: String,
+        #[arg(
+            long,
+            required_unless_present = "restore_root",
+            conflicts_with = "restore_root"
+        )]
+        journal_root: Option<PathBuf>,
+        /// Verified recovery cache for a consumer checkout.
         #[arg(long)]
-        journal_root: PathBuf,
+        restore_root: Option<PathBuf>,
         #[arg(long)]
         metadata_root: PathBuf,
         /// Reserved repository-relative protected metadata path in the Git index.
@@ -2808,6 +2815,7 @@ fn filter_clean(command: &StorageCommand) -> Result<()> {
         repo,
         repo_id,
         journal_root,
+        restore_root,
         metadata_root,
         manifest_path,
         path,
@@ -2819,9 +2827,6 @@ fn filter_clean(command: &StorageCommand) -> Result<()> {
         clean::PreparedClean,
         journal::{Journal, Limits},
     };
-    if !journal_root.is_absolute() || !journal_root.join(repo_id).is_dir() {
-        bail!("clean driver requires an existing absolute private journal binding");
-    }
     let indexed = indexed_manifest(repo, repo_id, metadata_root, manifest_path)?;
     #[cfg(unix)]
     let path_hex = {
@@ -2834,6 +2839,31 @@ fn filter_clean(command: &StorageCommand) -> Result<()> {
             .context("unsupported path encoding")?
             .as_bytes(),
     )?;
+    if let Some(restore_root) = restore_root {
+        if !restore_root.is_absolute() || !restore_root.join(repo_id).is_dir() {
+            bail!("clean driver requires an existing absolute private recovery binding");
+        }
+        let restore = dracon_sync::storage_core::restore::RestoreStore::open(
+            restore_root,
+            repo_id,
+            Limits::default(),
+        )?;
+        return dracon_sync::storage_core::clean::clean_restored(
+            &indexed.store,
+            &indexed.prepared,
+            &indexed.manifest,
+            &path_hex,
+            &restore,
+            &mut std::io::stdin().lock(),
+            &mut std::io::stdout().lock(),
+        );
+    }
+    let journal_root = journal_root
+        .as_ref()
+        .context("clean driver requires an explicit state binding")?;
+    if !journal_root.is_absolute() || !journal_root.join(repo_id).is_dir() {
+        bail!("clean driver requires an existing absolute private journal binding");
+    }
     let journal = Journal::open(journal_root, repo_id, Limits::default())?;
     let lease = journal.lease_enrolled(&indexed.manifest, &path_hex)?;
     let clean = PreparedClean::new(

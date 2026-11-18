@@ -3,13 +3,13 @@
 use anyhow::{bail, Result};
 use sha2::{Digest, Sha256};
 use std::fs::File;
-use std::io::{Seek, SeekFrom, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 use super::backend::BackendFailure;
 use super::bindings::RestoreBinding;
 use super::journal::{self, Encryption, Limits, SnapshotKind};
-use super::manifest::Manifest;
+use super::manifest::{Enrollment, Manifest};
 use super::metadata::{MetadataStore, PreparedMetadata};
 use super::reference::{validate_sha256, Fingerprint};
 use super::security::WardenAdapter;
@@ -40,6 +40,14 @@ pub struct RestoreStore {
     directory: PathBuf,
     repo_id: String,
     limits: Limits,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct RecoveryReceipt {
+    version: u32,
+    enrollment_id: String,
+    source: Fingerprint,
 }
 
 impl RestoreStore {
@@ -103,11 +111,7 @@ impl RestoreStore {
         let _lease = journal::try_lock(&self.directory.join("restore.lock"))?;
         // Logical contract/version determines the cache path, not a source hash
         // or arbitrary manifest-supplied filesystem destination.
-        let mut hash = Sha256::new();
-        hash.update(b"dracon-private-restored-asset-v1\0");
-        hash.update(self.repo_id.as_bytes());
-        hash.update(serde_json::to_vec(enrollment)?);
-        let id = format!("{:x}", hash.finalize());
+        let id = recovery_id(&self.repo_id, enrollment)?;
         let mut versions = std::collections::BTreeSet::new();
         let mut scanned = 0usize;
         for entry in std::fs::read_dir(&self.directory)? {
@@ -178,6 +182,24 @@ impl RestoreStore {
         )?;
         let path = self.directory.join(format!("{id}.source"));
         journal::verify_snapshot(&path, &source)?;
+        let receipt = RecoveryReceipt {
+            version: 1,
+            enrollment_id: id.clone(),
+            source: source.clone(),
+        };
+        let receipt_path = self.directory.join(format!("{id}.verified.json"));
+        if journal::exists_without_symlink(&receipt_path)? {
+            if read_receipt(&receipt_path)? != receipt {
+                bail!(BackendFailure::Integrity);
+            }
+        } else {
+            journal::atomic_bytes(
+                &self.directory,
+                &receipt_path,
+                &serde_json::to_vec(&receipt)?,
+                true,
+            )?;
+        }
         Ok(RestoredAsset {
             path,
             source,
@@ -187,6 +209,54 @@ impl RestoreStore {
             manifest_payload: prepared.payload().clone(),
         })
     }
+
+    /// Read a verified local recovery of the exact current enrollment. A
+    /// source file without its authenticated recovery receipt grants nothing.
+    pub(super) fn verified_source(
+        &self,
+        manifest: &Manifest,
+        enrollment: &Enrollment,
+    ) -> Result<Fingerprint> {
+        if manifest.repo_id() != self.repo_id
+            || manifest.enrollment(&enrollment.path_hex) != Some(enrollment)
+        {
+            bail!(BackendFailure::Security);
+        }
+        let id = recovery_id(&self.repo_id, enrollment)?;
+        let receipt = read_receipt(&self.directory.join(format!("{id}.verified.json")))?;
+        receipt.source.validate()?;
+        if receipt.version != 1
+            || receipt.enrollment_id != id
+            || receipt.source.bytes() > self.limits.max_snapshot_bytes
+            || (enrollment.encryption == Encryption::None
+                && enrollment.payload.as_ref() != Some(&receipt.source))
+        {
+            bail!(BackendFailure::Integrity);
+        }
+        journal::verify_snapshot(
+            &self.directory.join(format!("{id}.source")),
+            &receipt.source,
+        )?;
+        Ok(receipt.source)
+    }
+}
+
+fn recovery_id(repo_id: &str, enrollment: &Enrollment) -> Result<String> {
+    let mut hash = Sha256::new();
+    hash.update(b"dracon-private-restored-asset-v1\0");
+    hash.update(repo_id.as_bytes());
+    hash.update(serde_json::to_vec(enrollment)?);
+    Ok(format!("{:x}", hash.finalize()))
+}
+
+fn read_receipt(path: &Path) -> Result<RecoveryReceipt> {
+    let file = journal::open_private(path, false, false)?;
+    let mut raw = Vec::new();
+    file.take(1025).read_to_end(&mut raw)?;
+    if raw.len() > 1024 {
+        bail!(BackendFailure::Capacity);
+    }
+    serde_json::from_slice(&raw).map_err(|_| BackendFailure::Integrity.into())
 }
 
 struct VerifiedSink<'a> {
