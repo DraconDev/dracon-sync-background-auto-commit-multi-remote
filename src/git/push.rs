@@ -1038,12 +1038,12 @@ pub(crate) fn hook_failure_summary(raw: &str) -> Option<String> {
     })
 }
 
-/// Markers that identify a SUCCESSFUL gate. Their presence in an error text
-/// means the hook ran and PASSED, so the failure is downstream of the hook.
+/// Markers that identify a gate verdict that permits publication.
 fn gate_passed_markers(lower: &str) -> bool {
     lower.contains("4-gate passed for all")
         || lower.contains("4-gate passed")
         || lower.contains("pre-push: 4-gate passed")
+        || lower.contains("pre-push: 4-gate advisory — pushing anyway")
 }
 
 /// Check if an error message indicates the DAEMON'S OWN op-timeout kill —
@@ -2509,6 +2509,15 @@ mod tests {
             "a passing gate must not report as a local hook failure: {}",
             class
         );
+        let advisory_then_dropped = concat!(
+            "send-pack: unexpected disconnect while reading sideband packet\n",
+            "fatal: the remote end hung up unexpectedly\n",
+            "<hook/stdout diagnostics>\n",
+            "Pre-push: 4-gate ADVISORY — pushing anyway; 1 red gate(s) recorded:\n",
+            "  - extensions/standalones/g2a-helper/TEST exited 1\n"
+        );
+        assert!(!is_local_hook_rejection(advisory_then_dropped));
+        assert!(classify_push_failure(advisory_then_dropped).contains("transport/auth"));
 
         // The identical message WITHOUT the pass verdict is still a refusal:
         // a gate that cannot report a verdict must not be retried blindly.
