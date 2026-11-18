@@ -53,5 +53,13 @@
     "source_bytes": 583814592,
     "provider_checked": false
   },
+  "native_transfer_journal": {
+    "phase": "captured",
+    "jobs": 37,
+    "source_bytes": 583814592,
+    "all_snapshots_read_back_against_pinned_custody": true,
+    "per_file_reviews_match_complete_custody_review": true,
+    "bucket_uploaded": false
+  },
   "production_placement_changed": false
 }
