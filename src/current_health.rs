@@ -8,6 +8,7 @@ use crate::daemon::{
     scheduler_evidence::{Phase, RepoEvidence},
 };
 use serde::Serialize;
+use std::collections::BTreeMap;
 
 #[derive(Clone, Copy, Debug, Default, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -39,6 +40,8 @@ pub(super) struct Evidence {
     pub last_push: Option<Observation>,
     #[serde(skip)]
     pub push_failure_matches_tip: bool,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub mirror_unpublished: BTreeMap<String, usize>,
 }
 
 pub(super) fn classify(row: &RepoReportRow) -> Current {
@@ -46,6 +49,7 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
         || row.ahead > 0
         || row.behind > 0
         || row.health.push_failure_matches_tip
+        || !row.health.mirror_unpublished.is_empty()
         || row.state_flags.iter().any(|flag| flag == "HYGIENE_PENDING");
     let blocked = row.pack_too_large
         || row.missing_objects > 0

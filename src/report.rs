@@ -2,7 +2,7 @@ use anyhow::Result;
 use dracon_git::GitService;
 use futures::stream::StreamExt;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs::OpenOptions;
 use std::io::Write as IoWrite;
 use std::path::{Path, PathBuf};
@@ -808,6 +808,36 @@ pub(crate) struct ReportEffectiveRemotes {
     pub excluded: Vec<String>,
     /// Mirrors the forge-identity dedupe dropped.
     pub duplicate_mirrors: Vec<String>,
+}
+
+fn mirror_unpublished(
+    repo: &Path,
+    head: &str,
+    branch: &str,
+    push_legs: &[String],
+) -> BTreeMap<String, usize> {
+    let mirrors = push_legs.iter().filter(|remote| remote.as_str() != "origin");
+    if mirrors.clone().next().is_none() || !crate::git::is_safe_branch_name(branch) {
+        return BTreeMap::new();
+    }
+    let Ok(git) = git2::Repository::open(repo) else {
+        return BTreeMap::new();
+    };
+    let Ok(head) = git2::Oid::from_str(head) else {
+        return BTreeMap::new();
+    };
+    mirrors
+        .filter_map(|remote| {
+            let tracking = git
+                .refname_to_id(&format!("refs/remotes/{remote}/{branch}"))
+                .ok()?;
+            if tracking == head {
+                return None;
+            }
+            let (ahead, _) = git.graph_ahead_behind(head, tracking).ok()?;
+            (ahead > 0).then(|| (remote.clone(), ahead))
+        })
+        .collect()
 }
 
 pub(crate) fn report_effective_remote_legs(
@@ -5108,6 +5138,12 @@ pub(crate) async fn run_repos_report(
             report_effective_remote_legs(policy, &repo_override, repo.as_ref(), pack_too_large.0);
         let mut health = current_health::Evidence {
             last_push: crate::daemon::push_history::load(&repo),
+            mirror_unpublished: mirror_unpublished(
+                &repo,
+                &last_hash,
+                &effective_status.branch,
+                &effective_remotes.legs,
+            ),
             ..Default::default()
         };
         let failure_matches_tip = stuck_info.as_ref().is_some_and(|entry| {
@@ -5125,6 +5161,15 @@ pub(crate) async fn run_repos_report(
                     truncate_unicode_width(error.lines().next().unwrap_or_default(), 160)
                 );
             }
+        }
+        if !health.mirror_unpublished.is_empty() {
+            let lag = health
+                .mirror_unpublished
+                .iter()
+                .map(|(remote, count)| format!("{remote} missing {count}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            hint = format!("pending mirror publication ({lag}); {hint}");
         }
         let row = RepoReportRow {
             health,
