@@ -3301,7 +3301,7 @@ pub(crate) fn terminal_width() -> Option<u16> {
 pub(crate) enum LayoutTier {
     /// The DEFAULT for ≥165 cols (auto-picked; v0.113.26 made Rich the
     /// product for every wide terminal, not just < 242): a rich
-    /// 16-column table (`#` · STATUS · REPO · ACTIVITY · 📝📦🆕🚫 ·
+    /// 16-column table (`#` · STATUS · REPO · MIRROR LAG · 📝📦🆕🚫 ·
     /// A/B · PUSH · REM · 1H/6H/24H · SIZE · TOUCHED) with rows
     /// carrying hints linked out under the table (no HINT column
     /// since L15). Replaces Vertical as the auto-picked default.
@@ -5577,12 +5577,10 @@ pub(crate) async fn run_repos_report(
             );
         }
         LayoutTier::Compact => {
-            println!(
-                "{}",
-                build_repos_compact_table(&rows, full_path, terminal_width().unwrap_or(120))
-            );
+            let width = terminal_width().unwrap_or(120);
+            println!("{}", build_repos_compact_table(&rows, full_path, width));
             if let Some(detail) = rich_hint_link_out(&rows) {
-                println!("{detail}");
+                println!("{}", wrap_legend_text(&detail, usize::from(width)));
             }
         }
         LayoutTier::Full => {
@@ -7310,7 +7308,7 @@ fn rich_hint_link_out(rows: &[RepoReportRow]) -> Option<String> {
 }
 
 /// ADDED 2026-07-22 (v0.112.38): the default table view — a rich
-/// 16-column table (`#` · STATUS · REPO · ACTIVITY · 📝📦🆕🚫 · A/B ·
+/// 16-column table (`#` · STATUS · REPO · MIRROR LAG · 📝📦🆕🚫 · A/B ·
 /// PUSH · REM · 1H/6H/24H · SIZE · TOUCHED), auto-picked for terminals
 /// ≥165 cols (REPO flex-grows past the fixed floor). The operator
 /// wanted "a very rich table" as the default, with detail available on
@@ -7492,7 +7490,7 @@ fn build_repos_rich_table(
     const TOUCHED_COL: usize = 15;
     // Borders: N+1 separators in UTF8_FULL_CONDENSED for N columns.
     // Cell padding: 2 chars per cell × N cells.
-    let num_cols = 16; // fixed: #, STATUS, REPO, ACTIVITY, 📝,📦,🆕,🚫, A/B, PUSH, REM, 1H, 6H, 24H, SIZE, TOUCHED
+    let num_cols = 16;
     let border_overhead = num_cols + 1;
     let cell_padding = num_cols * 2;
     let fixed = NUM_COL
