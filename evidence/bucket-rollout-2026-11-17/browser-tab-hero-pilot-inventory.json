@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-11-18T12:09:13.223111+00:00",
+  "repository": "/home/dracon/Dev/browser-extensions-shared",
+  "inventory_head": "302bde551b63cee3027e99c92469b24738b262da",
+  "workspace": "extensions/standalones/tab-hero",
+  "selection_patterns": [
+    "assets/*-master.png",
+    "assets/icon-1024.png"
+  ],
+  "selected_original_count": 37,
+  "selected_original_git_bytes": 583814592,
+  "largest_selected_blob_bytes": 28764088,
+  "generator_paths": [
+    "extensions/standalones/tab-hero/scripts/make-art.py",
+    "extensions/standalones/tab-hero/scripts/make-icon.py"
+  ],
+  "shipped_assets_selected": false,
+  "qualification_targets": [
+    "WXT Chromium build",
+    "WXT Firefox build",
+    "existing art and icon pipeline tests",
+    "packaged extension offline launch"
+  ],
+  "provider_access_proposal": "browser-bucket-access-proposal.json",
+  "custody_complete_at_census": false,
+  "production_placement_changed": false
+}
