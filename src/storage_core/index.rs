@@ -1700,8 +1700,14 @@ mod tests {
         );
         assert_eq!(lease.load().unwrap().phase(), Phase::ReadyToStage);
         assert!(!f.transaction.state.join("intent.json").exists());
+        let attributes = b"asset.bin filter=dracon-storage -text\n";
         f.transaction
-            .stage_reviewed(&snapshot, &bundle, &approval)
+            .stage_reviewed_with_attributes(&snapshot, &bundle, &approval, attributes, |path| {
+                let proposed = Index::open(path)?;
+                let attr = proposed.get_path(Path::new(ATTRIBUTES_PATH), 0).unwrap();
+                assert_eq!(f.transaction.repo.find_blob(attr.id)?.content(), attributes);
+                Ok(())
+            })
             .unwrap();
         let index = fresh_index(&f.transaction.repo).unwrap();
         let oid = index.get_path(Path::new("asset.bin"), 0).unwrap().id;
@@ -1713,7 +1719,7 @@ mod tests {
         // The already-verified pair is idempotent; an expired old index anchor
         // is not used to authorize another raw migration during reconciliation.
         f.transaction
-            .stage_reviewed(&snapshot, &bundle, &approval)
+            .stage_reviewed_with_attributes(&snapshot, &bundle, &approval, attributes, |_| Ok(()))
             .unwrap();
     }
 
