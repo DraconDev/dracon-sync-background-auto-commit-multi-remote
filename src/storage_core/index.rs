@@ -22,6 +22,8 @@ use super::staging::{decode_path, StageBundle};
 
 const MAX_INDEX_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_INTENT_BYTES: u64 = 16 * 1024 * 1024;
+const MAX_ATTRIBUTES_BYTES: usize = 1024 * 1024;
+const ATTRIBUTES_PATH: &str = ".gitattributes";
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 /// Process-backed coordination and an owned Git index lock for guarded commits.
@@ -213,7 +215,7 @@ impl IndexTransaction {
     /// Unrelated entries survive; a changed manual index is never overwritten.
     /// Retrying a saved matching transaction reconciles before/after publication.
     pub fn stage(&self, snapshot: &IndexSnapshot, bundle: &StageBundle<'_>) -> Result<IndexProof> {
-        self.stage_authorized(snapshot, bundle, || Ok(BTreeSet::new()))
+        self.stage_authorized(snapshot, bundle, None, || Ok(BTreeSet::new()), |_| Ok(()))
     }
 
     /// Forward-enroll explicitly reviewed raw paths with preserved staged/HEAD
@@ -225,20 +227,68 @@ impl IndexTransaction {
         bundle: &StageBundle<'_>,
         review: &super::enrollment_review::ApprovedEnrollment,
     ) -> Result<IndexProof> {
-        self.stage_authorized(snapshot, bundle, || {
-            review.validate_bundle(
-                self.repo.workdir().ok_or(BackendFailure::Security)?,
-                &self.repo_id,
-                bundle,
-            )
-        })
+        self.stage_reviewed_checked(snapshot, bundle, review, |_| Ok(()))
+    }
+
+    /// Run a read-only caller check against the exact candidate Git index.
+    /// A refusal leaves the canonical index untouched. Saved candidates
+    /// and already-staged pairs are checked again when resuming.
+    #[cfg(unix)]
+    pub fn stage_reviewed_checked(
+        &self,
+        snapshot: &IndexSnapshot,
+        bundle: &StageBundle<'_>,
+        review: &super::enrollment_review::ApprovedEnrollment,
+        check: impl Fn(&Path) -> Result<()>,
+    ) -> Result<IndexProof> {
+        self.stage_reviewed_candidate(snapshot, bundle, review, None, check)
+    }
+
+    /// Stage appended root Git attributes together with the reviewed assets.
+    /// The caller must qualify the proposed filter mappings in the candidate.
+    #[cfg(unix)]
+    pub fn stage_reviewed_with_attributes(
+        &self,
+        snapshot: &IndexSnapshot,
+        bundle: &StageBundle<'_>,
+        review: &super::enrollment_review::ApprovedEnrollment,
+        attributes: &[u8],
+        check: impl Fn(&Path) -> Result<()>,
+    ) -> Result<IndexProof> {
+        self.stage_reviewed_candidate(snapshot, bundle, review, Some(attributes), check)
+    }
+
+    #[cfg(unix)]
+    fn stage_reviewed_candidate(
+        &self,
+        snapshot: &IndexSnapshot,
+        bundle: &StageBundle<'_>,
+        review: &super::enrollment_review::ApprovedEnrollment,
+        attributes: Option<&[u8]>,
+        check: impl Fn(&Path) -> Result<()>,
+    ) -> Result<IndexProof> {
+        self.stage_authorized(
+            snapshot,
+            bundle,
+            attributes,
+            || {
+                review.validate_bundle(
+                    self.repo.workdir().ok_or(BackendFailure::Security)?,
+                    &self.repo_id,
+                    bundle,
+                )
+            },
+            check,
+        )
     }
 
     fn stage_authorized(
         &self,
         snapshot: &IndexSnapshot,
         bundle: &StageBundle<'_>,
+        attributes: Option<&[u8]>,
         authorize: impl FnOnce() -> Result<BTreeSet<Vec<u8>>>,
+        check: impl Fn(&Path) -> Result<()>,
     ) -> Result<IndexProof> {
         if bundle.repo_id() != self.repo_id
             || bundle
@@ -250,7 +300,40 @@ impl IndexTransaction {
         }
         journal::runtime::protect(&self.state)?;
         let _lease = journal::try_lock(&self.state.join("transaction.lock"))?;
-        let group = group_id(bundle, &self.metadata_path)?;
+        let mut group = group_id(bundle, &self.metadata_path)?;
+        let attributes_oid = if let Some(bytes) = attributes {
+            if bytes.is_empty()
+                || bytes.len() > MAX_ATTRIBUTES_BYTES
+                || bytes.contains(&0)
+                || self.metadata_path == ATTRIBUTES_PATH.as_bytes()
+                || bundle
+                    .manifest()
+                    .enrollment(&journal::encode_relative_path(ATTRIBUTES_PATH.as_bytes())?)
+                    .is_some()
+            {
+                bail!("invalid root attributes for storage enrollment");
+            }
+            let oid = self.repo.blob(bytes)?;
+            group = format!(
+                "{:x}",
+                Sha256::digest(format!("storage-attributes-v1:{group}:{oid}"))
+            );
+            Some(oid)
+        } else {
+            None
+        };
+        let check_candidate = |path: &Path| -> Result<()> {
+            if let Some(oid) = attributes_oid {
+                let index = Index::open(path)?;
+                if !index
+                    .get_path(Path::new(ATTRIBUTES_PATH), 0)
+                    .is_some_and(|entry| entry.id == oid && entry.mode == 0o100644)
+                {
+                    bail!("candidate index is missing the proposed root attributes");
+                }
+            }
+            check(path)
+        };
         let metadata_oid = self.write_metadata(bundle)?;
         let current = fresh_index(&self.repo)?;
         let intent_path = self.state.join("intent.json");
@@ -266,9 +349,12 @@ impl IndexTransaction {
                 &self.metadata_path,
                 metadata_oid,
             )? {
+                check_candidate(&self.repo.path().join("index"))?;
                 self.cleanup(&intent)?;
                 return self.acknowledge(bundle, metadata_oid);
             }
+            let candidate = self.verified_candidate(&intent)?;
+            check_candidate(&candidate)?;
             self.publish(&intent)?;
             self.verify(bundle, metadata_oid)?;
             self.cleanup(&intent)?;
@@ -281,6 +367,7 @@ impl IndexTransaction {
             &self.metadata_path,
             metadata_oid,
         )? {
+            check_candidate(&self.repo.path().join("index"))?;
             return self.acknowledge(bundle, metadata_oid);
         }
         if self.snapshot()?.0 != snapshot.0 {
@@ -289,6 +376,9 @@ impl IndexTransaction {
         let reviewed = authorize()?;
         self.check_enrollment(&current, bundle, &reviewed)?;
         self.check_touched(&current, bundle, &reviewed)?;
+        if let Some(bytes) = attributes {
+            self.verify_attributes_append(&current, bytes)?;
+        }
         let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
         let filename = format!(".dracon-storage-index-{}-{sequence}", std::process::id());
         let temporary = self.repo.path().join(&filename);
@@ -328,6 +418,14 @@ impl IndexTransaction {
                 0o100644,
                 u32::try_from(bundle.prepared().payload().bytes())?,
             ))?;
+            if let (Some(oid), Some(bytes)) = (attributes_oid, attributes) {
+                candidate.add(&entry(
+                    ATTRIBUTES_PATH.as_bytes(),
+                    oid,
+                    0o100644,
+                    u32::try_from(bytes.len())?,
+                ))?;
+            }
             candidate.write()?;
             #[cfg(unix)]
             {
@@ -335,6 +433,11 @@ impl IndexTransaction {
                 std::fs::set_permissions(&temporary, std::fs::Permissions::from_mode(0o600))?;
             }
             owned_file(&temporary)?.sync_all()?;
+            let expected = fingerprint_optional(&temporary)?.ok_or(BackendFailure::Integrity)?;
+            check_candidate(&temporary)?;
+            if fingerprint_optional(&temporary)?.as_ref() != Some(&expected) {
+                bail!(BackendFailure::Integrity);
+            }
             if !desired(
                 &self.repo,
                 &candidate,
@@ -350,7 +453,7 @@ impl IndexTransaction {
                 version: 1,
                 group,
                 base: snapshot.0.clone(),
-                candidate: fingerprint_optional(&temporary)?.ok_or(BackendFailure::Integrity)?,
+                candidate: expected,
                 filename,
                 device,
                 inode,
@@ -369,6 +472,42 @@ impl IndexTransaction {
         }
         result?;
         self.acknowledge(bundle, metadata_oid)
+    }
+
+    fn verify_attributes_append(&self, index: &Index, proposed: &[u8]) -> Result<()> {
+        let path = Path::new(ATTRIBUTES_PATH);
+        let staged = index.get_path(path, 0).map(|entry| (entry.id, entry.mode));
+        let base = match self.repo.head() {
+            Ok(head) => match head.peel_to_tree()?.get_path(path) {
+                Ok(entry) => Some((entry.id(), entry.filemode() as u32)),
+                Err(error) if error.code() == git2::ErrorCode::NotFound => None,
+                Err(error) => return Err(error.into()),
+            },
+            Err(error) if error.code() == git2::ErrorCode::UnbornBranch => None,
+            Err(error) => return Err(error.into()),
+        };
+        if staged != base {
+            bail!("existing staged changes to root attributes must be resolved first");
+        }
+        if let Some((oid, mode)) = base {
+            let (size, kind) = self.repo.odb()?.read_header(oid)?;
+            if mode != 0o100644 || kind != ObjectType::Blob || size > MAX_ATTRIBUTES_BYTES {
+                bail!("existing root attributes are unavailable or unsafe");
+            }
+            let blob = self.repo.find_blob(oid)?;
+            let existing = blob.content();
+            if !proposed.starts_with(existing)
+                || (!existing.is_empty()
+                    && !existing.ends_with(b"\n")
+                    && proposed.get(existing.len()) != Some(&b'\n'))
+            {
+                bail!("storage enrollment may only append to root attributes");
+            }
+        }
+        if !proposed.ends_with(b"\n") {
+            bail!("root attributes must end with a newline");
+        }
+        Ok(())
     }
 
     fn write_metadata(&self, bundle: &StageBundle<'_>) -> Result<Oid> {
@@ -540,7 +679,7 @@ impl IndexTransaction {
         Ok(intent)
     }
 
-    fn publish(&self, intent: &Intent) -> Result<()> {
+    fn verified_candidate(&self, intent: &Intent) -> Result<PathBuf> {
         let candidate = self.repo.path().join(&intent.filename);
         let file = owned_file(&candidate)?;
         if identity(&file.metadata()?)? != (intent.device, intent.inode)
@@ -548,6 +687,11 @@ impl IndexTransaction {
         {
             bail!(BackendFailure::Integrity);
         }
+        Ok(candidate)
+    }
+
+    fn publish(&self, intent: &Intent) -> Result<()> {
+        let candidate = self.verified_candidate(intent)?;
         let lock = self.repo.path().join("index.lock");
         if journal::exists_without_symlink(&lock)? {
             if identity(&owned_file(&lock)?.metadata()?)? != (intent.device, intent.inode) {
@@ -1535,6 +1679,27 @@ mod tests {
         let lease = f.journal.lease(&f.job).unwrap();
         let bundle = StageBundle::build(&f.store, &f.prepared, &f.manifest, vec![&lease]).unwrap();
         let snapshot = f.transaction.snapshot().unwrap();
+        let refused = f
+            .transaction
+            .stage_reviewed_checked(&snapshot, &bundle, &approval, |path| {
+                assert_ne!(path, f.transaction.repo.path().join("index"));
+                let index = Index::open(path)?;
+                let oid = index.get_path(Path::new("asset.bin"), 0).unwrap().id;
+                Pointer::parse(f.transaction.repo.find_blob(oid)?.content())?;
+                assert!(index
+                    .get_path(Path::new(".dracon/assets.manifest"), 0)
+                    .is_some());
+                bail!("fixture attributes refused")
+            })
+            .err()
+            .expect("candidate check must refuse");
+        assert!(refused.to_string().contains("fixture attributes refused"));
+        assert_eq!(
+            std::fs::read(f.transaction.repo.path().join("index")).unwrap(),
+            before
+        );
+        assert_eq!(lease.load().unwrap().phase(), Phase::ReadyToStage);
+        assert!(!f.transaction.state.join("intent.json").exists());
         f.transaction
             .stage_reviewed(&snapshot, &bundle, &approval)
             .unwrap();
