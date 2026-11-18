@@ -6158,7 +6158,8 @@ fn build_repos_compact_table(
     let changes = terminal_cols >= 96;
     let divergence = terminal_cols >= 72;
     let status_width = status_column_width();
-    let fixed = 5 + status_width + 11 + 5;
+    let push_width = if divergence { 14 } else { 11 };
+    let fixed = 5 + status_width + push_width + 5;
     let optional = if changes { 14 } else { 0 } + if divergence { 12 } else { 0 };
     let name_width = usize::from(terminal_cols)
         .saturating_sub(fixed + optional)
@@ -6179,7 +6180,7 @@ fn build_repos_compact_table(
         widths.push(11);
     }
     headers.push("Push");
-    widths.push(11);
+    widths.push(push_width);
     table.set_header(headers);
     table.set_constraints(
         widths
@@ -6217,7 +6218,7 @@ fn build_repos_compact_table(
             )));
         }
         let (push, color) = current_health::push(row);
-        cells.push(Cell::new(truncate_unicode_width(&push, 9)).fg(color));
+        cells.push(Cell::new(truncate_unicode_width(&push, push_width - 2)).fg(color));
         table.add_row(cells);
     }
     table
