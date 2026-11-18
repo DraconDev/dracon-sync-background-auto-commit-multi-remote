@@ -5106,7 +5106,7 @@ pub(crate) async fn run_repos_report(
         // mirrors the daemon's over-2-GiB github skip.
         let effective_remotes =
             report_effective_remote_legs(policy, &repo_override, repo.as_ref(), pack_too_large.0);
-        let health = current_health::Evidence {
+        let mut health = current_health::Evidence {
             last_push: crate::daemon::push_history::load(&repo),
             ..Default::default()
         };
@@ -5117,6 +5117,7 @@ pub(crate) async fn run_repos_report(
                     !push.succeeded || push.attempted_at < entry.last_error_at
                 })
         });
+        health.push_failure_matches_tip = failure_matches_tip;
         if !ownership_blocked && !push_budget_exhausted && failure_matches_tip {
             if let Some(error) = stuck_last_error_redacted.as_deref().filter(|s| !s.is_empty()) {
                 hint = format!(

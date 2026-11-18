@@ -37,12 +37,15 @@ pub(super) struct Evidence {
     pub mode: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_push: Option<Observation>,
+    #[serde(skip)]
+    pub push_failure_matches_tip: bool,
 }
 
 pub(super) fn classify(row: &RepoReportRow) -> Current {
     let pending = row.modified + row.staged + row.untracked > 0
         || row.ahead > 0
         || row.behind > 0
+        || row.health.push_failure_matches_tip
         || row.state_flags.iter().any(|flag| flag == "HYGIENE_PENDING");
     let blocked = row.pack_too_large
         || row.missing_objects > 0
@@ -76,7 +79,7 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
     // active committer/queue is not evidence that this backlog can be pushed.
     // Preserve an actual in-flight publication or an explicit current blocker;
     // otherwise expose the exhausted budget while retaining scheduler details.
-    if row.ahead > 0
+    if (row.ahead > 0 || row.health.push_failure_matches_tip)
         && row.push_status == "PUSH_STUCK"
         && !matches!(phase, Some(Phase::Pushing | Phase::Blocked))
     {

@@ -14,6 +14,20 @@ fn current_hygiene_intent_is_never_clean_without_git_dirt_or_scheduler_markers()
 }
 
 #[test]
+fn current_failed_publication_remains_visible_when_the_upstream_is_current() {
+    let mut row = RepoReportRow::for_tests("/fixture");
+    row.push_status = "PUSH_STUCK".into();
+    row.health.push_failure_matches_tip = true;
+    assert_eq!(classify(&row), Current::Stalled);
+
+    row.push_status = "OK".into();
+    assert_eq!(classify(&row), Current::Unknown);
+
+    row.health.push_failure_matches_tip = false;
+    assert_eq!(classify(&row), Current::Converged);
+}
+
+#[test]
 fn current_convergence_output_table_is_independent_of_push_history_and_commit_age() {
     // name, dirty, ahead, phase, eligible dirty age, admission age, excluded,
     // legacy dispatch status, expected current state, visible label.
