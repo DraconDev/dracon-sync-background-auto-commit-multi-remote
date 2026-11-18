@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "trial_commit": "2b7306c4216e594392b52b0bd67263c52b6e4ac8",
+  "pinned_producer_commit": "ac6d839fbbcfcc3109b59b2e5537ff68506a0033",
+  "restored_assets": 17,
+  "restored_bytes": 30547253,
+  "source_namespace": "games/native-archival-v1/deathrun",
+  "consumer_only": true,
+  "no_object_alternates": true,
+  "content_diff_empty_before_stat_refresh": true,
+  "index_entries_equal_after_stat_refresh": true,
+  "git_tracked_status_clean_after_stat_refresh": true,
+  "guard_verified": true,
+  "canonical_asset_placement_changed": false,
+  "observed_at": "2026-11-18T12:04:22.327840+00:00",
+  "trial_directory": "/home/dracon/.local/state/dracon-sync/asset-rollout/deathrun-world-kit-trial-WVtDed",
+  "platform_support_revision": "878b35d93a17cf4e04d3f074a7dd0123c47257e2",
+  "native_binary_sha256": "79df26c36249b81dbd576413f6202f9bcbdfc1d75ccdbc2cd98a9c2d9e85d6f2",
+  "encrypted_payload_bytes": 30566498,
+  "required_copies": [
+    "private OVH object archive",
+    "private local immutable custody"
+  ],
+  "all_required_copy_readbacks_verified": true,
+  "protected_manifest": {
+    "bytes": 7629,
+    "sha256": "3fc694f3381e350bb6b99d75e8ee37e8c95e7ab622879237a39fd770195330de"
+  },
+  "producer_review_digest": "dd600469b73987056547811c80672a10b475b91f82cf74de019b0d910e08f0ed",
+  "manifest_verified_and_imported_in_independent_checkout": true,
+  "tracked_status_refresh": "git add of exact managed paths in disposable consumer checkout after verifying content; all staged IDs and modes compared before and after",
+  "product_gates": "run separately against restored checkout"
+}
