@@ -13348,6 +13348,24 @@ mod tests {
                 .lines()
                 .all(|line| unicode_width::UnicodeWidthStr::width(line) <= width));
         }
+
+        let mut working = make_activity_row("5 minutes ago", 1, 0, "FAIL");
+        working.repo = "/tmp/browser-extensions-shared".into();
+        working.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence {
+            phase: Some(crate::daemon::scheduler_evidence::Phase::Working),
+            ..Default::default()
+        });
+        working.health.mirror_unpublished.insert("gitlab".into(), 2374);
+        working.health.last_push = Some(crate::daemon::push_history::Observation {
+            version: 1,
+            repo: working.repo.clone(),
+            attempted_at: 1,
+            succeeded: false,
+        });
+        working.hint = "pending mirror publication (gitlab missing 2374)".into();
+        let table = build_repos_rich_table(std::slice::from_ref(&working), false, 200).to_string();
+        assert!(table.contains("MIRROR LAG") && table.contains("2374"));
+        assert!(rich_hint_link_out(&[working]).unwrap().contains("gitlab missing 2374"));
     }
 
     #[test]
@@ -15242,14 +15260,10 @@ mod tests {
                 .join(" ");
             let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
             for key in [
-                "UNKNOWN",
-                "scheduler",
                 "FAIL",
                 "last recorded",
-                "GitHub",
-                "GitLab",
-                "excluded not shown",
-                "per push",
+                "configured upstream",
+                "local tracking refs",
                 "--deep",
             ] {
                 // Wrapping can separate words but must preserve all explanations.
