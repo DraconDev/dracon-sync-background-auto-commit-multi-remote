@@ -2843,6 +2843,26 @@ fn filter_clean(command: &StorageCommand) -> Result<()> {
         if !restore_root.is_absolute() || !restore_root.join(repo_id).is_dir() {
             bail!("clean driver requires an existing absolute private recovery binding");
         }
+        let entry = indexed
+            .index
+            .get_path(path, 0)
+            .context("consumer clean requires an indexed pointer")?;
+        let (size, kind) = indexed.repo.odb()?.read_header(entry.id)?;
+        if !matches!(entry.mode, 0o100644 | 0o100755)
+            || kind != git2::ObjectType::Blob
+            || size > 1024
+        {
+            bail!("consumer clean requires an indexed pointer");
+        }
+        let blob = indexed.repo.find_blob(entry.id)?;
+        let pointer = dracon_sync::storage_core::reference::Pointer::parse(blob.content())?;
+        if !indexed
+            .manifest
+            .enrollment(&path_hex)
+            .is_some_and(|record| record.matches_pointer(&pointer))
+        {
+            bail!("consumer clean pointer and indexed manifest disagree");
+        }
         let restore = dracon_sync::storage_core::restore::RestoreStore::open(
             restore_root,
             repo_id,
