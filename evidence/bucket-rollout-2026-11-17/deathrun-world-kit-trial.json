@@ -64,6 +64,11 @@
     "github_target_projected_bytes": 496512,
     "gitlab_target_projected_bytes": 496512,
     "forward_only_passed": true,
+    "installed_hook_chain": {
+      "platform_and_warden_pre_commit": "passed",
+      "platform_and_warden_pre_push_github": "passed",
+      "platform_and_warden_pre_push_gitlab": "passed"
+    },
     "network_push_attempted": false
   }
 }
