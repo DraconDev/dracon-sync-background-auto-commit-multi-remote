@@ -466,17 +466,10 @@ fn rich_rendered_states_keep_complete_activity_and_single_line_rows() {
             );
         }
         for row in &rows {
-            let label = rich_activity(row);
-            // Both STATUS and ACTIVITY carry the COMPLETE state; mere global
-            // substring presence used to conceal truncated ACTIVITY cells.
-            let expected = if classify(row) == Current::Converged {
-                1
-            } else {
-                2
-            };
+            let label = status(row).0;
             assert_eq!(
                 output.matches(label).count(),
-                expected,
+                1,
                 "label {label}: {output}"
             );
         }
@@ -485,7 +478,7 @@ fn rich_rendered_states_keep_complete_activity_and_single_line_rows() {
     }
     // Forced rich below its supported floor must remain non-panicking.
     let narrow = super::super::build_repos_rich_table(&rows, false, 80).to_string();
-    assert!(narrow.contains("STATUS") && narrow.contains("ACTIVITY"));
+    assert!(narrow.contains("STATUS") && narrow.contains("MIRROR LAG"));
 }
 
 #[test]

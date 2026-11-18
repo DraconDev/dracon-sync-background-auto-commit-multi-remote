@@ -3585,14 +3585,9 @@ fn legend_display_lines(width: usize) -> Vec<String> {
 
 fn repos_inline_legend_rows() -> &'static [(&'static str, &'static str)] {
     &[
-        ("STATUS", "✅ clean · 🟡 queued · 🔄 working · ⏳ retrying · 🚫 blocked · 🔴 stalled · ❔ unknown"),
-        ("EVIDENCE", "UNKNOWN = missing/stale scheduler evidence. Open repo details to see the current hold or failure."),
-        ("FILES / A/B", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · ↑ unpushed commits · ↓ behind upstream · — zero"),
-        ("PUSH", "✅ OK / ❌ FAIL + age = last recorded push attempt; current work may still be queued. — unknown = no recorded attempt."),
-        ("REM / REPO", "🐙 GitHub · 🦊 GitLab · 🗻 Codeberg = active targets; excluded not shown. 🔒 private · > nested repo/submodule."),
-        ("ACTIVITY", "1H / 6H / 24H = commit counts. TOUCHED = latest author. STATUS describes current convergence."),
-        ("GIT SIZE", "Local Git history, own+nested; +? = nested size unmeasured. GitHub's 2 GiB limit is per push, not total repo size."),
-        ("ACTIONS", "❌ FAIL: inspect repo details, fix the cause, then sync-now <path>. UNKNOWN: inspect scheduler evidence."),
+        ("A/B", "Commits ahead of or behind the configured upstream."),
+        ("MIRROR LAG", "Most commits missing from any configured mirror, based on local tracking refs."),
+        ("PUSH", "✅ OK / ❌ FAIL and age show the last recorded push attempt."),
         ("DETAILS", "dracon-sync repos <name> · --legend for the full key · --deep to refresh pack/history checks"),
     ]
 }
@@ -3656,6 +3651,10 @@ fn pack_evidence_hint(
 fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
     &[
         ("STATUS", "Current convergence: ✅ clean/idle · 🟡 queued · 🔄 working · ⏳ retrying · 🚫 excluded/blocked · 🔴 stalled · ❔ unknown"),
+        (
+            "MIRROR LAG",
+            "Most commits missing from any configured mirror, using local tracking refs.",
+        ),
         (
             "ACTIVITY",
             "Fresh scheduler evidence, not last commit age: queued = reserved/eligible (including unstarted inspections); working = started worker; retrying = owned cancellation or a live cooldown",
@@ -7280,7 +7279,9 @@ fn rich_hint_link_out(rows: &[RepoReportRow]) -> Option<String> {
                     | Current::Unknown
                     | Current::Queued
                     | Current::Excluded
-            )
+            ) || row.health.push_failure_matches_tip
+                || (!row.health.mirror_unpublished.is_empty()
+                    && row.health.last_push.as_ref().is_some_and(|push| !push.succeeded))
         })
         .filter(|(_, row)| !row.hint.is_empty() && row.hint != "-")
         .map(|(_, row)| {
@@ -7409,7 +7410,7 @@ fn build_repos_rich_table(
     let repo_col = {
         let fixed_non_repo = NUM_COL
             + status_col
-            + ACTIVITY_COL
+            + MIRROR_LAG_COL
             + CHG_MOD_COL
             + CHG_STG_COL
             + CHG_UT_COL
@@ -7427,11 +7428,7 @@ fn build_repos_rich_table(
             .saturating_sub(fixed_non_repo)
             .max(REPO_COL.saturating_sub(push_col - PUSH_COL))
     };
-    // CHANGED 2026-07-29 (v0.113.17): ACTIVITY narrowed 23 → 16 —
-    // it now holds ONLY the state label (`🟢 synced 19m` = 13 max);
-    // the dirty counts moved to their own CHANGES column (operator:
-    // "the activity can just have the first part").
-    const ACTIVITY_COL: usize = 16;
+    const MIRROR_LAG_COL: usize = 16;
     // CHANGED 2026-07-29 (v0.113.19): the single CHANGES column
     // split into FOUR per-class columns (operator: "the changes
     // should be in their respective columns, not just dumped
@@ -7501,7 +7498,7 @@ fn build_repos_rich_table(
     let fixed = NUM_COL
         + status_col
         + REPO_COL
-        + ACTIVITY_COL
+        + MIRROR_LAG_COL
         + CHG_MOD_COL
         + CHG_STG_COL
         + CHG_UT_COL
@@ -7552,7 +7549,7 @@ fn build_repos_rich_table(
         bold("#"),
         bold("STATUS"),
         bold("REPO"),
-        bold("ACTIVITY"),
+        bold("MIRROR LAG"),
         bold("📝"),
         bold("📦"),
         bold("🆕"),
@@ -7582,9 +7579,9 @@ fn build_repos_rich_table(
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(repo_col as u16)));
     table
         .column_mut(3)
-        .expect("ACTIVITY column")
+        .expect("MIRROR LAG column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(
-            ACTIVITY_COL as u16,
+            MIRROR_LAG_COL as u16,
         )));
     table
         .column_mut(4)
@@ -7647,7 +7644,6 @@ fn build_repos_rich_table(
     }
 
     let repo_budget = repo_col.saturating_sub(2);
-    let activity_budget = ACTIVITY_COL.saturating_sub(2);
     // v0.113.19: per-class change columns — 3-cell content budget
     // (col width 5 − 2 padding). FIXED 2026-10-03 (audit L19): derived
     // from the const (was a hardcoded 3 that could skew), and counts
@@ -7691,11 +7687,14 @@ fn build_repos_rich_table(
         let is_nested = std::path::Path::new(&row.repo).join(".git").is_file();
         let repo_short = repo_cell_content(visibility, &repo_display, repo_budget, is_nested);
 
-        // ACTIVITY (v0.113.17): the state label ONLY — the dirty
-        // counts moved to their own CHANGES column (operator: "the
-        // activity can just have the first part"). The `(N ahead)`
-        // strip stays: the A/B column carries that count.
-        let activity = truncate_unicode_width(current_health::rich_activity(row), activity_budget);
+        let mirror_lag = match row.health.mirror_unpublished.values().max() {
+            Some(count) => Cell::new(truncate_unicode_width(
+                &count.to_string(),
+                MIRROR_LAG_COL - 2,
+            ))
+            .fg(Color::Yellow),
+            None => Cell::new("—").fg(Color::DarkGrey),
+        };
 
         // CHANGES (v0.113.19): one narrow column per class —
         // 📝 modified, 📦 staged, 🆕 untracked, 🚫 excluded by
@@ -7802,7 +7801,7 @@ fn build_repos_rich_table(
             Cell::new(repo_short)
                 .fg(Color::White)
                 .add_attribute(comfy_table::Attribute::Bold),
-            Cell::new(activity).fg(status_color),
+            mirror_lag,
             chg(row.modified),
             chg(row.staged),
             chg(row.untracked),
