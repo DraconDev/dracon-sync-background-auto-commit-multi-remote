@@ -161,3 +161,26 @@ the receipt against the protected indexed manifest and rehashes the retained
 source before accepting identical input. Neither a changed working file nor a
 corrupted cache file can produce a pointer. A cache made before receipt
 support needs one authenticated recovery to create the receipt.
+
+## Multi-file Deathrun trial
+
+The disposable trial enrolled all 17 original world-kit files from Deathrun
+`ac6d839fbbcfcc3109b59b2e5537ff68506a0033`. Native jobs verified encrypted
+read-back from the OVH archive and private local custody. The first manifest
+attempt found that sorted job IDs do not imply sorted asset paths. The CLI now
+sorts by the canonical path encoding after taking leases in job-ID order and
+reused all 17 verified transfers.
+
+The independently cloned consumer imported the protected committed manifest
+and hydrated all 30,547,253 original bytes using its separate read-only key.
+Every recovered Git blob and clean-filter pointer matched. The content diff
+was empty before the consumer's Git stat refresh. A refresh of only the
+managed paths in the disposable checkout left all staged IDs and modes
+identical and cleared the tracked status. The canonical game's asset layout
+has not been changed. See `deathrun-world-kit-trial.json` for the receipt.
+
+The trial also exposed a checkout-dependent documentation inventory. The
+declared local report and tool directories now render identically when
+absent, while the census still rejects unclassified directories. The
+independent fixture now regenerates the inventory after staging the manifest
+so it includes the new tracked file in the count.
