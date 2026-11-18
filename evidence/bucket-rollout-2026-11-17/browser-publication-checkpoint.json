@@ -1,12 +1,14 @@
 {
   "schema_version": 1,
   "repository": "/home/dracon/Dev/browser-extensions-shared",
-  "observed_at": "2026-11-18T00:02:11.934134+00:00",
-  "local_main": "49b4f660034c017c43d1631c645123c532561b3f",
-  "github_main": "49b4f660034c017c43d1631c645123c532561b3f",
+  "observed_at": "2026-11-18T12:20:44Z",
+  "local_main": "302bde551b63cee3027e99c92469b24738b262da",
+  "github_main": "302bde551b63cee3027e99c92469b24738b262da",
   "gitlab_main": "84cc5542be9722a08a9df30459e2a822b4bdab86",
   "lockfile_repair": "c735c3af7635abbc1e0941e0ba98943a4c34d100",
   "repair_on_github": true,
+  "gitlab_main_is_ancestor_of_local_main": true,
+  "commits_missing_on_gitlab_main": 2372,
   "gitlab_latest_known_rejection": "push would exceed allocated storage for the project",
   "verification": "direct authenticated git ls-remote and local ancestry check"
 }

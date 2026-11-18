@@ -24,5 +24,13 @@
   ],
   "provider_access_proposal": "browser-bucket-access-proposal.json",
   "custody_complete_at_census": false,
+  "subsequent_pinned_custody": {
+    "head": "302bde551b63cee3027e99c92469b24738b262da",
+    "disposable_checkout": true,
+    "asset_count": 37,
+    "preserved_versions": 37,
+    "preserved_bytes": 583814592,
+    "browser_bucket_upload_attempted": false
+  },
   "production_placement_changed": false
 }
