@@ -193,6 +193,13 @@ canonical Deathrun at `c4426cea6518b3d4a11523c19d8034bb8355ab5a` verified
 the same 17 source blobs and 30,547,253 bytes against its HEAD, index and
 working tree.
 
+The canonical preflight also checked the expected Git objects for all 17
+pointers against the qualified fixture and prepared private copies of the
+verified journal and metadata for the live checkout. Live staging uses the
+sanctioned maintenance wrapper, waits for the daemon's pause acknowledgement,
+rechecks the approved HEAD and index, and verifies the storage guard before
+commit processing resumes.
+
 For a cold consumer, pin the enrollment commit and use separate private
 metadata, recovery and hydration roots. Import the committed ciphertext with
 `storage import-manifest`, the approved metadata-policy digest and the approved
