@@ -5169,7 +5169,8 @@ pub(crate) async fn run_repos_report(
                 .map(|(remote, count)| format!("{remote} missing {count}"))
                 .collect::<Vec<_>>()
                 .join(", ");
-            hint = format!("pending mirror publication ({lag}); {hint}");
+            let detail = hint.strip_prefix("healthy; ").unwrap_or(&hint);
+            hint = format!("pending mirror publication ({lag}); {detail}");
         }
         let row = RepoReportRow {
             health,
