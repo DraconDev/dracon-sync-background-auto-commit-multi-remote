@@ -39,14 +39,7 @@ fn configured_mirror_lag_is_current_work_after_the_primary_catches_up() {
         .unwrap();
     let parent = git.find_commit(initial).unwrap();
     let latest = git
-        .commit(
-            Some("HEAD"),
-            &signature,
-            &signature,
-            "Latest",
-            &tree,
-            &[&parent],
-        )
+        .commit(Some("HEAD"), &signature, &signature, "Latest", &tree, &[&parent])
         .unwrap();
     for (remote, tip) in [
         ("origin", latest),
@@ -54,13 +47,8 @@ fn configured_mirror_lag_is_current_work_after_the_primary_catches_up() {
         ("current-mirror", latest),
         ("excluded", initial),
     ] {
-        git.reference(
-            &format!("refs/remotes/{remote}/main"),
-            tip,
-            false,
-            "fixture",
-        )
-        .unwrap();
+        git.reference(&format!("refs/remotes/{remote}/main"), tip, false, "fixture")
+            .unwrap();
     }
     let mut row = RepoReportRow::for_tests("/fixture");
     row.health.mirror_unpublished = super::super::mirror_unpublished(
@@ -479,7 +467,11 @@ fn rich_rendered_states_keep_complete_activity_and_single_line_rows() {
         }
         for row in &rows {
             let label = status(row).0;
-            assert_eq!(output.matches(label).count(), 1, "label {label}: {output}");
+            assert_eq!(
+                output.matches(label).count(),
+                1,
+                "label {label}: {output}"
+            );
         }
         assert!(!output.contains("WORKING ("));
         println!("=== rich renderer {width} columns ===\n{output}");

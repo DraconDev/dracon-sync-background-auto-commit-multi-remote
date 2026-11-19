@@ -146,7 +146,8 @@ pub(super) async fn plan_publication(
     let targets = crate::git::multi_remote::effective_push_targets(
         origin_url.as_deref(),
         &named,
-        repo.file_name()
+        repo
+            .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default()
             .as_str(),
@@ -160,12 +161,12 @@ pub(super) async fn plan_publication(
                 name
             );
         }
-    } // PIN LAST. Everything above reads the checkout or mutates Git
-      // configuration (auto-create can take seconds). Pinning before that work
-      // would publish a tip that predates the configuration the round is about
-      // to use; pinning here means the pinned object is the tip that existed when
-      // this exact destination set became ready. It still cannot move afterwards:
-      // the upload holds no local mutation rights.
+    }    // PIN LAST. Everything above reads the checkout or mutates Git
+    // configuration (auto-create can take seconds). Pinning before that work
+    // would publish a tip that predates the configuration the round is about
+    // to use; pinning here means the pinned object is the tip that existed when
+    // this exact destination set became ready. It still cannot move afterwards:
+    // the upload holds no local mutation rights.
     let target = pin_current_tip(repo).await?;
     Ok(PublicationPlan {
         target,

@@ -50,7 +50,12 @@ fn dangling_blob(repo: &Path, payload: &[u8]) -> String {
         .stderr(Stdio::piped())
         .spawn()
         .unwrap();
-    child.stdin.take().unwrap().write_all(payload).unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(payload)
+        .unwrap();
     let out = child.wait_with_output().unwrap();
     assert!(out.status.success());
     String::from_utf8(out.stdout).unwrap().trim().to_owned()
@@ -84,15 +89,7 @@ fn fixture(label: &str) -> Fixture {
     let repo = root.path().join("repo");
     fs::create_dir(&repo).unwrap();
     git(&repo, &["init", "-q", "--template="]);
-    git(
-        &repo,
-        &[
-            "remote",
-            "add",
-            "origin",
-            "https://example.invalid/repo.git",
-        ],
-    );
+    git(&repo, &["remote", "add", "origin", "https://example.invalid/repo.git"]);
     fs::write(repo.join("a.txt"), b"alpha\n").unwrap();
     fs::create_dir(repo.join("dir")).unwrap();
     fs::write(repo.join("dir/b.txt"), b"beta\n").unwrap();
@@ -104,10 +101,7 @@ fn fixture(label: &str) -> Fixture {
     let spool = repo.join(".git").join(format!("dracon-staging-{label}"));
     fs::create_dir(&spool).unwrap();
     fs::copy(repo.join(".git/index"), spool.join("index")).unwrap();
-    let objects = git_text(
-        &repo,
-        &["rev-list", "--objects", "--no-object-names", "HEAD"],
-    );
+    let objects = git_text(&repo, &["rev-list", "--objects", "--no-object-names", "HEAD"]);
     pack(&repo, &spool, "retained", &objects);
     Fixture {
         _root: root,
@@ -242,12 +236,7 @@ async fn pack_only_unpublished_object_is_preserved() {
         &["rev-list", "--objects", "--no-object-names", "HEAD"],
     );
     drop_packs(&f.spool);
-    pack(
-        &f.repo,
-        &f.spool,
-        "retained",
-        &format!("{published}\n{blob}"),
-    );
+    pack(&f.repo, &f.spool, "retained", &format!("{published}\n{blob}"));
     seal(&f.spool);
     backdate(&f.spool);
     assert_eq!(reap(&f.repo).await, 0);
@@ -358,24 +347,14 @@ async fn pairing_that_exists_only_on_a_local_branch_is_preserved() {
     commit(&f.repo, "swap a.txt to beta content");
     git(&f.repo, &["branch", "unpushed-work", "HEAD"]);
     // Published history does NOT contain it: origin/main stays at the first commit.
-    git(
-        &f.repo,
-        &["update-ref", "refs/remotes/origin/main", "HEAD~1"],
-    );
+    git(&f.repo, &["update-ref", "refs/remotes/origin/main", "HEAD~1"]);
 
     // Point the spool index at the local-only pairing.
     let mut cmd = command(&f.repo);
-    cmd.env("GIT_INDEX_FILE", f.spool.join("index")).args([
-        "update-index",
-        "--cacheinfo",
-        &format!("100644,{beta},a.txt"),
-    ]);
+    cmd.env("GIT_INDEX_FILE", f.spool.join("index"))
+        .args(["update-index", "--cacheinfo", &format!("100644,{beta},a.txt")]);
     let out = cmd.output().unwrap();
-    assert!(
-        out.status.success(),
-        "{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
 
     seal(&f.spool);
     backdate(&f.spool);
@@ -405,12 +384,7 @@ async fn local_branch_only_content_is_preserved() {
         &["rev-list", "--objects", "--no-object-names", "HEAD"],
     );
     drop_packs(&f.spool);
-    pack(
-        &f.repo,
-        &f.spool,
-        "retained",
-        &format!("{published}\n{local}"),
-    );
+    pack(&f.repo, &f.spool, "retained", &format!("{published}\n{local}"));
     seal(&f.spool);
     backdate(&f.spool);
     assert_eq!(reap(&f.repo).await, 0);
@@ -564,11 +538,7 @@ fn retained_stem_of(spool: &Path) -> String {
         let path = entry.unwrap().path();
         if path.extension().is_some_and(|ext| ext == "pack") {
             let name = path.file_name().unwrap().to_str().unwrap();
-            stems.push(
-                name.trim_start_matches("retained-")
-                    .trim_end_matches(".pack")
-                    .to_owned(),
-            );
+            stems.push(name.trim_start_matches("retained-").trim_end_matches(".pack").to_owned());
         }
     }
     assert_eq!(stems.len(), 1, "fixture spool must hold one retained pack");
@@ -611,8 +581,7 @@ async fn producer_endpoint_naming_an_unpaired_pack_stem_is_preserved() {
     // index pair counts as a stem this spool owns.
     let orphan = "0123456789abcdef0123456789abcdef01234567";
     fs::copy(
-        f.spool
-            .join(format!("retained-{}.idx", retained_stem_of(&f.spool))),
+        f.spool.join(format!("retained-{}.idx", retained_stem_of(&f.spool))),
         f.spool.join(format!("retained-{orphan}.idx")),
     )
     .unwrap();
@@ -649,21 +618,13 @@ async fn a_pass_cools_the_repository_down() {
     backdate(&f.spool);
     // Seed the cooldown as a completed pass would.
     note_attempt(&f.repo);
-    assert_eq!(
-        reap(&f.repo).await,
-        0,
-        "a pass inside the cooldown is skipped"
-    );
+    assert_eq!(reap(&f.repo).await, 0, "a pass inside the cooldown is skipped");
     assert!(f.spool.exists(), "the skipped pass removed nothing");
     // A different repository is unaffected by this one's cooldown.
     let other = fixture("cooldown-other");
     seal(&other.spool);
     backdate(&other.spool);
-    assert_eq!(
-        reap(&other.repo).await,
-        1,
-        "an unrelated repository still reclaims"
-    );
+    assert_eq!(reap(&other.repo).await, 1, "an unrelated repository still reclaims");
     assert!(!other.spool.exists());
 }
 
@@ -691,11 +652,7 @@ async fn index_that_is_a_subset_of_a_published_tree_is_redundant() {
     cmd.env("GIT_INDEX_FILE", &index)
         .args(["rm", "--cached", "-q", "dir/b.txt"]);
     let out = cmd.output().unwrap();
-    assert!(
-        out.status.success(),
-        "{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
     seal(&f.spool);
     backdate(&f.spool);
     assert_eq!(reap(&f.repo).await, 1);
@@ -710,17 +667,10 @@ async fn index_entry_with_unpublished_content_at_a_published_path_is_preserved()
     git(&f.repo, &["add", "a.txt"]);
     let blob = git_text(&f.repo, &["rev-parse", ":a.txt"]);
     let mut cmd = command(&f.repo);
-    cmd.env("GIT_INDEX_FILE", f.spool.join("index")).args([
-        "update-index",
-        "--cacheinfo",
-        &format!("100644,{blob},a.txt"),
-    ]);
+    cmd.env("GIT_INDEX_FILE", f.spool.join("index"))
+        .args(["update-index", "--cacheinfo", &format!("100644,{blob},a.txt")]);
     let out = cmd.output().unwrap();
-    assert!(
-        out.status.success(),
-        "{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
     // The blob is reachable (it is in the object store via hash-object -w above)
     // so only the per-entry path/mode/blob check can catch this.
     seal(&f.spool);
@@ -738,25 +688,13 @@ async fn index_entry_at_a_path_absent_from_published_is_preserved() {
     let f = fixture("new-path");
     let published_blob = git_text(&f.repo, &["rev-parse", ":dir/b.txt"]);
     let mut cmd = command(&f.repo);
-    cmd.env("GIT_INDEX_FILE", f.spool.join("index")).args([
-        "update-index",
-        "--add",
-        "--cacheinfo",
-        &format!("100644,{published_blob},relocated.txt"),
-    ]);
+    cmd.env("GIT_INDEX_FILE", f.spool.join("index"))
+        .args(["update-index", "--add", "--cacheinfo", &format!("100644,{published_blob},relocated.txt")]);
     let out = cmd.output().unwrap();
-    assert!(
-        out.status.success(),
-        "{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
     seal(&f.spool);
     backdate(&f.spool);
-    assert_eq!(
-        reap(&f.repo).await,
-        0,
-        "a path not in published must preserve"
-    );
+    assert_eq!(reap(&f.repo).await, 0, "a path not in published must preserve");
     assert!(f.spool.exists());
 }
 
@@ -768,17 +706,10 @@ async fn index_entry_using_a_published_blob_at_another_published_path_is_preserv
     let f = fixture("crossed-pairing");
     let blob_a = git_text(&f.repo, &["rev-parse", ":a.txt"]);
     let mut cmd = command(&f.repo);
-    cmd.env("GIT_INDEX_FILE", f.spool.join("index")).args([
-        "update-index",
-        "--cacheinfo",
-        &format!("100644,{blob_a},dir/b.txt"),
-    ]);
+    cmd.env("GIT_INDEX_FILE", f.spool.join("index"))
+        .args(["update-index", "--cacheinfo", &format!("100644,{blob_a},dir/b.txt")]);
     let out = cmd.output().unwrap();
-    assert!(
-        out.status.success(),
-        "{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
     seal(&f.spool);
     backdate(&f.spool);
     assert_eq!(reap(&f.repo).await, 0, "a crossed pairing must preserve");
@@ -791,17 +722,10 @@ async fn index_entry_with_a_changed_mode_is_preserved() {
     let f = fixture("mode-change");
     let blob = git_text(&f.repo, &["rev-parse", ":a.txt"]);
     let mut cmd = command(&f.repo);
-    cmd.env("GIT_INDEX_FILE", f.spool.join("index")).args([
-        "update-index",
-        "--cacheinfo",
-        &format!("100755,{blob},a.txt"),
-    ]);
+    cmd.env("GIT_INDEX_FILE", f.spool.join("index"))
+        .args(["update-index", "--cacheinfo", &format!("100755,{blob},a.txt")]);
     let out = cmd.output().unwrap();
-    assert!(
-        out.status.success(),
-        "{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
     seal(&f.spool);
     backdate(&f.spool);
     assert_eq!(reap(&f.repo).await, 0, "a mode change must preserve");
@@ -822,10 +746,7 @@ async fn published_history_lookup_is_scoped_to_remote_tracking_refs() {
     git(&f.repo, &["add", "a.txt"]);
     commit(&f.repo, "local pairing");
     git(&f.repo, &["branch", "unpushed-work", "HEAD"]);
-    git(
-        &f.repo,
-        &["update-ref", "refs/remotes/origin/main", "HEAD~1"],
-    );
+    git(&f.repo, &["update-ref", "refs/remotes/origin/main", "HEAD~1"]);
 
     let entry = TreeEntry {
         mode: "100644".to_owned(),
@@ -846,10 +767,7 @@ async fn published_history_lookup_is_scoped_to_remote_tracking_refs() {
     let local = published_history(&f.repo, &["unpushed-work".to_owned()], 60)
         .await
         .unwrap();
-    assert!(
-        local.contains(&entry),
-        "the probe must find the pairing on the local branch"
-    );
+    assert!(local.contains(&entry), "the probe must find the pairing on the local branch");
 }
 
 /// ADDED 2026-11-12: the pass-level history walk proves an entry that only an
@@ -876,9 +794,7 @@ async fn published_history_window_proves_older_entries_and_skips_deletions() {
         path: b"with space.txt".to_vec(),
     }));
     assert!(
-        history
-            .iter()
-            .all(|entry| entry.oid.bytes().any(|b| b != b'0')),
+        history.iter().all(|entry| entry.oid.bytes().any(|b| b != b'0')),
         "a deletion's zero post-image is never an entry"
     );
 }
@@ -912,10 +828,7 @@ fn sibling_redundant_spool(f: &Fixture, label: &str) -> PathBuf {
     let spool = f.repo.join(".git").join(format!("dracon-staging-{label}"));
     fs::create_dir(&spool).unwrap();
     fs::copy(f.repo.join(".git/index"), spool.join("index")).unwrap();
-    let objects = git_text(
-        &f.repo,
-        &["rev-list", "--objects", "--no-object-names", "HEAD"],
-    );
+    let objects = git_text(&f.repo, &["rev-list", "--objects", "--no-object-names", "HEAD"]);
     pack(&f.repo, &spool, "retained", &objects);
     seal(&spool);
     // Newer than the fixture's backdated spool, still past the 1 s floor.
@@ -937,11 +850,7 @@ async fn an_unprovable_oldest_spool_does_not_starve_the_backlog() {
     assert_eq!(reap_one(&f.repo).await, 0);
     assert!(newer.exists());
     // Pass 2 must skip the known refusal and reach the redundant spool.
-    assert_eq!(
-        reap_one(&f.repo).await,
-        1,
-        "memo lets the pass reach the backlog"
-    );
+    assert_eq!(reap_one(&f.repo).await, 1, "memo lets the pass reach the backlog");
     assert!(!newer.exists());
     assert!(f.spool.exists(), "the legacy spool is still preserved");
 }
@@ -969,17 +878,9 @@ async fn a_not_yet_published_refusal_is_retried_once_it_is_published() {
     // The index matches published state; the pack holds one extra object
     // that is not published yet.
     let blob = dangling_blob(&f.repo, b"shipped later\n");
-    let published = git_text(
-        &f.repo,
-        &["rev-list", "--objects", "--no-object-names", "HEAD"],
-    );
+    let published = git_text(&f.repo, &["rev-list", "--objects", "--no-object-names", "HEAD"]);
     drop_packs(&f.spool);
-    pack(
-        &f.repo,
-        &f.spool,
-        "retained",
-        &format!("{published}\n{blob}"),
-    );
+    pack(&f.repo, &f.spool, "retained", &format!("{published}\n{blob}"));
     seal(&f.spool);
     backdate(&f.spool);
     assert_eq!(reap_one(&f.repo).await, 0);
@@ -1025,15 +926,8 @@ async fn a_not_yet_published_refusal_is_retried_once_it_is_published() {
     );
     git(&f.repo, &["update-ref", "refs/remotes/origin/side", &side]);
     let after = published_fingerprint(&f.repo, 30).await.unwrap();
-    assert!(
-        !refusal_still_holds(&f.spool, &after),
-        "moved tips invalidate the memo"
-    );
-    assert_eq!(
-        reap_one(&f.repo).await,
-        1,
-        "the spool is now provably redundant"
-    );
+    assert!(!refusal_still_holds(&f.spool, &after), "moved tips invalidate the memo");
+    assert_eq!(reap_one(&f.repo).await, 1, "the spool is now provably redundant");
     assert!(!f.spool.exists());
 }
 
@@ -1061,29 +955,12 @@ async fn preview_proves_without_removing_or_cooling_down() {
     let f = fixture("preview");
     seal(&f.spool);
     backdate(&f.spool);
-    let before: Vec<_> = fs::read_dir(&f.spool)
-        .unwrap()
-        .map(|e| e.unwrap().file_name())
-        .collect();
-    assert_eq!(
-        preview(&f.repo, 1, 30).await,
-        1,
-        "the spool is provably redundant"
-    );
+    let before: Vec<_> = fs::read_dir(&f.spool).unwrap().map(|e| e.unwrap().file_name()).collect();
+    assert_eq!(preview(&f.repo, 1, 30).await, 1, "the spool is provably redundant");
     assert!(f.spool.exists(), "preview removed nothing");
-    let after: Vec<_> = fs::read_dir(&f.spool)
-        .unwrap()
-        .map(|e| e.unwrap().file_name())
-        .collect();
-    assert_eq!(
-        before.len(),
-        after.len(),
-        "preview wrote nothing into the spool"
-    );
-    assert!(
-        !f.repo.join(".git").join(LEDGER).exists(),
-        "preview wrote no ledger"
-    );
+    let after: Vec<_> = fs::read_dir(&f.spool).unwrap().map(|e| e.unwrap().file_name()).collect();
+    assert_eq!(before.len(), after.len(), "preview wrote nothing into the spool");
+    assert!(!f.repo.join(".git").join(LEDGER).exists(), "preview wrote no ledger");
     // No cooldown was recorded, so a real pass right after still runs.
     assert_eq!(reap(&f.repo).await, 1);
     assert!(!f.spool.exists());
@@ -1093,12 +970,7 @@ async fn preview_proves_without_removing_or_cooling_down() {
 fn add_gitlink(repo: &Path, path: &str, commit: &str) {
     git(
         repo,
-        &[
-            "update-index",
-            "--add",
-            "--cacheinfo",
-            &format!("160000,{commit},{path}"),
-        ],
+        &["update-index", "--add", "--cacheinfo", &format!("160000,{commit},{path}")],
     );
 }
 
@@ -1112,10 +984,7 @@ fn gitlink_fixture(label: &str) -> (Fixture, String) {
     git(&f.repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
     drop_packs(&f.spool);
     fs::copy(f.repo.join(".git/index"), f.spool.join("index")).unwrap();
-    let objects = git_text(
-        &f.repo,
-        &["rev-list", "--objects", "--no-object-names", "HEAD"],
-    );
+    let objects = git_text(&f.repo, &["rev-list", "--objects", "--no-object-names", "HEAD"]);
     pack(&f.repo, &f.spool, "retained", &objects);
     seal(&f.spool);
     backdate(&f.spool);
@@ -1168,10 +1037,7 @@ fn raw_history_parser_handles_deletions_and_spaces() {
         oid: blob,
         path: b"dir/with space.sh".to_vec(),
     }));
-    assert!(
-        parse_raw_history(b":100644 100644 x y M").is_err(),
-        "header without a path"
-    );
+    assert!(parse_raw_history(b":100644 100644 x y M").is_err(), "header without a path");
 }
 
 #[test]

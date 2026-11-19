@@ -816,9 +816,7 @@ fn mirror_unpublished(
     branch: &str,
     push_legs: &[String],
 ) -> BTreeMap<String, usize> {
-    let mirrors = push_legs
-        .iter()
-        .filter(|remote| remote.as_str() != "origin");
+    let mirrors = push_legs.iter().filter(|remote| remote.as_str() != "origin");
     if mirrors.clone().next().is_none() || !crate::git::is_safe_branch_name(branch) {
         return BTreeMap::new();
     }
@@ -7284,11 +7282,7 @@ fn rich_hint_link_out(rows: &[RepoReportRow]) -> Option<String> {
                     | Current::Excluded
             ) || row.health.push_failure_matches_tip
                 || (!row.health.mirror_unpublished.is_empty()
-                    && row
-                        .health
-                        .last_push
-                        .as_ref()
-                        .is_some_and(|push| !push.succeeded))
+                    && row.health.last_push.as_ref().is_some_and(|push| !push.succeeded))
         })
         .filter(|(_, row)| !row.hint.is_empty() && row.hint != "-")
         .map(|(_, row)| {
@@ -13356,10 +13350,7 @@ mod tests {
             phase: Some(crate::daemon::scheduler_evidence::Phase::Working),
             ..Default::default()
         });
-        working
-            .health
-            .mirror_unpublished
-            .insert("gitlab".into(), 2374);
+        working.health.mirror_unpublished.insert("gitlab".into(), 2374);
         working.health.last_push = Some(crate::daemon::push_history::Observation {
             version: 1,
             repo: working.repo.clone(),
@@ -13369,9 +13360,7 @@ mod tests {
         working.hint = "pending mirror publication (gitlab missing 2374)".into();
         let table = build_repos_rich_table(std::slice::from_ref(&working), false, 200).to_string();
         assert!(table.contains("MIRROR LAG") && table.contains("2374"));
-        assert!(rich_hint_link_out(&[working])
-            .unwrap()
-            .contains("gitlab missing 2374"));
+        assert!(rich_hint_link_out(&[working]).unwrap().contains("gitlab missing 2374"));
     }
 
     #[test]
@@ -16450,10 +16439,7 @@ mod v011315_tests {
         let github_origin = rem_cell_content(&["github".to_string(), "gitlab".to_string()]);
         let gitlab_origin = rem_cell_content(&["gitlab".to_string(), "github".to_string()]);
         assert_eq!(github_origin, "🐙🦊");
-        assert_eq!(
-            gitlab_origin, "🐙🦊",
-            "leg order must not leak: {gitlab_origin:?}"
-        );
+        assert_eq!(gitlab_origin, "🐙🦊", "leg order must not leak: {gitlab_origin:?}");
 
         // Codeberg sits after GitLab regardless of arrival order.
         assert_eq!(
@@ -16699,12 +16685,8 @@ mod v011316_tests {
             codeberg_public_only: false,
             ..test_sync_policy()
         };
-        let remotes = report_effective_remote_legs(
-            &origin_only_policy,
-            &RepoPolicyOverride::default(),
-            &dir,
-            false,
-        );
+        let remotes =
+            report_effective_remote_legs(&origin_only_policy, &RepoPolicyOverride::default(), &dir, false);
         assert_eq!(
             remotes.legs,
             vec!["origin".to_string()],
