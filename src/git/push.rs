@@ -334,7 +334,11 @@ async fn pull_merge_origin_inner(
     progress_aware: bool,
 ) -> Result<()> {
     let fence = acquire_pull_fence(repo, timeout_secs).await?;
-    let pull_refspec = pull_refspec_for_branch(super::current_branch_from_head(repo), repo)?;
+    let branch = super::current_branch_from_head(repo);
+    let pull_refspec = pull_refspec_for_branch(branch.clone(), repo)?;
+    if let Some(branch) = branch.as_deref() {
+        absorb_superseded_upstream(repo, branch, timeout_secs, op_label, &fence).await?;
+    }
     eprintln!(
         "🔄 {} pulling origin {} in {}",
         op_label,
@@ -351,6 +355,58 @@ async fn pull_merge_origin_inner(
         &fence,
     )
     .await
+}
+
+/// Record an upstream tip the local branch rewrote away from (see
+/// `superseded.rs`) with `merge -s ours`, so the following pull only merges
+/// genuinely foreign commits and every push becomes fast-forward again.
+/// Local content is kept exactly; nothing is rewritten. Merges by object id,
+/// not by ref name, so a concurrent fetch cannot change what is absorbed.
+async fn absorb_superseded_upstream(
+    repo: &Path,
+    branch: &str,
+    timeout_secs: u64,
+    op_label: &str,
+    fence: &super::write_fence::WriteFence,
+) -> Result<()> {
+    let Some(tip) = super::superseded::superseded_upstream_tip(repo, "origin", branch) else {
+        return Ok(());
+    };
+    anyhow::ensure!(
+        !merge_in_progress(repo)?,
+        "refusing superseded-upstream merge in {}: a merge was already in progress",
+        repo.display()
+    );
+    let short = &tip[..12];
+    eprintln!(
+        "🩹 {op_label}: origin/{branch} tip {short} in {} is a commit this branch rewrote away \
+         from (amend/reset/rebase after publish) — recording it with merge -s ours; local \
+         content unchanged",
+        repo.display()
+    );
+    let message = format!(
+        "dracon-sync: absorb superseded origin/{branch} {short}\n\n\
+         origin/{branch} pointed at {tip}, a former tip of local {branch} that was\n\
+         rewritten after it had been published. Recorded with `merge -s ours`:\n\
+         local content is kept exactly and history is not rewritten."
+    );
+    let args = ["merge", "-s", "ours", "--no-edit", "-m", &message, &tip];
+    if let Err(error) =
+        super::run_git_with_timeout_fenced(repo, &args, timeout_secs, op_label, fence).await
+    {
+        if merge_in_progress(repo)? {
+            let _ = super::run_git_with_timeout_fenced(
+                repo,
+                &["merge", "--abort"],
+                15,
+                "superseded-merge-abort",
+                fence,
+            )
+            .await;
+        }
+        return Err(error.context("superseded-upstream merge -s ours failed"));
+    }
+    Ok(())
 }
 
 async fn pull_with_fence(
