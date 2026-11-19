@@ -146,6 +146,76 @@ mod tests {
         );
     }
 
+    /// The incident shape end to end: the amend and later work conflict
+    /// with the published commit, so the old plain pull failed forever.
+    /// The fenced pull must now succeed, keep local content exactly, and
+    /// leave a fast-forward push.
+    #[tokio::test]
+    async fn fenced_pull_absorbs_amend_race_and_push_fast_forwards() {
+        let (_temp, repo, _bare) = fixture();
+        commit(&repo, "base\nchapter v1\n", "chapter");
+        git(&repo, &["push", "--quiet", "origin", "main"]);
+        let published = git(&repo, &["rev-parse", "HEAD"]);
+        std::fs::write(repo.join("book.md"), "base\nchapter v2\n").unwrap();
+        git(&repo, &["commit", "--quiet", "--no-verify", "--amend", "-a", "--no-edit"]);
+        commit(&repo, "base\nchapter v3 final\n", "revise chapter");
+        let tree_before = git(&repo, &["rev-parse", "HEAD^{tree}"]);
+        // Precondition: the plain merge really conflicts.
+        let merge_tree = crate::test_helpers::test_git_cmd()
+            .args(["merge-tree", "--write-tree", "HEAD", "origin/main"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        assert!(!merge_tree.status.success(), "fixture must conflict");
+
+        crate::git::pull_merge_origin(&repo, 30, "test-superseded")
+            .await
+            .unwrap();
+
+        assert_eq!(git(&repo, &["rev-parse", "HEAD^{tree}"]), tree_before);
+        assert_eq!(
+            std::fs::read_to_string(repo.join("book.md")).unwrap(),
+            "base\nchapter v3 final\n"
+        );
+        assert!(is_ancestor(&repo, &published, "HEAD"));
+        git(&repo, &["push", "--quiet", "origin", "main"]);
+        assert_eq!(superseded_upstream_tip(&repo, "origin", "main"), None);
+    }
+
+    /// Superseded tip plus genuine foreign work after it: the superseded
+    /// commit is absorbed and the foreign commit still merges normally.
+    #[tokio::test]
+    async fn foreign_commit_after_superseded_tip_still_merges() {
+        let (temp, repo, bare) = fixture();
+        commit(&repo, "base\nchapter v1\n", "chapter");
+        git(&repo, &["push", "--quiet", "origin", "main"]);
+        std::fs::write(repo.join("book.md"), "base\nchapter v2\n").unwrap();
+        git(&repo, &["commit", "--quiet", "--no-verify", "--amend", "-a", "--no-edit"]);
+        git(&repo, &["fetch", "--quiet", "origin"]);
+        let other = temp.path().join("other");
+        git(
+            temp.path(),
+            &["clone", "--quiet", bare.to_str().unwrap(), other.to_str().unwrap()],
+        );
+        git(&other, &["config", "user.name", "Other"]);
+        git(&other, &["config", "user.email", "other@example.invalid"]);
+        std::fs::write(other.join("notes.md"), "foreign\n").unwrap();
+        git(&other, &["add", "notes.md"]);
+        git(&other, &["commit", "--quiet", "--no-verify", "-m", "foreign"]);
+        git(&other, &["push", "--quiet", "origin", "main"]);
+
+        crate::git::pull_merge_origin(&repo, 30, "test-superseded-foreign")
+            .await
+            .unwrap();
+
+        assert_eq!(
+            std::fs::read_to_string(repo.join("book.md")).unwrap(),
+            "base\nchapter v2\n"
+        );
+        assert_eq!(std::fs::read_to_string(repo.join("notes.md")).unwrap(), "foreign\n");
+        git(&repo, &["push", "--quiet", "origin", "main"]);
+    }
+
     #[test]
     fn foreign_upstream_work_is_never_superseded() {
         let (temp, repo, bare) = fixture();
