@@ -691,6 +691,9 @@ pub(crate) fn rewrite_ahead_paths(
         let rewrite = crate::policy::std_git_command()
             .args(&args_ref)
             .current_dir(repo)
+            // Policy-approved rewrite (auto-repair): pass the warden
+            // reference-transaction guard, like push-after-rewrite does.
+            .env("DRACON_ALLOW_REWRITE", "1")
             .status()
             .with_context(|| format!("failed filter-repo in {}", repo.display()))?;
         if !rewrite.success() {
@@ -716,6 +719,9 @@ pub(crate) fn rewrite_ahead_paths(
         let rewrite = crate::policy::std_git_command()
             .args(&args_ref)
             .current_dir(repo)
+            // Policy-approved rewrite (auto-repair): pass the warden
+            // reference-transaction guard, like push-after-rewrite does.
+            .env("DRACON_ALLOW_REWRITE", "1")
             .status()
             .with_context(|| format!("failed filter-branch in {}", repo.display()))?;
         if !rewrite.success() {
