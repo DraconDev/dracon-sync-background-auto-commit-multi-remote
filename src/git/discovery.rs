@@ -318,6 +318,12 @@ fn discover_git_repos_recursive(
 mod cache_discovery_tests {
     use super::*;
 
+    /// A minimal non-empty gitdir (discovery ignores empty placeholders).
+    fn make_gitdir(dot_git: &Path) {
+        std::fs::create_dir_all(dot_git).unwrap();
+        std::fs::write(dot_git.join("HEAD"), "ref: refs/heads/main\n").unwrap();
+    }
+
     /// Sandbox placeholder dirs (empty `.git`) are not repositories; a
     /// non-empty gitdir and a `gitdir:` worktree file still are.
     #[test]
@@ -344,16 +350,16 @@ mod cache_discovery_tests {
     fn prunes_tagged_build_cache_not_source_named_target_or_nested_repos() {
         let root = tempfile::tempdir().unwrap();
         let cache = root.path().join("target");
-        std::fs::create_dir_all(cache.join("debug/deps/fake/.git")).unwrap();
+        make_gitdir(&cache.join("debug/deps/fake/.git"));
         std::fs::write(
             cache.join("CACHEDIR.TAG"),
             "Signature: 8a477f597d28d172789f06886806bc55\n# cargo cache\n",
         )
         .unwrap();
         let source = root.path().join("vendor/cc/src/target");
-        std::fs::create_dir_all(source.join(".git")).unwrap();
+        make_gitdir(&source.join(".git"));
         let nested = root.path().join("utility");
-        std::fs::create_dir_all(nested.join(".git")).unwrap();
+        make_gitdir(&nested.join(".git"));
         let mut found = Vec::new();
         discover_git_repos_recursive(root.path(), &BTreeSet::new(), &mut found, 0, 8);
         assert!(
@@ -374,7 +380,7 @@ mod cache_discovery_tests {
     fn malformed_tag_is_not_a_cache_and_explicit_root_is_still_scanned() {
         let root = tempfile::tempdir().unwrap();
         let explicit = root.path().join("target");
-        std::fs::create_dir_all(explicit.join("nested/.git")).unwrap();
+        make_gitdir(&explicit.join("nested/.git"));
         std::fs::write(explicit.join("CACHEDIR.TAG"), "not a cache signature").unwrap();
         assert!(!is_tagged_cache(&explicit));
         std::fs::write(
