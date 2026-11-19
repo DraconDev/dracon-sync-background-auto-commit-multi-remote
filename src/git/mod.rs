@@ -1366,6 +1366,7 @@ pub(crate) use diff::*;
 mod misc;
 pub(crate) use misc::*;
 mod push;
+mod superseded;
 pub(crate) use push::*;
 mod staging;
 pub(crate) use staging::*;
