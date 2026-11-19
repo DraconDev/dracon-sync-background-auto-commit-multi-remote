@@ -27,6 +27,26 @@ pub(crate) struct SubmoduleEntry {
 
 /// Discover git repositories under the given watch roots.
 /// Searches up to 4 levels deep, skipping excluded dirs and repos.
+/// A `.git` entry that marks a repository root: a worktree `gitdir:` file,
+/// or a NON-EMPTY directory.
+///
+/// ADDED 2026-11-19: sandboxed agent sessions mask `.git` (and `.aws`,
+/// `.agents`, ...) by creating EMPTY placeholder directories as mount
+/// targets. One left behind in dracon-platform's parent-tracked
+/// `web/games/wip/typing-games/` made discovery report a phantom repo whose
+/// Git metadata resolved to the parent worktree ("inspection failure").
+/// Git itself never treats an empty directory as a gitdir, so neither do
+/// we. Only the exactly-empty case is excluded: a damaged but non-empty
+/// gitdir still surfaces as an inspection failure instead of vanishing.
+pub(crate) fn is_git_marker(dot_git: &Path) -> bool {
+    if dot_git.is_dir() {
+        return std::fs::read_dir(dot_git)
+            .map(|mut entries| entries.next().is_some())
+            .unwrap_or(true);
+    }
+    dot_git.exists() && is_git_worktree_file(dot_git)
+}
+
 pub(crate) fn discover_git_repos(
     roots: &[PathBuf],
     excluded_dir_names: &BTreeSet<String>,
@@ -39,8 +59,7 @@ pub(crate) fn discover_git_repos(
         // Check if the root itself is a git repo (before recursing into children).
         // This handles the case where a watch root is itself a git repo (e.g., ~/.dracon).
         let root_dot_git = root.join(".git");
-        if root_dot_git.exists()
-            && (root_dot_git.is_dir() || is_git_worktree_file(&root_dot_git))
+        if is_git_marker(&root_dot_git)
             && !exlude_set.contains(&root.to_string_lossy().to_lowercase())
         {
             repos.push(root.clone());
@@ -276,7 +295,7 @@ fn discover_git_repos_recursive(
             continue;
         }
         let dot_git = path.join(".git");
-        if dot_git.exists() && (dot_git.is_dir() || is_git_worktree_file(&dot_git)) {
+        if is_git_marker(&dot_git) {
             // Record the subdir as a discovered repo AND continue recursing
             // into its children to look for any nested sub-subdirs that
             // might also have their own .git/. This supports the
@@ -298,6 +317,28 @@ fn discover_git_repos_recursive(
 #[cfg(test)]
 mod cache_discovery_tests {
     use super::*;
+
+    /// Sandbox placeholder dirs (empty `.git`) are not repositories; a
+    /// non-empty gitdir and a `gitdir:` worktree file still are.
+    #[test]
+    fn empty_dot_git_placeholder_is_not_a_repo() {
+        let root = tempfile::tempdir().unwrap();
+        let phantom = root.path().join("parent-tracked-game");
+        std::fs::create_dir_all(phantom.join(".git")).unwrap();
+        std::fs::create_dir_all(phantom.join(".aws")).unwrap();
+        let real = root.path().join("real");
+        std::fs::create_dir_all(real.join(".git")).unwrap();
+        std::fs::write(real.join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
+        let linked = root.path().join("linked");
+        std::fs::create_dir_all(&linked).unwrap();
+        std::fs::write(linked.join(".git"), "gitdir: /elsewhere/.git/worktrees/linked\n").unwrap();
+
+        assert!(!is_git_marker(&phantom.join(".git")));
+        assert!(is_git_marker(&real.join(".git")));
+        let found = discover_git_repos(&[root.path().to_path_buf()], &BTreeSet::new(), &[], None);
+        assert!(!found.contains(&phantom), "phantom discovered: {found:?}");
+        assert!(found.contains(&real), "real repo missing: {found:?}");
+    }
 
     #[test]
     fn prunes_tagged_build_cache_not_source_named_target_or_nested_repos() {
