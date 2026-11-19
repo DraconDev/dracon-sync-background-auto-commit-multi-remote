@@ -391,7 +391,9 @@ mod tests {
         let mut ledger = SeenLedger::new();
         // Eight repos first seen 37 s apart — the real fleet discovers
         // repos at different moments, which is what desynchronised them.
-        let current: Vec<PathBuf> = (0..8).map(|i| PathBuf::from(format!("/w/repo{i}"))).collect();
+        let current: Vec<PathBuf> = (0..8)
+            .map(|i| PathBuf::from(format!("/w/repo{i}")))
+            .collect();
         for (i, path) in current.iter().enumerate() {
             mark_seen(&mut ledger, path, secs(i as u64 * 37));
         }
@@ -417,7 +419,9 @@ mod tests {
         let dir = tempfile::TempDir::new().expect("tempdir");
         let path = dir.path().join("ledger.json");
         let mut ledger = SeenLedger::new();
-        let current: Vec<PathBuf> = (0..8).map(|i| PathBuf::from(format!("/w/repo{i}"))).collect();
+        let current: Vec<PathBuf> = (0..8)
+            .map(|i| PathBuf::from(format!("/w/repo{i}")))
+            .collect();
         for (i, p) in current.iter().enumerate() {
             mark_seen(&mut ledger, p, secs(i as u64 * 37));
         }
@@ -425,7 +429,10 @@ mod tests {
 
         // Synchronise, then write the synchronised state.
         update_seen_ledger(&mut ledger, &current, secs(400));
-        assert!(save_seen_ledger(&path, &ledger), "synchronised state writes once");
+        assert!(
+            save_seen_ledger(&path, &ledger),
+            "synchronised state writes once"
+        );
 
         // A pass later in the SAME window must not change the bytes.
         update_seen_ledger(&mut ledger, &current, secs(500));

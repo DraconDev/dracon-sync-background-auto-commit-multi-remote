@@ -135,9 +135,7 @@ pub(crate) fn stale_daemon_processes() -> Vec<(u32, PathBuf)> {
             continue;
         };
         // The service runs `<exe> daemon`; argv[0] may itself be "(deleted)".
-        if !cmdline
-            .split(|byte| *byte == 0)
-            .any(|arg| arg == b"daemon")
+        if !cmdline.split(|byte| *byte == 0).any(|arg| arg == b"daemon")
             || !cmdline
                 .split(|byte| *byte == 0)
                 .next()

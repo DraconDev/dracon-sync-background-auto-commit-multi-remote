@@ -57,12 +57,28 @@ pub(crate) fn superseded_upstream_tip(repo: &Path, remote: &str, branch: &str) -
     }
     let tracking = format!("refs/remotes/{remote}/{branch}");
     let local = format!("refs/heads/{branch}");
-    let tip = git_stdout(repo, &["rev-parse", "--verify", "--quiet", &format!("{tracking}^{{commit}}")])?
-        .trim()
-        .to_string();
-    let head = git_stdout(repo, &["rev-parse", "--verify", "--quiet", &format!("{local}^{{commit}}")])?
-        .trim()
-        .to_string();
+    let tip = git_stdout(
+        repo,
+        &[
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            &format!("{tracking}^{{commit}}"),
+        ],
+    )?
+    .trim()
+    .to_string();
+    let head = git_stdout(
+        repo,
+        &[
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            &format!("{local}^{{commit}}"),
+        ],
+    )?
+    .trim()
+    .to_string();
     if !super::is_valid_object_id(&tip) || !super::is_valid_object_id(&head) || tip == head {
         return None;
     }
@@ -71,10 +87,7 @@ pub(crate) fn superseded_upstream_tip(repo: &Path, remote: &str, branch: &str) -
         return None;
     }
     let reflog = git_stdout(repo, &["reflog", "show", "--format=%H", &local])?;
-    reflog
-        .lines()
-        .any(|line| line.trim() == tip)
-        .then_some(tip)
+    reflog.lines().any(|line| line.trim() == tip).then_some(tip)
 }
 
 #[cfg(test)]
@@ -104,10 +117,18 @@ mod tests {
         let bare = temp.path().join("origin.git");
         let hooks = temp.path().join("hooks");
         std::fs::create_dir(&hooks).unwrap();
-        git(temp.path(), &["init", "--quiet", "--bare", bare.to_str().unwrap()]);
         git(
             temp.path(),
-            &["init", "--quiet", "--initial-branch=main", repo.to_str().unwrap()],
+            &["init", "--quiet", "--bare", bare.to_str().unwrap()],
+        );
+        git(
+            temp.path(),
+            &[
+                "init",
+                "--quiet",
+                "--initial-branch=main",
+                repo.to_str().unwrap(),
+            ],
         );
         for (key, value) in [
             ("user.name", "Superseded Test"),
@@ -120,7 +141,10 @@ mod tests {
         git(&repo, &["add", "book.md"]);
         git(&repo, &["commit", "--quiet", "--no-verify", "-m", "base"]);
         git(&repo, &["remote", "add", "origin", bare.to_str().unwrap()]);
-        git(&repo, &["push", "--quiet", "--set-upstream", "origin", "main"]);
+        git(
+            &repo,
+            &["push", "--quiet", "--set-upstream", "origin", "main"],
+        );
         (temp, repo, bare)
     }
 
@@ -137,7 +161,17 @@ mod tests {
         git(&repo, &["push", "--quiet", "origin", "main"]);
         let published = git(&repo, &["rev-parse", "HEAD"]);
         std::fs::write(repo.join("book.md"), "base\nchapter, longer\n").unwrap();
-        git(&repo, &["commit", "--quiet", "--no-verify", "--amend", "-a", "--no-edit"]);
+        git(
+            &repo,
+            &[
+                "commit",
+                "--quiet",
+                "--no-verify",
+                "--amend",
+                "-a",
+                "--no-edit",
+            ],
+        );
         commit(&repo, "base\nchapter, longer\nmore\n", "more work on top");
 
         assert_eq!(
@@ -157,7 +191,17 @@ mod tests {
         git(&repo, &["push", "--quiet", "origin", "main"]);
         let published = git(&repo, &["rev-parse", "HEAD"]);
         std::fs::write(repo.join("book.md"), "base\nchapter v2\n").unwrap();
-        git(&repo, &["commit", "--quiet", "--no-verify", "--amend", "-a", "--no-edit"]);
+        git(
+            &repo,
+            &[
+                "commit",
+                "--quiet",
+                "--no-verify",
+                "--amend",
+                "-a",
+                "--no-edit",
+            ],
+        );
         commit(&repo, "base\nchapter v3 final\n", "revise chapter");
         let tree_before = git(&repo, &["rev-parse", "HEAD^{tree}"]);
         // Precondition: the plain merge really conflicts.
@@ -190,18 +234,36 @@ mod tests {
         commit(&repo, "base\nchapter v1\n", "chapter");
         git(&repo, &["push", "--quiet", "origin", "main"]);
         std::fs::write(repo.join("book.md"), "base\nchapter v2\n").unwrap();
-        git(&repo, &["commit", "--quiet", "--no-verify", "--amend", "-a", "--no-edit"]);
+        git(
+            &repo,
+            &[
+                "commit",
+                "--quiet",
+                "--no-verify",
+                "--amend",
+                "-a",
+                "--no-edit",
+            ],
+        );
         git(&repo, &["fetch", "--quiet", "origin"]);
         let other = temp.path().join("other");
         git(
             temp.path(),
-            &["clone", "--quiet", bare.to_str().unwrap(), other.to_str().unwrap()],
+            &[
+                "clone",
+                "--quiet",
+                bare.to_str().unwrap(),
+                other.to_str().unwrap(),
+            ],
         );
         git(&other, &["config", "user.name", "Other"]);
         git(&other, &["config", "user.email", "other@example.invalid"]);
         std::fs::write(other.join("notes.md"), "foreign\n").unwrap();
         git(&other, &["add", "notes.md"]);
-        git(&other, &["commit", "--quiet", "--no-verify", "-m", "foreign"]);
+        git(
+            &other,
+            &["commit", "--quiet", "--no-verify", "-m", "foreign"],
+        );
         git(&other, &["push", "--quiet", "origin", "main"]);
 
         crate::git::pull_merge_origin(&repo, 30, "test-superseded-foreign")
@@ -212,7 +274,10 @@ mod tests {
             std::fs::read_to_string(repo.join("book.md")).unwrap(),
             "base\nchapter v2\n"
         );
-        assert_eq!(std::fs::read_to_string(repo.join("notes.md")).unwrap(), "foreign\n");
+        assert_eq!(
+            std::fs::read_to_string(repo.join("notes.md")).unwrap(),
+            "foreign\n"
+        );
         git(&repo, &["push", "--quiet", "origin", "main"]);
     }
 
@@ -222,7 +287,12 @@ mod tests {
         let other = temp.path().join("other");
         git(
             temp.path(),
-            &["clone", "--quiet", bare.to_str().unwrap(), other.to_str().unwrap()],
+            &[
+                "clone",
+                "--quiet",
+                bare.to_str().unwrap(),
+                other.to_str().unwrap(),
+            ],
         );
         git(&other, &["config", "user.name", "Other"]);
         git(&other, &["config", "user.email", "other@example.invalid"]);

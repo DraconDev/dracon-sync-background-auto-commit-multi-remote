@@ -1940,10 +1940,26 @@ mod tests {
         let t0 = Instant::now();
         assert!(super::paused_log_due(None, "marker a", t0));
         let seen = ("marker a".to_owned(), t0);
-        assert!(!super::paused_log_due(Some(&seen), "marker a", t0 + Duration::from_secs(1)));
-        assert!(!super::paused_log_due(Some(&seen), "marker a", t0 + Duration::from_secs(299)));
-        assert!(super::paused_log_due(Some(&seen), "marker a", t0 + super::PAUSED_LOG_INTERVAL));
-        assert!(super::paused_log_due(Some(&seen), "marker b", t0 + Duration::from_secs(1)));
+        assert!(!super::paused_log_due(
+            Some(&seen),
+            "marker a",
+            t0 + Duration::from_secs(1)
+        ));
+        assert!(!super::paused_log_due(
+            Some(&seen),
+            "marker a",
+            t0 + Duration::from_secs(299)
+        ));
+        assert!(super::paused_log_due(
+            Some(&seen),
+            "marker a",
+            t0 + super::PAUSED_LOG_INTERVAL
+        ));
+        assert!(super::paused_log_due(
+            Some(&seen),
+            "marker b",
+            t0 + Duration::from_secs(1)
+        ));
     }
 
     /// Shutdown must finish promptly once the owned workers have stopped.
@@ -2607,7 +2623,7 @@ mod tests {
             changed_at: std::time::Instant::now(),
             dirty_since: None,
             ahead_since: None,
-                    ahead_count: 0,
+            ahead_count: 0,
             behind_since: None,
             mirror_consecutive_fails: HashMap::new(),
             failure_count: 0,
@@ -2799,7 +2815,7 @@ mod tests {
             changed_at: std::time::Instant::now(),
             dirty_since: None,
             ahead_since: None,
-                    ahead_count: 0,
+            ahead_count: 0,
             behind_since: None,
             mirror_consecutive_fails: HashMap::new(),
             failure_count: 0,
@@ -2881,7 +2897,7 @@ mod tests {
             changed_at: std::time::Instant::now(),
             dirty_since: None,
             ahead_since: None,
-                    ahead_count: 0,
+            ahead_count: 0,
             behind_since: None,
             mirror_consecutive_fails: paused.clone(),
             failure_count: 2,
@@ -4735,7 +4751,7 @@ mod tests {
                 changed_at: now,
                 dirty_since: Some(now),
                 ahead_since: None,
-                    ahead_count: 0,
+                ahead_count: 0,
                 behind_since: None,
                 mirror_consecutive_fails: HashMap::new(),
                 failure_count: 0,
@@ -6094,7 +6110,10 @@ fn test_transient_dns_does_not_burn_stuck_budget() {
 fn test_unpushed_alert_throttles_per_repo() {
     let repo = std::path::PathBuf::from("/tmp/dracon-unpushed-alert-throttle-fixture");
     let other = std::path::PathBuf::from("/tmp/dracon-unpushed-alert-throttle-fixture-other");
-    assert!(unpushed_alert_due(&repo), "the first alert for a repo is always due");
+    assert!(
+        unpushed_alert_due(&repo),
+        "the first alert for a repo is always due"
+    );
     assert!(
         !unpushed_alert_due(&repo),
         "an immediate repeat must be suppressed"
@@ -8704,7 +8723,7 @@ pub(crate) async fn run_daemon(
                         changed_at: now,
                         dirty_since: None,
                         ahead_since: None,
-                    ahead_count: 0,
+                        ahead_count: 0,
                         behind_since: None,
                         mirror_consecutive_fails: HashMap::new(),
                         failure_count: 0,

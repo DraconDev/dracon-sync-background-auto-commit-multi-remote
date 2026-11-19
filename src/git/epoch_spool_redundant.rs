@@ -323,8 +323,7 @@ fn git(repo: &Path) -> Command {
 async fn git_output(repo: &Path, args: &[&str], timeout: u64, label: &str) -> Result<Vec<u8>> {
     let mut command = git(repo);
     command.args(args);
-    let output =
-        crate::git::run_command_captured_output(command, timeout, label, None).await?;
+    let output = crate::git::run_command_captured_output(command, timeout, label, None).await?;
     ensure!(
         output.status.success(),
         "{label} failed: {}",
@@ -393,8 +392,13 @@ async fn published_set(repo: &Path, timeout: u64) -> Result<Published> {
     // Trees are still read per ref: the tree-match proof needs each ref's own
     // entry list, and `ls-tree` is cheap (one tree read, no history walk).
     for name in &names {
-        let tree = match git_output(repo, &["ls-tree", "-r", "-z", name], timeout, "published tree")
-            .await
+        let tree = match git_output(
+            repo,
+            &["ls-tree", "-r", "-z", name],
+            timeout,
+            "published tree",
+        )
+        .await
         {
             Ok(tree) => tree,
             Err(error) => {
@@ -425,13 +429,9 @@ async fn published_set(repo: &Path, timeout: u64) -> Result<Published> {
     command
         .args(["rev-list", "--objects", "--no-object-names"])
         .args(&names);
-    let objects = crate::git::run_command_captured_output(
-        command,
-        timeout,
-        "published objects",
-        None,
-    )
-    .await?;
+    let objects =
+        crate::git::run_command_captured_output(command, timeout, "published objects", None)
+            .await?;
     ensure!(
         objects.status.success(),
         "published reachability walk failed: {}",
@@ -467,9 +467,7 @@ fn parse_tree(bytes: &[u8]) -> Result<Vec<TreeEntry>> {
             .iter()
             .position(|byte| *byte == b'\t')
             .context("invalid tree entry")?;
-        let fields: Vec<_> = std::str::from_utf8(&record[..tab])?
-            .split(' ')
-            .collect();
+        let fields: Vec<_> = std::str::from_utf8(&record[..tab])?.split(' ').collect();
         ensure!(fields.len() == 3, "invalid tree entry fields");
         ensure!(
             crate::git::is_valid_object_id(fields[2]),
@@ -496,9 +494,7 @@ fn parse_index(bytes: &[u8]) -> Result<Vec<TreeEntry>> {
             .iter()
             .position(|byte| *byte == b'\t')
             .context("invalid index entry")?;
-        let fields: Vec<_> = std::str::from_utf8(&record[..tab])?
-            .split(' ')
-            .collect();
+        let fields: Vec<_> = std::str::from_utf8(&record[..tab])?.split(' ').collect();
         ensure!(fields.len() == 3, "invalid index entry fields");
         ensure!(fields[2] == "0", "unmerged index entry");
         ensure!(
@@ -979,7 +975,9 @@ async fn published_history(repo: &Path, refs: &[String], timeout: u64) -> Result
         .args(refs)
         .arg("--");
     let walk = async {
-        let mut child = command.spawn().context("published history walk did not start")?;
+        let mut child = command
+            .spawn()
+            .context("published history walk did not start")?;
         let stdout = child.stdout.take().context("published history stdout")?;
         let mut stderr = child.stderr.take().context("published history stderr")?;
         // Drain stderr concurrently so a full pipe can never stall Git.
@@ -1094,16 +1092,17 @@ async fn published_history_reference(
     let unmatched: Vec<&TreeEntry> = entries
         .iter()
         .filter(|entry| {
-            !published
-                .refs
-                .iter()
-                .any(|reference| reference.by_path.get(&entry.path) == Some(&(entry.mode.clone(), entry.oid.clone())))
+            !published.refs.iter().any(|reference| {
+                reference.by_path.get(&entry.path) == Some(&(entry.mode.clone(), entry.oid.clone()))
+            })
         })
         .collect();
     let label = format!("published history (newest {MAX_HISTORY_COMMITS} commits)");
     if unmatched.is_empty() {
         // Every entry matched SOME tip; they were split across refs.
-        return Ok(Some(published.refs.first().map_or(label, |r| r.name.clone())));
+        return Ok(Some(
+            published.refs.first().map_or(label, |r| r.name.clone()),
+        ));
     }
     if history.is_none() {
         // Loaded at most ONCE per pass, failure included: a walk that failed
@@ -1158,7 +1157,8 @@ async fn remove_if_redundant(
         .env("GIT_INDEX_FILE", &index)
         .args(["ls-files", "-s", "-z"]);
     let listing =
-        crate::git::run_command_captured_output(command, timeout, "spool index entries", None).await?;
+        crate::git::run_command_captured_output(command, timeout, "spool index entries", None)
+            .await?;
     ensure!(
         listing.status.success(),
         "spool index entries could not be read: {}",
@@ -1228,7 +1228,9 @@ async fn remove_if_redundant(
     // published ref in this repository's own object database.
     for oid in &universe {
         if !published.reachable.contains(oid.as_str()) {
-            return Err(NotYetPublished("spool holds an object that no published ref reaches").into());
+            return Err(
+                NotYetPublished("spool holds an object that no published ref reaches").into(),
+            );
         }
     }
 
@@ -1260,9 +1262,9 @@ async fn remove_if_redundant(
         .refs
         .iter()
         .find(|reference| {
-            entries
-                .iter()
-                .all(|entry| reference.by_path.get(&entry.path) == Some(&(entry.mode.clone(), entry.oid.clone())))
+            entries.iter().all(|entry| {
+                reference.by_path.get(&entry.path) == Some(&(entry.mode.clone(), entry.oid.clone()))
+            })
         })
         .map(|reference| reference.name.clone());
 
@@ -1296,7 +1298,10 @@ async fn remove_if_redundant(
     // Final, no-await checks. The owner fence is held across the removal, so
     // a live producer cannot write through this source while it is removed.
     ensure!(owner.still_owned(), "spool identity changed before removal");
-    ensure!(!protected(spool), "preserve marker appeared during verification");
+    ensure!(
+        !protected(spool),
+        "preserve marker appeared during verification"
+    );
     owner
         .proves_inactivity()
         .context("source inactivity changed during verification")?;
@@ -1333,12 +1338,15 @@ async fn remove_if_redundant(
 ///
 /// The route is additive: it never calls the qualified reclaim transaction and
 /// never widens age-only deletion authority. Age only schedules the scan.
-pub(super) async fn reap(
-    repo: &Path,
-    max_age_secs: u64,
-    op_timeout_secs: u64,
-) -> usize {
-    reap_limited(repo, max_age_secs, op_timeout_secs, MAX_REDUNDANT_SPOOLS_PER_PASS, true).await
+pub(super) async fn reap(repo: &Path, max_age_secs: u64, op_timeout_secs: u64) -> usize {
+    reap_limited(
+        repo,
+        max_age_secs,
+        op_timeout_secs,
+        MAX_REDUNDANT_SPOOLS_PER_PASS,
+        true,
+    )
+    .await
 }
 
 /// Run the full redundancy proof without removing anything.
@@ -1350,7 +1358,14 @@ pub(super) async fn reap(
 /// flock on the existing owner file that a real pass takes. It bypasses the
 /// cooldown and records no refusal memo.
 pub(super) async fn preview(repo: &Path, max_age_secs: u64, op_timeout_secs: u64) -> usize {
-    reap_limited(repo, max_age_secs, op_timeout_secs, MAX_REDUNDANT_SPOOLS_PER_PASS, false).await
+    reap_limited(
+        repo,
+        max_age_secs,
+        op_timeout_secs,
+        MAX_REDUNDANT_SPOOLS_PER_PASS,
+        false,
+    )
+    .await
 }
 
 /// `reap` with an explicit per-pass spool cap, so tests can exercise
@@ -1376,7 +1391,11 @@ async fn reap_limited(
         }
         note_attempt(repo);
     }
-    let verb = if apply { "removed" } else { "would be removed (preview)" };
+    let verb = if apply {
+        "removed"
+    } else {
+        "would be removed (preview)"
+    };
     let mut removed = 0usize;
     let pass = async {
         let Some(gitdir) = super::absolute_git_dir(repo).await else {
