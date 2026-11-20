@@ -3347,7 +3347,10 @@ pub(crate) enum LayoutTier {
 /// second line, so a 165-166 col terminal got a malformed table; those
 /// widths now fall back to Compact. `test_rich_table_fits_narrow_terminal`
 /// pins the total against this constant so the two cannot drift.
-pub(crate) const RICH_TIER_MIN_COLS: u16 = 168;
+/// CHANGED 2026-11-20 (168 -> 164): MIRROR LAG narrowed 16 -> 12. Below
+/// this width the rich table now hides columns (RICH_DROP_ORDER) down to
+/// RICH_TIER_FLOOR_COLS instead of falling back to Compact.
+pub(crate) const RICH_TIER_MIN_COLS: u16 = 164;
 
 /// ADDED 2026-11-20: narrowest terminal that still gets the rich table,
 /// with columns hidden per `RICH_DROP_ORDER`. Kept above the 120-col
@@ -7524,7 +7527,10 @@ fn build_repos_rich_table_with_hidden(
     let repo_col = width
         .saturating_sub(rich_columns_total(&all_widths, &kept) - all_widths[2])
         .max(all_widths[2]);
-    const MIRROR_LAG_COL: usize = 16;
+    // CHANGED 2026-11-20: 16 -> 12. The header is 10 cells and the value a
+    // short count, so 4 of the 16 were dead space while repository names
+    // truncated; the freed columns go to the REPO flex column.
+    const MIRROR_LAG_COL: usize = 12;
     // CHANGED 2026-07-29 (v0.113.19): the single CHANGES column
     // split into FOUR per-class columns (operator: "the changes
     // should be in their respective columns, not just dumped
@@ -15402,7 +15408,8 @@ mod tests {
         // v0.113.15: REPO 22→20, ACTIVITY 28→24 fund the REM column (+9
         // with border+padding) inside the same 165-col budget.
         const REPO_COL: usize = 20;
-        const ACTIVITY_COL: usize = 16;
+        // MIRROR LAG (historically the ACTIVITY slot): 16 -> 12 on 2026-11-20.
+        const ACTIVITY_COL: usize = 12;
         const CHG_MOD_COL: usize = 5;
         const CHG_STG_COL: usize = 5;
         const CHG_UT_COL: usize = 5;
