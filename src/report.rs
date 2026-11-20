@@ -7378,6 +7378,7 @@ fn print_repos_rich_table(
     print_repos_attention(rows, width);
 }
 
+#[cfg(test)]
 fn build_repos_rich_table(
     rows: &[RepoReportRow],
     full_path: bool,
