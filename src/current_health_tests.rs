@@ -540,12 +540,12 @@ fn current_convergence_freeze_block_and_missing_history_are_explicit() {
     );
 }
 
-/// ADDED 2026-11-20: ~/.dracon showed ❔ UNKNOWN while pushing every few
-/// seconds — the scheduler entry is blank between passes. A blank entry plus
-/// a successful push inside the window is WORKING; every weaker shape stays
-/// UNKNOWN.
+/// ADDED 2026-11-20: ~/.dracon and deathrun showed ❔ UNKNOWN while the
+/// daemon was committing/pushing every few seconds — the scheduler entry is
+/// blank between passes. Fresh activity (successful push or tip commit) inside
+/// the window is WORKING / PUBLISHING; every weaker shape stays UNKNOWN.
 #[test]
-fn blank_scheduler_entry_right_after_a_successful_push_is_working() {
+fn blank_scheduler_entry_with_fresh_activity_is_working_or_publishing() {
     let now = super::super::timestamp_secs();
     let push = |age: u64, succeeded: bool| Observation {
         version: 1,
@@ -553,29 +553,42 @@ fn blank_scheduler_entry_right_after_a_successful_push_is_working() {
         attempted_at: now - age,
         succeeded,
     };
+    let stale = (now - 3600) as i64;
     let mut row = RepoReportRow::for_tests("/fixture");
     row.modified = 1;
-    row.ahead = 1;
     row.push_status = "OK".into();
+    row.last_unix = stale;
     row.health.scheduler = Some(RepoEvidence::default());
+
+    // ~/.dracon shape: dirty, just pushed successfully.
     row.health.last_push = Some(push(20, true));
     assert_eq!(classify(&row), Current::Working);
     assert!(status(&row).0.contains("WORKING"));
+
+    // deathrun shape: commit seconds old, push about to start; the recorded
+    // push is the previous one, minutes ago.
+    row.ahead = 1;
+    row.last_unix = (now - 5) as i64;
+    row.health.last_push = Some(push(180, true));
+    assert_eq!(classify(&row), Current::Publishing);
 
     // No scheduler entry at all: a genuine evidence gap.
     row.health.scheduler = None;
     assert_eq!(classify(&row), Current::Unknown);
     row.health.scheduler = Some(RepoEvidence::default());
 
-    // Successful push, but too long ago to vouch for the current state.
+    // Nothing recent: old push and old tip commit.
+    row.last_unix = stale;
     row.health.last_push = Some(push(BETWEEN_PASSES_SECS + 1, true));
     assert_eq!(classify(&row), Current::Unknown);
 
-    // A recent FAILED push never reads as healthy work.
+    // A FAILED last push never reads as healthy work, even with a fresh commit.
+    row.last_unix = (now - 5) as i64;
     row.health.last_push = Some(push(5, false));
     assert_eq!(classify(&row), Current::Unknown);
 
-    // No push record.
+    // A future commit timestamp (clock skew) is not fresh evidence.
+    row.last_unix = (now + 600) as i64;
     row.health.last_push = None;
     assert_eq!(classify(&row), Current::Unknown);
 }

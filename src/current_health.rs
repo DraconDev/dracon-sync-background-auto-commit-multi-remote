@@ -150,10 +150,6 @@ fn between_passes(row: &RepoReportRow) -> bool {
     }
 }
 
-/// How recently a successful push must have happened for a blank scheduler
-/// entry to read as "between passes" rather than an evidence gap.
-pub(super) const BETWEEN_PASSES_SECS: u64 = 120;
-
 // Status labels are named once and reused by `status()`, the layout width
 // calculation and the drift test. Hand-tuned column widths had already
 // drifted twice: the STATUS cell was `Fixed(13)` while `📤 PUBLISHING` is
