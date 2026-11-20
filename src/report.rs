@@ -3320,43 +3320,12 @@ pub(crate) enum LayoutTier {
     Full,
 }
 
-/// Pick the layout tier from terminal width.
-///
-/// - `< 165` cols → **Compact** (the rich table's fixed floor can't fit)
-/// - `>= 165` cols → **Rich** (the 16-column table; the operator's table.
-///   CORRECTED 2026-10-03, audit R3-L37: was "10-column", "190 cols")
-///
-/// CHANGED 2026-07-30 (v0.113.26): the 242-314 → Compact and >= 315
-/// → Full bands were REMOVED from auto-pick. They were leftovers from
-/// the pre-rich design: a maximized terminal (242+ cols) silently
-/// served the OLD 16-column compact table, and the operator's
-/// reaction was "this looks like the old table — no legend or
-/// indicators". The rich table is the product now; a wider terminal
-/// gets the same rich table (190 cols fixed, trailing whitespace is
-/// fine). Compact/Full/Vertical remain reachable via `--layout`.
-///
-/// History: `< 242` default was Vertical (v0.112.38), then Rich
-/// (v0.112.38); 165-col Rich minimum since v0.113.8 (added USED +
-/// COMMITS + SIZE + TOUCHED columns grew the table from ~120 to
-/// ~165 cols).
-/// Minimum terminal width at which the Rich tier renders correctly.
-///
-/// CHANGED 2026-11-01 (165 -> 167): the STATUS column is now derived from
-/// the widest status label instead of a hand-tuned 13, and `📤 PUBLISHING`
-/// needs 15 columns. At the old 165 floor the STATUS cell wrapped onto a
-/// second line, so a 165-166 col terminal got a malformed table; those
-/// widths now fall back to Compact. `test_rich_table_fits_narrow_terminal`
-/// pins the total against this constant so the two cannot drift.
-/// CHANGED 2026-11-20 (168 -> 164): MIRROR LAG narrowed 16 -> 12. Below
-/// this width the rich table now hides columns (RICH_DROP_ORDER) down to
-/// RICH_TIER_FLOOR_COLS instead of falling back to Compact.
+/// Baseline width for all rich columns. Wider push and remote labels
+/// can increase the width required by a particular report.
 pub(crate) const RICH_TIER_MIN_COLS: u16 = 164;
 
-/// ADDED 2026-11-20: narrowest terminal that still gets the rich table,
-/// with columns hidden per `RICH_DROP_ORDER`. Kept above the 120-col
-/// non-TTY fallback so piped/scripted output stays on the Compact table.
-/// `rich_table_drops_low_priority_columns_to_fit` pins that every
-/// never-dropped column fits here.
+/// Minimum terminal width for automatic rich layout. The 120-column
+/// fallback for non-TTY output retains the compact layout.
 pub(crate) const RICH_TIER_FLOOR_COLS: u16 = 125;
 
 pub(crate) fn choose_layout_tier() -> LayoutTier {
@@ -3606,7 +3575,7 @@ fn repos_inline_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("CHANGES", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded files"),
         ("A/B", "Commits ahead of or behind the configured upstream."),
         ("PUSH", "✅ OK / ❌ FAIL and age show the last recorded push attempt."),
-        ("REM", "push remotes: 🐙 GitHub · 🦊 GitLab (one icon per remote)"),
+        ("REM", "Push destinations · 🐙 GitHub · 🦊 GitLab · 🗻 Codeberg"),
         ("1H 6H 24H", "commits in the last hour / 6 hours / 24 hours"),
         ("GIT SIZE", "local Git history, not worktree; includes nested repos · GitHub limit is 2 GiB per push"),
         ("TOUCHED", "author of the latest commit"),
@@ -7343,7 +7312,7 @@ fn print_repos_attention(rows: &[RepoReportRow], width: u16) {
 /// ADDED 2026-07-22 (v0.112.38): the default table view — a rich
 /// 16-column table (`#` · STATUS · REPO · MIRROR LAG · 📝📦🆕🚫 · A/B ·
 /// PUSH · REM · 1H/6H/24H · SIZE · TOUCHED), auto-picked for terminals
-/// ≥165 cols (REPO flex-grows past the fixed floor). The operator
+/// at 125 columns and up (REPO grows to fill the available width). The operator
 /// wanted "a very rich table" as the default, with detail available on
 /// demand (`repos <name>` or `--layout vertical`).
 ///
@@ -7460,9 +7429,9 @@ fn build_repos_rich_table_with_hidden(
     indexed.sort_by_key(|(idx, row)| (severity_tier(row), *idx));
 
     const REM_MIN_COL: usize = 8;
-    let rem_col = indexed
+    let rem_col = rows
         .iter()
-        .map(|(_, row)| rem_column_width(&row.push_to_forges))
+        .map(|row| rem_column_width(&row.push_to_forges))
         .max()
         .unwrap_or(REM_MIN_COL);
 
@@ -7592,44 +7561,6 @@ fn build_repos_rich_table_with_hidden(
     // already carries timing), up to 13 content + 2 padding = 15.
     // CORRECTED 2026-10-03 (audit R3-L37): was "<author> <when> = 16".
     const TOUCHED_COL: usize = 15;
-    // Borders: N+1 separators in UTF8_FULL_CONDENSED for N columns.
-    // Cell padding: 2 chars per cell × N cells.
-    let num_cols = 16;
-    let border_overhead = num_cols + 1;
-    let cell_padding = num_cols * 2;
-    let fixed = NUM_COL
-        + status_col
-        + REPO_COL
-        + MIRROR_LAG_COL
-        + CHG_MOD_COL
-        + CHG_STG_COL
-        + CHG_UT_COL
-        + CHG_EXCL_COL
-        + AB_COL
-        + push_col
-        + rem_col
-        + C1H_COL
-        + C6H_COL
-        + C24H_COL
-        + SIZE_COL
-        + TOUCHED_COL;
-    // ADVISOR-CATCH (v0.113.8 follow-up): the original code had an
-    // `assert!` here that panicked the process when `--layout rich`
-    // was forced on a < 165-col terminal. The assert exists as a
-    // development-time sanity check (the test
-    // `test_rich_table_fits_narrow_terminal` pins the invariant),
-    // but panicking a user-facing CLI on a forced layout override
-    // is the wrong enforcement — comfy-table degrades gracefully
-    // by squashing columns when the Absolute width doesn't fit,
-    // and the column-set logic at runtime handles it.
-    //
-    // Operators on 90-164 col terminals get the Compact tier via
-    // `choose_layout_tier`. Operators who explicitly pass
-    // `--layout rich` on a narrower terminal get the same
-    // comfortable-column-squashing graceful render. No more
-    // runtime panics.
-    let _ = (fixed, border_overhead, cell_padding, width); // suppress unused warnings
-
     let mut table = Table::new();
     table.load_preset(UTF8_BORDERS_ONLY);
     table.apply_modifier(UTF8_ROUND_CORNERS);
@@ -7647,25 +7578,7 @@ fn build_repos_rich_table_with_hidden(
             .fg(Color::White)
             .add_attribute(comfy_table::Attribute::Bold)
     };
-    let header = vec![
-        bold("#"),
-        bold("STATUS"),
-        bold("REPO"),
-        bold("MIRROR LAG"),
-        bold("📝"),
-        bold("📦"),
-        bold("🆕"),
-        bold("🚫"),
-        bold("A/B"),
-        bold("PUSH"),
-        bold("REM"),
-        bold("1H"),
-        bold("6H"),
-        bold("24H"),
-        bold("GIT SIZE"),
-        bold("TOUCHED"),
-    ];
-    table.set_header(keep_rich_cells(header, &kept));
+    table.set_header(kept.iter().map(|&column| bold(RICH_COLUMN_NAMES[column])));
 
     // Constraints and alignment follow the KEPT columns: positions shift
     // when a column is hidden, so index by original column id.
@@ -13461,16 +13374,19 @@ mod tests {
         let (_, hidden) = build_repos_rich_table_with_hidden(&rows, false, RICH_TIER_MIN_COLS);
         assert!(hidden.is_empty(), "full width hides nothing: {hidden:?}");
         let (_, hidden) = build_repos_rich_table_with_hidden(&rows, false, 137);
-        assert_eq!(hidden, ["1H", "6H", "TOUCHED"], "137 cols (operator's terminal)");
+        assert_eq!(hidden, ["1H", "6H", "TOUCHED"], "at 137 columns");
         for width in RICH_TIER_FLOOR_COLS..=RICH_TIER_MIN_COLS {
             let header = header_of(width);
             for essential in ["STATUS", "REPO", "MIRROR LAG", "A/B", "PUSH", "REM"] {
-                assert!(header.contains(essential), "{essential} missing at {width}: {header}");
+                assert!(
+                    header.contains(essential),
+                    "{essential} missing at {width}: {header}"
+                );
             }
         }
         let (_, hidden) = build_repos_rich_table_with_hidden(&rows, false, RICH_TIER_FLOOR_COLS);
-        assert_eq!(hidden.len(), RICH_DROP_ORDER.len(), "floor hides every droppable column");
-        assert!(!header_of(RICH_TIER_FLOOR_COLS).contains("TOUCHED"));
+        assert_eq!(hidden, ["1H", "6H", "24H", "TOUCHED"]);
+        assert!(header_of(RICH_TIER_FLOOR_COLS).contains("GIT SIZE"));
     }
 
     #[test]
@@ -14458,28 +14374,26 @@ mod tests {
     }
 
     #[test]
-    fn test_choose_layout_tier_vertical() {
+    fn test_choose_layout_tier_rich() {
         let _env_guard = REPORT_ENV_GUARD
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         // Use env var to control width
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        // CHANGED 2026-07-22 (v0.112.38): the < 242 default is now
-        // Rich (6-column table), NOT Vertical. Vertical remains
-        // available via `--layout vertical` and as the `repos <name>`
-        // per-repo detail format.
-        // CHANGED 2026-07-30 (v0.113.26): Rich is the auto-pick for
-        // EVERYTHING ≥165 cols — the 242-314 Compact band and the
-        // ≥315 Full band were removed (a maximized terminal silently
-        // served the OLD compact table; "looks like the old table").
-        // CHANGED 2026-11-01: the Rich floor is RICH_TIER_MIN_COLS, not 165.
-        let floor = RICH_TIER_MIN_COLS;
-        for w in [floor, 180, 199, 219, 237, 241, 242, 300, 314, 315, 500] {
+        for w in [
+            RICH_TIER_FLOOR_COLS,
+            137,
+            RICH_TIER_MIN_COLS,
+            180,
+            242,
+            315,
+            500,
+        ] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
                 LayoutTier::Rich,
-                "width {} should be Rich (>= RICH_TIER_MIN_COLS)",
+                "width {} should be Rich (>= RICH_TIER_FLOOR_COLS)",
                 w
             );
         }
