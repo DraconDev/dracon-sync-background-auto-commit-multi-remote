@@ -3349,9 +3349,16 @@ pub(crate) enum LayoutTier {
 /// pins the total against this constant so the two cannot drift.
 pub(crate) const RICH_TIER_MIN_COLS: u16 = 168;
 
+/// ADDED 2026-11-20: narrowest terminal that still gets the rich table,
+/// with columns hidden per `RICH_DROP_ORDER`. Kept above the 120-col
+/// non-TTY fallback so piped/scripted output stays on the Compact table.
+/// `rich_table_drops_low_priority_columns_to_fit` pins that every
+/// never-dropped column fits here.
+pub(crate) const RICH_TIER_FLOOR_COLS: u16 = 125;
+
 pub(crate) fn choose_layout_tier() -> LayoutTier {
     let w = terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16);
-    if w < RICH_TIER_MIN_COLS {
+    if w < RICH_TIER_FLOOR_COLS {
         LayoutTier::Compact
     } else {
         LayoutTier::Rich
@@ -7354,7 +7361,20 @@ fn print_repos_rich_table(
     full_path: bool,
 ) {
     let width = terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16);
-    println!("{}", build_repos_rich_table(rows, full_path, width));
+    let (table, hidden) = build_repos_rich_table_with_hidden(rows, full_path, width);
+    println!("{table}");
+    if !hidden.is_empty() {
+        println!(
+            "{}",
+            colorize(
+                &format!(
+                    "↔ {width}-col terminal: hidden {} — widen to {RICH_TIER_MIN_COLS}+ cols for every column",
+                    hidden.join(" · ")
+                ),
+                Color::DarkGrey
+            )
+        );
+    }
     print_repos_attention(rows, width);
 }
 
@@ -7363,6 +7383,69 @@ fn build_repos_rich_table(
     full_path: bool,
     terminal_columns: u16,
 ) -> comfy_table::Table {
+    build_repos_rich_table_with_hidden(rows, full_path, terminal_columns).0
+}
+
+/// Rich-table column ids, in display order. `RICH_COLUMN_NAMES[i]` names
+/// column `i`; the width array in `build_repos_rich_table_with_hidden`
+/// uses the same order.
+const RICH_COLUMN_COUNT: usize = 16;
+const RICH_COLUMN_NAMES: [&str; RICH_COLUMN_COUNT] = [
+    "#",
+    "STATUS",
+    "REPO",
+    "MIRROR LAG",
+    "📝",
+    "📦",
+    "🆕",
+    "🚫",
+    "A/B",
+    "PUSH",
+    "REM",
+    "1H",
+    "6H",
+    "24H",
+    "GIT SIZE",
+    "TOUCHED",
+];
+/// ADDED 2026-11-20: columns hidden, in this order, when the terminal is
+/// narrower than the full rich table — least decision-relevant first.
+/// STATUS, REPO, MIRROR LAG, the change counts, A/B, PUSH and REM are
+/// never dropped: they are what tells the operator whether sync is healthy.
+const RICH_DROP_ORDER: [usize; 5] = [15, 11, 12, 13, 14];
+
+/// Rendered width of the kept columns: Absolute widths include padding,
+/// plus one border cell per column and the closing border.
+fn rich_columns_total(widths: &[usize; RICH_COLUMN_COUNT], kept: &[usize]) -> usize {
+    kept.iter().map(|&column| widths[column]).sum::<usize>() + kept.len() + 1
+}
+
+/// Drop columns in `RICH_DROP_ORDER` until the table fits `terminal`.
+fn rich_kept_columns(widths: &[usize; RICH_COLUMN_COUNT], terminal: usize) -> Vec<usize> {
+    let mut kept: Vec<usize> = (0..RICH_COLUMN_COUNT).collect();
+    for column in RICH_DROP_ORDER {
+        if rich_columns_total(widths, &kept) <= terminal {
+            break;
+        }
+        kept.retain(|&kept_column| kept_column != column);
+    }
+    kept
+}
+
+fn keep_rich_cells<T>(cells: Vec<T>, kept: &[usize]) -> Vec<T> {
+    cells
+        .into_iter()
+        .enumerate()
+        .filter_map(|(column, cell)| kept.contains(&column).then_some(cell))
+        .collect()
+}
+
+/// The rich table plus the names of any columns hidden to fit the width.
+fn build_repos_rich_table_with_hidden(
+    rows: &[RepoReportRow],
+    full_path: bool,
+    terminal_columns: u16,
+) -> (comfy_table::Table, Vec<&'static str>) {
     use comfy_table::{
         modifiers::UTF8_ROUND_CORNERS, presets::UTF8_BORDERS_ONLY, Cell, CellAlignment, Color,
         ColumnConstraint, ContentArrangement, Table, TableComponent, Width,
@@ -7414,27 +7497,32 @@ fn build_repos_rich_table(
     // always spans the full screen and names truncate less on wide
     // terminals. Below the floor REPO stays at REPO_COL and
     // comfy-table squashes gracefully.
-    let repo_col = {
-        let fixed_non_repo = NUM_COL
-            + status_col
-            + MIRROR_LAG_COL
-            + CHG_MOD_COL
-            + CHG_STG_COL
-            + CHG_UT_COL
-            + CHG_EXCL_COL
-            + AB_COL
-            + push_col
-            + rem_col
-            + C1H_COL
-            + C6H_COL
-            + C24H_COL
-            + SIZE_COL
-            + TOUCHED_COL
-            + 17; // 16 columns → 17 border cells
-        width
-            .saturating_sub(fixed_non_repo)
-            .max(REPO_COL.saturating_sub(push_col - PUSH_COL))
-    };
+    // CHANGED 2026-11-20 (operator: "we seem to have the old table now"):
+    // below the full-width floor the rich table now DROPS its lowest-
+    // priority columns (RICH_DROP_ORDER) instead of the whole report
+    // falling back to the old compact table. REPO stays the flex column.
+    let all_widths: [usize; RICH_COLUMN_COUNT] = [
+        NUM_COL,
+        status_col,
+        REPO_COL.saturating_sub(push_col - PUSH_COL),
+        MIRROR_LAG_COL,
+        CHG_MOD_COL,
+        CHG_STG_COL,
+        CHG_UT_COL,
+        CHG_EXCL_COL,
+        AB_COL,
+        push_col,
+        rem_col,
+        C1H_COL,
+        C6H_COL,
+        C24H_COL,
+        SIZE_COL,
+        TOUCHED_COL,
+    ];
+    let kept = rich_kept_columns(&all_widths, width);
+    let repo_col = width
+        .saturating_sub(rich_columns_total(&all_widths, &kept) - all_widths[2])
+        .max(all_widths[2]);
     const MIRROR_LAG_COL: usize = 16;
     // CHANGED 2026-07-29 (v0.113.19): the single CHANGES column
     // split into FOUR per-class columns (operator: "the changes
@@ -7570,84 +7658,19 @@ fn build_repos_rich_table(
         bold("GIT SIZE"),
         bold("TOUCHED"),
     ];
-    table.set_header(header);
+    table.set_header(keep_rich_cells(header, &kept));
 
-    table
-        .column_mut(0)
-        .expect("# column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(NUM_COL as u16)));
-    table
-        .column_mut(1)
-        .expect("STATUS column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(status_col as u16)));
-    table
-        .column_mut(2)
-        .expect("REPO column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(repo_col as u16)));
-    table
-        .column_mut(3)
-        .expect("MIRROR LAG column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(
-            MIRROR_LAG_COL as u16,
-        )));
-    table
-        .column_mut(4)
-        .expect("modified-count column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(CHG_MOD_COL as u16)));
-    table
-        .column_mut(5)
-        .expect("staged-count column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(CHG_STG_COL as u16)));
-    table
-        .column_mut(6)
-        .expect("untracked-count column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(CHG_UT_COL as u16)));
-    table
-        .column_mut(7)
-        .expect("excluded-count column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(
-            CHG_EXCL_COL as u16,
-        )));
-    table
-        .column_mut(8)
-        .expect("A/B column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(AB_COL as u16)));
-    table
-        .column_mut(9)
-        .expect("PUSH column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(push_col as u16)));
-    table
-        .column_mut(10)
-        .expect("REM column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(rem_col as u16)));
-    table
-        .column_mut(11)
-        .expect("1H column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C1H_COL as u16)));
-    table
-        .column_mut(12)
-        .expect("6H column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C6H_COL as u16)));
-    table
-        .column_mut(13)
-        .expect("24H column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C24H_COL as u16)));
-    table
-        .column_mut(14)
-        .expect("SIZE column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(SIZE_COL as u16)));
-    table
-        .column_mut(15)
-        .expect("TOUCHED column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(TOUCHED_COL as u16)));
-
-    // Align counts and sizes by magnitude; the repository and activity
-    // columns stay left aligned for reading names and state labels.
-    for index in [0, 4, 5, 6, 7, 11, 12, 13, 14] {
-        table
-            .column_mut(index)
-            .expect("numeric column")
-            .set_cell_alignment(CellAlignment::Right);
+    // Constraints and alignment follow the KEPT columns: positions shift
+    // when a column is hidden, so index by original column id.
+    for (position, &column) in kept.iter().enumerate() {
+        let column_width = if column == 2 { repo_col } else { all_widths[column] };
+        let table_column = table.column_mut(position).expect("rich column");
+        table_column.set_constraint(ColumnConstraint::Absolute(Width::Fixed(column_width as u16)));
+        // Align counts and sizes by magnitude; the repository and activity
+        // columns stay left aligned for reading names and state labels.
+        if [0, 4, 5, 6, 7, 11, 12, 13, 14].contains(&column) {
+            table_column.set_cell_alignment(CellAlignment::Right);
+        }
     }
 
     let repo_budget = repo_col.saturating_sub(2);
@@ -7822,10 +7845,14 @@ fn build_repos_rich_table(
             Cell::new(size_text).fg(size_color),
             Cell::new(touched).fg(Color::DarkGrey),
         ];
-        table.add_row(cells);
+        table.add_row(keep_rich_cells(cells, &kept));
     }
 
-    table
+    let hidden = (0..RICH_COLUMN_COUNT)
+        .filter(|column| !kept.contains(column))
+        .map(|column| RICH_COLUMN_NAMES[column])
+        .collect();
+    (table, hidden)
 }
 
 // ---------------------------------------------------------------------------
