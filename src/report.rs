@@ -13429,6 +13429,43 @@ mod tests {
         );
     }
 
+    /// ADDED 2026-11-20: between the floor and the full width the rich
+    /// table hides columns in RICH_DROP_ORDER instead of the report falling
+    /// back to the compact table. Every width renders single-line rows at
+    /// exactly the terminal width, and the never-dropped columns survive.
+    #[test]
+    fn rich_table_drops_low_priority_columns_to_fit() {
+        let mut row = make_activity_row("5 minutes ago", 3, 0, "OK");
+        row.repo = "/tmp/pi-use-last-selected-thinking-level".into();
+        let rows = [row];
+        let header_of = |width: u16| {
+            let rendered = build_repos_rich_table(&rows, false, width).to_string();
+            let lines: Vec<String> = rendered.lines().map(str::to_owned).collect();
+            assert_eq!(lines.len(), 5, "wrapped rows at {width}: {rendered}");
+            for line in &lines {
+                assert_eq!(
+                    unicode_width::UnicodeWidthStr::width(line.as_str()),
+                    usize::from(width),
+                    "line width at {width}: {rendered}"
+                );
+            }
+            lines[1].clone()
+        };
+        let (_, hidden) = build_repos_rich_table_with_hidden(&rows, false, RICH_TIER_MIN_COLS);
+        assert!(hidden.is_empty(), "full width hides nothing: {hidden:?}");
+        let (_, hidden) = build_repos_rich_table_with_hidden(&rows, false, 137);
+        assert_eq!(hidden, ["1H", "6H", "TOUCHED"], "137 cols (operator's terminal)");
+        for width in RICH_TIER_FLOOR_COLS..=RICH_TIER_MIN_COLS {
+            let header = header_of(width);
+            for essential in ["STATUS", "REPO", "MIRROR LAG", "A/B", "PUSH", "REM"] {
+                assert!(header.contains(essential), "{essential} missing at {width}: {header}");
+            }
+        }
+        let (_, hidden) = build_repos_rich_table_with_hidden(&rows, false, RICH_TIER_FLOOR_COLS);
+        assert_eq!(hidden.len(), RICH_DROP_ORDER.len(), "floor hides every droppable column");
+        assert!(!header_of(RICH_TIER_FLOOR_COLS).contains("TOUCHED"));
+    }
+
     #[test]
     fn rich_table_renders_single_line_rows_at_supported_widths() {
         let mut clean = make_activity_row("5 minutes ago", 0, 0, "OK");
@@ -14452,9 +14489,12 @@ mod tests {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        // v0.113.26: Compact is ONLY the < 165 fallback now; the
+        // v0.113.26: Compact is ONLY the narrow fallback now; the
         // 242-299 band is Rich (was Compact before v0.113.26).
-        for w in [40, 90, 120, 164] {
+        // CHANGED 2026-11-20: the fallback starts below
+        // RICH_TIER_FLOOR_COLS (125) — 125-167 cols get the rich table
+        // with low-priority columns hidden.
+        for w in [40, 90, 120, RICH_TIER_FLOOR_COLS - 1] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
