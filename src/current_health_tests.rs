@@ -539,3 +539,43 @@ fn current_convergence_freeze_block_and_missing_history_are_explicit() {
         "an old remote commit is not push evidence"
     );
 }
+
+/// ADDED 2026-11-20: ~/.dracon showed ❔ UNKNOWN while pushing every few
+/// seconds — the scheduler entry is blank between passes. A blank entry plus
+/// a successful push inside the window is WORKING; every weaker shape stays
+/// UNKNOWN.
+#[test]
+fn blank_scheduler_entry_right_after_a_successful_push_is_working() {
+    let now = super::super::timestamp_secs();
+    let push = |age: u64, succeeded: bool| Observation {
+        version: 1,
+        repo: "/fixture".into(),
+        attempted_at: now - age,
+        succeeded,
+    };
+    let mut row = RepoReportRow::for_tests("/fixture");
+    row.modified = 1;
+    row.ahead = 1;
+    row.push_status = "OK".into();
+    row.health.scheduler = Some(RepoEvidence::default());
+    row.health.last_push = Some(push(20, true));
+    assert_eq!(classify(&row), Current::Working);
+    assert!(status(&row).0.contains("WORKING"));
+
+    // No scheduler entry at all: a genuine evidence gap.
+    row.health.scheduler = None;
+    assert_eq!(classify(&row), Current::Unknown);
+    row.health.scheduler = Some(RepoEvidence::default());
+
+    // Successful push, but too long ago to vouch for the current state.
+    row.health.last_push = Some(push(BETWEEN_PASSES_SECS + 1, true));
+    assert_eq!(classify(&row), Current::Unknown);
+
+    // A recent FAILED push never reads as healthy work.
+    row.health.last_push = Some(push(5, false));
+    assert_eq!(classify(&row), Current::Unknown);
+
+    // No push record.
+    row.health.last_push = None;
+    assert_eq!(classify(&row), Current::Unknown);
+}

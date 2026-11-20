@@ -116,9 +116,30 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
         if evidence.eligible {
             return Current::Queued;
         }
+        // ADDED 2026-11-20: a repo whose state files change every few
+        // seconds (~/.dracon: memory-guard state, ledgers) is caught between
+        // passes most of the time — the previous pass just published, its
+        // scheduler entry is present but blank, and the next change has not
+        // been classified yet. That is not an evidence gap: the daemon owns
+        // the repo and proved publication moments ago. Only a fresh blank
+        // entry plus a SUCCESSFUL push inside the window qualifies; no entry,
+        // an old push or a failed push stays Unknown.
+        if evidence.phase.is_none()
+            && row.health.last_push.as_ref().is_some_and(|push| {
+                push.succeeded
+                    && super::timestamp_secs().saturating_sub(push.attempted_at)
+                        <= BETWEEN_PASSES_SECS
+            })
+        {
+            return Current::Working;
+        }
     }
     Current::Unknown
 }
+
+/// How recently a successful push must have happened for a blank scheduler
+/// entry to read as "between passes" rather than an evidence gap.
+pub(super) const BETWEEN_PASSES_SECS: u64 = 120;
 
 // Status labels are named once and reused by `status()`, the layout width
 // calculation and the drift test. Hand-tuned column widths had already

@@ -3583,11 +3583,23 @@ fn legend_display_lines(width: usize) -> Vec<String> {
     legend_panel_lines("REPOSITORY LEGEND", repos_legend_rows(), width)
 }
 
+/// CHANGED 2026-11-20 (operator: "the legend is short"): the inline box
+/// explained only 3 of the table's columns, leaving STATUS, the change
+/// icons, REM, the commit pulse, GIT SIZE and TOUCHED undecoded unless the
+/// operator knew to ask for `--legend`. One line per column now; the full
+/// key keeps the long-form evidence rules.
 fn repos_inline_legend_rows() -> &'static [(&'static str, &'static str)] {
     &[
-        ("A/B", "Commits ahead of or behind the configured upstream."),
+        ("STATUS", "✅ clean · 🟡 queued · 🔄 working · 📤 publishing (tip not on remotes yet) · ⏳ retrying · ⏸️ paused · 🔴 stalled · 🚫 blocked/excluded · ❔ unknown (no fresh daemon verdict; not a failure)"),
+        ("REPO", "🔒 private · > nested repo/submodule"),
         ("MIRROR LAG", "Most commits missing from any configured mirror, based on local tracking refs."),
+        ("📝 📦 🆕 🚫", "modified · staged · untracked · excluded files"),
+        ("A/B", "Commits ahead of or behind the configured upstream."),
         ("PUSH", "✅ OK / ❌ FAIL and age show the last recorded push attempt."),
+        ("REM", "push remotes: 🐙 GitHub · 🦊 GitLab (one icon per remote)"),
+        ("1H 6H 24H", "commits in the last hour / 6 hours / 24 hours"),
+        ("GIT SIZE", "local Git history, not worktree; includes nested repos · GitHub limit is 2 GiB per push"),
+        ("TOUCHED", "author of the latest commit"),
         ("DETAILS", "dracon-sync repos <name> · --legend for the full key · --deep to refresh pack/history checks"),
     ]
 }
