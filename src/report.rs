@@ -3593,7 +3593,7 @@ fn repos_inline_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("STATUS", "✅ clean · 🟡 queued · 🔄 working · 📤 publishing (tip not on remotes yet) · ⏳ retrying · ⏸️ paused · 🔴 stalled · 🚫 blocked/excluded · ❔ unknown (no fresh daemon verdict; not a failure)"),
         ("REPO", "🔒 private · > nested repo/submodule"),
         ("MIRROR LAG", "Most commits missing from any configured mirror, based on local tracking refs."),
-        ("📝 📦 🆕 🚫", "modified · staged · untracked · excluded files"),
+        ("CHANGES", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded files"),
         ("A/B", "Commits ahead of or behind the configured upstream."),
         ("PUSH", "✅ OK / ❌ FAIL and age show the last recorded push attempt."),
         ("REM", "push remotes: 🐙 GitHub · 🦊 GitLab (one icon per remote)"),
