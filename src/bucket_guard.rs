@@ -173,6 +173,10 @@ pub(crate) struct RangeVerdict {
     pub ok: bool,
     pub code: String,
     pub errors: Vec<String>,
+    /// `Some` when warn mode demoted a forward-only refusal: the push may
+    /// proceed, but the caller records it instead of treating this as a live
+    /// violation (ADDED 2026-11-21).
+    pub demoted: Option<GuardDemotion>,
 }
 
 pub(crate) async fn check_push_range(
@@ -214,6 +218,7 @@ pub(crate) async fn check_push_range(
     )
     .await?;
     let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
     let value: serde_json::Value = serde_json::from_str(&stdout).with_context(|| {
         format!(
             "bucket guard range check produced unparseable output (exit {})",
