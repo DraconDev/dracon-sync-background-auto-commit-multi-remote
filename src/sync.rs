@@ -5050,12 +5050,23 @@ async fn run_configured_hook(
         args.extend_from_slice(hook_args);
     }
     // Git sets GIT_EDITOR=: for commit hooks when no editor is launched (-m).
+    //
+    // ADDED 2026-11-21: a sealed commit runs the SAME chain `git commit` would,
+    // so the repository's own `pre-commit` reaches
+    // `bucket-strategy-guard.sh`. The daemon must opt into the forward-only
+    // demotion on this path too, or a retirement the in-process check admitted
+    // would still be refused one hook later and wedge the repository exactly as
+    // before. The variable is set here and nowhere else, so an interactive
+    // `git commit` in the same checkout keeps the hard stop.
     crate::git::run_git_with_timeout_env(
         repo,
         &args,
         timeout_secs.max(1),
         hook,
-        &[("GIT_EDITOR", ":")],
+        &[
+            ("GIT_EDITOR", ":"),
+            (crate::bucket_guard::GUARD_MODE_ENV, crate::bucket_guard::GUARD_MODE_WARN),
+        ],
     )
     .await
 }

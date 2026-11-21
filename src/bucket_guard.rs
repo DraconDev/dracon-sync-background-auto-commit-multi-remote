@@ -46,11 +46,11 @@ const GUARD_SCRIPT_RELATIVE: &str = "web/scripts/bucket-strategy-guard.sh";
 /// forward-only refusal (ADDED 2026-11-21). The wrapper and its demoter
 /// (`bucket-guard-demote.mjs`) own the demotion decision; the daemon only
 /// opts in and reads the verdict.
-const GUARD_MODE_ENV: &str = "DRACON_BUCKET_GUARD_MODE";
+pub(crate) const GUARD_MODE_ENV: &str = "DRACON_BUCKET_GUARD_MODE";
 
 /// The only mode value the wrapper demotes under. Anything else — including a
 /// misspelling — keeps the historical hard stop.
-const GUARD_MODE_PRESENT: (&str, &str) = (GUARD_MODE_ENV, "warn");
+pub(crate) const GUARD_MODE_WARN: &str = "warn";
 
 /// Prefix of the machine-readable demotion line the demoter emits on stderr.
 const DEMOTION_PREFIX: &str = "bucket-guard-warning: ";
@@ -374,7 +374,7 @@ async fn run_guard(
     // daemon is the one caller that may proceed through that refusal, and
     // every interactive invocation keeps the wrapper's default hard stop.
     if demote {
-        cmd.env(GUARD_MODE_PRESENT.0, GUARD_MODE_PRESENT.1);
+        cmd.env(GUARD_MODE_ENV, GUARD_MODE_WARN);
     } else {
         cmd.env_remove(GUARD_MODE_ENV);
     }
