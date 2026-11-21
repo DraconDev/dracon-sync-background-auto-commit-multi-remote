@@ -4007,16 +4007,18 @@ exit 0
             let remote = String::from_utf8_lossy(&remote).trim().to_string();
             (local, remote)
         };
+        // Set the local tip before marking the other commit as published.
+        assert!(test_git_cmd()
+            .args(["reset", "--hard", &local_commit])
+            .current_dir(&repo)
+            .status()
+            .expect("git reset")
+            .success());
         test_git_cmd()
             .args(["update-ref", "refs/remotes/mirror/master", &remote_commit])
             .current_dir(&repo)
             .status()
             .expect("git update-ref");
-        test_git_cmd()
-            .args(["reset", "--hard", &local_commit])
-            .current_dir(&repo)
-            .status()
-            .expect("git reset");
         let result = diagnose_divergence(&repo, "mirror", "master").await;
         assert!(result.is_ok(), "diagnose_divergence should succeed");
         assert_eq!(
@@ -4075,16 +4077,17 @@ exit 0
                 .expect("git rev-parse");
             String::from_utf8_lossy(&output.stdout).trim().to_string()
         };
+        assert!(std::process::Command::new(real_git.as_path())
+            .args(["reset", "--hard", "HEAD^"])
+            .current_dir(&repo)
+            .status()
+            .expect("git reset")
+            .success());
         std::process::Command::new(real_git.as_path())
             .args(["update-ref", "refs/remotes/mirror/master", &remote_commit])
             .current_dir(&repo)
             .output()
             .expect("git update-ref");
-        std::process::Command::new(real_git.as_path())
-            .args(["reset", "--hard", "HEAD^"])
-            .current_dir(&repo)
-            .output()
-            .expect("git reset");
         drop(acquire_path_lock());
         let result = push_to_named_remote(&repo, "mirror", 5, 0, true).await;
         assert!(
@@ -4144,16 +4147,17 @@ exit 0
             let remote = String::from_utf8_lossy(&output.stdout).trim().to_string();
             (local, remote)
         };
+        assert!(test_git_cmd()
+            .args(["reset", "--hard", "HEAD^"])
+            .current_dir(&repo)
+            .status()
+            .expect("git reset")
+            .success());
         test_git_cmd()
             .args(["update-ref", "refs/remotes/mirror/master", &remote_commit])
             .current_dir(&repo)
             .status()
             .expect("git update-ref");
-        test_git_cmd()
-            .args(["reset", "--hard", "HEAD^"])
-            .current_dir(&repo)
-            .status()
-            .expect("git reset");
         drop(acquire_path_lock());
         let result = push_to_named_remote(&repo, "mirror", 5, 0, true).await;
         assert!(
@@ -4206,16 +4210,17 @@ exit 0
                 .expect("git rev-parse");
             String::from_utf8_lossy(&output.stdout).trim().to_string()
         };
+        assert!(test_git_cmd()
+            .args(["reset", "--hard", "HEAD^"])
+            .current_dir(&repo)
+            .status()
+            .expect("git reset")
+            .success());
         test_git_cmd()
             .args(["update-ref", "refs/remotes/mirror/master", &remote_commit])
             .current_dir(&repo)
             .status()
             .expect("git update-ref");
-        test_git_cmd()
-            .args(["reset", "--hard", "HEAD^"])
-            .current_dir(&repo)
-            .status()
-            .expect("git reset");
         drop(acquire_path_lock());
         let result = push_to_named_remote(&repo, "mirror", 5, 0, false).await;
         assert!(
