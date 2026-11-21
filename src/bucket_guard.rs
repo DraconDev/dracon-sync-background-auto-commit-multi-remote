@@ -107,7 +107,8 @@ pub(crate) fn demotion_from_stderr(stderr: &str) -> Option<GuardDemotion> {
     let line = stderr
         .lines()
         .find(|line| line.starts_with(DEMOTION_PREFIX))?;
-    let value: serde_json::Value = serde_json::from_str(line.strip_prefix(DEMOTION_PREFIX)?.trim()).ok()?;
+    let value: serde_json::Value =
+        serde_json::from_str(line.strip_prefix(DEMOTION_PREFIX)?.trim()).ok()?;
     let code = value.get("code")?.as_str()?.to_owned();
     let strings = |key: &str| -> Vec<String> {
         value
@@ -125,6 +126,113 @@ pub(crate) fn demotion_from_stderr(stderr: &str) -> Option<GuardDemotion> {
         operations: strings("operations"),
         paths: strings("paths"),
     })
+}
+
+/// Basename of the per-repo demotion record (gitdir-relative).
+///
+/// A demotion is a one-shot event: once the commit carrying the retirement
+/// lands, the staged tree is clean and the guard stops refusing. Without a
+/// persisted record the row hint would be gone before the operator could ever
+/// read it, and a second unreported deletion would look like the first. The
+/// record is therefore written beside the repository's own Git metadata (not
+/// in the worktree, so it is never committed) and surfaced by the report while
+/// it is fresh.
+const DEMOTION_RECORD: &str = "dracon-bucket-guard-demotion.json";
+
+/// How long a demotion record stays reportable. The retirement itself is
+/// permanent (it is in history); this window only governs how long the table
+/// keeps pointing at it, so a warning cannot become permanent furniture.
+pub(crate) const DEMOTION_REPORT_WINDOW_SECS: u64 = 24 * 60 * 60;
+
+fn demotion_record_path(repo: &Path) -> Option<PathBuf> {
+    repo.join(".git")
+        .exists()
+        .then(|| crate::git::path_gitdir(repo))
+        .flatten()
+        .map(|gitdir| gitdir.join(DEMOTION_RECORD))
+}
+
+/// Persist the latest demotion so the report can name it.
+///
+/// Failure is diagnostic only: the commit already happened, so a record that
+/// cannot be written must not turn an admitted retirement into a failed sync.
+pub(crate) fn record_demotion(repo: &Path, demotion: &GuardDemotion) {
+    let Some(path) = demotion_record_path(repo) else {
+        return;
+    };
+    let record = serde_json::json!({
+        "ts_unix": crate::policy::timestamp_secs(),
+        "code": demotion.code,
+        "operations": demotion.operations,
+        "paths": demotion.paths,
+    });
+    let bytes = match serde_json::to_vec_pretty(&record) {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            eprintln!("⚠️ cannot serialize bucket-guard demotion record: {error}");
+            return;
+        }
+    };
+    if let Err(error) = std::fs::write(&path, bytes) {
+        eprintln!(
+            "⚠️ cannot write bucket-guard demotion record {}: {error}",
+            path.display()
+        );
+    }
+}
+
+/// Whether `repo` carries a demotion record fresh enough to report, and what
+/// it says. `Err` is reserved for a record that exists but cannot be read, so
+/// an unreadable record is never mistaken for "nothing happened".
+pub(crate) fn pending_demotion(repo: &Path) -> anyhow::Result<Option<GuardDemotion>> {
+    let Some(path) = demotion_record_path(repo) else {
+        return Ok(None);
+    };
+    let raw = match std::fs::read_to_string(&path) {
+        Ok(raw) => raw,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error.into()),
+    };
+    let value: serde_json::Value = serde_json::from_str(&raw).map_err(|error| {
+        anyhow::anyhow!(
+            "contains a bucket-guard demotion record that is not readable JSON: {error}"
+        )
+    })?;
+    let ts_unix = value
+        .get("ts_unix")
+        .and_then(|v| v.as_u64())
+        .ok_or_else(|| anyhow::anyhow!("bucket-guard demotion record has no timestamp"))?;
+    let now = crate::policy::timestamp_secs();
+    // A clock that jumped backwards must not make a record permanent: treat
+    // a future timestamp as fresh only for the same window.
+    let age = now.saturating_sub(ts_unix);
+    if ts_unix > now && ts_unix - now > DEMOTION_REPORT_WINDOW_SECS {
+        return Ok(None);
+    }
+    if age > DEMOTION_REPORT_WINDOW_SECS {
+        return Ok(None);
+    }
+    let code = value
+        .get("code")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("bucket-guard demotion record has no code"))?
+        .to_owned();
+    let strings = |key: &str| -> Vec<String> {
+        value
+            .get(key)
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    Ok(Some(GuardDemotion {
+        code,
+        operations: strings("operations"),
+        paths: strings("paths"),
+    }))
 }
 
 /// Walk `repo` and its ancestors for an executable guard script, mirroring

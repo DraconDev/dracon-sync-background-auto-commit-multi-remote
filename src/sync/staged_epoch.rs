@@ -489,7 +489,11 @@ impl Epoch {
                 )
                 .await
             };
-            guards.await?;
+            // A demoted forward-only refusal is an ADMITTED refusal, not a
+            // clean pass: keep it so publication records it instead of
+            // reporting this round as healthy. `None` is a genuinely clean
+            // guard verdict.
+            let demotion = guards.await?;
             self.unchanged(repo, &lock).await?;
             // Original hook order/arguments/editor semantics; hook edits are
             // read back, refusals propagate, and no hook runs twice.
@@ -636,6 +640,12 @@ impl Epoch {
                 || !after.changed.is_empty()
                 || !status.success()
                 || untracked_pending;
+            // The demotion belongs to the commit that actually landed. Persist
+            // it now so the report can name the retirement while it is fresh:
+            // once published the staged tree is clean and the guard is silent.
+            if let Some(demotion) = &demotion {
+                crate::bucket_guard::record_demotion(repo, demotion);
+            }
             Ok(pending)
         })
         .await;
