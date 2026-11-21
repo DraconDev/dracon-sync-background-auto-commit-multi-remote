@@ -3320,8 +3320,8 @@ pub(crate) enum LayoutTier {
     Full,
 }
 
-/// Baseline width for all rich columns. Wider push and remote labels
-/// can increase the width required by a particular report.
+/// Baseline width for all rich columns with short names and standard remotes.
+#[cfg(test)]
 pub(crate) const RICH_TIER_MIN_COLS: u16 = 164;
 
 /// Minimum terminal width for automatic rich layout. The 120-column
@@ -7340,7 +7340,7 @@ fn print_repos_rich_table(
             "{}",
             colorize(
                 &format!(
-                    "↔ {width}-col terminal: hidden {} — widen to {RICH_TIER_MIN_COLS}+ cols for every column",
+                    "↔ Hidden at {width} columns · {}",
                     hidden.join(" · ")
                 ),
                 Color::DarkGrey
@@ -7413,6 +7413,22 @@ fn keep_rich_cells<T>(cells: Vec<T>, kept: &[usize]) -> Vec<T> {
         .collect()
 }
 
+fn rich_repo_label(row: &RepoReportRow, full_path: bool) -> String {
+    let name = if full_path {
+        row.repo.as_str().into()
+    } else {
+        Path::new(&row.repo)
+            .file_name()
+            .map(|name| name.to_string_lossy())
+            .unwrap_or_else(|| row.repo.as_str().into())
+    };
+    if matches!(row.branch.as_str(), "main" | "" | "-") {
+        name.into_owned()
+    } else {
+        format!("{name}⚡{}", row.branch)
+    }
+}
+
 /// The rich table plus the names of any columns hidden to fit the width.
 fn build_repos_rich_table_with_hidden(
     rows: &[RepoReportRow],
@@ -7427,6 +7443,10 @@ fn build_repos_rich_table_with_hidden(
     // Sort by severity (concern → warn → active → clean), stable.
     let mut indexed: Vec<(usize, &RepoReportRow)> = rows.iter().enumerate().collect();
     indexed.sort_by_key(|(idx, row)| (severity_tier(row), *idx));
+    let labels: Vec<_> = indexed
+        .iter()
+        .map(|(_, row)| rich_repo_label(row, full_path))
+        .collect();
 
     const REM_MIN_COL: usize = 8;
     let rem_col = rows
@@ -7457,27 +7477,20 @@ fn build_repos_rich_table_with_hidden(
     // the row read like two rows. `status_labels_fit_the_rich_column` and
     // `rich_table_does_not_wrap_publishing_status` pin this.
     let status_col = status_column_width();
-    // CHANGED 2026-07-29 (v0.113.15): REPO narrowed 22 → 20 and
-    // ACTIVITY narrowed 28 → 24 to fund the new REM column (+9 cols
-    // incl. border+padding) within the 165-col rich-tier budget
-    // (operator: show which remotes each repo syncs to as icons).
-    // Fund the complete STATUS label without raising the rich-tier floor.
-    const REPO_COL: usize = 19;
-    // v0.113.30 (operator: "make the table as wide as the screen,
-    // and flex grow like the repo name"): REPO is the flex column —
-    // it absorbs every terminal column beyond the fixed floor (159,
-    // pinned by test_rich_table_fits_narrow_terminal), so the table
-    // always spans the full screen and names truncate less on wide
-    // terminals. Below the floor REPO stays at REPO_COL and
-    // comfy-table squashes gracefully.
-    // CHANGED 2026-11-20 (operator: "we seem to have the old table now"):
-    // below the full-width floor the rich table now DROPS its lowest-
-    // priority columns (RICH_DROP_ORDER) instead of the whole report
-    // falling back to the old compact table. REPO stays the flex column.
+    const MIN_REPO_COL: usize = 19;
+    const MAX_REPO_LABEL: usize = 40;
+    // Reserve room for the longest label up to the cap, plus the lock,
+    // nested-repo badge, and cell padding. Any spare width goes to REPO.
+    let label_width = labels
+        .iter()
+        .map(|label| unicode_width::UnicodeWidthStr::width(label.as_str()))
+        .max()
+        .unwrap_or(0);
+    let preferred_repo_col = (label_width.min(MAX_REPO_LABEL) + 6).max(MIN_REPO_COL);
     let all_widths: [usize; RICH_COLUMN_COUNT] = [
         NUM_COL,
         status_col,
-        REPO_COL.saturating_sub(push_col - PUSH_COL),
+        preferred_repo_col,
         MIRROR_LAG_COL,
         CHG_MOD_COL,
         CHG_STG_COL,
@@ -7495,7 +7508,7 @@ fn build_repos_rich_table_with_hidden(
     let kept = rich_kept_columns(&all_widths, width);
     let repo_col = width
         .saturating_sub(rich_columns_total(&all_widths, &kept) - all_widths[2])
-        .max(all_widths[2]);
+        .max(MIN_REPO_COL.saturating_sub(push_col - PUSH_COL));
     // CHANGED 2026-11-20: 16 -> 12. The header is 10 cells and the value a
     // short count, so 4 of the 16 were dead space while repository names
     // truncated; the freed columns go to the REPO flex column.
@@ -7602,25 +7615,8 @@ fn build_repos_rich_table_with_hidden(
     let chg_budget = CHG_MOD_COL.saturating_sub(2);
     let ab_budget = AB_COL.saturating_sub(2);
     let touched_budget = TOUCHED_COL.saturating_sub(2);
-    for (display_idx, (_orig_idx, row)) in indexed.iter().enumerate() {
+    for (display_idx, ((_, row), repo_display)) in indexed.iter().zip(&labels).enumerate() {
         let (status_text, status_color) = status_pair(row);
-        let repo_name = if full_path {
-            row.repo.clone()
-        } else {
-            std::path::Path::new(&row.repo)
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| row.repo.clone())
-        };
-        // ADDED 2026-07-22 (v0.112.38 R2): fold the branch into the
-        // REPO cell ONLY when it is not `main` — a dedicated BRANCH
-        // column is noise when ~every repo is on main, but a
-        // non-main branch is exactly the kind of state worth seeing.
-        let repo_display = if row.branch != "main" && !row.branch.is_empty() && row.branch != "-" {
-            format!("{}⚡{}", repo_name, row.branch)
-        } else {
-            repo_name
-        };
         // CHANGED 2026-07-29 (v0.113.18): the visibility marker moved
         // to the FRONT so the icons form a single vertical column
         // (operator: "the lock in front so its in one column
@@ -7635,7 +7631,7 @@ fn build_repos_rich_table_with_hidden(
         // v0.113.21: `.git` as a FILE = nested submodule / linked
         // worktree checkout (gitdir pointer); a DIR = standalone.
         let is_nested = std::path::Path::new(&row.repo).join(".git").is_file();
-        let repo_short = repo_cell_content(visibility, &repo_display, repo_budget, is_nested);
+        let repo_short = repo_cell_content(visibility, repo_display, repo_budget, is_nested);
 
         let mirror_lag = match row.health.mirror_unpublished.values().max() {
             Some(count) => Cell::new(truncate_unicode_width(
@@ -13371,10 +13367,14 @@ mod tests {
             }
             lines[1].clone()
         };
-        let (_, hidden) = build_repos_rich_table_with_hidden(&rows, false, RICH_TIER_MIN_COLS);
+        let (_, hidden) = build_repos_rich_table_with_hidden(&rows, false, 200);
         assert!(hidden.is_empty(), "full width hides nothing: {hidden:?}");
         let (_, hidden) = build_repos_rich_table_with_hidden(&rows, false, 137);
-        assert_eq!(hidden, ["1H", "6H", "TOUCHED"], "at 137 columns");
+        assert_eq!(hidden, ["1H", "6H", "24H", "GIT SIZE", "TOUCHED"]);
+        for width in [137, RICH_TIER_MIN_COLS] {
+            let rendered = build_repos_rich_table(&rows, false, width).to_string();
+            assert!(rendered.contains("pi-use-last-selected-thinking-level"), "{rendered}");
+        }
         for width in RICH_TIER_FLOOR_COLS..=RICH_TIER_MIN_COLS {
             let header = header_of(width);
             for essential in ["STATUS", "REPO", "MIRROR LAG", "A/B", "PUSH", "REM"] {
@@ -13385,8 +13385,7 @@ mod tests {
             }
         }
         let (_, hidden) = build_repos_rich_table_with_hidden(&rows, false, RICH_TIER_FLOOR_COLS);
-        assert_eq!(hidden, ["1H", "6H", "24H", "TOUCHED"]);
-        assert!(header_of(RICH_TIER_FLOOR_COLS).contains("GIT SIZE"));
+        assert_eq!(hidden, ["1H", "6H", "24H", "GIT SIZE", "TOUCHED"]);
     }
 
     #[test]
@@ -13420,10 +13419,13 @@ mod tests {
             assert!(lines[0].starts_with('╭'));
             assert!(lines[5].ends_with('╯'));
             assert!(lines[3].contains("STALLED") && lines[3].contains("platform"));
-            assert!(
-                lines[4].contains("   12     123    1015"),
-                "counts must align: {rendered}"
-            );
+            assert!(lines[4].contains("pi-use-last-selected-thinking-level"));
+            if width >= 200 {
+                assert!(
+                    lines[4].contains("   12     123    1015"),
+                    "counts must align: {rendered}"
+                );
+            }
             assert!(!rendered.contains('┆'));
             assert!(lines[2].starts_with('├') && lines[2].ends_with('┤'));
             assert!(

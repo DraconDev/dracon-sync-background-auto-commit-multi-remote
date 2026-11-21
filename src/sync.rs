@@ -13643,6 +13643,12 @@ trusted_authors = ["test"]
             .args(["-C", &repo.to_string_lossy(), "config", "user.name", "t"])
             .output()
             .unwrap();
+        assert!(test_git_cmd()
+            .current_dir(&repo)
+            .args(["config", "core.hooksPath", "/dev/null"])
+            .status()
+            .unwrap()
+            .success());
         // Initial commit + push to set up origin as upstream
         test_git_cmd()
             .args([
@@ -13679,7 +13685,14 @@ trusted_authors = ["test"]
             .output()
             .unwrap();
 
-        // Push a second commit to origin (so origin has 2 commits).
+        // Advance origin from a detached HEAD so the local branch never
+        // points at the upstream-only commit.
+        assert!(test_git_cmd()
+            .current_dir(&repo)
+            .args(["switch", "--detach"])
+            .status()
+            .unwrap()
+            .success());
         std::fs::write(repo.join("extra.txt"), "extra\n").unwrap();
         test_git_cmd()
             .args(["-C", &repo.to_string_lossy(), "add", "extra.txt"])
@@ -13696,10 +13709,12 @@ trusted_authors = ["test"]
             ])
             .output()
             .unwrap();
-        test_git_cmd()
-            .args(["-C", &repo.to_string_lossy(), "push", "origin", "main"])
-            .output()
-            .unwrap();
+        assert!(test_git_cmd()
+            .current_dir(&repo)
+            .args(["push", "origin", "HEAD:refs/heads/main"])
+            .status()
+            .unwrap()
+            .success());
 
         // Verify local has 2 commits
         let local_log_after_extra = test_git_cmd()
@@ -13734,32 +13749,12 @@ trusted_authors = ["test"]
             origin_log_str
         );
 
-        // Reset local back to init (simulating the local repo being idle
-        // while origin moved forward via a mirror push).
-        let reset_out = test_git_cmd()
-            .args(["-C", &repo.to_string_lossy(), "reset", "--hard", "HEAD~1"])
-            .output()
-            .unwrap();
-        assert!(
-            reset_out.status.success(),
-            "reset failed: {}",
-            String::from_utf8_lossy(&reset_out.stderr)
-        );
-
-        // Verify local is at init (1 commit)
-        let local_log_after_reset = test_git_cmd()
-            .args(["-C", &repo.to_string_lossy(), "log", "--oneline"])
-            .output()
-            .unwrap();
-        let local_log_str = String::from_utf8_lossy(&local_log_after_reset.stdout).to_string();
-        let local_lines: Vec<&str> = local_log_str.trim().lines().collect();
-        assert_eq!(
-            local_lines.len(),
-            1,
-            "local should have 1 commit after reset, got {}:\n{}",
-            local_lines.len(),
-            local_log_str
-        );
+        assert!(test_git_cmd()
+            .current_dir(&repo)
+            .args(["switch", "main"])
+            .status()
+            .unwrap()
+            .success());
 
         // Now make a local commit. Pushing this will be rejected with
         // "fetch first" because origin/main has 2 commits but local only has 1.
@@ -13807,21 +13802,6 @@ trusted_authors = ["test"]
             plain_stderr
         );
 
-        // Reset local again for the real test (undo the failed push)
-        test_git_cmd()
-            .args(["-C", &repo.to_string_lossy(), "reset", "--hard", "HEAD~1"])
-            .output()
-            .unwrap();
-        std::fs::write(repo.join("local.txt"), "local change\n").unwrap();
-        test_git_cmd()
-            .args(["-C", &repo.to_string_lossy(), "add", "local.txt"])
-            .output()
-            .unwrap();
-        test_commit_cmd()
-            .args(["-C", &repo.to_string_lossy(), "-m", "local"])
-            .output()
-            .unwrap();
-
         // Now call push_with_retries — it should auto-pull then succeed.
         // CHANGED 2026-10-03 (audit R4-SC-13): retries 1 → 2. The
         // post-pull retry consumes a budget slot (standing 2026-08-10
@@ -13835,6 +13815,10 @@ trusted_authors = ["test"]
             result.is_ok(),
             "push_with_retries should auto-pull + succeed: {:?}",
             result
+        );
+        assert_eq!(
+            std::fs::read_to_string(repo.join("extra.txt")).unwrap(),
+            "extra\n"
         );
     }
 
