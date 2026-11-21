@@ -189,6 +189,16 @@ pub(crate) async fn maybe_route_with_rederive(
         return Ok(false);
     };
     match crate::bucket_guard::check_push_range(repo, timeout_secs, env_override).await {
+        // A demoted forward-only refusal is admitted, not a live violation: the
+        // push may proceed, so filing it as a stuck-push finding would report a
+        // failure that never happened. The demotion itself is recorded by the
+        // commit path and surfaced by the report (ADDED 2026-11-21).
+        Ok(Some(verdict)) if verdict.demoted.is_some() => {
+            if let Some(demotion) = &verdict.demoted {
+                crate::bucket_guard::record_demotion(repo, demotion);
+            }
+            Ok(false)
+        }
         Ok(Some(verdict)) if !verdict.ok => {
             let mut errors = verdict.errors;
             errors.truncate(4);

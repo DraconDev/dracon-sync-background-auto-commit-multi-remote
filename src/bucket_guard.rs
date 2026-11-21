@@ -87,14 +87,6 @@ impl GuardDemotion {
         )
     }
 
-    /// The verdict's own `errors` lines, which name each offending path.
-    pub(crate) fn paths_label(&self) -> String {
-        if self.paths.is_empty() {
-            String::new()
-        } else {
-            self.paths.join("; ")
-        }
-    }
 }
 
 /// Parse the demoter's machine-readable warning out of the guard's stderr.
