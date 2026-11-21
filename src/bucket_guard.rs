@@ -240,7 +240,12 @@ pub(crate) async fn check_push_range(
                 .collect()
         })
         .unwrap_or_default();
-    Ok(Some(RangeVerdict { ok, code, errors }))
+    Ok(Some(RangeVerdict {
+        ok,
+        code,
+        errors,
+        demoted: demotion_from_stderr(&stderr),
+    }))
 }
 
 fn git_output(repo: &Path, args: &[&str]) -> Result<String> {
