@@ -633,4 +633,137 @@ mod tests {
             .unwrap_err();
         assert!(format!("{err:?}").contains("points nowhere"));
     }
+
+    /// ADDED 2026-11-21: a demoted forward-only refusal must be REPORTED to the
+    /// caller, not silently swallowed as a clean pass.
+    ///
+    /// This is the whole safety property of the demotion: the commit is
+    /// admitted, so if the check returned `Ok(None)` the retirement would
+    /// vanish from every operator surface — the exact "silent asset loss" the
+    /// forward-only policy exists to prevent, just with the loss happening
+    /// unreported instead of blocked.
+    #[tokio::test]
+    async fn warn_mode_demotion_is_reported_to_the_caller() {
+        let tmp = tempfile::tempdir().unwrap();
+        // The wrapper's warn-mode output: rewritten verdict + one machine
+        // readable warning line naming the retired path.
+        let repo = stub_guard(
+            tmp.path(),
+            "repo",
+            r#"#!/bin/sh
+printf '%s\n' '{"ok": true, "code": "OK", "demoted": {"ok": false, "code": "BUCKET_STRATEGY_GUARD_FORWARD_ONLY"}}'
+printf '%s\n' 'bucket-guard-warning: {"code":"BUCKET_STRATEGY_GUARD_FORWARD_ONLY","mode":"warn","operations":["staged"],"paths":["static/art/a.png"],"errors":["staged: static/art/a.png"]}' >&2
+exit 0
+"#,
+        );
+        std::fs::create_dir_all(&repo).unwrap();
+        let demotion = check_staged_forward_only(&repo, 10, None)
+            .await
+            .expect("admitted")
+            .expect("a demotion must be reported, never swallowed");
+        assert_eq!(demotion.code, "BUCKET_STRATEGY_GUARD_FORWARD_ONLY");
+        assert_eq!(demotion.paths, vec!["static/art/a.png".to_string()]);
+        assert_eq!(demotion.operations, vec!["staged".to_string()]);
+        // The summary is what the journal/alert/row hint render; it must name
+        // the path and the code.
+        let summary = demotion.summary();
+        assert!(summary.contains("static/art/a.png"), "{summary}");
+        assert!(summary.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"), "{summary}");
+    }
+
+    /// A genuinely clean verdict (no demotion line) stays `None`, so the
+    /// ordinary pass is not turned into a warning by the plumbing.
+    #[tokio::test]
+    async fn clean_verdict_reports_no_demotion() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = stub_guard(
+            tmp.path(),
+            "repo",
+            "#!/bin/sh\necho '{\"ok\": true, \"code\": \"OK\"}'\nexit 0\n",
+        );
+        std::fs::create_dir_all(&repo).unwrap();
+        assert!(check_staged_forward_only(&repo, 10, None)
+            .await
+            .expect("clean")
+            .is_none());
+    }
+
+    /// The daemon must actually SET the mode, or a wrapper that honours it
+    /// would still refuse. The probe stub echoes the environment it received.
+    #[tokio::test]
+    async fn daemon_invokes_the_guard_in_warn_mode() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = stub_guard(
+            tmp.path(),
+            "repo",
+            "#!/bin/sh\nif [ \"${DRACON_BUCKET_GUARD_MODE-}\" = warn ]; then echo '{\"ok\": true, \"code\": \"OK\"}'; else echo '{\"ok\": false, \"code\": \"BUCKET_STRATEGY_GUARD_MODE_NOT_SET\"}'; exit 1; fi\n",
+        );
+        std::fs::create_dir_all(&repo).unwrap();
+        assert!(
+            check_staged_forward_only(&repo, 10, None).await.is_ok(),
+            "the daemon's staged check must opt in to the demotion"
+        );
+    }
+
+    #[test]
+    fn demotion_line_is_parsed_from_stderr_only() {
+        let stderr = "noise\nbucket-guard-warning: {\"code\":\"BUCKET_STRATEGY_GUARD_FORWARD_ONLY\",\"operations\":[\"ref-deletion\"],\"paths\":[\"refs/heads/scratch\"]}\nmore noise\n";
+        let demotion = demotion_from_stderr(stderr).expect("parsed");
+        assert_eq!(demotion.paths, vec!["refs/heads/scratch".to_string()]);
+        assert_eq!(demotion.operations, vec!["ref-deletion".to_string()]);
+        // Malformed or absent lines must not fabricate a demotion.
+        assert!(demotion_from_stderr("").is_none());
+        assert!(demotion_from_stderr("bucket-guard-warning: not json").is_none());
+        assert!(demotion_from_stderr("bucket-guard-warning: {\"mode\":\"warn\"}").is_none());
+    }
+
+    /// The record must survive the pass that produced it (the staged tree is
+    /// clean afterwards, so the guard stops refusing and would otherwise leave
+    /// nothing behind), and it must age out rather than become permanent.
+    #[test]
+    fn demotion_record_round_trips_and_expires() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
+        let demotion = GuardDemotion {
+            code: "BUCKET_STRATEGY_GUARD_FORWARD_ONLY".to_owned(),
+            operations: vec!["staged".to_owned()],
+            paths: vec!["web/games/static/games/covers/gone.jpg".to_owned()],
+        };
+        record_demotion(&repo, &demotion);
+        let read_back = pending_demotion(&repo)
+            .expect("record readable")
+            .expect("fresh record reported");
+        assert_eq!(read_back, demotion);
+
+        // Backdate past the window: the retirement is still in history, but the
+        // table stops pointing at it.
+        let path = demotion_record_path(&repo).expect("record path");
+        let mut value: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        value["ts_unix"] = serde_json::json!(
+            crate::policy::timestamp_secs().saturating_sub(DEMOTION_REPORT_WINDOW_SECS + 60)
+        );
+        std::fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
+        assert!(pending_demotion(&repo).expect("readable").is_none());
+
+        // No record at all: nothing to report, and not an error.
+        std::fs::remove_file(&path).unwrap();
+        assert!(pending_demotion(&repo).expect("absent is not an error").is_none());
+    }
+
+    /// A record that exists but cannot be understood is an INSPECTION failure,
+    /// never "nothing happened" — silence would hide an admitted retirement.
+    #[test]
+    fn unreadable_demotion_record_is_an_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
+        let path = demotion_record_path(&repo).expect("record path");
+        std::fs::write(&path, "not json").unwrap();
+        assert!(pending_demotion(&repo).is_err());
+        // A well-formed record missing its timestamp is equally untrustworthy.
+        std::fs::write(&path, "{\"code\": \"BUCKET_STRATEGY_GUARD_FORWARD_ONLY\"}").unwrap();
+        assert!(pending_demotion(&repo).is_err());
+    }
 }
