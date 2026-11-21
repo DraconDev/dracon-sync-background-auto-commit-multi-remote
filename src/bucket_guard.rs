@@ -17,12 +17,115 @@
 //! guard script are unaffected (the check is layout-gated, not policy
 //! gated). Violations — and guard infrastructure failures — block the commit
 //! with the index intact, mirroring the hook's fail-closed semantics.
+//!
+//! CHANGED 2026-11-21 (forward-only demotion): one refusal class no longer
+//! blocks an UNATTENDED commit. The forward-only policy is correct for a
+//! human — `git commit` stopping on a suspected accidental asset deletion is
+//! the point of it — but it is a permanent wedge for the daemon, because the
+//! check re-runs against the same staged tree (and later the same unpushed
+//! range) on every attempt. One intentional retirement then blocks the commit
+//! carrying it and every change queued behind it, and the repository can
+//! never converge. Observed live: dracon-platform sat wedged from 20:27 on
+//! 2026-11-21 with one superseded cover JPEG staged while 20+ unrelated files
+//! waited behind it.
+//!
+//! The demotion is narrow and evidence-preserving: only
+//! `BUCKET_STRATEGY_GUARD_FORWARD_ONLY` may proceed, only when the wrapper
+//! honoured `DRACON_BUCKET_GUARD_MODE=warn`, and only as a RECORDED warning —
+//! see [`GuardDemotion`]. Every other refusal code still fails closed here,
+//! and the guard's own default (no mode set) is untouched, so an interactive
+//! `git commit` still refuses.
 
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
 /// Basename the hook wrapper looks for while walking checkout ancestry.
 const GUARD_SCRIPT_RELATIVE: &str = "web/scripts/bucket-strategy-guard.sh";
+
+/// The environment variable the guard wrapper reads to demote a
+/// forward-only refusal (ADDED 2026-11-21). The wrapper and its demoter
+/// (`bucket-guard-demote.mjs`) own the demotion decision; the daemon only
+/// opts in and reads the verdict.
+const GUARD_MODE_ENV: &str = "DRACON_BUCKET_GUARD_MODE";
+
+/// The only mode value the wrapper demotes under. Anything else — including a
+/// misspelling — keeps the historical hard stop.
+const GUARD_MODE_PRESENT: (&str, &str) = (GUARD_MODE_ENV, "warn");
+
+/// Prefix of the machine-readable demotion line the demoter emits on stderr.
+const DEMOTION_PREFIX: &str = "bucket-guard-warning: ";
+
+/// A demoted forward-only refusal: the guard refused, warn mode admitted the
+/// commit, and the caller must RECORD what was admitted rather than treat the
+/// pass as clean.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct GuardDemotion {
+    /// The original refusal code (`BUCKET_STRATEGY_GUARD_FORWARD_ONLY`).
+    pub code: String,
+    /// Violation classes reported by the guard (`staged`, `delete`, ...).
+    pub operations: Vec<String>,
+    /// The affected paths/refs, in the guard's order.
+    pub paths: Vec<String>,
+}
+
+impl GuardDemotion {
+    /// One-line description for the journal, alert ledger and row hint.
+    pub(crate) fn summary(&self) -> String {
+        let what = if self.paths.is_empty() {
+            "un-named path".to_owned()
+        } else {
+            self.paths.join(", ")
+        };
+        format!(
+            "{} demoted to a warning ({}) — {what} retired under policy; bytes remain in history",
+            self.code,
+            if self.operations.is_empty() {
+                "unspecified".to_owned()
+            } else {
+                self.operations.join("+")
+            }
+        )
+    }
+
+    /// The verdict's own `errors` lines, which name each offending path.
+    pub(crate) fn paths_label(&self) -> String {
+        if self.paths.is_empty() {
+            String::new()
+        } else {
+            self.paths.join("; ")
+        }
+    }
+}
+
+/// Parse the demoter's machine-readable warning out of the guard's stderr.
+///
+/// The line is JSON after a stable prefix, so a warning is never inferred from
+/// prose. `None` means the wrapper did NOT demote (either no mode was set, the
+/// refusal was not forward-only, or the wrapper predates the mode) — the
+/// caller then keeps its ordinary hard-stop behaviour.
+pub(crate) fn demotion_from_stderr(stderr: &str) -> Option<GuardDemotion> {
+    let line = stderr
+        .lines()
+        .find(|line| line.starts_with(DEMOTION_PREFIX))?;
+    let value: serde_json::Value = serde_json::from_str(line.strip_prefix(DEMOTION_PREFIX)?.trim()).ok()?;
+    let code = value.get("code")?.as_str()?.to_owned();
+    let strings = |key: &str| -> Vec<String> {
+        value
+            .get(key)
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    Some(GuardDemotion {
+        code,
+        operations: strings("operations"),
+        paths: strings("paths"),
+    })
+}
 
 /// Walk `repo` and its ancestors for an executable guard script, mirroring
 /// the `find_guard` function in `.githooks/pre-commit`. Returns `None` when
@@ -107,6 +210,7 @@ pub(crate) async fn check_push_range(
             "--json",
         ],
         timeout_secs,
+        true,
     )
     .await?;
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -151,10 +255,19 @@ async fn run_guard(
     repo: &Path,
     args: &[&str],
     timeout_secs: u64,
+    demote: bool,
 ) -> Result<std::process::Output> {
     let guard_display = guard.display().to_string();
     let mut cmd = tokio::process::Command::new(guard);
     cmd.args(args).current_dir(repo);
+    // Opt in to the wrapper's forward-only demotion. Set only here: the
+    // daemon is the one caller that may proceed through that refusal, and
+    // every interactive invocation keeps the wrapper's default hard stop.
+    if demote {
+        cmd.env(GUARD_MODE_PRESENT.0, GUARD_MODE_PRESENT.1);
+    } else {
+        cmd.env_remove(GUARD_MODE_ENV);
+    }
     // Mirror the hook: strip repository-discovery overrides so the guard
     // measures this repo from its explicit root rather than inheriting the
     // daemon's (or a worktree's) GIT_* environment.
@@ -178,18 +291,20 @@ async fn run_guard(
 
 /// Run the staged forward-only check for `repo`.
 ///
-/// * No discoverable guard script → `Ok(())` (repo is not bucket-managed).
-/// * Guard reports `ok: false` → `Err` carrying the violation code and paths;
-///   the caller must leave the index intact and skip the commit.
+/// * No discoverable guard script → `Ok(None)` (repo is not bucket-managed).
+/// * Guard refuses and warn mode demoted it → `Ok(Some(GuardDemotion))`: the
+///   commit may proceed, but the caller MUST record the demotion.
+/// * Guard refuses without a demotion → `Err` carrying the violation code and
+///   paths; the caller must leave the index intact and skip the commit.
 /// * Guard infrastructure failure (missing override target, spawn failure,
 ///   timeout, unparseable output) → `Err` (fail closed, mirroring the hook).
 pub(crate) async fn check_staged_forward_only(
     repo: &Path,
     timeout_secs: u64,
     env_override: Option<&str>,
-) -> Result<()> {
+) -> Result<Option<GuardDemotion>> {
     let guard = match discover_guard(repo, env_override) {
-        None => return Ok(()),
+        None => return Ok(None),
         Some(path) => path,
     };
     let guard_display = guard.display().to_string();
@@ -204,12 +319,19 @@ pub(crate) async fn check_staged_forward_only(
         repo,
         &["--staged", "--no-size", "--json"],
         timeout_secs,
+        true,
     )
     .await?;
     let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
     let parsed: Option<serde_json::Value> = serde_json::from_str(&stdout).ok();
     match parsed {
-        Some(value) if value.get("ok") == Some(&serde_json::Value::Bool(true)) => Ok(()),
+        Some(value) if value.get("ok") == Some(&serde_json::Value::Bool(true)) => {
+            // A demotion is an admitted refusal, never a clean pass: return it
+            // so the caller records it. A genuinely clean verdict has no
+            // demotion line and yields `None`.
+            Ok(demotion_from_stderr(&stderr))
+        }
         Some(value) => {
             let code = value
                 .get("code")
