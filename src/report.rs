@@ -4720,6 +4720,21 @@ pub(crate) async fn run_repos_report(
             Err(_) => Some("HYGIENE_INSPECT_FAILED"),
         };
         if recovery_flag.is_some() || hygiene_flag.is_some() { concern = true; }
+        // ADDED 2026-11-21: a forward-only asset retirement that the daemon
+        // ADMITTED under warn mode is not a healthy sync — it is a recorded
+        // policy exception. Surface it as a concern so the operator sees which
+        // asset went, while the daemon keeps the repository converging.
+        let demotion = match crate::bucket_guard::pending_demotion(&repo) {
+            Ok(demotion) => demotion,
+            // An unreadable record is never idle proof: treat it as a
+            // condition needing inspection rather than silence.
+            Err(_) => Some(crate::bucket_guard::GuardDemotion {
+                code: "DEMOTION_RECORD_UNREADABLE".to_owned(),
+                operations: Vec::new(),
+                paths: Vec::new(),
+            }),
+        };
+        if demotion.is_some() { concern = true; }
         let mut warn = !concern && real_is_dirty;
 
         // Flags still use effective_status for ahead/behind/origin detection.
@@ -4889,6 +4904,13 @@ pub(crate) async fn run_repos_report(
 
         let mut hint = if recovery_flag.is_some() {
             repo_hint(&flags, warn, concern)
+        } else if let Some(demotion) = &demotion {
+            // The demotion owns the hint: it is the one thing about this row
+            // that needs an operator decision (keep the retirement, or revert).
+            format!(
+                "asset retirement admitted under warn mode: {} — inspect the commit that removed them; `git revert` restores the bytes (record: .git/dracon-bucket-guard-demotion.json)",
+                demotion.summary()
+            )
         } else if let Some(h) = unowned_hint {
             h
         } else if history_broken {
