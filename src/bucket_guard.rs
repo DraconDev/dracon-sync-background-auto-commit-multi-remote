@@ -52,6 +52,15 @@ pub(crate) const GUARD_MODE_ENV: &str = "DRACON_BUCKET_GUARD_MODE";
 /// misspelling — keeps the historical hard stop.
 pub(crate) const GUARD_MODE_WARN: &str = "warn";
 
+/// The pair every daemon-initiated push carries (ADDED 2026-11-22). A push
+/// runs the pre-push hook, which runs `bucket-strategy-guard.sh`. The
+/// daemon's in-process check already admits a forward-only asset retirement
+/// in warn mode, so a push without this pair is refused one hook later and
+/// the repository wedges (doomtap, 2026-11-22). Attach it to pushes of an
+/// existing remote's branch only. Never attach it to a ref deletion: the
+/// guard reports deletions as FORWARD_ONLY too, so warn mode would admit them.
+pub(crate) const DAEMON_PUSH_GUARD_ENV: (&str, &str) = (GUARD_MODE_ENV, GUARD_MODE_WARN);
+
 /// Prefix of the machine-readable demotion line the demoter emits on stderr.
 const DEMOTION_PREFIX: &str = "bucket-guard-warning: ";
 

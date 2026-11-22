@@ -280,7 +280,7 @@ use crate::git::multi_remote::push_mirror_remotes;
 use crate::git::{
     current_branch, detect_large_blobs_ahead, discover_git_repos, has_origin_remote,
     has_tracking_upstream, push_with_retries, remote_branch_exists, repo_diff_entries,
-    rewrite_ahead_paths, run_git_capture_output, run_git_with_timeout, set_upstream_to_branch,
+    rewrite_ahead_paths, run_git_capture_output, run_git_with_timeout_env, set_upstream_to_branch,
     top_level_dir,
 };
 use crate::policy::{
@@ -8348,11 +8348,12 @@ async fn handle_no_upstream(
         println!("   plan: set upstream via `git push -u origin HEAD`");
     }
     if apply {
-        match run_git_with_timeout(
+        match run_git_with_timeout_env(
             repo,
             &["push", "-u", "origin", "HEAD"],
             push_timeout_secs,
             "push -u",
+            &[crate::bucket_guard::DAEMON_PUSH_GUARD_ENV],
         )
         .await
         {

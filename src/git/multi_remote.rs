@@ -7,6 +7,7 @@ use tokio::time::sleep;
 
 use anyhow::{Context, Result};
 
+use crate::bucket_guard::DAEMON_PUSH_GUARD_ENV;
 use crate::helpers::is_repo_already_exists;
 use crate::policy::{debug_enabled, std_git_command, tokio_git_command, AuthType, RemoteConfig};
 
@@ -895,6 +896,7 @@ async fn push_to_named_remote_inner(
         &[
             ("GIT_SSH_COMMAND", &ssh_hardening),
             ("GIT_TERMINAL_PROMPT", "0"),
+            DAEMON_PUSH_GUARD_ENV,
         ],
     )
     .await;
@@ -983,6 +985,7 @@ async fn push_to_named_remote_inner(
             &[
                 ("GIT_SSH_COMMAND", &ssh_hardening),
                 ("GIT_TERMINAL_PROMPT", "0"),
+                DAEMON_PUSH_GUARD_ENV,
             ],
         )
         .await
@@ -1026,6 +1029,7 @@ async fn push_to_named_remote_inner(
                                 &[
                                     ("GIT_SSH_COMMAND", &ssh_hardening),
                                     ("GIT_TERMINAL_PROMPT", "0"),
+                                    DAEMON_PUSH_GUARD_ENV,
                                 ],
                             )
                             .await;

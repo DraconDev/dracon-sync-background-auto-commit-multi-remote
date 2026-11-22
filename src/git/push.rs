@@ -1,5 +1,6 @@
 //! Push operations — HTTPS fallback, transport fallbacks, retry logic.
 
+use crate::bucket_guard::DAEMON_PUSH_GUARD_ENV;
 use anyhow::{Context, Result};
 use std::path::Path;
 use std::time::Duration;
@@ -48,7 +49,7 @@ pub(crate) async fn push_https_fallback(
     timeout_secs: u64,
     op_label: &str,
 ) -> Result<()> {
-    let no_prompt = &[("GIT_TERMINAL_PROMPT", "0")];
+    let no_prompt = &[("GIT_TERMINAL_PROMPT", "0"), DAEMON_PUSH_GUARD_ENV];
     // FIX (audit M2, 2026-10-02): retain per-forge errors instead of
     // discarding them — the classifier mislabels policy rejections as
     // transport/auth when it only sees the generic summary.
@@ -77,7 +78,11 @@ pub(crate) async fn push_https_fallback(
                             &["push", &https, refspec],
                             timeout_secs,
                             &format!("{}-github-https", op_label),
-                            &[("GIT_ASKPASS", askpass_str), ("GIT_TERMINAL_PROMPT", "0")],
+                            &[
+                                ("GIT_ASKPASS", askpass_str),
+                                ("GIT_TERMINAL_PROMPT", "0"),
+                                DAEMON_PUSH_GUARD_ENV,
+                            ],
                         )
                         .await;
                         match result {
@@ -133,7 +138,11 @@ pub(crate) async fn push_https_fallback(
                             &["push", &https, refspec],
                             timeout_secs,
                             &format!("{}-gitlab-https", op_label),
-                            &[("GIT_ASKPASS", askpass_str), ("GIT_TERMINAL_PROMPT", "0")],
+                            &[
+                                ("GIT_ASKPASS", askpass_str),
+                                ("GIT_TERMINAL_PROMPT", "0"),
+                                DAEMON_PUSH_GUARD_ENV,
+                            ],
                         )
                         .await;
                         match result {
@@ -177,7 +186,11 @@ pub(crate) async fn push_https_fallback(
                             &["push", &https, refspec],
                             timeout_secs,
                             &format!("{}-codeberg-https", op_label),
-                            &[("GIT_ASKPASS", askpass_str), ("GIT_TERMINAL_PROMPT", "0")],
+                            &[
+                                ("GIT_ASKPASS", askpass_str),
+                                ("GIT_TERMINAL_PROMPT", "0"),
+                                DAEMON_PUSH_GUARD_ENV,
+                            ],
                         )
                         .await;
                         match result {
@@ -655,6 +668,7 @@ pub(crate) async fn push_with_retries_for_target(
             &[
                 ("GIT_SSH_COMMAND", ssh_hardening.as_str()),
                 ("GIT_TERMINAL_PROMPT", "0"),
+                DAEMON_PUSH_GUARD_ENV,
             ],
         )
         .await
@@ -1368,6 +1382,7 @@ pub(crate) async fn force_push_after_rewrite(
             ("DRACON_ALLOW_REWRITE", "1"),
             ("GIT_SSH_COMMAND", ssh_hardening.as_str()),
             ("GIT_TERMINAL_PROMPT", "0"),
+            DAEMON_PUSH_GUARD_ENV,
         ],
     )
     .await
@@ -1731,7 +1746,7 @@ mod tests {
             let hook = hooks.join("pre-push");
             std::fs::write(
                 &hook,
-                "#!/bin/sh\nprintf '%s' \"${DRACON_ALLOW_REWRITE:-0}\" > hook-ran\nexit 1\n",
+                "#!/bin/sh\nprintf '%s' \"${DRACON_ALLOW_REWRITE:-0}\" > hook-ran\nprintf '%s' \"${DRACON_BUCKET_GUARD_MODE:-unset}\" > guard-mode\nexit 1\n",
             )
             .unwrap();
             std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
@@ -1750,6 +1765,13 @@ mod tests {
             assert_eq!(
                 std::fs::read_to_string(repo.join("hook-ran")).unwrap(),
                 if route == "maintenance" { "1" } else { "0" }
+            );
+            // The daemon's pushes must hand the pre-push guard its warn mode,
+            // or the hook refuses a retirement the in-process check admitted.
+            assert_eq!(
+                std::fs::read_to_string(repo.join("guard-mode")).unwrap(),
+                "warn",
+                "{route} push hook did not receive DRACON_BUCKET_GUARD_MODE=warn"
             );
             assert!(git(&bare, &["for-each-ref", "--format=%(refname)"]).is_empty());
             // An accepting hook permits the same operation and is still called.
