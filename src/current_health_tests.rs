@@ -540,6 +540,23 @@ fn current_convergence_freeze_block_and_missing_history_are_explicit() {
     );
 }
 
+/// ADDED 2026-11-21: a demoted asset retirement must NOT read as a converged
+/// sync, or `apply_report_scheduler_snapshot` re-derives Converged from the
+/// now-clean tree and clears the operator's concern while the retirement is
+/// still awaiting a decision. The flag keeps it pending.
+#[test]
+fn demotion_flag_keeps_a_clean_row_from_classifying_converged() {
+    let mut row = RepoReportRow::for_tests("/fixture");
+    row.state_flags = vec![crate::report::DEMOTION_FLAG.to_string()];
+    assert_ne!(classify(&row), Current::Converged);
+    assert_ne!(status(&row).0, crate::current_health::LABEL_CLEAN);
+
+    // Without the flag the same clean row IS converged, so the test is
+    // pinning the flag's effect rather than the row's emptiness.
+    row.state_flags.clear();
+    assert_eq!(classify(&row), Current::Converged);
+}
+
 /// ADDED 2026-11-20: ~/.dracon and deathrun showed ❔ UNKNOWN while the
 /// daemon was committing/pushing every few seconds — the scheduler entry is
 /// blank between passes. Fresh activity (successful push or tip commit) inside

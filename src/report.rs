@@ -2853,6 +2853,16 @@ pub(crate) fn parse_relative_minutes(text: &str) -> Option<i64> {
 /// WAS pushing via SSH, the literal `origin` was just absent. The
 /// flag now only fires when the repo has *zero* remotes, so the hint
 /// is updated to match: "no remote configured (cannot push)".
+/// State flag for a forward-only refusal the daemon ADMITTED under warn mode.
+///
+/// ADDED 2026-11-21. A demoted retirement is a policy exception awaiting an
+/// operator decision, so it must survive the report's later reclassification
+/// (where a clean tree would otherwise read as Converged and clear the
+/// concern). `current_health::classify` also treats this flag as pending for
+/// the same reason. It is deliberately NOT a blocker: the repository is
+/// converging normally, the operator just needs to know one asset went.
+pub(crate) const DEMOTION_FLAG: &str = "BUCKET_GUARD_DEMOTION";
+
 pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
     if flags.iter().any(|f| f.starts_with("EXCLUDED_RECOVERY")) {
         return "excluded-file recovery unresolved — inspect Git-directory dracon-excluded-recovery-* records and dracon-excluded-archive/; retain canonical and recovery bytes".to_owned();
@@ -4765,6 +4775,7 @@ pub(crate) async fn run_repos_report(
             flags = apply_intentional_no_upstream(flags);
         }
         if let Some(flag) = recovery_flag { flags.push(flag.to_owned()); }
+        if demotion.is_some() { flags.push(DEMOTION_FLAG.to_owned()); }
         if let Some(flag) = hygiene_flag { flags.push(flag.to_owned()); }
 
         if report_checks_deferred {

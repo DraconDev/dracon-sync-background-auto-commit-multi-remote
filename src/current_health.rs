@@ -50,7 +50,14 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
         || row.behind > 0
         || row.health.push_failure_matches_tip
         || !row.health.mirror_unpublished.is_empty()
-        || row.state_flags.iter().any(|flag| flag == "HYGIENE_PENDING");
+        || row.state_flags.iter().any(|flag| flag == "HYGIENE_PENDING")
+        // A demoted asset retirement is a recorded policy exception, not a
+        // converged sync. Keeping it pending stops `apply_report_scheduler_snapshot`
+        // from re-deriving Converged and clearing the operator's concern.
+        || row
+            .state_flags
+            .iter()
+            .any(|flag| flag == crate::report::DEMOTION_FLAG);
     let blocked = row.pack_too_large
         || row.missing_objects > 0
         || row.push_status == "BROKEN"
