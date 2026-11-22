@@ -549,7 +549,7 @@ fn demotion_flag_keeps_a_clean_row_from_classifying_converged() {
     let mut row = RepoReportRow::for_tests("/fixture");
     row.state_flags = vec![crate::report::DEMOTION_FLAG.to_string()];
     assert_ne!(classify(&row), Current::Converged);
-    assert_ne!(status(&row).0, crate::current_health::LABEL_CLEAN);
+    assert_ne!(status(&row).0, super::LABEL_CLEAN);
 
     // Without the flag the same clean row IS converged, so the test is
     // pinning the flag's effect rather than the row's emptiness.
