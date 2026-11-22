@@ -16,6 +16,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A deliberate asset retirement no longer wedges a watched repository.** The
+  bucket forward-only guard is a hard stop on the daemon's commit path: one
+  staged protected-asset deletion blocks that commit AND every change queued
+  behind it, on every retry, so the repository has no path to convergence.
+  Observed live on `dracon-platform` (2026-11-21, pinned 20:27 -> 21:31 by one
+  superseded cover JPEG while 20+ unrelated files waited, reported as a
+  transient `⏳ RETRYING`). The guard wrapper now accepts an explicit
+  `DRACON_BUCKET_GUARD_MODE=warn` opt-in that demotes ONLY
+  `BUCKET_STRATEGY_GUARD_FORWARD_ONLY` to a recorded warning; every other
+  refusal still fails closed and the wrapper's default (no mode set, i.e. every
+  interactive `git commit`) is unchanged. The daemon sets that mode on both of
+  its guard invocations and on the sealed-commit hook chain it runs, and turns
+  the emitted warning into one journal line, a persisted
+  `<gitdir>/dracon-bucket-guard-demotion.json` record, and a CONCERN row whose
+  hint names the retired path and the `git revert` route — so an admitted
+  retirement is evidence, never a silent deletion, and a demoted pass is not
+  reported as healthy. See
+  `dracon-platform/docs/design/bucket-forward-only-demotion-2026-11-21.md`.
 - Reject future outage evidence when pruning forge incidents. Serialize the
   daemon's concurrent forge-health updates and publish JSON atomically, so
   stale timestamps cannot extend outages and readers cannot see partial files.

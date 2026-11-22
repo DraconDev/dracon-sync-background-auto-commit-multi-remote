@@ -2948,6 +2948,18 @@ pub(crate) fn push_stuck_hint(repo: &Path, failures: u32, redacted_error: &str) 
     format!("🛑 push-stuck ({failures} failures): {summary} — fix the recorded cause first; then dracon-sync repair stuck-unstuck '{target}'")
 }
 
+/// Hint for a row whose forward-only refusal was demoted under warn mode.
+///
+/// Split out so the wording is unit-testable: this line is the ONLY place an
+/// admitted asset retirement can surface after the guard has gone quiet, so it
+/// must name what went AND what the operator can do about it.
+fn demotion_hint(demotion: &crate::bucket_guard::GuardDemotion) -> String {
+    format!(
+        "asset retirement admitted under warn mode: {} — inspect the commit that removed it; `git revert` restores the bytes (record: .git/dracon-bucket-guard-demotion.json)",
+        demotion.summary()
+    )
+}
+
 fn current_blocker_hint(current: current_health::Current, hint: &str) -> String {
     if current == current_health::Current::Unknown
         && (hint.starts_with("healthy")
@@ -4905,12 +4917,7 @@ pub(crate) async fn run_repos_report(
         let mut hint = if recovery_flag.is_some() {
             repo_hint(&flags, warn, concern)
         } else if let Some(demotion) = &demotion {
-            // The demotion owns the hint: it is the one thing about this row
-            // that needs an operator decision (keep the retirement, or revert).
-            format!(
-                "asset retirement admitted under warn mode: {} — inspect the commit that removed them; `git revert` restores the bytes (record: .git/dracon-bucket-guard-demotion.json)",
-                demotion.summary()
-            )
+            demotion_hint(demotion)
         } else if let Some(h) = unowned_hint {
             h
         } else if history_broken {
@@ -11319,6 +11326,29 @@ mod tests {
             assert!(!hint.contains("sync-now"));
             assert!(hint.chars().count() < 300);
         }
+    }
+
+    /// ADDED 2026-11-21: the demotion hint is the ONLY operator-visible trace of
+    /// an asset retirement the daemon admitted, because the guard stops
+    /// refusing as soon as the commit lands. It must therefore name the path,
+    /// the code, and the revert route — a hint that merely says "warning" would
+    /// leave the operator unable to tell what disappeared or how to undo it.
+    #[test]
+    fn test_demotion_hint_names_path_code_and_revert() {
+        let demotion = crate::bucket_guard::GuardDemotion {
+            code: "BUCKET_STRATEGY_GUARD_FORWARD_ONLY".to_owned(),
+            operations: vec!["staged".to_owned()],
+            paths: vec!["web/games/static/games/covers/typing-games-og.jpg".to_owned()],
+        };
+        let hint = demotion_hint(&demotion);
+        assert!(hint.contains("web/games/static/games/covers/typing-games-og.jpg"), "{hint}");
+        assert!(hint.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"), "{hint}");
+        assert!(hint.contains("git revert"), "{hint}");
+        assert!(hint.contains("dracon-bucket-guard-demotion.json"), "{hint}");
+        // It must not read as healthy or as a transient retry: this is a
+        // recorded policy exception awaiting a decision.
+        assert!(!hint.contains("healthy"), "{hint}");
+        assert!(!hint.contains("handles after changes settle"), "{hint}");
     }
 
     #[test]
