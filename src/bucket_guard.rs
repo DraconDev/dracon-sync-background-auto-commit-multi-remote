@@ -144,11 +144,29 @@ fn demotion_record_path(repo: &Path) -> Option<PathBuf> {
         .map(|gitdir| gitdir.join(DEMOTION_RECORD))
 }
 
-/// Persist the latest demotion so the report can name it.
+/// Persist the latest demotion, log it, and record one sync alert.
+///
+/// THREE surfaces, on purpose: the journal line is what an operator watching a
+/// run sees, the alert ledger is what a later `dracon-sync health` review
+/// finds, and the gitdir record is what `dracon-sync repos` renders as a hint.
+/// A demotion that reached only the journal would be invisible to both the
+/// health review and the table.
 ///
 /// Failure is diagnostic only: the commit already happened, so a record that
 /// cannot be written must not turn an admitted retirement into a failed sync.
 pub(crate) fn record_demotion(repo: &Path, demotion: &GuardDemotion) {
+    let summary = demotion.summary();
+    eprintln!(
+        "⚠️ {} forward-only asset retirement admitted (warn mode): {summary}",
+        repo.display()
+    );
+    crate::report::record_sync_alert(
+        repo,
+        "Asset Retirement Admitted",
+        &format!(
+            "{summary}; bytes remain in history and `git revert` restores them"
+        ),
+    );
     let Some(path) = demotion_record_path(repo) else {
         return;
     };
@@ -750,6 +768,32 @@ exit 0
         // No record at all: nothing to report, and not an error.
         std::fs::remove_file(&path).unwrap();
         assert!(pending_demotion(&repo).expect("absent is not an error").is_none());
+    }
+
+    /// The alert ledger is one of the THREE surfaces a demotion must reach — a
+    /// retirement that only hit the journal would be invisible to the health
+    /// review that reads the ledger.
+    #[test]
+    fn demotion_writes_the_alert_ledger() {
+        let tmp = tempfile::tempdir().unwrap();
+        let _state = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            tmp.path().to_string_lossy().as_ref(),
+        );
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
+        let demotion = GuardDemotion {
+            code: "BUCKET_STRATEGY_GUARD_FORWARD_ONLY".to_owned(),
+            operations: vec!["staged".to_owned()],
+            paths: vec!["web/games/static/games/covers/gone.jpg".to_owned()],
+        };
+        record_demotion(&repo, &demotion);
+        let ledger = tmp.path().join("dracon-sync-alerts.jsonl");
+        let content = std::fs::read_to_string(&ledger).expect("alert ledger");
+        assert!(content.contains("Asset Retirement Admitted"), "{content}");
+        // The alert must name the path and the recovery route, not just the code.
+        assert!(content.contains("web/games/static/games/covers/gone.jpg"), "{content}");
+        assert!(content.contains("git revert"), "{content}");
     }
 
     /// A record that exists but cannot be understood is an INSPECTION failure,
