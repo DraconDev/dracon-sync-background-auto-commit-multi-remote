@@ -77,7 +77,7 @@ impl GuardDemotion {
             self.paths.join(", ")
         };
         format!(
-            "{} demoted to a warning ({}) — {what} retired under policy; bytes remain in history",
+            "{} demoted to a warning ({}) — {what} retired under policy",
             self.code,
             if self.operations.is_empty() {
                 "unspecified".to_owned()
