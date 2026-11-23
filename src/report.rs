@@ -7341,10 +7341,14 @@ fn rich_hint_link_out(rows: &[RepoReportRow], width: usize) -> Option<String> {
     if details.is_empty() {
         return None;
     }
-    Some(format!(
-        "💡 {} repo{} requiring attention — `dracon-sync repos <n|name>` for full detail\n{}",
+    let header = format!(
+        "💡 {} repo{} to review · dracon-sync repos <n|name>",
         details.len(),
         if details.len() == 1 { "" } else { "s" },
+    );
+    Some(format!(
+        "{}\n{}",
+        truncate_unicode_width(&header, width),
         details.join("\n")
     ))
 }
@@ -13360,11 +13364,11 @@ mod tests {
         let mut blocked = make_activity_row("5 minutes ago", 1, 0, "BROKEN");
         blocked.repo = "/tmp/blocked-repo".into();
         blocked.hint = "guard refused protected deletion".into();
-        let footer = rich_hint_link_out(&[blocked], 165).unwrap();
-        assert!(footer.contains("blocked-repo: guard refused protected deletion"));
         for width in [80, 165, 240] {
-            let wrapped = wrap_legend_text(&footer, width);
-            assert!(wrapped
+            let footer = rich_hint_link_out(std::slice::from_ref(&blocked), width).unwrap();
+            assert!(footer.contains("blocked-repo: guard refused protected deletion"));
+            assert_eq!(footer.lines().count(), 2);
+            assert!(footer
                 .lines()
                 .all(|line| unicode_width::UnicodeWidthStr::width(line) <= width));
         }
@@ -15381,6 +15385,31 @@ mod tests {
         hinted2.hint = "second hint".to_string();
         let line2 = rich_hint_link_out(&[hinted, hinted2], 165).expect("link-out");
         assert!(line2.contains("2 repos"), "pluralizes: {line2}");
+    }
+
+    #[test]
+    fn rich_footer_keeps_asset_and_scheduler_details_in_drill_down() {
+        let mut retirement = RepoReportRow::for_tests("/tmp/doomtap");
+        retirement.state_flags.push(DEMOTION_FLAG.into());
+        retirement.hint = demotion_hint(&crate::bucket_guard::GuardDemotion {
+            code: "BUCKET_STRATEGY_GUARD_FORWARD_ONLY".into(),
+            operations: vec!["commit".into(); 21],
+            paths: (0..21).map(|i| format!("static/assets/{i}.png")).collect(),
+        });
+        let mut unknown = RepoReportRow::for_tests("/tmp/.dracon");
+        unknown.staged = 1;
+        unknown.hint = current_blocker_hint(
+            current_health::Current::Unknown,
+            "daemon handles after changes settle; run sync-now --warns to force now; pack guard clear",
+        );
+        assert!(unknown.hint.contains("pack guard clear"));
+        assert!(!unknown.hint.contains("sync-now"));
+        let footer = rich_hint_link_out(&[retirement, unknown], 80).unwrap();
+        assert_eq!(footer.lines().count(), 3);
+        assert!(footer.contains("doomtap: asset retirement recorded"));
+        assert!(footer.contains(".dracon: scheduler status unavailable"));
+        assert!(!footer.contains("static/assets"));
+        assert!(!footer.contains("pack guard"));
     }
 
     #[test]
