@@ -306,6 +306,37 @@ pub(crate) struct RangeVerdict {
     pub demoted: Option<GuardDemotion>,
 }
 
+fn guard_verdict(output: &std::process::Output) -> serde_json::Result<serde_json::Value> {
+    serde_json::from_slice(&output.stdout).or_else(|error| {
+        // The strategy CLI writes typed exceptions to stderr and ordinary
+        // verdicts to stdout. Only a refusal can be recovered from stderr.
+        if !output.status.success() {
+            if let Ok(value) = serde_json::from_slice::<serde_json::Value>(&output.stderr) {
+                if value.get("ok").and_then(serde_json::Value::as_bool) == Some(false) {
+                    return Ok(value);
+                }
+            }
+        }
+        Err(error)
+    })
+}
+
+fn verdict_errors(value: &serde_json::Value) -> Vec<String> {
+    let mut errors: Vec<String> = value
+        .get("errors")
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|error| error.as_str().map(str::to_owned))
+        .collect();
+    if errors.is_empty() {
+        if let Some(message) = value.get("message").and_then(serde_json::Value::as_str) {
+            errors.push(message.to_owned());
+        }
+    }
+    errors
+}
+
 pub(crate) async fn check_push_range(
     repo: &Path,
     timeout_secs: u64,
@@ -344,9 +375,8 @@ pub(crate) async fn check_push_range(
         true,
     )
     .await?;
-    let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
-    let value: serde_json::Value = serde_json::from_str(&stdout).with_context(|| {
+    let value = guard_verdict(&output).with_context(|| {
         format!(
             "bucket guard range check produced unparseable output (exit {})",
             output.status
@@ -358,19 +388,10 @@ pub(crate) async fn check_push_range(
         .and_then(|c| c.as_str())
         .unwrap_or("BUCKET_STRATEGY_GUARD_UNKNOWN")
         .to_owned();
-    let errors: Vec<String> = value
-        .get("errors")
-        .and_then(|e| e.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(str::to_owned))
-                .collect()
-        })
-        .unwrap_or_default();
     Ok(Some(RangeVerdict {
         ok,
         code,
-        errors,
+        errors: verdict_errors(&value),
         demoted: demotion_from_stderr(&stderr),
     }))
 }
@@ -461,28 +482,19 @@ pub(crate) async fn check_staged_forward_only(
     .await?;
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
-    let parsed: Option<serde_json::Value> = serde_json::from_str(&stdout).ok();
-    match parsed {
-        Some(value) if value.get("ok") == Some(&serde_json::Value::Bool(true)) => {
+    match guard_verdict(&output) {
+        Ok(value) if value.get("ok") == Some(&serde_json::Value::Bool(true)) => {
             // A demotion is an admitted refusal, never a clean pass: return it
             // so the caller records it. A genuinely clean verdict has no
             // demotion line and yields `None`.
             Ok(demotion_from_stderr(&stderr))
         }
-        Some(value) => {
+        Ok(value) => {
             let code = value
                 .get("code")
                 .and_then(|c| c.as_str())
                 .unwrap_or("BUCKET_STRATEGY_GUARD_UNKNOWN");
-            let mut errors: Vec<String> = value
-                .get("errors")
-                .and_then(|e| e.as_array())
-                .map(|arr| {
-                    arr.iter()
-                        .filter_map(|v| v.as_str().map(str::to_owned))
-                        .collect()
-                })
-                .unwrap_or_default();
+            let mut errors = verdict_errors(&value);
             if errors.is_empty() {
                 errors.push(stdout.trim().chars().take(400).collect());
             }
@@ -493,7 +505,7 @@ pub(crate) async fn check_staged_forward_only(
                 errors.join("; ")
             );
         }
-        None => {
+        Err(_) => {
             let stderr_tail: String = String::from_utf8_lossy(&output.stderr)
                 .trim()
                 .chars()
@@ -558,6 +570,24 @@ mod tests {
         let msg = format!("{err:?}");
         assert!(msg.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"), "{msg}");
         assert!(msg.contains("static/art/a.png"), "{msg}");
+    }
+
+    #[tokio::test]
+    async fn guard_stderr_refusal_reports_the_strategy_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = stub_guard(
+            tmp.path(),
+            "repo",
+            "#!/bin/sh\nprintf '%s\\n' '{\"ok\":false,\"code\":\"BUCKET_STRATEGY_GUARD_UNMEASURABLE\",\"message\":\"no inventory record applies\",\"details\":[]}' >&2\nexit 1\n",
+        );
+        std::fs::create_dir_all(&repo).unwrap();
+        let error = check_staged_forward_only(&repo, 10, None)
+            .await
+            .unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "bucket guard refused staged tree (BUCKET_STRATEGY_GUARD_UNMEASURABLE): no inventory record applies"
+        );
     }
 
     #[tokio::test]
