@@ -550,9 +550,9 @@ fn demotion_stays_visible_after_sync_converges() {
     assert_eq!(classify(&row), Current::Converged);
     assert_eq!(status(&row).0, LABEL_REVIEW);
     assert!(row.concern);
-    assert!(super::super::rich_hint_link_out(&[row])
+    assert!(super::super::rich_hint_link_out(&[row], 165)
         .unwrap()
-        .contains("asset retirement admitted under warn mode"));
+        .contains("asset retirement recorded"));
 }
 
 /// ADDED 2026-11-20: ~/.dracon and deathrun showed ❔ UNKNOWN while the

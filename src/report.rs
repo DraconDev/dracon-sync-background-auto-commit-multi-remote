@@ -2982,6 +2982,7 @@ fn current_blocker_hint(current: current_health::Current, hint: &str) -> String 
         let diagnostics: String = hint
             .split(';')
             .skip(1)
+            .filter(|part| !part.contains("sync-now"))
             .map(|part| format!(";{part}"))
             .collect();
         return format!("current scheduler evidence unavailable — inspect repo details and daemon journal; convergence is not established{diagnostics}");
@@ -7294,7 +7295,7 @@ fn format_compact_count(n: usize) -> String {
 /// the default wide view still surfaces that the detail exists. `None`
 /// keeps hint-free fleets noise-free. Hint-emptiness mirrors the
 /// summary tier: empty or `"-"` means none.
-fn rich_hint_link_out(rows: &[RepoReportRow]) -> Option<String> {
+fn rich_hint_link_out(rows: &[RepoReportRow], width: usize) -> Option<String> {
     use current_health::Current;
     let mut indexed: Vec<_> = rows.iter().enumerate().collect();
     indexed.sort_by_key(|(index, row)| (severity_tier(row), *index));
@@ -7322,12 +7323,19 @@ fn rich_hint_link_out(rows: &[RepoReportRow]) -> Option<String> {
                 .unwrap_or_default()
                 .to_string_lossy();
             // Treat footer content as terminal text, never as escape sequences.
-            let detail = crate::ownership::redact_url_credentials(&row.hint);
+            let summary = if row.hint.starts_with("asset retirement admitted under warn mode") {
+                "asset retirement recorded"
+            } else if row.hint.starts_with("current scheduler evidence unavailable") {
+                "scheduler status unavailable"
+            } else {
+                row.hint.split(';').next().unwrap_or_default().trim()
+            };
+            let detail = crate::ownership::redact_url_credentials(summary);
             let safe: String = format!("{name}: {detail}")
                 .chars()
                 .map(|c| if c.is_control() { ' ' } else { c })
                 .collect();
-            safe
+            truncate_unicode_width(&safe, width.min(100))
         })
         .collect();
     if details.is_empty() {
@@ -7342,10 +7350,8 @@ fn rich_hint_link_out(rows: &[RepoReportRow]) -> Option<String> {
 }
 
 fn print_repos_attention(rows: &[RepoReportRow], width: u16) {
-    if let Some(details) = rich_hint_link_out(rows) {
-        for line in details.lines() {
-            println!("{}", wrap_legend_text(line, usize::from(width)));
-        }
+    if let Some(details) = rich_hint_link_out(rows, usize::from(width)) {
+        println!("{details}");
     }
 }
 
@@ -13350,11 +13356,11 @@ mod tests {
     fn rich_footer_surfaces_reasons_without_healthy_noise() {
         let mut healthy = make_activity_row("5 minutes ago", 0, 0, "FAIL");
         healthy.hint = "healthy; historical failure".into();
-        assert!(rich_hint_link_out(&[healthy]).is_none());
+        assert!(rich_hint_link_out(&[healthy], 165).is_none());
         let mut blocked = make_activity_row("5 minutes ago", 1, 0, "BROKEN");
         blocked.repo = "/tmp/blocked-repo".into();
         blocked.hint = "guard refused protected deletion".into();
-        let footer = rich_hint_link_out(&[blocked]).unwrap();
+        let footer = rich_hint_link_out(&[blocked], 165).unwrap();
         assert!(footer.contains("blocked-repo: guard refused protected deletion"));
         for width in [80, 165, 240] {
             let wrapped = wrap_legend_text(&footer, width);
@@ -13379,7 +13385,7 @@ mod tests {
         working.hint = "pending mirror publication (gitlab missing 2374)".into();
         let table = build_repos_rich_table(std::slice::from_ref(&working), false, 200).to_string();
         assert!(table.contains("MIRROR LAG") && table.contains("2374"));
-        assert!(rich_hint_link_out(&[working]).unwrap().contains("gitlab missing 2374"));
+        assert!(rich_hint_link_out(&[working], 165).unwrap().contains("gitlab missing 2374"));
     }
 
     #[test]
@@ -15357,14 +15363,14 @@ mod tests {
         // ADDED 2026-10-03 (audit L15): rich has no HINT column — the
         // link-out line appears iff some row carries a hint.
         let clean = RepoReportRow::for_tests("/tmp/clean");
-        assert_eq!(rich_hint_link_out(&[clean]), None);
+        assert_eq!(rich_hint_link_out(&[clean], 165), None);
         let mut dash = RepoReportRow::for_tests("/tmp/dash");
         dash.hint = "-".to_string();
-        assert_eq!(rich_hint_link_out(&[dash]), None, "'-' means no hint");
+        assert_eq!(rich_hint_link_out(&[dash], 165), None, "'-' means no hint");
         let mut hinted = RepoReportRow::for_tests("/tmp/hinted");
         hinted.modified = 1;
         hinted.hint = "run dracon-sync repair concerns --apply".to_string();
-        let line = rich_hint_link_out(std::slice::from_ref(&hinted)).expect("link-out");
+        let line = rich_hint_link_out(std::slice::from_ref(&hinted), 165).expect("link-out");
         assert!(line.contains("1 repo"), "counts hinted rows: {line}");
         assert!(
             line.contains("repos <n|name>"),
@@ -15373,7 +15379,7 @@ mod tests {
         let mut hinted2 = RepoReportRow::for_tests("/tmp/hinted2");
         hinted2.modified = 1;
         hinted2.hint = "second hint".to_string();
-        let line2 = rich_hint_link_out(&[hinted, hinted2]).expect("link-out");
+        let line2 = rich_hint_link_out(&[hinted, hinted2], 165).expect("link-out");
         assert!(line2.contains("2 repos"), "pluralizes: {line2}");
     }
 
