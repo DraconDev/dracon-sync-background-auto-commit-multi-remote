@@ -50,14 +50,7 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
         || row.behind > 0
         || row.health.push_failure_matches_tip
         || !row.health.mirror_unpublished.is_empty()
-        || row.state_flags.iter().any(|flag| flag == "HYGIENE_PENDING")
-        // A demoted asset retirement is a recorded policy exception, not a
-        // converged sync. Keeping it pending stops `apply_report_scheduler_snapshot`
-        // from re-deriving Converged and clearing the operator's concern.
-        || row
-            .state_flags
-            .iter()
-            .any(|flag| flag == crate::report::DEMOTION_FLAG);
+        || row.state_flags.iter().any(|flag| flag == "HYGIENE_PENDING");
     let blocked = row.pack_too_large
         || row.missing_objects > 0
         || row.push_status == "BROKEN"
@@ -163,6 +156,7 @@ fn between_passes(row: &RepoReportRow) -> bool {
 // exactly 13 display columns, so the rich table wrapped the word
 // PUBLISHING onto a second line and the row looked like two rows.
 pub(super) const LABEL_CLEAN: &str = "✅ CLEAN";
+pub(super) const LABEL_REVIEW: &str = "⚠️ REVIEW";
 pub(super) const LABEL_EXCLUDED: &str = "🚫 EXCLUDED";
 pub(super) const LABEL_QUEUED: &str = "🟡 QUEUED";
 pub(super) const LABEL_WORKING: &str = "🔄 WORKING";
@@ -174,8 +168,9 @@ pub(super) const LABEL_PAUSED: &str = "⏸️ PAUSED";
 pub(super) const LABEL_UNKNOWN: &str = "❔ UNKNOWN";
 
 /// Every label `status()` can return. Single source for layout sizing.
-pub(crate) const ALL_STATUS_LABELS: [&str; 10] = [
+pub(crate) const ALL_STATUS_LABELS: [&str; 11] = [
     LABEL_CLEAN,
+    LABEL_REVIEW,
     LABEL_EXCLUDED,
     LABEL_QUEUED,
     LABEL_WORKING,
@@ -189,6 +184,7 @@ pub(crate) const ALL_STATUS_LABELS: [&str; 10] = [
 
 pub(super) fn status(row: &RepoReportRow) -> (&'static str, Color) {
     match classify(row) {
+        Current::Converged if super::has_bucket_guard_demotion(row) => (LABEL_REVIEW, Color::Yellow),
         Current::Converged => (LABEL_CLEAN, Color::Green),
         Current::Excluded => (LABEL_EXCLUDED, Color::DarkGrey),
         Current::Queued => (LABEL_QUEUED, Color::Cyan),
@@ -205,10 +201,9 @@ pub(super) fn status(row: &RepoReportRow) -> (&'static str, Color) {
 /// Rich tables have dedicated ahead and excluded columns. Keep the entire
 /// state visible rather than clipping a duplicate count suffix.
 pub(super) fn rich_activity(row: &RepoReportRow) -> &'static str {
-    if classify(row) == Current::Converged {
-        "⚪ idle"
-    } else {
-        status(row).0
+    match status(row).0 {
+        LABEL_CLEAN => "⚪ idle",
+        label => label,
     }
 }
 

@@ -2855,13 +2855,12 @@ pub(crate) fn parse_relative_minutes(text: &str) -> Option<i64> {
 /// is updated to match: "no remote configured (cannot push)".
 /// State flag for a forward-only refusal the daemon ADMITTED under warn mode.
 ///
-/// ADDED 2026-11-21. A demoted retirement is a policy exception awaiting an
-/// operator decision, so it must survive the report's later reclassification
-/// (where a clean tree would otherwise read as Converged and clear the
-/// concern). `current_health::classify` also treats this flag as pending for
-/// the same reason. It is deliberately NOT a blocker: the repository is
-/// converging normally, the operator just needs to know one asset went.
+/// A recorded retirement remains a concern after the repository has synced.
 pub(crate) const DEMOTION_FLAG: &str = "BUCKET_GUARD_DEMOTION";
+
+fn has_bucket_guard_demotion(row: &RepoReportRow) -> bool {
+    row.state_flags.iter().any(|flag| flag == DEMOTION_FLAG)
+}
 
 pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
     if flags.iter().any(|f| f.starts_with("EXCLUDED_RECOVERY")) {
@@ -3663,7 +3662,7 @@ fn pack_evidence_hint(
 
 fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
     &[
-        ("STATUS", "Current convergence: ✅ clean/idle · 🟡 queued · 🔄 working · ⏳ retrying · 🚫 excluded/blocked · 🔴 stalled · ❔ unknown"),
+        ("STATUS", "Current convergence: ✅ clean/idle · ⚠️ synced with guard notice · 🟡 queued · 🔄 working · ⏳ retrying · 🚫 excluded/blocked · 🔴 stalled · ❔ unknown"),
         (
             "MIRROR LAG",
             "Most commits missing from any configured mirror, using local tracking refs.",
@@ -4317,7 +4316,7 @@ fn apply_report_scheduler_snapshot(
                 | current_health::Current::Retrying
                 | current_health::Current::Paused
         ) {
-            row.concern = false;
+            row.concern = has_bucket_guard_demotion(row);
         }
         row.active = matches!(
             row.health.current,
@@ -7311,7 +7310,8 @@ fn rich_hint_link_out(rows: &[RepoReportRow]) -> Option<String> {
                     | Current::Unknown
                     | Current::Queued
                     | Current::Excluded
-            ) || row.health.push_failure_matches_tip
+            ) || has_bucket_guard_demotion(row)
+                || row.health.push_failure_matches_tip
                 || (!row.health.mirror_unpublished.is_empty()
                     && row.health.last_push.as_ref().is_some_and(|push| !push.succeeded))
         })
