@@ -83,7 +83,10 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
         .health
         .scheduler
         .as_ref()
-        .is_some_and(|e| e.publication_phase == Some(Phase::Queued) && phase == Some(Phase::Queued))
+        .is_some_and(|e| {
+            phase == Some(Phase::Queued)
+                && (e.publication_phase == Some(Phase::Queued) || e.pressure_wait_secs.is_some())
+        })
     {
         return Current::Queued;
     }

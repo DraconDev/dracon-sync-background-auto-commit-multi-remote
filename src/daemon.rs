@@ -266,6 +266,7 @@ fn identify_probe_join<T>(
 /// would only make the daemon wait longer for tasks that never get
 /// CPU, and would delay the sweep that frees genuinely wedged slots.
 const MAX_INFLIGHT_STATUS_TASKS: usize = 4;
+const PRESSURE_PROBE_HOLD: &str = "memory-pressure (inspection queued)";
 
 /// How often an unchanged freeze is re-announced in the journal.
 const PAUSED_LOG_INTERVAL: Duration = Duration::from_secs(300);
@@ -9373,10 +9374,11 @@ pub(crate) async fn run_daemon(
             );
             let Some((status_outcome, spawned)) = status_results.remove(&repo) else {
                 if memory_admission::held() && !status_pending.contains(&repo) {
-                    dispatch_holds.insert(
-                        repo.clone(),
-                        ("memory-pressure (inspection queued)".into(), now),
-                    );
+                    let hold = dispatch_holds.entry(repo.clone())
+                        .or_insert_with(|| (PRESSURE_PROBE_HOLD.into(), now));
+                    if hold.0 != PRESSURE_PROBE_HOLD {
+                        *hold = (PRESSURE_PROBE_HOLD.into(), now);
+                    }
                     continue;
                 }
                 dispatch_holds
@@ -10745,7 +10747,7 @@ pub(crate) async fn run_daemon(
             &max_fail_cooldowns,
             &stage_cooldowns,
         ];
-        scheduler_evidence::save(&scheduler_evidence::build(
+        let mut evidence = scheduler_evidence::build(
             scheduler_evidence::Inputs {
                 activity: &activity,
                 eligible: &evidence_eligible,
@@ -10757,7 +10759,19 @@ pub(crate) async fn run_daemon(
             },
             persist_now,
             scheduler_evidence::epoch(),
-        ));
+        );
+        if memory_admission::held() {
+            for (repo, (reason, started)) in &dispatch_holds {
+                if reason == PRESSURE_PROBE_HOLD {
+                    let row = evidence.repos.entry(repo.clone()).or_default();
+                    if row.phase.is_none() {
+                        row.phase = Some(scheduler_evidence::Phase::Queued);
+                        row.pressure_wait_secs = Some(persist_now.saturating_duration_since(*started).as_secs());
+                    }
+                }
+            }
+        }
+        scheduler_evidence::save(&evidence);
 
         // === Sustained-state notifications ===
         // Check for repos that have been in a concerning state for too long.
@@ -10880,7 +10894,8 @@ pub(crate) async fn run_daemon(
                 let dispatch_age = last_dispatch
                     .get(repo)
                     .map(|t| notification_now.saturating_duration_since(*t));
-                if !dispatch_starved_past_boot_grace(scheduler_epoch.elapsed())
+                if dispatch_holds.get(repo).is_some_and(|(reason, _)| reason == PRESSURE_PROBE_HOLD)
+                    || !dispatch_starved_past_boot_grace(scheduler_epoch.elapsed())
                     || !dispatch_starved(dirty_age, dispatch_age)
                 {
                     reset_notify_streak(&mut remote_notify_streaks, &starved_key);

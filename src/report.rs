@@ -4196,12 +4196,13 @@ fn apply_report_scheduler_snapshot(
         row.health.current = current_health::classify(row);
         row.hint = current_blocker_hint(row.health.current, &row.hint);
         if row.health.current == current_health::Current::Queued {
-            if let Some(age) = row.health.scheduler.as_ref().and_then(|e| {
-                (e.publication_phase == Some(crate::daemon::scheduler_evidence::Phase::Queued))
-                    .then_some(e.publication_secs)
-                    .flatten()
-            }) {
-                row.hint = format!("waiting for publication admission ({age}s); {}", row.hint);
+            if let Some(evidence) = &row.health.scheduler {
+                if let Some(age) = evidence.pressure_wait_secs {
+                    row.hint = format!("inspection waiting for memory pressure to clear ({age}s); {}", row.hint);
+                } else if evidence.publication_phase == Some(crate::daemon::scheduler_evidence::Phase::Queued) {
+                    let age = evidence.publication_secs.unwrap_or_default();
+                    row.hint = format!("waiting for publication admission ({age}s); {}", row.hint);
+                }
             }
         }
         row.state_cause = match row.health.current {

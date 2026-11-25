@@ -230,6 +230,9 @@ pub(crate) struct RepoEvidence {
     /// Continuous age of the current publication phase.
     #[serde(default)]
     pub publication_secs: Option<u64>,
+    /// A new probe is held by the daemon's memory-pressure brake.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pressure_wait_secs: Option<u64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

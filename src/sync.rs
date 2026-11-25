@@ -4720,7 +4720,7 @@ async fn stage_commit_and_push(
     if policy.auto_push && (has_origin || !policy.remotes.is_empty()) {
         // Owned publication: the round is pinned, the checkout is released,
         // and fresh edits keep committing while hooks/network run.
-        let ahead = publication_ahead.unwrap_or(51);
+        let ahead = publication_ahead.unwrap_or(u64::MAX);
         match run_publication_actor(&mut *ctx, has_origin, ahead).await {
             Ok(PushReport::Attempted {
                 ok: true,
@@ -6456,7 +6456,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     if ctx.policy.auto_push && should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
         // Owned publication (see `run_publication_actor`): one pinned round
         // whose upload overlaps fresh local commits in this repository.
-        let ahead = count_ahead_commits(ctx.repo).await.unwrap_or(51).max(ahead);
+        let ahead = count_ahead_commits(ctx.repo).await.unwrap_or(u64::MAX).max(ahead);
         let has_origin = ctx.has_origin;
         match run_publication_actor(&mut *ctx, has_origin, ahead).await {
             Ok(PushReport::Attempted {
