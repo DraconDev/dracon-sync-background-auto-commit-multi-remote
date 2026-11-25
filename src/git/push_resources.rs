@@ -2,8 +2,8 @@
 //!
 //! Local work has its existing semaphore. A push phase temporarily gives its
 //! permit back, so waiting on hook/network work cannot exhaust commit capacity.
-//! Push commands retain owned cancellation and low child priority, but have no
-//! process-global admission gate. Repository ownership is enforced separately.
+//! Heavy publications also pass through one process-global admission slot.
+//! Repository ownership remains enforced separately per checkout.
 #[cfg(test)]
 #[path = "push_resources_round_tests.rs"]
 mod round_tests;
