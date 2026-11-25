@@ -1393,8 +1393,10 @@ async fn inspect_report_status(
             }
             let full_path = repo.join(path);
             let untracked = x == b'?';
-            if crate::exclude::matches_untracked_exclude(repo, &full_path, auto_commit_excludes)
+            if (!auto_commit_excludes.is_empty()
+                && crate::exclude::matches_untracked_exclude(repo, &full_path, auto_commit_excludes))
                 || (untracked
+                    && !untracked_excludes.is_empty()
                     && crate::exclude::matches_untracked_exclude(repo, &full_path, untracked_excludes))
             {
                 out.excluded += 1;

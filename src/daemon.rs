@@ -345,9 +345,8 @@ fn classification_cooldown_elapsed(until: Option<&Instant>, now: Instant) -> boo
 /// only collects ready results, so a wedged `git status` pins its repo
 /// in `status-pending` with zero info-level trace — observed live:
 /// freeport dirty 34 min, one Starved page, zero failure lines.
-/// Past 2x the result max-age the task is wedged by definition (a
-/// result that old would be stale-dropped on arrival anyway): abort
-/// it, free the slot, re-probe next cycle. Pure helper for test.
+/// Use the same deadline as the owned Git probe. Cancellation keeps the
+/// slot reserved until the join confirms the old task has stopped.
 const STATUS_TASK_TIMEOUT_SECS: u64 = crate::git::STATUS_INSPECTION_BUDGET.as_secs();
 
 fn status_inspection_wedged(spawned_at: Instant, now: Instant) -> bool {
@@ -4255,8 +4254,6 @@ mod tests {
     fn test_status_inspection_wedged_bound() {
         let now = Instant::now();
         let ago = |secs: u64| now - Duration::from_secs(secs);
-        // Results older than 30s are stale-dropped on arrival; the
-        // 60s abort bound is 2x headroom.
         assert!(!status_inspection_wedged(ago(10), now));
         assert!(!status_inspection_wedged(ago(STATUS_TASK_TIMEOUT_SECS - 1), now));
         assert!(status_inspection_wedged(ago(STATUS_TASK_TIMEOUT_SECS), now));
@@ -4315,7 +4312,7 @@ mod tests {
         });
         aborts.insert(repo.clone(), handle.abort_handle().into());
         pending.insert(repo.clone());
-        spawned_at.insert(repo.clone(), now - Duration::from_secs(61));
+        spawned_at.insert(repo.clone(), now - Duration::from_secs(STATUS_TASK_TIMEOUT_SECS + 1));
         assert!(abort_wedged_status_inspection(
             &mut pending,
             &mut spawned_at,
@@ -4369,7 +4366,7 @@ mod tests {
             tokio::spawn(async move { (task_repo, Ok(dracon_git::types::RepoStatus::new())) });
         let mut aborts = HashMap::from([(repo.clone(), handle.abort_handle().into())]);
         let mut pending = HashSet::from([repo.clone()]);
-        let mut spawned = HashMap::from([(repo.clone(), now - Duration::from_secs(61))]);
+        let mut spawned = HashMap::from([(repo.clone(), now - Duration::from_secs(STATUS_TASK_TIMEOUT_SECS + 1))]);
         tokio::time::timeout(Duration::from_secs(3), async {
             while !handle.is_finished() {
                 tokio::task::yield_now().await;

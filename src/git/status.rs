@@ -1374,7 +1374,7 @@ async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
             repo,
             &invalid,
             &index,
-            tokio::time::Instant::now() + Duration::from_secs(10),
+            tokio::time::Instant::now() + std::time::Duration::from_secs(10),
         )
         .await
         .unwrap_err();
