@@ -99,10 +99,13 @@ pub(crate) fn held() -> bool {
             .ok()
             .as_deref()
             .and_then(headroom_pct);
-        let stall = read_full_stall(Path::new("/proc/pressure/memory"))
-            .into_iter()
-            .chain(local_pressure_path().and_then(read_full_stall))
-            .reduce(f64::max);
+        // Host PSI includes unrelated tenants such as browser and Vite jobs.
+        // The memory guard attributes pressure to this cgroup before braking
+        // the daemon. Follow the same rule here. Host PSI is only a fallback
+        // when cgroup-local pressure is unavailable.
+        let stall = local_pressure_path()
+            .and_then(read_full_stall)
+            .or_else(|| read_full_stall(Path::new("/proc/pressure/memory")));
         let was_held = admission.held;
         admission.observe(now, available, stall);
         if was_held != admission.held {
