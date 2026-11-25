@@ -127,6 +127,32 @@ impl IndexLock {
         index: &Path,
         deadline: tokio::time::Instant,
     ) -> Result<()> {
+        self.install_index_inner(repo, source, index, deadline, true)
+            .await
+    }
+
+    /// Reconciliation has already verified the pre-repair unmerged index and
+    /// the resolved private candidate under this lock. The old conflict slots
+    /// have no stage-zero stat cache that can be merged.
+    pub(crate) async fn install_resolved_index(
+        &mut self,
+        repo: &Path,
+        source: &Path,
+        index: &Path,
+        deadline: tokio::time::Instant,
+    ) -> Result<()> {
+        self.install_index_inner(repo, source, index, deadline, false)
+            .await
+    }
+
+    async fn install_index_inner(
+        &mut self,
+        repo: &Path,
+        source: &Path,
+        index: &Path,
+        deadline: tokio::time::Instant,
+        carry_stat_cache: bool,
+    ) -> Result<()> {
         use std::io::{Read, Write};
         anyhow::ensure!(self.is_owned(), "index lock replaced before install");
         let source = std::fs::File::open(source)?;
@@ -168,13 +194,17 @@ impl IndexLock {
         };
         let (merged, previous_mtime) = if let Some((metadata, previous)) = previous {
             let mtime = metadata.modified()?;
-            let merged = tokio::time::timeout_at(
-                deadline,
-                carry_over_stat_data(repo, index, &previous, &bytes, mtime),
-            )
-            .await
-            .context("stat-cache merge deadline expired; actual index preserved")?
-            .context("stat-cache merge failed; actual index preserved")?;
+            let merged = if carry_stat_cache {
+                tokio::time::timeout_at(
+                    deadline,
+                    carry_over_stat_data(repo, index, &previous, &bytes, mtime),
+                )
+                .await
+                .context("stat-cache merge deadline expired; actual index preserved")?
+                .context("stat-cache merge failed; actual index preserved")?
+            } else {
+                bytes
+            };
             anyhow::ensure!(
                 read_previous()?.1 == previous,
                 "actual index changed during stat merge; preserved"
