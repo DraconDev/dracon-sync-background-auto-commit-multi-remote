@@ -6,6 +6,8 @@
 
 use anyhow::{bail, Context, Result};
 use dracon_git::types::RepoStatus;
+#[cfg(unix)]
+use std::os::unix::ffi::OsStrExt;
 use std::{
     collections::BTreeSet,
     path::{Path, PathBuf},
@@ -14,16 +16,14 @@ use std::{
 
 /// Shared by scheduler and reports: a healthy filtered/nested worktree may
 /// exceed a short UI deadline. Keep cancellation and the finite ceiling alike.
-pub(crate) const STATUS_INSPECTION_BUDGET: Duration = Duration::from_secs(60);
+pub(crate) const STATUS_INSPECTION_BUDGET: Duration = Duration::from_secs(120);
 
 pub(crate) async fn inspect_status(repo: &Path, budget: Duration) -> Result<RepoStatus> {
-    inspect_status_inner(repo, budget, None).await
+    inspect_status_inner(repo, budget, None, |_, _, _, _| {}).await
 }
 
-/// Avoid recursively re-inspecting child worktrees only when every indexed
-/// gitlink is independently present in this observation's watched inventory.
-/// Uncovered children retain ordinary Git status semantics. Child HEAD changes
-/// and staged gitlink changes remain visible in either mode.
+/// Avoid recursively inspecting child worktrees only when every indexed gitlink
+/// is independently watched. Gitlink pointer changes still appear in status.
 pub(crate) async fn inspect_status_with_coverage(
     repo: &Path,
     budget: Duration,
@@ -32,7 +32,25 @@ pub(crate) async fn inspect_status_with_coverage(
     if watched.is_empty() {
         return inspect_status(repo, budget).await;
     }
-    inspect_status_inner(repo, budget, Some(watched)).await
+    inspect_status_inner(repo, budget, Some(watched), |_, _, _, _| {}).await
+}
+
+pub(crate) async fn inspect_status_with_entries(
+    repo: &Path,
+    budget: Duration,
+    watched: &BTreeSet<PathBuf>,
+    entry: impl FnMut(u8, u8, bool, &Path),
+) -> Result<RepoStatus> {
+    let mut entry = entry;
+    inspect_status_inner(repo, budget, Some(watched).filter(|paths| !paths.is_empty()),
+        |x, y, submodule_dirt, path| {
+            #[cfg(unix)]
+            let path = Path::new(std::ffi::OsStr::from_bytes(path));
+            #[cfg(not(unix))]
+            let path = Path::new(std::str::from_utf8(path).unwrap_or_default());
+            entry(x, y, submodule_dirt, path);
+        }
+    ).await
 }
 
 async fn indexed_gitlinks(repo: &Path) -> Result<Option<BTreeSet<PathBuf>>> {
@@ -76,8 +94,7 @@ fn parse_gitlinks(repo: &Path, bytes: &[u8]) -> Result<Option<BTreeSet<PathBuf>>
         }
         #[cfg(unix)]
         let path = {
-            use std::os::unix::ffi::OsStrExt;
-            Path::new(std::ffi::OsStr::from_bytes(name))
+                Path::new(std::ffi::OsStr::from_bytes(name))
         };
         #[cfg(not(unix))]
         let path = Path::new(std::str::from_utf8(name)?);
@@ -97,6 +114,7 @@ async fn inspect_status_inner(
     repo: &Path,
     budget: Duration,
     watched: Option<&BTreeSet<PathBuf>>,
+    entry: impl FnMut(u8, u8, bool, &[u8]),
 ) -> Result<RepoStatus> {
     tokio::time::timeout(budget, async {
         // A copied submodule .git file may still name another checkout via
@@ -115,8 +133,7 @@ async fn inspect_status_inner(
         let root = root.strip_suffix(b"\n").unwrap_or(&root);
         #[cfg(unix)]
         let root = {
-            use std::os::unix::ffi::OsStrExt;
-            Path::new(std::ffi::OsStr::from_bytes(root))
+                Path::new(std::ffi::OsStr::from_bytes(root))
         };
         #[cfg(not(unix))]
         let root = Path::new(std::str::from_utf8(root)?);
@@ -160,16 +177,24 @@ async fn inspect_status_inner(
             anyhow::ensure!(indexed_gitlinks(repo).await? == Some(expected),
                 "status gitlink coverage changed during inspection; retry with a fresh inventory");
         }
-        parse_status(&stdout)
+        parse_status_with_entries(&stdout, entry)
     })
     .await
-    .context("status inspection timed out; owned Git process group cancelled")?
+    .with_context(|| format!("status inspection timed out after {}s; owned Git process group cancelled", budget.as_secs_f64()))?
 }
 
+#[cfg(test)]
 fn parse_status(bytes: &[u8]) -> Result<RepoStatus> {
+    parse_status_with_entries(bytes, |_, _, _, _| {})
+}
+
+fn parse_status_with_entries(
+    bytes: &[u8],
+    entry: impl FnMut(u8, u8, bool, &[u8]),
+) -> Result<RepoStatus> {
     let mut status = RepoStatus::new();
     let mut records = bytes.split(|b| *b == 0).peekable();
-    for_record(&mut records, &mut status)?;
+    for_record(&mut records, &mut status, entry)?;
     status.is_clean =
         status.modified_files == 0 && status.staged_files == 0 && status.untracked_files == 0;
     Ok(status)
@@ -178,6 +203,7 @@ fn parse_status(bytes: &[u8]) -> Result<RepoStatus> {
 fn for_record<'a>(
     records: &mut impl Iterator<Item = &'a [u8]>,
     status: &mut RepoStatus,
+    mut entry: impl FnMut(u8, u8, bool, &[u8]),
 ) -> Result<()> {
     while let Some(record) = records.next() {
         if record.is_empty() {
@@ -212,27 +238,31 @@ fn for_record<'a>(
                 .parse()?;
         } else if record.starts_with(b"# ") {
             // upstream and future optional branch headers.
-        } else if record.starts_with(b"? ") {
+        } else if let Some(path) = record.strip_prefix(b"? ") {
             status.untracked_files += 1;
+            entry(b'?', b'?', false, path);
         } else if matches!(record[0], b'1' | b'2' | b'u') {
             let fields = match record[0] {
                 b'1' => 9,
                 b'2' => 10,
                 _ => 11,
             };
-            if record.len() < 5
-                || record[1] != b' '
-                || record[4] != b' '
-                || record.splitn(fields, |b| *b == b' ').count() != fields
-            {
-                bail!("malformed porcelain status record");
-            }
-            if record[2] != b'.' {
-                status.staged_files += 1;
-            }
-            if record[3] != b'.' {
-                status.modified_files += 1;
-            }
+            let mut parts = record.splitn(fields, |b| *b == b' ');
+            parts.next();
+            let xy = parts.next().filter(|xy| xy.len() == 2)
+                .context("malformed porcelain status flags")?;
+            let sub = parts.next().filter(|sub| sub.len() == 4)
+                .context("malformed porcelain submodule flags")?;
+            let path = parts.nth(fields - 4).filter(|path| !path.is_empty())
+                .context("missing porcelain status path")?;
+            let [x, y] = [xy[0], xy[1]];
+            status.staged_files += usize::from(x != b'.');
+            status.modified_files += usize::from(y != b'.');
+            // A submodule worktree change without pointer drift is never a
+            // parent worktree edit. Preserve the index side of the record.
+            let submodule_dirt = y == b'M' && sub.starts_with(b"S.")
+                && (sub[2] == b'M' || sub[3] == b'U');
+            entry(x, y, submodule_dirt, path);
             // -z rename records have a second NUL-delimited ORIGINAL path.
             // Never interpret that path as another status record.
             if record[0] == b'2' && records.next().is_none_or(|path| path.is_empty()) {
@@ -627,7 +657,6 @@ mod tests {
     #[cfg(unix)]
     #[tokio::test]
     async fn identity_accepts_linked_worktree_and_non_utf8_newline_roots() {
-        use std::os::unix::ffi::OsStrExt;
         let dir = tempfile::tempdir().unwrap();
         let primary = dir
             .path()
