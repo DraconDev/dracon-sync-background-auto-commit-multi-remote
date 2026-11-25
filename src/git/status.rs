@@ -174,7 +174,7 @@ impl IndexLock {
             )
             .await
             .context("stat-cache merge deadline expired; actual index preserved")?
-            .unwrap_or(bytes);
+            .context("stat-cache merge failed; actual index preserved")?;
             anyhow::ensure!(
                 read_previous()?.1 == previous,
                 "actual index changed during stat merge; preserved"
@@ -250,31 +250,30 @@ type StageEntry = (Vec<u8>, Vec<u8>, Vec<u8>);
 /// which is exactly correct. `--index-info` cannot change an object's content,
 /// so this can only affect stat bookkeeping.
 ///
-/// Returns `None` when the merge cannot be produced or verified, and the caller
-/// then installs the private index byte-for-byte (the previous behaviour).
+/// An unverified merge leaves the actual index and the private candidate in
+/// place. Replacing a warm index with a cold one can stall the next inspection.
 async fn carry_over_stat_data(
     repo: &Path,
     index: &Path,
     previous: &[u8],
     wanted: &[u8],
     previous_mtime: std::time::SystemTime,
-) -> Option<Vec<u8>> {
-    let workspace = tempfile::Builder::new()
-        .prefix("dracon-stat-")
-        .tempdir_in(index.parent()?)
-        .ok()?;
+) -> Result<Vec<u8>> {
+    let workspace = tempfile::Builder::new().prefix("dracon-stat-").tempdir_in(
+        index
+            .parent()
+            .context("Git index has no parent directory")?,
+    )?;
     let private = workspace.path().join("private.index");
-    std::fs::write(&private, wanted).ok()?;
+    std::fs::write(&private, wanted)?;
     let before_path = workspace.path().join("before.index");
-    std::fs::write(&before_path, previous).ok()?;
+    std::fs::write(&before_path, previous)?;
     let before = stat_index_listing(repo, &before_path).await?;
     let after = stat_index_listing(repo, &private).await?;
     let merged = workspace.path().join("merged.index");
-    std::fs::write(&merged, previous).ok()?;
-    std::fs::File::open(&merged)
-        .ok()?
-        .set_times(std::fs::FileTimes::new().set_modified(previous_mtime))
-        .ok()?;
+    std::fs::write(&merged, previous)?;
+    std::fs::File::open(&merged)?
+        .set_times(std::fs::FileTimes::new().set_modified(previous_mtime))?;
     let delta = stat_index_delta(&before, &after);
     if !delta.is_empty() {
         let mut command = stat_index_command(repo, &merged);
@@ -285,17 +284,18 @@ async fn carry_over_stat_data(
             "private stat-cache delta",
             Some(&delta),
         )
-        .await
-        .ok()?;
-        if !output.status.success() {
-            return None;
-        }
+        .await?;
+        anyhow::ensure!(
+            output.status.success(),
+            "private stat-cache delta failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
-    let merged_entries = stat_index_listing(repo, &merged).await?;
-    if merged_entries != after {
-        return None;
-    }
-    std::fs::read(&merged).ok()
+    anyhow::ensure!(
+        stat_index_listing(repo, &merged).await? == after,
+        "stat-cache merge changed staged identities"
+    );
+    Ok(std::fs::read(&merged)?)
 }
 
 fn stat_index_command(repo: &Path, index: &Path) -> tokio::process::Command {
@@ -313,17 +313,17 @@ fn stat_index_command(repo: &Path, index: &Path) -> tokio::process::Command {
     command.into_tokio()
 }
 
-async fn stat_index_listing(repo: &Path, index: &Path) -> Option<Vec<StageEntry>> {
+async fn stat_index_listing(repo: &Path, index: &Path) -> Result<Vec<StageEntry>> {
     let mut command = stat_index_command(repo, index);
     command.args(["ls-files", "--stage", "-z"]);
     let output =
-        super::run_command_captured_output(command, 60, "private stat-cache listing", None)
-            .await
-            .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    parse_stage_entries(&output.stdout)
+        super::run_command_captured_output(command, 60, "private stat-cache listing", None).await?;
+    anyhow::ensure!(
+        output.status.success(),
+        "private stat-cache listing failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    parse_stage_entries(&output.stdout).context("invalid or unmerged staging index")
 }
 
 // Path-keyed lookups avoid two quadratic scans on large (87k+ path) repos.
@@ -1365,6 +1365,23 @@ async fn installing_an_epoch_index_keeps_the_stat_cache_of_unchanged_entries() {
         !String::from_utf8_lossy(&bad.stdout).contains("one.txt"),
         "negative control must reproduce the unsafe cache's hidden edit"
     );
+    let invalid = dir.path().join("invalid.index");
+    std::fs::write(&invalid, b"not a Git index").unwrap();
+    let baseline = std::fs::read(&index).unwrap();
+    let mut lock = IndexLock::try_acquire_path(index.with_extension("lock")).unwrap();
+    let failure = lock
+        .install_index(
+            repo,
+            &invalid,
+            &index,
+            tokio::time::Instant::now() + Duration::from_secs(10),
+        )
+        .await
+        .unwrap_err();
+    assert!(failure.to_string().contains("actual index preserved"));
+    assert_eq!(std::fs::read(&index).unwrap(), baseline);
+    drop(lock);
+
     let before_cancel = std::fs::read(&index).unwrap();
     let mut expired = IndexLock::try_acquire_path(index.with_extension("lock")).unwrap();
     assert!(expired

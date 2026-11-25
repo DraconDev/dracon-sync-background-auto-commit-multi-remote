@@ -42,15 +42,19 @@ pub(crate) async fn inspect_status_with_entries(
     entry: impl FnMut(u8, u8, bool, &Path),
 ) -> Result<RepoStatus> {
     let mut entry = entry;
-    inspect_status_inner(repo, budget, Some(watched).filter(|paths| !paths.is_empty()),
+    inspect_status_inner(
+        repo,
+        budget,
+        Some(watched).filter(|paths| !paths.is_empty()),
         |x, y, submodule_dirt, path| {
             #[cfg(unix)]
             let path = Path::new(std::ffi::OsStr::from_bytes(path));
             #[cfg(not(unix))]
             let path = Path::new(std::str::from_utf8(path).unwrap_or_default());
             entry(x, y, submodule_dirt, path);
-        }
-    ).await
+        },
+    )
+    .await
 }
 
 async fn indexed_gitlinks(repo: &Path) -> Result<Option<BTreeSet<PathBuf>>> {
@@ -93,9 +97,7 @@ fn parse_gitlinks(repo: &Path, bytes: &[u8]) -> Result<Option<BTreeSet<PathBuf>>
             return Ok(None); // Conflicted gitlinks require full inspection.
         }
         #[cfg(unix)]
-        let path = {
-                Path::new(std::ffi::OsStr::from_bytes(name))
-        };
+        let path = { Path::new(std::ffi::OsStr::from_bytes(name)) };
         #[cfg(not(unix))]
         let path = Path::new(std::str::from_utf8(name)?);
         if name.is_empty()
@@ -249,19 +251,25 @@ fn for_record<'a>(
             };
             let mut parts = record.splitn(fields, |b| *b == b' ');
             parts.next();
-            let xy = parts.next().filter(|xy| xy.len() == 2)
+            let xy = parts
+                .next()
+                .filter(|xy| xy.len() == 2)
                 .context("malformed porcelain status flags")?;
-            let sub = parts.next().filter(|sub| sub.len() == 4)
+            let sub = parts
+                .next()
+                .filter(|sub| sub.len() == 4)
                 .context("malformed porcelain submodule flags")?;
-            let path = parts.nth(fields - 4).filter(|path| !path.is_empty())
+            let path = parts
+                .nth(fields - 4)
+                .filter(|path| !path.is_empty())
                 .context("missing porcelain status path")?;
             let [x, y] = [xy[0], xy[1]];
             status.staged_files += usize::from(x != b'.');
             status.modified_files += usize::from(y != b'.');
             // A submodule worktree change without pointer drift is never a
             // parent worktree edit. Preserve the index side of the record.
-            let submodule_dirt = y == b'M' && sub.starts_with(b"S.")
-                && (sub[2] == b'M' || sub[3] == b'U');
+            let submodule_dirt =
+                y == b'M' && sub.starts_with(b"S.") && (sub[2] == b'M' || sub[3] == b'U');
             entry(x, y, submodule_dirt, path);
             // -z rename records have a second NUL-delimited ORIGINAL path.
             // Never interpret that path as another status record.
