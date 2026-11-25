@@ -2,7 +2,7 @@
 //!
 //! Local work has its existing semaphore. A push phase temporarily gives its
 //! permit back, so waiting on hook/network work cannot exhaust commit capacity.
-//! Heavy publications also pass through one process-global admission slot.
+//! Each daemon push command takes fleet-wide admission before starting Git.
 //! Repository ownership remains enforced separately per checkout.
 #[cfg(test)]
 #[path = "push_resources_round_tests.rs"]
@@ -15,6 +15,7 @@ use anyhow::{Context, Result};
 use std::cell::RefCell;
 use std::future::Future;
 use std::sync::{Arc, OnceLock};
+use std::time::Duration;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 struct LocalWork {
@@ -25,19 +26,38 @@ struct LocalWork {
 tokio::task_local! {
     static LOCAL_WORK: LocalWork;
     static PUSH_PHASE: bool;
+    static SMALL_PUBLICATION: bool;
+    static POLICY_PATH: std::path::PathBuf;
+    #[cfg(test)]
+    static TEST_ADMISSION: Arc<Semaphore>;
 }
 
-/// One heavy publication at a time across the daemon. Repository leases stop
-/// duplicate work for one checkout, but they do not protect the host when
-/// several large pre-push gates run in different repositories. Keep this
-/// process-wide because every daemon worker shares the same Git/Warden and
-/// systemd push slice.
+// Two ordinary pushes can overlap. A backlog or repository gate takes both
+// slots. FIFO weighted acquisition lets a heavy push drain ordinary work.
 static PUBLICATION_ADMISSION: OnceLock<Arc<Semaphore>> = OnceLock::new();
 
 fn publication_admission() -> Arc<Semaphore> {
+    #[cfg(test)]
+    if let Ok(test) = TEST_ADMISSION.try_with(Arc::clone) {
+        return test;
+    }
     PUBLICATION_ADMISSION
-        .get_or_init(|| Arc::new(Semaphore::new(1)))
+        .get_or_init(|| Arc::new(Semaphore::new(2)))
         .clone()
+}
+
+pub(crate) async fn daemon_scope<T>(
+    policy_path: std::path::PathBuf,
+    work: impl Future<Output = T>,
+) -> T {
+    POLICY_PATH.scope(policy_path, work).await
+}
+
+pub(crate) async fn sized_publication<T>(
+    small: bool,
+    work: impl Future<Output = T>,
+) -> T {
+    SMALL_PUBLICATION.scope(small, work).await
 }
 
 pub(crate) async fn with_local_work<T>(
@@ -76,13 +96,6 @@ pub(crate) async fn push_phase<T>(work: impl Future<Output = Result<T>>) -> Resu
         permit.is_some(),
         "nested push phase would violate local-work ownership"
     );
-    // Acquire the fleet-wide publication slot before releasing local-work
-    // capacity. A queued publication therefore does not consume a local
-    // sync permit or admit another heavy push beside it.
-    let _publication = publication_admission()
-        .acquire_owned()
-        .await
-        .context("publication admission semaphore closed")?;
     drop(permit);
     let result = PUSH_PHASE.scope(true, work).await;
     // Restore local execution ownership before any subsequent mutation. This
@@ -208,11 +221,40 @@ pub(super) async fn command<T>(
     args: &[&str],
     work: impl Future<Output = Result<T>>,
 ) -> Result<T> {
-    let _push = if args.first() == Some(&"push") {
-        Some(super::repo_maintenance::begin_push(repo).await?)
-    } else {
-        None
+    if args.first() != Some(&"push") {
+        return work.await;
+    }
+    if !isolated_push(args) {
+        let _push = super::repo_maintenance::begin_push(repo).await?;
+        return work.await;
+    }
+
+    let queued = crate::daemon::scheduler_evidence::publication_queued(repo);
+    let small = SMALL_PUBLICATION.try_with(|small| *small).unwrap_or(false);
+    let weight = if small { 1 } else { 2 };
+    let held = || {
+        POLICY_PATH.try_with(|path| {
+            crate::policy::freeze_reason(path).is_some()
+                || crate::daemon::memory_admission::held()
+        }).unwrap_or(false)
     };
+    let (_admission, _push) = loop {
+        while held() {
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        }
+        // Wait for pending repack before taking any fleet capacity.
+        let push = super::repo_maintenance::begin_push(repo).await?;
+        let admission = publication_admission()
+            .acquire_many_owned(weight)
+            .await
+            .context("publication admission semaphore closed")?;
+        // Pressure or a manual pause may have arrived while this command
+        // waited behind another publication.
+        if !held() {
+            break (admission, push);
+        }
+    };
+    let _running = queued.started();
     work.await
 }
 
