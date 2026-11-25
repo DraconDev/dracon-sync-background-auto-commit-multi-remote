@@ -128,10 +128,7 @@ mod tests {
         assert_eq!(set, "'gc.auto'='0' 'maintenance.auto'='false'");
         assert_eq!(daemon_git_config_parameters(Some(&set)), None);
         let kept = daemon_git_config_parameters(Some("'core.pager'='cat'")).unwrap();
-        assert_eq!(
-            kept,
-            "'core.pager'='cat' 'gc.auto'='0' 'maintenance.auto'='false'"
-        );
+        assert_eq!(kept, "'core.pager'='cat' 'gc.auto'='0' 'maintenance.auto'='false'");
     }
 
     /// Git itself must parse the value and apply it over repository config.
@@ -142,10 +139,7 @@ mod tests {
             crate::policy::std_git_command()
                 .args(args)
                 .current_dir(repo.path())
-                .env(
-                    "GIT_CONFIG_PARAMETERS",
-                    daemon_git_config_parameters(None).unwrap(),
-                )
+                .env("GIT_CONFIG_PARAMETERS", daemon_git_config_parameters(None).unwrap())
                 .output()
                 .unwrap()
         };

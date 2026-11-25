@@ -2736,9 +2736,7 @@ fn push_failure_message(
             .find_map(|info| crate::git::hook_failure_summary(&info.last_error))
     });
     let msg = match hook_detail.as_deref() {
-        Some(detail) => {
-            format!("git push returned non-zero (remotes: {names}) — {cause}: {detail}")
-        }
+        Some(detail) => format!("git push returned non-zero (remotes: {names}) — {cause}: {detail}"),
         None => format!("git push returned non-zero (remotes: {names}) — {cause}"),
     };
     (msg, hook_detail)
@@ -3666,8 +3664,7 @@ async fn inspect_task_transitions(repo: &Path) -> TaskTransitions {
     // exhaust the daemon's memory headroom or block a runtime thread.
     let result = tokio::time::timeout(Duration::from_secs(10), async {
         let child = crate::git::spawn_git_command_cancellable(repo, TASK_DIFF_ARGS, "task-diff")?;
-        let (exit, output, _) =
-            crate::git::run_git_captured_output(child, repo, "task-diff").await?;
+        let (exit, output, _) = crate::git::run_git_captured_output(child, repo, "task-diff").await?;
         anyhow::ensure!(exit.success(), "staged task diff failed");
         Ok::<_, anyhow::Error>(output)
     })
@@ -5094,10 +5091,7 @@ async fn run_configured_hook(
         hook,
         &[
             ("GIT_EDITOR", ":"),
-            (
-                crate::bucket_guard::GUARD_MODE_ENV,
-                crate::bucket_guard::GUARD_MODE_WARN,
-            ),
+            (crate::bucket_guard::GUARD_MODE_ENV, crate::bucket_guard::GUARD_MODE_WARN),
         ],
     )
     .await
@@ -6620,14 +6614,20 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     // recorded FAILURE from an earlier cycle is stale. See
     // `record_converged_push_success` for why the PUSH column must not be
     // allowed to stay red forever.
-    if ctx.policy.auto_push && !should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
+    if ctx.policy.auto_push
+        && !should_push
+        && (ctx.has_origin || !ctx.policy.remotes.is_empty())
+    {
         record_converged_push_success(ctx.repo);
     }
     // Converged with nothing to push: the repo is already published, so a
     // recorded FAILURE from an earlier cycle is stale. See
     // `record_converged_push_success` for why the PUSH column must not be
     // allowed to stay red forever.
-    if ctx.policy.auto_push && !should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
+    if ctx.policy.auto_push
+        && !should_push
+        && (ctx.has_origin || !ctx.policy.remotes.is_empty())
+    {
         record_converged_push_success(ctx.repo);
     }
     Ok(PushReport::Attempted {
@@ -6710,10 +6710,7 @@ mod tests {
         crate::daemon::record_push_failure(&repo, "transient network hiccup");
         let observed = crate::daemon::push_history::load(&repo)
             .expect("a failed push must leave an observation");
-        assert!(
-            !observed.succeeded,
-            "precondition: observation is a failure"
-        );
+        assert!(!observed.succeeded, "precondition: observation is a failure");
 
         // The cause is fixed and the operator clears the ledger, exactly as
         // `dracon-sync repair stuck-unstuck` does.
@@ -9805,10 +9802,7 @@ auto_bump_versions = false
         let detail = detail.expect("gate refusal must yield detail");
         assert!(detail.contains("tabmon/TEST"), "{detail}");
         assert!(msg.contains(&detail), "{msg}");
-        assert!(
-            msg.starts_with("git push returned non-zero (remotes: origin)"),
-            "{msg}"
-        );
+        assert!(msg.starts_with("git push returned non-zero (remotes: origin)"), "{msg}");
 
         // A transport error carries no hook detail: bare message, None.
         let mut plain: HashMap<String, crate::daemon::RemoteFailInfo> = HashMap::new();
@@ -12493,8 +12487,14 @@ auto_bump_versions = false
         // shape: capture-anime-girls had `origin/main == HEAD` (8c9692f6)
         // while `gitlab/main` was pinned at d191dde3 — real remote tip 8c9692f6.
         git_cmd(&repo, &["push", "-q", "github", "HEAD:refs/heads/main"]);
-        git_cmd(&repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
-        git_cmd(&repo, &["update-ref", "refs/remotes/github/main", "HEAD~1"]);
+        git_cmd(
+            &repo,
+            &["update-ref", "refs/remotes/origin/main", "HEAD"],
+        );
+        git_cmd(
+            &repo,
+            &["update-ref", "refs/remotes/github/main", "HEAD~1"],
+        );
         let upstream = String::from_utf8_lossy(
             &git_cmd(&repo, &["rev-parse", "refs/remotes/origin/main"]).stdout,
         )
@@ -12509,10 +12509,7 @@ auto_bump_versions = false
         )
         .trim()
         .to_string();
-        assert_ne!(
-            mirror, head,
-            "precondition: the mirror name must start stale"
-        );
+        assert_ne!(mirror, head, "precondition: the mirror name must start stale");
         // The poison the daemon actually saw: one stale name makes the
         // MAXIMUM count wrong even though the checkout is fully pushed.
         assert_eq!(

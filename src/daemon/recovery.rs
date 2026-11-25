@@ -174,6 +174,27 @@ mod tests {
     use super::*;
 
     #[test]
+    fn admission_wait_does_not_spend_execution_budget() {
+        use crate::daemon::scheduler_evidence::{publication_queued, worker_idle};
+        let repo = Path::new("queued-heavy-publication");
+        let mut recovery = SyncRecovery::default();
+        let now = Instant::now();
+        recovery.reserve(repo).set(now).unwrap();
+        let queued = publication_queued(repo);
+        let budget = Duration::from_secs(10);
+        assert!(recovery
+            .expired(now + Duration::from_secs(60), budget)
+            .is_empty());
+        let running = queued.started();
+        assert_eq!(
+            recovery.expired(now + Duration::from_secs(60), budget),
+            vec![repo]
+        );
+        drop(running);
+        worker_idle(repo);
+    }
+
+    #[test]
     fn execution_budget_respects_scaled_multi_remote_commands_and_still_expires() {
         // Struct-update syntax rather than field-by-field assignment:
         // clippy's `field_reassign_with_default` rejects the latter, and the

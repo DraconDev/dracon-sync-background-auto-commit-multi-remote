@@ -192,9 +192,7 @@ pub(crate) const ALL_STATUS_LABELS: [&str; 11] = [
 
 pub(super) fn status(row: &RepoReportRow) -> (&'static str, Color) {
     match classify(row) {
-        Current::Converged if super::has_bucket_guard_demotion(row) => {
-            (LABEL_REVIEW, Color::Yellow)
-        }
+        Current::Converged if super::has_bucket_guard_demotion(row) => (LABEL_REVIEW, Color::Yellow),
         Current::Converged => (LABEL_CLEAN, Color::Green),
         Current::Excluded => (LABEL_EXCLUDED, Color::DarkGrey),
         Current::Queued => (LABEL_QUEUED, Color::Cyan),

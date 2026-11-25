@@ -182,6 +182,15 @@ impl Drop for PublicationCommand {
     }
 }
 
+#[cfg(test)]
+pub(crate) fn publication_waiters_for_fixture(repo: &Path) -> usize {
+    worker_phases()
+        .lock()
+        .unwrap()
+        .get(repo)
+        .map_or(0, |stamp| stamp.waiting_commands)
+}
+
 pub(super) fn publication_queue_time(repo: &Path, now: Instant) -> Duration {
     worker_phases()
         .lock()

@@ -1,6 +1,7 @@
 //! A soft brake for expensive daemon work. Existing work owns its deadlines
 //! and may drain while admission is held.
-use std::sync::Mutex;
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 const SAMPLE_INTERVAL: Duration = Duration::from_secs(2);
@@ -15,11 +16,11 @@ struct Admission {
 
 impl Admission {
     fn observe(&mut self, now: Instant, available: Option<f64>, stall: Option<f64>) {
-        if available.is_some_and(|pct| pct <= 10.0) || stall.is_some_and(|pct| pct >= 10.0) {
+        if available.is_some_and(|pct| pct <= 8.0) || stall.is_some_and(|pct| pct >= 10.0) {
             self.held = true;
             self.calm_since = None;
         } else if self.held {
-            if available.is_none_or(|pct| pct >= 12.0) && stall.is_none_or(|pct| pct < 5.0) {
+            if available.is_none_or(|pct| pct >= 10.0) && stall.is_none_or(|pct| pct < 5.0) {
                 let calm_since = self.calm_since.get_or_insert(now);
                 if now.duration_since(*calm_since) >= CALM_INTERVAL {
                     self.held = false;
@@ -53,6 +54,24 @@ fn full_stall(pressure: &str) -> Option<f64> {
     })
 }
 
+fn local_pressure_path() -> Option<&'static Path> {
+    static PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
+    PATH.get_or_init(|| {
+        let groups = std::fs::read_to_string("/proc/self/cgroup").ok()?;
+        let group = groups.lines().find_map(|line| line.strip_prefix("0::/"))?;
+        Some(
+            Path::new("/sys/fs/cgroup")
+                .join(group)
+                .join("memory.pressure"),
+        )
+    })
+    .as_deref()
+}
+
+fn read_full_stall(path: &Path) -> Option<f64> {
+    full_stall(&std::fs::read_to_string(path).ok()?)
+}
+
 pub(crate) fn held() -> bool {
     static ADMISSION: Mutex<Admission> = Mutex::new(Admission {
         held: false,
@@ -70,10 +89,10 @@ pub(crate) fn held() -> bool {
             .ok()
             .as_deref()
             .and_then(available_pct);
-        let stall = std::fs::read_to_string("/proc/pressure/memory")
-            .ok()
-            .as_deref()
-            .and_then(full_stall);
+        let stall = read_full_stall(Path::new("/proc/pressure/memory"))
+            .into_iter()
+            .chain(local_pressure_path().and_then(read_full_stall))
+            .reduce(f64::max);
         let was_held = admission.held;
         admission.observe(now, available, stall);
         if was_held != admission.held {
@@ -100,12 +119,12 @@ mod tests {
         admission.observe(now, Some(40.0), Some(10.0));
         assert!(admission.held);
         admission.observe(now, Some(12.0), Some(1.0));
-        admission.observe(now + Duration::from_secs(20), Some(11.0), Some(1.0));
+        admission.observe(now + Duration::from_secs(20), Some(9.0), Some(1.0));
         admission.observe(now + Duration::from_secs(30), Some(12.0), Some(1.0));
         assert!(admission.held);
         admission.observe(now + Duration::from_secs(60), Some(12.0), Some(1.0));
         assert!(!admission.held);
-        admission.observe(now + Duration::from_secs(62), Some(9.0), None);
+        admission.observe(now + Duration::from_secs(62), Some(7.0), None);
         assert!(admission.held);
     }
 

@@ -3,57 +3,79 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::task::Poll;
 
 #[tokio::test]
-async fn push_commands_overlap_and_cancellation_drops_only_owned_work() {
+async fn mirror_commands_share_fleet_slots_and_cancellation_removes_a_waiter() {
     let root = tempfile::tempdir().unwrap();
     std::fs::create_dir(root.path().join(".git")).unwrap();
     let repo = root.path();
-    struct Dropped(Arc<AtomicBool>);
-    impl Drop for Dropped {
-        fn drop(&mut self) {
-            self.0.store(true, Ordering::SeqCst);
-        }
-    }
-    let entered = Arc::new(AtomicBool::new(false));
-    let dropped = Arc::new(AtomicBool::new(false));
-    PUSH_PHASE
-        .scope(true, async {
-            let signal = entered.clone();
-            let cleanup = dropped.clone();
-            let mut first = Box::pin(command(repo, &["push"], async move {
-                let _guard = Dropped(cleanup);
-                signal.store(true, Ordering::SeqCst);
-                std::future::pending::<()>().await;
-                Ok(())
-            }));
-            assert!(matches!(futures::poll!(first.as_mut()), Poll::Pending));
-            assert!(entered.load(Ordering::SeqCst));
-            let second_entered = Arc::new(AtomicBool::new(false));
-            let second_dropped = Arc::new(AtomicBool::new(false));
-            let signal = second_entered.clone();
-            let cleanup = second_dropped.clone();
-            let mut second = Box::pin(command(repo, &["push"], async move {
-                let _guard = Dropped(cleanup);
-                signal.store(true, Ordering::SeqCst);
-                std::future::pending::<()>().await;
-                Ok(())
-            }));
-            assert!(matches!(futures::poll!(second.as_mut()), Poll::Pending));
-            assert!(second_entered.load(Ordering::SeqCst));
-            assert!(!dropped.load(Ordering::SeqCst));
-            // A third enrolled push starts while both earlier commands remain
-            // blocked: no replacement process-wide push-count cap exists.
-            command(repo, &["push"], async { Ok(()) }).await.unwrap();
-            // Inspection and unenrolled/manual push also remain independent.
-            command(repo, &["status"], async { Ok(()) }).await.unwrap();
-            PUSH_PHASE
-                .scope(false, command(repo, &["push"], async { Ok(()) }))
-                .await
-                .unwrap();
-            drop(first);
-            assert!(dropped.load(Ordering::SeqCst));
-            assert!(!second_dropped.load(Ordering::SeqCst));
-            drop(second);
-            assert!(second_dropped.load(Ordering::SeqCst));
+    TEST_ADMISSION
+        .scope(Arc::new(Semaphore::new(2)), async {
+            sized_publication(
+                true,
+                background_pushes(async {
+                    let hold = || command(repo, &["push"], std::future::pending::<Result<()>>());
+                    let mut github = Box::pin(hold());
+                    let mut gitlab = Box::pin(hold());
+                    assert!(futures::poll!(&mut github).is_pending());
+                    assert!(futures::poll!(&mut gitlab).is_pending());
+                    assert_eq!(publication_admission().available_permits(), 0);
+                    let mut queued = Box::pin(command(repo, &["push"], async { Ok(()) }));
+                    assert!(futures::poll!(&mut queued).is_pending());
+                    drop(queued);
+                    assert_eq!(
+                        crate::daemon::scheduler_evidence::publication_waiters_for_fixture(repo),
+                        0
+                    );
+
+                    let mut next = Box::pin(command(repo, &["push"], async { Ok(()) }));
+                    assert!(futures::poll!(&mut next).is_pending());
+                    drop(github);
+                    next.await.unwrap();
+                    assert_eq!(publication_admission().available_permits(), 1);
+                    drop(gitlab);
+                }),
+            )
+            .await;
+        })
+        .await;
+}
+
+#[tokio::test]
+async fn a_queued_heavy_push_leaves_one_slot_local_work_free() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join(".git")).unwrap();
+    let repo = root.path();
+    let local = Arc::new(Semaphore::new(1));
+    TEST_ADMISSION
+        .scope(Arc::new(Semaphore::new(2)), async {
+            let mut active = Box::pin(background_pushes(command(
+                repo,
+                &["push"],
+                std::future::pending::<Result<()>>(),
+            )));
+            assert!(futures::poll!(&mut active).is_pending());
+            let permit = local.clone().acquire_owned().await.unwrap();
+            let waiting_repo = tempfile::tempdir().unwrap();
+            std::fs::create_dir(waiting_repo.path().join(".git")).unwrap();
+            let mut queued = Box::pin(with_local_work(
+                local.clone(),
+                permit,
+                push_phase(command(waiting_repo.path(), &["push"], async { Ok(()) })),
+            ));
+            assert!(futures::poll!(&mut queued).is_pending());
+            assert_eq!(
+                crate::daemon::scheduler_evidence::publication_waiters_for_fixture(
+                    waiting_repo.path()
+                ),
+                1
+            );
+            let unrelated_commit = local.clone().try_acquire_owned().unwrap();
+            drop(active);
+            // Publication ends, but the outer worker still needs local capacity.
+            assert!(futures::poll!(&mut queued).is_pending());
+            assert_eq!(publication_admission().available_permits(), 2);
+            drop(unrelated_commit);
+            queued.await.unwrap();
+            assert_eq!(local.available_permits(), 1);
         })
         .await;
 }
