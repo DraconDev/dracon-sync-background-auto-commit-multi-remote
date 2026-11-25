@@ -32,7 +32,7 @@ impl Admission {
     }
 }
 
-fn available_pct(meminfo: &str) -> Option<f64> {
+fn headroom_pct(meminfo: &str) -> Option<f64> {
     let read = |key| -> Option<f64> {
         meminfo.lines().find_map(|line| {
             line.strip_prefix(key)?
@@ -43,7 +43,9 @@ fn available_pct(meminfo: &str) -> Option<f64> {
         })
     };
     let total = read("MemTotal:")?;
-    (total > 0.0).then_some(100.0 * read("MemAvailable:")? / total)
+    let headroom =
+        read("MemFree:")? + read("Buffers:")? + read("Cached:")? + read("SReclaimable:")?;
+    (total > 0.0).then_some(100.0 * headroom / total)
 }
 
 fn full_stall(pressure: &str) -> Option<f64> {
@@ -96,7 +98,7 @@ pub(crate) fn held() -> bool {
         let available = std::fs::read_to_string("/proc/meminfo")
             .ok()
             .as_deref()
-            .and_then(available_pct);
+            .and_then(headroom_pct);
         let stall = read_full_stall(Path::new("/proc/pressure/memory"))
             .into_iter()
             .chain(local_pressure_path().and_then(read_full_stall))
@@ -139,7 +141,9 @@ mod tests {
     #[test]
     fn reads_available_memory_and_full_stalls() {
         assert_eq!(
-            available_pct("MemTotal: 1000 kB\nMemAvailable: 125 kB"),
+            headroom_pct(
+                "MemTotal: 1000 kB\nMemFree: 50 kB\nBuffers: 25 kB\nCached: 25 kB\nSReclaimable: 25 kB",
+            ),
             Some(12.5)
         );
         assert_eq!(
