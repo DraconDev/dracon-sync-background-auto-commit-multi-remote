@@ -425,17 +425,25 @@ pub(super) fn wrap(
     Some((command, unit))
 }
 
-fn units() -> &'static Mutex<HashMap<u32, String>> {
-    static UNITS: std::sync::OnceLock<Mutex<HashMap<u32, String>>> = std::sync::OnceLock::new();
+struct OwnedUnit {
+    name: String,
+    _push: Option<std::sync::Arc<super::push_resources::RunningPush>>,
+}
+
+fn units() -> &'static Mutex<HashMap<u32, OwnedUnit>> {
+    static UNITS: std::sync::OnceLock<Mutex<HashMap<u32, OwnedUnit>>> = std::sync::OnceLock::new();
     UNITS.get_or_init(Default::default)
 }
 
 /// Bind a spawned `systemd-run` client PID to its unit.
 pub(super) fn register(pid: u32, unit: String) {
-    units()
-        .lock()
-        .unwrap_or_else(|p| p.into_inner())
-        .insert(pid, unit);
+    units().lock().unwrap_or_else(|p| p.into_inner()).insert(
+        pid,
+        OwnedUnit {
+            name: unit,
+            _push: super::push_resources::running_push(),
+        },
+    );
 }
 
 /// The client was reaped; its PID may be reused, so drop the binding.
@@ -446,7 +454,7 @@ pub(super) fn forget(pid: u32) {
         .remove(&pid);
 }
 
-fn take(pid: u32) -> Option<String> {
+fn take(pid: u32) -> Option<OwnedUnit> {
     units()
         .lock()
         .unwrap_or_else(|p| p.into_inner())
@@ -457,7 +465,14 @@ fn take(pid: u32) -> Option<String> {
 /// waits `TimeoutStopSec` (= [`super::ops::SIGTERM_GRACE`]) and then KILLs.
 /// Returns true when `pid` was an isolated push client.
 pub(super) async fn stop(pid: u32) -> bool {
-    let Some(unit) = take(pid) else {
+    // Keep ownership in the registry until stop finishes. If the caller
+    // is cancelled during this await, its drop guard can still kill the unit.
+    let name = units()
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .get(&pid)
+        .map(|unit| unit.name.clone());
+    let Some(unit) = name else {
         return false;
     };
     let Some(manager) = manager() else {
@@ -469,7 +484,10 @@ pub(super) async fn stop(pid: u32) -> bool {
         .kill_on_drop(true);
     let budget = super::ops::SIGTERM_GRACE + Duration::from_secs(15);
     match tokio::time::timeout(budget, command.output()).await {
-        Ok(Ok(output)) if output.status.success() => {}
+        Ok(Ok(output)) if output.status.success() => {
+            forget(pid);
+            return true;
+        }
         Ok(Ok(output)) => eprintln!(
             "⚠️ push unit {unit}: stop failed: {}",
             String::from_utf8_lossy(&output.stderr).trim()
@@ -477,6 +495,7 @@ pub(super) async fn stop(pid: u32) -> bool {
         Ok(Err(error)) => eprintln!("⚠️ push unit {unit}: stop failed to run: {error}"),
         Err(_) => eprintln!("⚠️ push unit {unit}: stop did not finish in {budget:?}"),
     }
+    kill_now(pid);
     true
 }
 
@@ -492,13 +511,16 @@ pub(super) fn kill_now(pid: u32) {
         return;
     };
     std::thread::spawn(move || {
+        // This guard survives the cancelled Git future and prevents overlap
+        // with another admitted publication or repack during unit teardown.
+        let OwnedUnit { name, _push } = unit;
         let _ = manager
             .control()
-            .args(["--user", "kill", "--signal=SIGKILL", "--", &unit])
+            .args(["--user", "kill", "--signal=SIGKILL", "--", &name])
             .output();
         let _ = manager
             .control()
-            .args(["--user", "stop", "--", &unit])
+            .args(["--user", "stop", "--", &name])
             .output();
     });
 }

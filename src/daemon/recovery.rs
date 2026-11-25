@@ -155,10 +155,11 @@ pub(super) fn planned_execution_budget(
 ) -> Duration {
     let attempts = u64::from(policy.push_retries.max(1));
     // Mirror retries sleep for at most 1 + 2 + … + (attempts - 1)
-    // seconds. Allow ten seconds per Git process for owned cleanup as well.
+    // seconds. Also cover the process runner's isolated-unit stop budget.
+    let cleanup = crate::git::SIGTERM_GRACE.as_secs() + 15;
     let backoff = attempts.saturating_mul(attempts - 1) / 2;
     let leg = crate::git::progress_hard_timeout_secs(idle)
-        .saturating_add(10)
+        .saturating_add(cleanup)
         .saturating_mul(attempts)
         .saturating_add(backoff);
     Duration::from_secs(

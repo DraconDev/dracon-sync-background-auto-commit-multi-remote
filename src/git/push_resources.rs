@@ -23,11 +23,18 @@ struct LocalWork {
     permit: RefCell<Option<OwnedSemaphorePermit>>,
 }
 
+/// Retained by the isolated unit across asynchronous cancellation cleanup.
+pub(super) struct RunningPush {
+    _fleet: OwnedSemaphorePermit,
+    _repo: super::repo_maintenance::PushActivity,
+}
+
 tokio::task_local! {
     static LOCAL_WORK: LocalWork;
     static PUSH_PHASE: bool;
     static SMALL_PUBLICATION: bool;
     static POLICY_PATH: std::path::PathBuf;
+    static RUNNING_PUSH: Arc<RunningPush>;
     #[cfg(test)]
     static TEST_ADMISSION: Arc<Semaphore>;
 }
@@ -250,7 +257,7 @@ pub(super) async fn command<T>(
             })
             .unwrap_or(false)
     };
-    let (_admission, _push) = loop {
+    let running = loop {
         while held() {
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
@@ -263,11 +270,18 @@ pub(super) async fn command<T>(
         // Pressure or a manual pause may have arrived while this command
         // waited behind another publication.
         if !held() {
-            break (admission, push);
+            break RunningPush {
+                _fleet: admission,
+                _repo: push,
+            };
         }
     };
     let _running = queued.started();
-    work.await
+    RUNNING_PUSH.scope(Arc::new(running), work).await
+}
+
+pub(super) fn running_push() -> Option<Arc<RunningPush>> {
+    RUNNING_PUSH.try_with(Arc::clone).ok()
 }
 
 /// Apply only to the child of an enrolled daemon push. Setting our own child
