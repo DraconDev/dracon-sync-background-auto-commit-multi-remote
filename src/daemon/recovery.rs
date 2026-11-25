@@ -48,7 +48,7 @@ impl SyncRecovery {
                     phase: Some(phase),
                     execution_secs: started
                         .get()
-                        .map(|at| now.saturating_duration_since(*at).as_secs()),
+                        .map(|at| elapsed_execution(repo, *at, now).as_secs()),
                     ..Default::default()
                 },
             );
@@ -82,7 +82,7 @@ impl SyncRecovery {
             .filter_map(|(repo, started)| {
                 let started = started.get()?;
                 let allowed = self.budgets.get(repo).copied().unwrap_or(budget);
-                if now.saturating_duration_since(*started) >= allowed
+                if elapsed_execution(repo, *started, now) >= allowed
                     && self.cancelling.insert(repo.clone())
                 {
                     Some(repo.clone())
@@ -111,6 +111,11 @@ impl SyncRecovery {
             self.retry_after.remove(repo);
         }
     }
+}
+
+fn elapsed_execution(repo: &Path, started: Instant, now: Instant) -> Duration {
+    now.saturating_duration_since(started)
+        .saturating_sub(super::scheduler_evidence::publication_queue_time(repo, now))
 }
 
 /// Oldest admitted probe first, with never-admitted repos ahead of repeat

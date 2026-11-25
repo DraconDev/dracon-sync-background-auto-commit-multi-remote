@@ -3,7 +3,7 @@ use super::{recovery::SyncRecovery, RepoActivity};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -30,6 +30,10 @@ struct WorkerStamp {
     committing: bool,
     /// Immutable-tip publication command actually executing.
     publishing_since: Option<Instant>,
+    running_commands: usize,
+    waiting_commands: usize,
+    queued_since: Option<Instant>,
+    queue_time: Duration,
     /// Last observation time, used to expire abandoned stamps.
     touched: Option<Instant>,
 }
@@ -70,6 +74,7 @@ pub(crate) fn worker_not_committing(repo: &Path) {
 /// Record whether a publication command is currently executing. The async
 /// `publish_phase` below is the production path; this is also used by tests to
 /// state the boundary explicitly.
+#[cfg(test)]
 pub(crate) fn worker_publishing(repo: &Path, active: bool) {
     update_stamp(repo, |stamp| {
         if active {
@@ -80,19 +85,62 @@ pub(crate) fn worker_publishing(repo: &Path, active: bool) {
     });
 }
 
-/// Mark publication as executing for exactly the duration of the upload. The
-/// guard clears the stamp on every exit path (completion, error, cancellation,
-/// panic unwind), so the report can never keep claiming "pushing" afterwards.
-pub(crate) async fn publish_phase<T>(repo: &Path, work: impl std::future::Future<Output = T>) -> T {
-    struct Stamp(PathBuf);
-    impl Drop for Stamp {
-        fn drop(&mut self) {
-            update_stamp(&self.0, |stamp| stamp.publishing_since = None);
+/// Own one command's queue/execution evidence through completion or cancellation.
+pub(crate) struct PublicationCommand {
+    repo: PathBuf,
+    running: bool,
+}
+
+fn update_publication(repo: &Path, update: impl FnOnce(&mut WorkerStamp)) {
+    update_stamp(repo, |stamp| {
+        let now = Instant::now();
+        update(stamp);
+        if stamp.running_commands > 0 {
+            stamp.publishing_since.get_or_insert(now);
+        } else {
+            stamp.publishing_since = None;
         }
+        if stamp.waiting_commands > 0 && stamp.running_commands == 0 {
+            stamp.queued_since.get_or_insert(now);
+        } else if let Some(started) = stamp.queued_since.take() {
+            stamp.queue_time += now.saturating_duration_since(started);
+        }
+    });
+}
+
+pub(crate) fn publication_queued(repo: &Path) -> PublicationCommand {
+    update_publication(repo, |stamp| stamp.waiting_commands += 1);
+    PublicationCommand { repo: repo.to_path_buf(), running: false }
+}
+
+impl PublicationCommand {
+    pub(crate) fn started(mut self) -> Self {
+        update_publication(&self.repo, |stamp| {
+            stamp.waiting_commands -= 1;
+            stamp.running_commands += 1;
+        });
+        self.running = true;
+        self
     }
-    update_stamp(repo, |stamp| stamp.publishing_since = Some(Instant::now()));
-    let _stamp = Stamp(repo.to_path_buf());
-    work.await
+}
+
+impl Drop for PublicationCommand {
+    fn drop(&mut self) {
+        update_publication(&self.repo, |stamp| {
+            if self.running {
+                stamp.running_commands -= 1;
+            } else {
+                stamp.waiting_commands -= 1;
+            }
+        });
+    }
+}
+
+pub(super) fn publication_queue_time(repo: &Path, now: Instant) -> Duration {
+    worker_phases().lock().expect("worker phase map poisoned")
+        .get(repo)
+        .map(|stamp| stamp.queue_time + stamp.queued_since.map_or(Duration::ZERO, |at| now.saturating_duration_since(at)))
+        .unwrap_or_default()
 }
 
 /// Clear a finished worker's stamps so a stale phase cannot describe new work.
@@ -114,10 +162,10 @@ pub(crate) struct RepoEvidence {
     pub eligible: bool,
     /// Admission is not progress; kept separate from execution age.
     pub admitted_secs: Option<u64>,
-    /// Publication command currently executing (independently of local work).
+    /// Publication waiting for admission or running independently of local work.
     #[serde(default)]
     pub publication_phase: Option<Phase>,
-    /// Age of the oldest continuously running publication command.
+    /// Continuous age of the current publication phase.
     #[serde(default)]
     pub publication_secs: Option<u64>,
 }
@@ -204,7 +252,7 @@ pub(super) fn build(inputs: Inputs<'_>, now: Instant, written_at: u64) -> Snapsh
                 now.saturating_duration_since(at).as_secs() <= WORKER_STAMP_FRESH_SECS
             }),
         };
-        if live {
+        if live || stamp.running_commands > 0 || stamp.waiting_commands > 0 {
             let row = repos.entry(path).or_default();
             // Real command execution outranks the reservation-derived
             // `Working`, and publication is reported independently of local
@@ -212,9 +260,18 @@ pub(super) fn build(inputs: Inputs<'_>, now: Instant, written_at: u64) -> Snapsh
             if let Some(started) = stamp.publishing_since {
                 row.publication_phase = Some(Phase::Pushing);
                 row.publication_secs = Some(now.saturating_duration_since(started).as_secs());
-                row.phase = Some(Phase::Pushing);
+                if row.phase != Some(Phase::Cancelling) {
+                    row.phase = Some(Phase::Pushing);
+                }
             } else if stamp.committing && row.phase != Some(Phase::Cancelling) {
                 row.phase = Some(Phase::Committing);
+            }
+            if let Some(started) = stamp.queued_since {
+                row.publication_phase = Some(Phase::Queued);
+                row.publication_secs = Some(now.saturating_duration_since(started).as_secs());
+                if !matches!(row.phase, Some(Phase::Cancelling | Phase::Committing)) {
+                    row.phase = Some(Phase::Queued);
+                }
             }
         }
     }
