@@ -54,9 +54,22 @@ fn daemon_git_config_parameters(current: Option<&str>) -> Option<String> {
     (out != current).then_some(out)
 }
 
+// Repository gates may fan out under a single Git process. Preserve an
+// explicit operator override while bounding the daemon's default workers.
+const DAEMON_HOOK_DEFAULTS: &[(&str, &str)] = &[
+    ("DRACON_GATE_WORKSPACE_CONCURRENCY", "4"),
+    ("DRACON_GATE_TEST_CONCURRENCY", "1"),
+    ("DRACON_GATE_MAX_WORKERS", "1"),
+];
+
 /// Call only from synchronous main, before constructing the Tokio runtime.
 pub(crate) fn initialize() -> anyhow::Result<()> {
     if std::env::args_os().nth(1).is_some_and(|arg| arg == "daemon") {
+        for (key, value) in DAEMON_HOOK_DEFAULTS {
+            if std::env::var_os(key).is_none() {
+                std::env::set_var(key, value);
+            }
+        }
         let current = std::env::var("GIT_CONFIG_PARAMETERS").ok();
         if let Some(value) = daemon_git_config_parameters(current.as_deref()) {
             // Same single-threaded entry point as PATH below.

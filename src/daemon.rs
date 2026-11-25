@@ -20,6 +20,7 @@ mod recovery;
 #[cfg(test)]
 mod recovery_tests;
 pub(crate) mod scheduler_evidence;
+pub(crate) mod memory_admission;
 
 pub(crate) static VERBOSITY: AtomicU8 = AtomicU8::new(0);
 
@@ -9253,7 +9254,9 @@ pub(crate) async fn run_daemon(
                 let repair_repo = repo.clone();
                 provisioning_jobs.insert(
                     repo.clone(),
-                    tokio::spawn(crate::git::push_resources::background_pushes(async move {
+                    tokio::spawn(crate::git::push_resources::daemon_scope(
+                        policy_path.clone(),
+                        crate::git::push_resources::background_pushes(async move {
                         let result = if both_defaults {
                             crate::git::consolidate_to_main(&repair_repo).await
                         } else {
@@ -9266,7 +9269,7 @@ pub(crate) async fn run_daemon(
                                 error
                             );
                         }
-                    })),
+                    }))),
                 );
                 continue;
             }
@@ -9341,6 +9344,7 @@ pub(crate) async fn run_daemon(
                 // MAX_INFLIGHT_STATUS_TASKS). Per-repo dedup alone let the
                 // whole dirty fleet walk its index at once.
                 && status_pending.len() < MAX_INFLIGHT_STATUS_TASKS
+                && !memory_admission::held()
             {
                 let repo_for_status = repo.clone();
                 status_pending.insert(repo.clone());
@@ -9365,6 +9369,10 @@ pub(crate) async fn run_daemon(
                 &mut status_results,
             );
             let Some((status_outcome, spawned)) = status_results.remove(&repo) else {
+                if memory_admission::held() && !status_pending.contains(&repo) {
+                    dispatch_holds.insert(repo.clone(), ("memory-pressure (inspection queued)".into(), now));
+                    continue;
+                }
                 dispatch_holds
                     .entry(repo.clone())
                     .or_insert_with(|| ("status-pending".to_string(), now));
@@ -9742,6 +9750,7 @@ pub(crate) async fn run_daemon(
                     // MAX_INFLIGHT_CLASSIFICATION_JOBS) — each of these
                     // jobs is a filter-aware diff plus warden decrypts.
                     && classification_pending.len() < MAX_INFLIGHT_CLASSIFICATION_JOBS
+                    && !memory_admission::held()
                     && classification_cooldown_elapsed(
                         classification_cooldowns.get(&repo), now
                     )
@@ -10386,7 +10395,8 @@ pub(crate) async fn run_daemon(
                     return (entry_rf, Err(anyhow::anyhow!("sync semaphore closed")));
                 };
                 let _ = run_started.set(Instant::now());
-                crate::git::push_resources::with_local_work(sem, permit, async move {
+                crate::git::push_resources::daemon_scope(policy_path_for_task.clone(),
+                    crate::git::push_resources::with_local_work(sem, permit, async move {
                     let mut rf = entry_rf;
                     let r = sync_repo_with_ahead_since(
                         &repo_for_task,
@@ -10401,7 +10411,7 @@ pub(crate) async fn run_daemon(
                     )
                     .await;
                     (rf, r)
-                })
+                }))
                 .await
             });
             sync_workers.insert(repo.clone(), handle.abort_handle());
@@ -10767,7 +10777,9 @@ pub(crate) async fn run_daemon(
             // loop against a daemon that was publishing normally.
             let ahead_threshold =
                 stuck_ahead_threshold(policy.push_op_timeout_secs, entry.ahead_count);
-            if sustained_threshold_met(entry.ahead_since, notification_now, ahead_threshold) {
+            if !scheduler_evidence::publication_admitted_or_waiting(repo)
+                && sustained_threshold_met(entry.ahead_since, notification_now, ahead_threshold)
+            {
                 // ADDED 2026-09-20 (v0.113.83): while the repo is
                 // Exhausted-paused the Push Stuck page (with repair
                 // command) is already in the tray — skip the duplicate.
@@ -11123,7 +11135,6 @@ pub(crate) async fn run_daemon(
     }
     for repo in sync_workers.keys() {
         scheduler_evidence::worker_not_committing(repo);
-        scheduler_evidence::worker_publishing(repo, false);
     }
     let drain_secs = SyncPolicy::load(&policy_path)
         .map(|policy| policy.trailing_drain_deadline_secs)

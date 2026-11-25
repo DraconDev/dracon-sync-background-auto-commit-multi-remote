@@ -53,6 +53,17 @@ pub(crate) async fn daemon_scope<T>(
     POLICY_PATH.scope(policy_path, work).await
 }
 
+pub(crate) fn daemon_memory_hold() -> bool {
+    POLICY_PATH.try_with(|_| crate::daemon::memory_admission::held()).unwrap_or(false)
+}
+
+/// The shared Warden hook can chain a repository-specific pre-push gate.
+/// Unknown repository identities are conservatively given the full budget.
+pub(crate) fn ordinary_repository(repo: &std::path::Path) -> bool {
+    super::sync_lease::repository_identity(repo)
+        .is_ok_and(|common| !common.join("hooks/pre-push").exists())
+}
+
 pub(crate) async fn sized_publication<T>(
     small: bool,
     work: impl Future<Output = T>,

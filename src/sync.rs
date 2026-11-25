@@ -2310,21 +2310,15 @@ fn refresh_round<'a>(
         // local_phase re-admits bounded local work while the enclosing upload
         // has yielded its permit. The commit pass acquires its OWN operation
         // lease, so it cannot race the publication owner's post-round work.
-        crate::daemon::scheduler_evidence::worker_committing(repo);
-        crate::git::push_resources::local_phase(sync_repo_local_with_ownership(
-            repo,
-            policy,
-            excluded_dir_names,
-            idle_seconds,
-            None,
-            false,
-            policy_path,
-            ahead_since,
-            true,
-            true,
-            None,
-        ))
-        .await
+        crate::git::push_resources::local_phase(async {
+            crate::daemon::scheduler_evidence::local_commit_phase(
+                repo,
+                sync_repo_local_with_ownership(
+                    repo, policy, excluded_dir_names, idle_seconds,
+                    None, false, policy_path, ahead_since, true, true, None,
+                )
+            ).await
+        }).await
     })
 }
 
@@ -2352,22 +2346,22 @@ async fn run_publication_actor<'a>(
     // publisher per common directory across processes and worktrees.
     drop(ctx.operation_lease.take());
 
-    // `push_phase` yields the bounded local-work permit for exactly the life
-    // of the upload: hooks/network no longer consume commit capacity, and the
-    // refresh passes below re-admit through `local_phase`. The scheduler's
-    // per-repository reservation is unchanged — this worker still owns the
-    // repository's publication, it just stops holding local mutation.
-    // `push_phase` yields bounded local-work capacity for exactly the life of
-    // the upload, and `publish_phase` stamps the real command execution so the
-    // report distinguishes "pushing" from "committed successfully".
+    // Queueing and upload both release local capacity. Git command admission
+    // distinguishes actual execution from waiting between mirror legs.
+    crate::daemon::scheduler_evidence::worker_not_committing(ctx.repo);
+    let small = ahead_count <= 5 && crate::git::push_resources::ordinary_repository(ctx.repo);
+    crate::daemon::scheduler_evidence::set_publication_budget(
+        ctx.repo, ctx.policy, plan.timeout_secs,
+        plan.remotes.len() as u64 + u64::from(plan.has_origin),
+    );
     let refresh_repo = ctx.repo;
     let refresh_policy = ctx.policy;
     let refresh_excludes = ctx.excluded_dir_names;
     let refresh_idle = ctx.idle_seconds;
     let refresh_policy_path = ctx.policy_path;
     let ok_report = crate::git::push_resources::publication_round(
-        Box::pin(crate::daemon::scheduler_evidence::publish_phase(
-            ctx.repo,
+        Box::pin(crate::git::push_resources::sized_publication(
+            small,
             upload_publication(ctx.repo, ctx.policy, &mut plan, ctx.commit_only),
         )),
         move || async move {
@@ -4659,8 +4653,9 @@ async fn stage_commit_and_push(
 
     // This alert needs a commit count, not another worktree/filter traversal.
     // Failure after a known commit must not erase that fact or skip publication.
-    match count_ahead_commits(repo).await {
-        Ok(ahead) if ahead > policy.alert_unpushed_threshold as u64 => {
+    let publication_ahead = count_ahead_commits(repo).await;
+    match &publication_ahead {
+        Ok(ahead) if *ahead > policy.alert_unpushed_threshold as u64 => {
             // CHANGED 2026-11-06 (sync-stall fix): this fired on every commit
             // cycle, so a repo with a deep queue produced the same
             // "Something may be wrong with push" line every ~30 seconds while
@@ -4712,7 +4707,7 @@ async fn stage_commit_and_push(
     if policy.auto_push && (has_origin || !policy.remotes.is_empty()) {
         // Owned publication: the round is pinned, the checkout is released,
         // and fresh edits keep committing while hooks/network run.
-        let ahead = count_ahead_commits(repo).await.unwrap_or(0);
+        let ahead = publication_ahead.unwrap_or(51);
         match run_publication_actor(&mut *ctx, has_origin, ahead).await {
             Ok(PushReport::Attempted {
                 ok: true,
@@ -5470,7 +5465,9 @@ async fn sync_repo_local_with_ownership(
         // nothing inside Git's two-week grace). The repository keeps its
         // objects; they are simply not automatically repacked.
         let gc_override = crate::policy::load_repo_override(repo);
-        if !crate::policy::repo_auto_gc_disabled(policy, &gc_override) {
+        if !crate::policy::repo_auto_gc_disabled(policy, &gc_override)
+            && !crate::git::push_resources::daemon_memory_hold()
+        {
             crate::git::maybe_auto_gc(
                 repo,
                 policy.auto_gc_garbage_threshold_bytes,
@@ -6446,7 +6443,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     if ctx.policy.auto_push && should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
         // Owned publication (see `run_publication_actor`): one pinned round
         // whose upload overlaps fresh local commits in this repository.
-        let ahead = count_ahead_commits(ctx.repo).await.unwrap_or(0);
+        let ahead = count_ahead_commits(ctx.repo).await.unwrap_or(51).max(ahead);
         let has_origin = ctx.has_origin;
         match run_publication_actor(&mut *ctx, has_origin, ahead).await {
             Ok(PushReport::Attempted {
