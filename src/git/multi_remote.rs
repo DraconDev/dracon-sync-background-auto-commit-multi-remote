@@ -12,7 +12,7 @@ use crate::helpers::is_repo_already_exists;
 use crate::policy::{debug_enabled, std_git_command, tokio_git_command, AuthType, RemoteConfig};
 
 use super::{
-    current_branch, gh_cmd, git_ssh_hardening, is_local_hook_rejection, is_pack_too_large,
+    current_branch, gh_cmd, git_ssh_hardening, is_local_hook_rejection, is_pack_too_large, is_push_unit_resource_kill,
     is_permanent_push_rejection, is_push_rejected, is_safe_branch_name, load_secret,
     load_secret_or_legacy_pat, push_https_fallback, run_git_capture_output,
     run_git_with_timeout_env_progress,
@@ -919,6 +919,7 @@ async fn push_to_named_remote_inner(
     if is_permanent_push_rejection(&ssh_msg)
         || is_pack_too_large(&ssh_msg)
         || is_local_hook_rejection(&ssh_msg)
+        || is_push_unit_resource_kill(&ssh_msg)
         || (target.is_some() && is_push_rejected(&ssh_msg))
     {
         return Err(ssh_err);
@@ -950,6 +951,7 @@ async fn push_to_named_remote_inner(
         match push_https_fallback(repo, &remote_url, &refspec, timeout_secs, &fallback_label).await
         {
             Ok(()) => return Ok(()),
+            Err(e) if is_push_unit_resource_kill(&e.to_string()) => return Err(e),
             // FIX (audit M3, 2026-10-02): keep the original SSH error
             // alongside the fallback failure (classifier-safe:
             // substring matching only gains signal).
@@ -1005,6 +1007,7 @@ async fn push_to_named_remote_inner(
                 if is_permanent_push_rejection(&err_str)
                     || is_pack_too_large(&err_str)
                     || is_local_hook_rejection(&err_str)
+                    || is_push_unit_resource_kill(&err_str)
                 {
                     return Err(e);
                 }

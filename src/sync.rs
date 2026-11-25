@@ -2520,7 +2520,7 @@ pub(crate) async fn upload_publication(
     let origin_paused = plan.has_origin && paused.contains("origin");
     let mut map = std::mem::take(&mut plan.remote_failures);
     let mut origin_failed = false;
-    let mut origin_hook_refused = false;
+    let mut origin_round_interrupted = false;
     if plan.has_origin && !origin_paused {
         match crate::git::push_with_retries_for_target(
             repo,
@@ -2544,9 +2544,10 @@ pub(crate) async fn upload_publication(
                     repo.display(),
                     e
                 );
+                let message = e.to_string();
                 let fail = map.entry("origin".to_string()).or_default();
                 fail.consecutive += 1;
-                fail.last_error = e.to_string();
+                fail.last_error = message.clone();
                 fail.last_attempt_unix = crate::policy::timestamp_secs();
                 origin_failed = true;
                 // A LOCAL hook refusal for THIS pinned object is a verdict on
@@ -2564,13 +2565,15 @@ pub(crate) async fn upload_publication(
                 // 340 commits behind a pin that could never pass its own
                 // gate. Ending the round on a decided hook verdict returns
                 // control so the NEXT round pins the repaired tip.
-                if crate::git::is_local_hook_rejection(&e.to_string()) {
+                if crate::git::is_push_unit_resource_kill(&message) {
+                    origin_round_interrupted = true;
+                } else if crate::git::is_local_hook_rejection(&message) {
                     eprintln!(
                         "⛔ {} pin {} refused by the local pre-push hook; ending this round so the next one pins the current tip (mirror legs skipped for these bytes)",
                         repo.display(),
                         target.object_id()
                     );
-                    origin_hook_refused = true;
+                    origin_round_interrupted = true;
                 }
             }
         }
@@ -2591,7 +2594,7 @@ pub(crate) async fn upload_publication(
     // hook is per-worktree bytes, not per-destination, so a mirror cannot
     // learn anything origin did not. Skipping them keeps the round finite and
     // bounds the cost to one gate run for a decided refusal.
-    if origin_hook_refused {
+    if origin_round_interrupted {
         plan.remote_failures = map;
         return Ok(PushReport::Attempted {
             ok: false,

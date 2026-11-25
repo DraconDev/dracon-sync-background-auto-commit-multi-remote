@@ -707,6 +707,7 @@ pub(crate) async fn push_with_retries_for_target(
                 if is_permanent_push_rejection(&err_msg)
                     || is_pack_too_large(&err_msg)
                     || is_local_hook_rejection(&err_msg)
+                    || is_push_unit_resource_kill(&err_msg)
                 {
                     return Err(e);
                 }
@@ -808,6 +809,9 @@ pub(crate) async fn push_with_retries_for_target(
                         {
                             Ok(()) => return Ok(()),
                             Err(fallback_err) => {
+                                if is_push_unit_resource_kill(&fallback_err.to_string()) {
+                                    return Err(fallback_err);
+                                }
                                 let prev =
                                     last_err.take().map(|e| e.to_string()).unwrap_or_default();
                                 last_err = Some(anyhow::anyhow!(
@@ -892,12 +896,9 @@ pub(crate) async fn push_with_retries_for_target(
 /// and stay in the `is_permanent_push_rejection` arm, so the sets remain
 /// disjoint.
 pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
-    // An isolated push killed by its memory budget is local by construction:
-    // the kill happened on this host, and it can carry a PASSING gate banner
-    // (the hook passed, then pack-objects was killed), so it must be decided
-    // before the success-banner test below.
+    // An interrupted unit can print its gate banner without reaching a verdict.
     if is_push_unit_resource_kill(err_msg) {
-        return true;
+        return false;
     }
     let lower = err_msg.to_lowercase();
     // FIXED 2026-11-14 (browser-extensions-shared): the server answering the
@@ -2520,12 +2521,12 @@ mod tests {
     }
 
     #[test]
-    fn isolated_push_oom_kill_is_a_local_fail_fast_resource_failure() {
+    fn isolated_push_oom_kill_is_a_resource_failure_without_a_hook_verdict() {
         // Verbatim systemd-run --wait tail, after a PASSING gate banner: the
         // hook passed and pack-objects was killed. Still local, still fail-fast.
         let message = "git push failed in /r with status exit status: 1: Running as unit: dracon-push-ab.service\n\u{2705} Pre-push: 4-gate passed for all affected workspaces.\n          Finished with result: oom-kill\nMain processes terminated with: code=killed, status=9/KILL";
         assert!(is_push_unit_resource_kill(message));
-        assert!(is_local_hook_rejection(message));
+        assert!(!is_local_hook_rejection(message));
         let class = classify_push_failure(message);
         assert!(class.contains("isolated memory budget"), "{class}");
         assert!(!is_transient_forge_outage(message));

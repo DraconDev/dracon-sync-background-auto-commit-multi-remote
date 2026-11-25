@@ -277,7 +277,16 @@ pub(super) async fn command<T>(
         }
     };
     let _running = queued.started();
-    RUNNING_PUSH.scope(Arc::new(running), work).await
+    let running = Arc::new(running);
+    let result = RUNNING_PUSH.scope(running.clone(), work).await;
+    if POLICY_PATH.try_with(|_| ()).is_ok()
+        && result
+            .as_ref()
+            .is_err_and(|error| super::is_push_unit_resource_kill(&error.to_string()))
+    {
+        crate::daemon::memory_admission::resource_kill();
+    }
+    result
 }
 
 pub(super) fn running_push() -> Option<Arc<RunningPush>> {

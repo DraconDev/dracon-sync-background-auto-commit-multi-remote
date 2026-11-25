@@ -72,12 +72,20 @@ fn read_full_stall(path: &Path) -> Option<f64> {
     full_stall(&std::fs::read_to_string(path).ok()?)
 }
 
+static ADMISSION: Mutex<Admission> = Mutex::new(Admission {
+    held: false,
+    last_sample: None,
+    calm_since: None,
+});
+
+pub(crate) fn resource_kill() {
+    let mut admission = ADMISSION.lock().expect("memory admission poisoned");
+    admission.held = true;
+    admission.calm_since = None;
+    eprintln!("scheduler: isolated push was OOM-killed; waiting for sustained calm before admitting uploads and inspections");
+}
+
 pub(crate) fn held() -> bool {
-    static ADMISSION: Mutex<Admission> = Mutex::new(Admission {
-        held: false,
-        last_sample: None,
-        calm_since: None,
-    });
     let mut admission = ADMISSION.lock().expect("memory admission poisoned");
     let now = Instant::now();
     if admission

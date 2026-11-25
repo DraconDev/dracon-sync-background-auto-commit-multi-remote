@@ -57,7 +57,7 @@ fn daemon_git_config_parameters(current: Option<&str>) -> Option<String> {
 // Repository gates may fan out under a single Git process. Preserve an
 // explicit operator override while bounding the daemon's default workers.
 const DAEMON_HOOK_DEFAULTS: &[(&str, &str)] = &[
-    ("DRACON_GATE_WORKSPACE_CONCURRENCY", "4"),
+    ("DRACON_GATE_WORKSPACE_CONCURRENCY", "2"),
     ("DRACON_GATE_TEST_CONCURRENCY", "1"),
     ("DRACON_GATE_MAX_WORKERS", "1"),
 ];
