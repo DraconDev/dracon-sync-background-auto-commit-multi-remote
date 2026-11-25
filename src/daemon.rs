@@ -743,21 +743,17 @@ fn remaining_pulse(interval: Duration, elapsed: Duration) -> Duration {
     interval.saturating_sub(elapsed)
 }
 
-/// Pure decision for whether a repo needs a filter-aware background
-/// classification this pulse. Extracted so the wedge shape (dirty + ahead
-/// override) is unit-testable. AHEAD/BEHIND IS A PUSH CONCERN: it must not
-/// suppress worktree classification for a dirty repo.
+/// Decide whether a worktree classification must precede dispatch. A worker
+/// with staged intent already has work to verify against the captured index.
 fn needs_classification(
     status_is_clean: bool,
     ahead: usize,
     behind: usize,
     has_origin: bool,
     has_upstream: bool,
+    staged_intent: bool,
 ) -> bool {
-    // Every state reaching the shared dispatch gate needs a ready result.
-    // Remote divergence must not suppress classification, even if status is
-    // clean: filter-aware diff remains authoritative for worktree changes.
-    !status_is_clean || ahead > 0 || behind > 0 || !has_origin || !has_upstream
+    !staged_intent && (!status_is_clean || ahead > 0 || behind > 0 || !has_origin || !has_upstream)
 }
 
 fn scheduler_unix_ms() -> u128 {
@@ -2155,18 +2151,18 @@ mod tests {
     fn needs_classification_dirty_repo_with_ahead_override_classifies() {
         // The live wedge: status dirty + mirror-ahead override (ahead=3).
         // Classification must run or the dispatch gate starves forever.
-        assert!(needs_classification(false, 3, 0, true, true));
-        assert!(needs_classification(false, 0, 2, true, true));
-        assert!(needs_classification(false, 0, 0, true, true));
+        assert!(needs_classification(false, 3, 0, true, true, false));
+        assert!(needs_classification(false, 0, 2, true, true, false));
+        assert!(needs_classification(false, 0, 0, true, true, false));
         // Clean + synced + healthy remotes: fast path, no classification.
-        assert!(!needs_classification(true, 0, 0, true, true));
+        assert!(!needs_classification(true, 0, 0, true, true, false));
         // Clean but remote issues: keep the dirty-entries check.
-        assert!(needs_classification(true, 0, 0, false, true));
-        assert!(needs_classification(true, 0, 0, true, false));
+        assert!(needs_classification(true, 0, 0, false, true, false));
+        assert!(needs_classification(true, 0, 0, true, false, false));
         // Clean divergence reaches the same result-gated dispatch path.
-        assert!(needs_classification(true, 2, 0, true, true));
-        assert!(needs_classification(true, 3, 0, true, true));
-        assert!(needs_classification(true, 0, 2, true, true));
+        assert!(needs_classification(true, 2, 0, true, true, false));
+        assert!(needs_classification(true, 3, 0, true, true, false));
+        assert!(needs_classification(true, 0, 2, true, true, false));
     }
 
     #[test]
@@ -2628,6 +2624,19 @@ mod tests {
         let staged = inspect_worktree_status(&repo, &BTreeSet::new()).await.unwrap();
         assert_eq!(staged.status.staged_files, 1);
         assert!(staged.worktree_entries.is_none());
+        // A later worktree revert cannot erase the staged version or make
+        // the scheduler wait for a combined diff against HEAD.
+        assert!(crate::git::git_cmd()
+            .args(["restore", "--source=HEAD", "--worktree", "--", "README.md"])
+            .current_dir(&repo)
+            .status()
+            .unwrap()
+            .success());
+        let reverted = inspect_worktree_status(&repo, &BTreeSet::new()).await.unwrap();
+        assert_eq!(reverted.status.staged_files, 1);
+        assert!(!needs_classification(
+            reverted.status.is_clean, 7, 0, true, true, reverted.status.staged_files > 0
+        ));
     }
 
     // REMOVED 2026-10-03 (audit R4-SC-07):
@@ -9626,12 +9635,14 @@ pub(crate) async fn run_daemon(
             // live: dracontilities/dracon-sync dirty + ahead=3 for 20 min;
             // polis ahead=12 pending for hours). Ahead/behind is a PUSH
             // concern and must not suppress worktree classification.
+            let staged_intent = policy.auto_commit && status.staged_files > 0;
             let needs_classification = needs_classification(
                 status.is_clean,
                 status.ahead,
                 status.behind,
                 has_origin,
                 has_upstream,
+                staged_intent,
             );
             if let Some(entries) = worktree_entries.filter(|_| needs_classification) {
                 // This is the filter-checked, current worktree observation.
@@ -9853,9 +9864,11 @@ pub(crate) async fn run_daemon(
                 status.behind,
                 status.untracked_files
             );
-            let (effective_dirty, entries) = if recovery_pending {
-                // Persistent metadata work must dispatch even with raw Git clean
-                // and after restart; never clear activity as healthy/idle here.
+            let (effective_dirty, entries) = if recovery_pending || staged_intent {
+                // The worker captures and validates staged bytes under its
+                // lease. A combined HEAD-to-worktree diff can erase the
+                // scheduler's evidence of an edit staged and then reverted
+                // in the worktree, and repeats unrelated clean filters.
                 (true, Vec::new())
             } else if status.is_clean && status.ahead == 0 && status.behind == 0 {
                 // Clean and synced — skip all expensive git calls
