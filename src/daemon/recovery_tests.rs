@@ -33,7 +33,7 @@ async fn recovery_status_waits_for_teardown_and_healthy_peer_progresses() {
         // The test controls release; even an assertion failure cannot leak it.
         release_rx.recv_timeout(Duration::from_secs(5)).unwrap();
         std::future::pending::<()>().await;
-        (path, Ok(dracon_git::types::RepoStatus::new()))
+        (path, Ok(StatusSnapshot::empty()))
     });
     let abort = handle.abort_handle();
     entered_rx.await.unwrap();
@@ -41,7 +41,7 @@ async fn recovery_status_waits_for_teardown_and_healthy_peer_progresses() {
     jobs.push(handle);
     let path = healthy.clone();
     let fast: StatusJoin =
-        tokio::spawn(async move { (path, Ok(dracon_git::types::RepoStatus::new())) });
+        tokio::spawn(async move { (path, Ok(StatusSnapshot::empty())) });
     let fast_abort = fast.abort_handle();
     finished(&fast_abort).await;
     jobs.push(fast);

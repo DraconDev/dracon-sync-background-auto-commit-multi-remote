@@ -521,6 +521,61 @@ fn prune_expired_cooldowns(map: &mut HashMap<PathBuf, Instant>, now: Instant) {
     map.retain(|_, until| now < *until);
 }
 
+#[derive(Debug)]
+pub(crate) struct StatusSnapshot {
+    status: dracon_git::types::RepoStatus,
+    worktree_entries: Option<Vec<dracon_git::types::DiffFile>>,
+}
+
+#[cfg(test)]
+impl StatusSnapshot {
+    fn empty() -> Self {
+        Self {
+            status: dracon_git::types::RepoStatus::new(),
+            worktree_entries: Some(Vec::new()),
+        }
+    }
+}
+
+async fn inspect_scheduler_status(
+    repo: &Path,
+    watched: &BTreeSet<PathBuf>,
+) -> Result<StatusSnapshot> {
+    use dracon_git::types::{DiffFile, FileStatus};
+
+    let mut entries = Vec::new();
+    let mut complete = true;
+    let status = crate::git::inspect_status_with_entries(
+        repo,
+        crate::git::STATUS_INSPECTION_BUDGET,
+        watched,
+        |x, y, submodule_dirt, path| {
+            if submodule_dirt || y == b'.' {
+                return;
+            }
+            let kind = match (x, y) {
+                (b'?', b'?') => FileStatus::Added,
+                (b'.', b'M') => FileStatus::Modified,
+                (b'.', b'D') => FileStatus::Deleted,
+                (b'.', b'T') => FileStatus::TypeChange,
+                _ => {
+                    complete = false;
+                    return;
+                }
+            };
+            entries.push(DiffFile::new(path.to_path_buf(), kind));
+        },
+    )
+    .await?;
+    // Where the index differs from HEAD, the scheduler still needs a
+    // combined HEAD-to-worktree diff, including cancellation of edits.
+    let worktree_entries = (status.staged_files == 0 && complete).then_some(entries);
+    Ok(StatusSnapshot {
+        status,
+        worktree_entries,
+    })
+}
+
 /// ADDED 2026-09-18 (v0.113.74, firehose fairness): pipelined status
 /// inspection. The serial scan loop used to `await` every repo's
 /// `get_status()` inline, so one giant repo's 5–22s status (measured
@@ -535,7 +590,7 @@ fn prune_expired_cooldowns(map: &mut HashMap<PathBuf, Instant>, now: Instant) {
 /// giant are inspected and dispatched on time instead of waiting.
 pub(crate) type StatusJoin = tokio::task::JoinHandle<(
     PathBuf,
-    Result<dracon_git::types::RepoStatus, anyhow::Error>,
+    Result<StatusSnapshot, anyhow::Error>,
 )>;
 
 /// Maximum advisory snapshot age, still measured from SPAWN, not collection.
@@ -562,7 +617,7 @@ fn collect_ready_status(
     results: &mut HashMap<
         PathBuf,
         (
-            Result<dracon_git::types::RepoStatus, anyhow::Error>,
+            Result<StatusSnapshot, anyhow::Error>,
             Instant,
         ),
     >,
@@ -2545,6 +2600,34 @@ mod tests {
         repo
     }
 
+    #[tokio::test]
+    async fn scheduler_reuses_status_entries_for_unstaged_work_only() {
+        use dracon_git::types::FileStatus;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_publish_upstream_repo(&tmp);
+        std::fs::write(repo.join("README.md"), "changed").unwrap();
+        std::fs::write(repo.join("new.txt"), "new").unwrap();
+
+        let snapshot = inspect_scheduler_status(&repo, &BTreeSet::new()).await.unwrap();
+        let entries = snapshot.worktree_entries.unwrap();
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].path, Path::new("README.md"));
+        assert_eq!(entries[0].status, FileStatus::Modified);
+        assert_eq!(entries[1].path, Path::new("new.txt"));
+        assert_eq!(entries[1].status, FileStatus::Added);
+
+        assert!(crate::git::git_cmd()
+            .args(["add", "README.md"])
+            .current_dir(&repo)
+            .status()
+            .unwrap()
+            .success());
+        let staged = inspect_scheduler_status(&repo, &BTreeSet::new()).await.unwrap();
+        assert_eq!(staged.status.staged_files, 1);
+        assert!(staged.worktree_entries.is_none());
+    }
+
     // REMOVED 2026-10-03 (audit R4-SC-07):
     // `test_m1_discard_matches_only_corresponding_generation` pinned the
     // M1 per-generation discard helper, which is deleted above with the
@@ -4363,7 +4446,7 @@ mod tests {
         let now = Instant::now();
         let task_repo = repo.clone();
         let handle: StatusJoin =
-            tokio::spawn(async move { (task_repo, Ok(dracon_git::types::RepoStatus::new())) });
+            tokio::spawn(async move { (task_repo, Ok(StatusSnapshot::empty())) });
         let mut aborts = HashMap::from([(repo.clone(), handle.abort_handle().into())]);
         let mut pending = HashSet::from([repo.clone()]);
         let mut spawned = HashMap::from([(repo.clone(), now - Duration::from_secs(STATUS_TASK_TIMEOUT_SECS + 1))]);
@@ -4478,7 +4561,7 @@ mod tests {
         let mut results: HashMap<
             PathBuf,
             (
-                Result<dracon_git::types::RepoStatus, anyhow::Error>,
+                Result<StatusSnapshot, anyhow::Error>,
                 Instant,
             ),
         > = HashMap::new();
@@ -4487,7 +4570,7 @@ mod tests {
         // task (stands in for a slow index/worktree inspection).
         let fast = fast_repo.clone();
         jobs.push(tokio::spawn(async move {
-            (fast, Ok(dracon_git::types::RepoStatus::new()))
+            (fast, Ok(StatusSnapshot::empty()))
         }));
         pending.insert(fast_repo.clone());
         spawned_at.insert(fast_repo.clone(), now);
@@ -4495,7 +4578,7 @@ mod tests {
         jobs.push(tokio::spawn(async move {
             futures::future::pending::<()>().await;
             #[allow(unreachable_code)]
-            (slow, Ok(dracon_git::types::RepoStatus::new()))
+            (slow, Ok(StatusSnapshot::empty()))
         }));
         pending.insert(slow_repo.clone());
         spawned_at.insert(slow_repo.clone(), now);
@@ -4577,14 +4660,14 @@ mod tests {
         let mut results: HashMap<
             PathBuf,
             (
-                Result<dracon_git::types::RepoStatus, anyhow::Error>,
+                Result<StatusSnapshot, anyhow::Error>,
                 Instant,
             ),
         > = HashMap::new();
         let old = Instant::now() - Duration::from_secs(STATUS_RESULT_MAX_AGE_SECS + 15);
         let r = repo.clone();
         jobs.push(tokio::spawn(async move {
-            (r, Ok(dracon_git::types::RepoStatus::new()))
+            (r, Ok(StatusSnapshot::empty()))
         }));
         pending.insert(repo.clone());
         spawned_at.insert(repo.clone(), old);
@@ -7903,7 +7986,7 @@ pub(crate) async fn run_daemon(
     let mut status_results: HashMap<
         PathBuf,
         (
-            Result<dracon_git::types::RepoStatus, anyhow::Error>,
+            Result<StatusSnapshot, anyhow::Error>,
             Instant,
         ),
     > = HashMap::new();
@@ -9265,12 +9348,7 @@ pub(crate) async fn run_daemon(
                 probe_admitted.insert(repo.clone(), now);
                 let status_coverage = Arc::clone(&status_coverage);
                 let status_handle = tokio::spawn(async move {
-                    let outcome = crate::git::inspect_status_with_coverage(
-                        &repo_for_status,
-                        Duration::from_secs(STATUS_TASK_TIMEOUT_SECS),
-                        &status_coverage,
-                    )
-                    .await;
+                    let outcome = inspect_scheduler_status(&repo_for_status, &status_coverage).await;
                     (repo_for_status, outcome)
                 });
                 // v0.113.85: retain the abort handle so the wedge
@@ -9305,8 +9383,11 @@ pub(crate) async fn run_daemon(
             };
             dispatch_holds.remove(&repo);
             let stale = status_result_is_stale(spawned, now);
-            let mut status = match status_outcome {
-                Ok(status) if !stale => status,
+            let StatusSnapshot {
+                mut status,
+                worktree_entries,
+            } = match status_outcome {
+                Ok(snapshot) if !stale => snapshot,
                 Ok(_) => {
                     dispatch_holds.insert(repo.clone(), ("status-stale (re-probing)".into(), now));
                     if debug_enabled() {
@@ -9536,7 +9617,13 @@ pub(crate) async fn run_daemon(
                 has_origin,
                 has_upstream,
             );
-            if needs_classification {
+            if let Some(entries) = worktree_entries.filter(|_| needs_classification) {
+                // This is the filter-checked, current worktree observation.
+                // Reuse it so slow repositories get one scan per admission.
+                classification_failures.remove(&repo);
+                classification_cooldowns.remove(&repo);
+                classification_results.insert(repo.clone(), (Ok(entries), spawned));
+            } else if needs_classification {
                 // Staleness pass: drop results that describe an older index
                 // snapshot. Non-empty results are KEPT (they will be consumed
                 // at the dispatch site below); empty results are stale by

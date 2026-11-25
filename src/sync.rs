@@ -2846,14 +2846,7 @@ struct TaskDetail {
 /// - Any file with checkbox syntax
 ///
 /// This is deterministic — no LLM, no inference. Just regex on the diff.
-fn extract_task_transitions(repo: &Path) -> TaskTransitions {
-    // Get the diff for ALL files (not just markdown)
-    let output =
-        match run_git_capture_output(repo, &["diff", "--cached", "--unified=0"], "task-diff") {
-            Ok(o) => o,
-            Err(_) => return TaskTransitions::default(),
-        };
-
+fn extract_task_transitions(repo: &Path, output: &str) -> TaskTransitions {
     let mut transitions = TaskTransitions::default();
 
     for line in output.lines() {
@@ -3657,7 +3650,33 @@ fn has_env_changes(repo: &Path) -> bool {
 /// - The AI gets its understanding from the actual diff, not the commit message
 ///
 /// The commit message is an INDEX, not a description.
+const TASK_DIFF_ARGS: &[&str] = &["diff", "--cached", "--unified=0"];
+
+async fn inspect_task_transitions(repo: &Path) -> TaskTransitions {
+    // Commit-message enrichment is optional. A large staged patch can
+    // exhaust the daemon's memory headroom or block a runtime thread.
+    let result = tokio::time::timeout(Duration::from_secs(10), async {
+        let child = crate::git::spawn_git_command_cancellable(repo, TASK_DIFF_ARGS, "task-diff")?;
+        let (exit, output, _) = crate::git::run_git_captured_output(child, repo, "task-diff").await?;
+        anyhow::ensure!(exit.success(), "staged task diff failed");
+        Ok::<_, anyhow::Error>(output)
+    })
+    .await;
+    match result {
+        Ok(Ok(output)) => extract_task_transitions(repo, &String::from_utf8_lossy(&output)),
+        Ok(Err(_)) | Err(_) => TaskTransitions::default(),
+    }
+}
+
+#[cfg(test)]
 fn compute_blast_radius(repo: &Path) -> String {
+    let transitions = run_git_capture_output(repo, TASK_DIFF_ARGS, "task-diff")
+        .map(|output| extract_task_transitions(repo, &output))
+        .unwrap_or_default();
+    format_blast_radius(repo, transitions)
+}
+
+fn format_blast_radius(repo: &Path, transitions: TaskTransitions) -> String {
     let output = match run_git_capture_output(repo, &["diff", "--cached", "--numstat"], "numstat") {
         Ok(o) => o,
         Err(_) => return "0 file(s) DELTA:+0/-0".to_string(),
@@ -3731,7 +3750,6 @@ fn compute_blast_radius(repo: &Path) -> String {
     // Build routing key components
 
     // 1. Task intent (from markdown diff) — cap at 10 tasks per category
-    let transitions = extract_task_transitions(repo);
     let is_merge = repo.join(".git/MERGE_HEAD").exists();
     let is_revert = repo.join(".git/REVERT_HEAD").exists();
     let intent_prefix = if is_merge {
@@ -4420,7 +4438,7 @@ async fn stage_commit_and_push(
     };
     let committed_entries = epoch.entries()?;
 
-    let blast_radius = compute_blast_radius(repo);
+    let blast_radius = format_blast_radius(repo, inspect_task_transitions(repo).await);
 
     let version_bumped = false;
     let mut pending_local = false;

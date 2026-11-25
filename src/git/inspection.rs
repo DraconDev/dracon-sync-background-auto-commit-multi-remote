@@ -18,13 +18,13 @@ use std::{
 /// exceed a short UI deadline. Keep cancellation and the finite ceiling alike.
 pub(crate) const STATUS_INSPECTION_BUDGET: Duration = Duration::from_secs(120);
 
+#[cfg(test)]
 pub(crate) async fn inspect_status(repo: &Path, budget: Duration) -> Result<RepoStatus> {
     inspect_status_inner(repo, budget, None, |_, _, _, _| {}).await
 }
 
-/// Avoid recursively inspecting child worktrees only when every indexed gitlink
-/// is independently watched. Gitlink pointer changes still appear in status.
-pub(crate) async fn inspect_status_with_coverage(
+#[cfg(test)]
+async fn inspect_status_with_coverage(
     repo: &Path,
     budget: Duration,
     watched: &BTreeSet<PathBuf>,
@@ -35,6 +35,8 @@ pub(crate) async fn inspect_status_with_coverage(
     inspect_status_inner(repo, budget, Some(watched), |_, _, _, _| {}).await
 }
 
+/// Skip recursive child dirt checks when every indexed gitlink is independently
+/// watched. Gitlink pointer changes still appear in the observation.
 pub(crate) async fn inspect_status_with_entries(
     repo: &Path,
     budget: Duration,

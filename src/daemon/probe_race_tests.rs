@@ -7,7 +7,7 @@ async fn recovery_completed_status_racing_cancellation_retains_original_age() {
     let old = now - Duration::from_secs(STATUS_RESULT_MAX_AGE_SECS + 1);
     let path = repo.clone();
     let task: StatusJoin =
-        tokio::spawn(async move { (path, Ok(dracon_git::types::RepoStatus::new())) });
+        tokio::spawn(async move { (path, Ok(StatusSnapshot::empty())) });
     let abort = task.abort_handle();
     tokio::time::timeout(Duration::from_secs(5), async {
         while !abort.is_finished() {

@@ -1364,6 +1364,7 @@ struct DirtyClassification {
     /// committed yet; the gitlink auto-advances when it does), not a
     /// policy exclusion, and showing it raised questions.
     excluded: usize,
+    oversized_modified: usize,
     /// Submodule-worktree-only dirt whose gitlink SHA didn't move.
     /// Subtracted from the parent's committable counts (there is
     /// nothing to commit at the parent) but NEVER displayed as an
@@ -1415,6 +1416,7 @@ async fn inspect_report_status(
             out.committable_staged += usize::from(staged);
             if modified && oversized {
                 out.excluded += 1;
+                out.oversized_modified += 1;
             } else {
                 out.committable_modified += usize::from(modified);
             }
@@ -5083,6 +5085,12 @@ pub(crate) async fn run_repos_report(
                 })
                 .unwrap_or(&hint);
             hint = format!("pending mirror publication ({lag}); {detail}");
+        }
+        if classification.oversized_modified > 0 {
+            let count = classification.oversized_modified;
+            let limit = policy.max_stage_file_bytes;
+            let file_label = if count == 1 { "edit exceeds" } else { "edits exceed" };
+            hint = format!("{count} worktree {file_label} the {limit}-byte staging limit; {hint}");
         }
         let row = RepoReportRow {
             health,

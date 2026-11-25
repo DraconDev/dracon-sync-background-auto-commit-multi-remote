@@ -1357,7 +1357,7 @@ pub(crate) use status::*;
 mod inspection;
 #[cfg(test)]
 pub(crate) use inspection::inspect_status;
-pub(crate) use inspection::{inspect_status_with_coverage, inspect_status_with_entries, STATUS_INSPECTION_BUDGET};
+pub(crate) use inspection::{inspect_status_with_entries, STATUS_INSPECTION_BUDGET};
 mod urls;
 pub(crate) use urls::*;
 
