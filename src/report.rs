@@ -1371,151 +1371,55 @@ struct DirtyClassification {
     unchanged_gitlink: usize,
 }
 
-/// Parse `git status --porcelain -z` output into (x, y, path) tuples.
-/// Rename/copy records carry a second NUL-separated source path which is
-/// skipped. Unparseable short records are dropped (defensive).
-fn parse_porcelain_z(stdout: &[u8]) -> Vec<(u8, u8, String)> {
-    let mut out = Vec::new();
-    let mut it = stdout.split(|&b| b == 0).filter(|s| !s.is_empty());
-    while let Some(rec) = it.next() {
-        if rec.len() < 4 {
-            continue;
-        }
-        let (x, y) = (rec[0], rec[1]);
-        let path = String::from_utf8_lossy(&rec[3..]).to_string();
-        if matches!(x, b'R' | b'C') {
-            it.next(); // consume the source path of a rename/copy
-        }
-        out.push((x, y, path));
-    }
-    out
-}
-
-/// Classify a dirty repo's porcelain entries into committable vs excluded.
-/// `untracked_excludes` are the global `untracked_exclude_patterns` (daemon
-/// won't stage those either); `auto_commit_excludes` are the UNION of the
-/// global list and the per-repo override
-/// (`effective_auto_commit_excludes`, R3-M2 contract — per-repo EXTENDS).
-///
-/// v0.113.89 (b): the "fast: no clean-filter pass" claim in the comment
-/// above is FALSE and cost the operator the whole `repos` command. `git
-/// status --porcelain` DOES run the clean filter whenever the stat
-/// cache cannot prove a file unchanged, so on a warden-hardened repo it
-/// spawns `dracon-warden filter-process` per candidate file. Measured
-/// live 2026-09-28 on `doomtap` (40 of the first 40 tracked files carry
-/// `filter=dracon`): a plain `git status` took **>40s** and timed out,
-/// while the same command with the filter bypassed took **0.041s**.
-/// Because this function runs for every repo with tracked dirt, one
-/// `repos` invocation walked 34 repos and took **over 10 minutes**
-/// (measured 3x, consistently).
-///
-/// The port is now BOUNDED, and a timeout degrades to the pre-v0.113.13
-/// defensive answer (treat everything as committable) so real dirt is
-/// never hidden — the same posture the non-zero-exit branch below
-/// already takes. The child is spawned cancellable/kill-on-drop, so an
-/// abandoned call cannot leave a `git status` (or its warden children)
-/// running to compete with the retry.
-async fn classify_dirty_entries(
+/// Classify the entries from the same porcelain observation used for counts.
+async fn inspect_report_status(
     repo: &Path,
+    watched: &std::collections::BTreeSet<PathBuf>,
     auto_commit_excludes: &[String],
     untracked_excludes: &[String],
-) -> DirtyClassification {
-    // 8s, not 20s: a HEALTHY `git status` on the worst repo in this
-    // fleet measured 0.885s (dracon-platform) and 0.018s (a game
-    // submodule) on 2026-09-28, so 8s is a 9x margin on the honest cost
-    // while bounding the deadlocking-filter case to a fraction of the
-    // old 10-minute run. This classification only refines the 🚫
-    // excluded-count display; the authoritative dirty counts come from
-    // the libgit2 status pass above, so degrading it costs display
-    // precision, never correctness.
-    const PORCELAIN_BUDGET: std::time::Duration = std::time::Duration::from_secs(8);
-    /// One `git status --porcelain -z` pass, spawned cancellable so an
-    /// abandoned call cannot leave `git` (or its warden filter children)
-    /// running to compete with the retry.
-    async fn run_porcelain(
-        repo: &Path,
-        extra: &str,
-    ) -> anyhow::Result<(std::process::ExitStatus, Vec<u8>)> {
-        // Built conditionally: an empty `&str` would be handed to git as
-        // an argument, not skipped.
-        let mut args: Vec<&str> = vec!["status", "--porcelain", "-z"];
-        if !extra.is_empty() {
-            args.push(extra);
-        }
-        let child =
-            crate::git::spawn_git_command_cancellable(repo, &args, "status --porcelain -z")?;
-        let (status, stdout, _) =
-            crate::git::run_git_captured_output(child, repo, "status --porcelain -z").await?;
-        Ok((status, stdout))
-    }
-    // `--ignore-submodules=dirty` drops submodule-worktree-only entries
-    // (unchanged gitlink) — the exact semantics the sync loop's
-    // `is_gitlink_unchanged` applies at staging time. Gitlink SHA drift
-    // still shows in BOTH passes and therefore stays committable.
-    let (plain, base) = match tokio::time::timeout(PORCELAIN_BUDGET, async {
-        (
-            run_porcelain(repo, "").await,
-            run_porcelain(repo, "--ignore-submodules=dirty").await,
-        )
-    })
-    .await
-    {
-        Ok((Ok(p), Ok(b))) if p.0.success() && b.0.success() => {
-            (parse_porcelain_z(&p.1), parse_porcelain_z(&b.1))
-        }
-        // Defensive: porcelain unavailable → treat everything as
-        // committable (pre-v0.113.13 behavior) so we never hide real dirt.
-        _ => {
-            return DirtyClassification {
-                committable_modified: 1,
-                committable_staged: 0,
-                excluded: 0,
-                unchanged_gitlink: 0,
-            };
-        }
-    };
-
+    max_stage_file_bytes: u64,
+) -> Result<(dracon_git::types::RepoStatus, DirtyClassification)> {
     let mut out = DirtyClassification::default();
-    let base_paths: std::collections::HashSet<&str> = base.iter().map(|r| r.2.as_str()).collect();
-    for (_, _, path) in &plain {
-        if !base_paths.contains(path.as_str()) && repo.join(path).join(".git").exists() {
-            out.unchanged_gitlink += 1; // submodule worktree dirt, unchanged gitlink
-        }
-    }
-
-    for (x, y, path) in &base {
-        let tracked = *x != b'?' && *x != b'!';
-        let excluded = (!auto_commit_excludes.is_empty()
-            && crate::exclude::matches_untracked_exclude(
-                repo,
-                &repo.join(path),
-                auto_commit_excludes,
-            ))
-            || (!tracked
-                && !untracked_excludes.is_empty()
-                && crate::exclude::matches_untracked_exclude(
-                    repo,
-                    &repo.join(path),
-                    untracked_excludes,
-                ));
-        if excluded {
-            out.excluded += 1;
-            continue;
-        }
-        if !tracked {
-            // Untracked the daemon WOULD commit: visible in the UT count
-            // but never drives the dirty-clock / WARN (pre-existing
-            // report semantics, preserved).
-            continue;
-        }
-        if matches!(*x, b'M' | b'A' | b'D' | b'R' | b'C' | b'T') {
-            out.committable_staged += 1;
-        }
-        if matches!(*y, b'M' | b'D' | b'T') {
-            out.committable_modified += 1;
-        }
-    }
-    out
+    let status = crate::git::inspect_status_with_entries(
+        repo,
+        crate::git::STATUS_INSPECTION_BUDGET,
+        watched,
+        |x, y, submodule_dirt, path| {
+            if submodule_dirt {
+                out.unchanged_gitlink += 1;
+                if x == b'.' {
+                    return;
+                }
+            }
+            let full_path = repo.join(path);
+            let untracked = x == b'?';
+            if crate::exclude::matches_untracked_exclude(repo, &full_path, auto_commit_excludes)
+                || (untracked
+                    && crate::exclude::matches_untracked_exclude(repo, &full_path, untracked_excludes))
+            {
+                out.excluded += 1;
+                return;
+            }
+            if untracked {
+                return;
+            }
+            let staged = x != b'.';
+            let modified = y != b'.' && !submodule_dirt;
+            // The daemon measures an unstaged candidate's worktree size.
+            // Staged content has its own blob-size check and must stay visible.
+            let oversized = matches!(y, b'M' | b'A' | b'C' | b'R')
+                && std::fs::metadata(&full_path)
+                    .is_ok_and(|meta| meta.is_file() && meta.len() > max_stage_file_bytes);
+            out.committable_staged += usize::from(staged);
+            if modified && oversized {
+                out.excluded += 1;
+            } else {
+                out.committable_modified += usize::from(modified);
+            }
+        },
+    )
+    .await?;
+    Ok((status, out))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -4434,11 +4338,17 @@ pub(crate) async fn run_repos_report(
                 let cache_record = std::sync::Arc::clone(&cache_record);
                 let status_coverage = std::sync::Arc::clone(&status_coverage);
                 async move {
-                // Use the same owned-process inspection as the scheduler.
-                // A timed-out detail/report must cancel Git and its filter
-                // descendants, not leave an uncancellable blocking task behind.
-                let status = match crate::git::inspect_status_with_coverage(&repo, crate::git::STATUS_INSPECTION_BUDGET, &status_coverage).await {
-                    Ok(status) => status,
+                let repo_override = crate::policy::load_repo_override(&repo);
+                let auto_commit_excludes =
+                    crate::policy::effective_auto_commit_excludes(policy, &repo_override);
+                let (mut effective_status, classification) = match inspect_report_status(
+                    &repo,
+                    &status_coverage,
+                    &auto_commit_excludes,
+                    &policy.untracked_exclude_patterns,
+                    policy.max_stage_file_bytes,
+                ).await {
+                    Ok(result) => result,
                     Err(e) => {
                         init_status_failures.lock().unwrap().push((repo.clone(), e.to_string()));
                         if repo_detail.is_none() {
@@ -4447,47 +4357,9 @@ pub(crate) async fn run_repos_report(
                         return None;
                     }
                 };
-        // Per-repo opt-out: when a repo declares itself intentionally
-        // isolated (e.g. a legacy private mirror that the operator no
-        // longer wants auto-tracked), suppress the implicit concern and
-        // surface the intent explicitly.
-        let repo_override = crate::policy::load_repo_override(&repo);
-        // Skip `repo_diff_entries()` here — it calls `git diff --name-status HEAD`
-        // which applies the clean filter (dracon-warden age encryption) to every
-        // modified file. For repos with many large filtered files (e.g. pnpm-lock.yaml),
-        // this takes 10+ seconds per repo and makes the report feel like it's hanging.
-        //
-        // Libgit2 already correctly excludes .gitignore'd files (target/,
-        // node_modules/, build outputs) from its modified count, so it gives us
-        // the same "real source changes" answer without the slow clean-filter pass.
-        let mut effective_status = status.clone();
-        // v0.113.13 (goal-list 2026-07-29): subtract the dirt the daemon
-        // intentionally won't commit (auto_commit_exclude_patterns,
-        // untracked excludes, unchanged-gitlink submodule dirt) from the
-        // tracked-dirty counts, and remember how much was excluded for
-        // the `· N excl` ACTIVITY marker. Only runs when the RAW counts
-        // say there's tracked dirt, so clean repos pay nothing. After
-        // this adjustment every downstream consumer (ACTIVITY label,
-        // WARN escalation, JSON) sees "what the daemon will act on".
-        let mut excluded_dirty = 0usize;
-        if effective_status.modified_files + effective_status.staged_files > 0 {
-            // FIXED 2026-10-03 (audit R4-SR-02): UNION, not REPLACE —
-            // the old `unwrap_or` dropped the global list whenever a
-            // per-repo list existed, so excluded_dirty was undercounted
-            // (committable overcounted) and `repos` disagreed with what
-            // the daemon stages. Same helper as the daemon gates.
-            let auto_commit_excludes =
-                crate::policy::effective_auto_commit_excludes(policy, &repo_override);
-            let cls = classify_dirty_entries(
-                &repo,
-                &auto_commit_excludes,
-                &policy.untracked_exclude_patterns,
-            )
-            .await;
-            effective_status.modified_files = cls.committable_modified;
-            effective_status.staged_files = cls.committable_staged;
-            excluded_dirty = cls.excluded;
-        }
+        effective_status.modified_files = classification.committable_modified;
+        effective_status.staged_files = classification.committable_staged;
+        let excluded_dirty = classification.excluded;
         // ADDED 2026-06-30, goal `mr0grjhl-q1g5bo`: subtract the
         // untracked entries that point to sibling subrepo directories
         // (each containing its own `.git/`) from the parent's UT count.
@@ -16234,6 +16106,23 @@ mod v011313_tests {
         );
     }
 
+    async fn classify_dirty_entries(
+        repo: &Path,
+        auto_commit_excludes: &[String],
+        untracked_excludes: &[String],
+    ) -> DirtyClassification {
+        inspect_report_status(
+            repo,
+            &Default::default(),
+            auto_commit_excludes,
+            untracked_excludes,
+            u64::MAX,
+        )
+        .await
+        .unwrap()
+        .1
+    }
+
     #[tokio::test]
     async fn classify_excluded_tracked_pattern_is_not_committable() {
         let tmp = tempfile::tempdir().unwrap();
@@ -16373,19 +16262,20 @@ mod v011313_tests {
         assert_eq!(cls.excluded, 0);
     }
 
-    #[test]
-    fn parse_porcelain_z_handles_renames_and_untracked() {
-        // "R  new\0old\0" + "?? new.txt\0" + " M mod.txt\0"
-        let data = b"R  new.txt\0old.txt\0?? u.txt\0 M m.txt\0";
-        let recs = parse_porcelain_z(data);
-        assert_eq!(
-            recs.len(),
-            3,
-            "rename source path must be consumed: {recs:?}"
-        );
-        assert_eq!(recs[0], (b'R', b' ', "new.txt".to_string()));
-        assert_eq!(recs[1], (b'?', b'?', "u.txt".to_string()));
-        assert_eq!(recs[2], (b' ', b'M', "m.txt".to_string()));
+    #[tokio::test]
+    async fn report_keeps_staged_changes_visible_when_the_worktree_file_is_oversized() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("r");
+        init_repo(&repo);
+        fs::write(repo.join("file.txt"), "v2").unwrap();
+        git(&repo, &["add", "file.txt"]);
+        fs::write(repo.join("file.txt"), "oversized worktree edit").unwrap();
+        let (_, cls) = inspect_report_status(&repo, &Default::default(), &[], &[], 8)
+            .await
+            .unwrap();
+        assert_eq!(cls.committable_modified, 0);
+        assert_eq!(cls.committable_staged, 1);
+        assert_eq!(cls.excluded, 1);
     }
 
     #[test]

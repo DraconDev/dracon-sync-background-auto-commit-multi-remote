@@ -4258,8 +4258,8 @@ mod tests {
         // Results older than 30s are stale-dropped on arrival; the
         // 60s abort bound is 2x headroom.
         assert!(!status_inspection_wedged(ago(10), now));
-        assert!(!status_inspection_wedged(ago(59), now));
-        assert!(status_inspection_wedged(ago(60), now));
+        assert!(!status_inspection_wedged(ago(STATUS_TASK_TIMEOUT_SECS - 1), now));
+        assert!(status_inspection_wedged(ago(STATUS_TASK_TIMEOUT_SECS), now));
         assert!(status_inspection_wedged(ago(3600), now));
     }
 
