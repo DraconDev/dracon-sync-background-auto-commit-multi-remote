@@ -525,8 +525,8 @@ fn prune_expired_cooldowns(map: &mut HashMap<PathBuf, Instant>, now: Instant) {
 
 #[derive(Debug)]
 pub(crate) struct StatusSnapshot {
-    status: dracon_git::types::RepoStatus,
-    worktree_entries: Option<Vec<dracon_git::types::DiffFile>>,
+    pub(crate) status: dracon_git::types::RepoStatus,
+    pub(crate) worktree_entries: Option<Vec<dracon_git::types::DiffFile>>,
 }
 
 #[cfg(test)]
@@ -539,7 +539,7 @@ impl StatusSnapshot {
     }
 }
 
-async fn inspect_scheduler_status(
+pub(crate) async fn inspect_worktree_status(
     repo: &Path,
     watched: &BTreeSet<PathBuf>,
 ) -> Result<StatusSnapshot> {
@@ -2611,7 +2611,7 @@ mod tests {
         std::fs::write(repo.join("README.md"), "changed").unwrap();
         std::fs::write(repo.join("new.txt"), "new").unwrap();
 
-        let snapshot = inspect_scheduler_status(&repo, &BTreeSet::new()).await.unwrap();
+        let snapshot = inspect_worktree_status(&repo, &BTreeSet::new()).await.unwrap();
         let entries = snapshot.worktree_entries.unwrap();
         assert_eq!(entries.len(), 2);
         assert_eq!(entries[0].path, Path::new("README.md"));
@@ -2625,7 +2625,7 @@ mod tests {
             .status()
             .unwrap()
             .success());
-        let staged = inspect_scheduler_status(&repo, &BTreeSet::new()).await.unwrap();
+        let staged = inspect_worktree_status(&repo, &BTreeSet::new()).await.unwrap();
         assert_eq!(staged.status.staged_files, 1);
         assert!(staged.worktree_entries.is_none());
     }
@@ -9356,7 +9356,7 @@ pub(crate) async fn run_daemon(
                 probe_admitted.insert(repo.clone(), now);
                 let status_coverage = Arc::clone(&status_coverage);
                 let status_handle = tokio::spawn(async move {
-                    let outcome = inspect_scheduler_status(&repo_for_status, &status_coverage).await;
+                    let outcome = inspect_worktree_status(&repo_for_status, &status_coverage).await;
                     (repo_for_status, outcome)
                 });
                 // v0.113.85: retain the abort handle so the wedge

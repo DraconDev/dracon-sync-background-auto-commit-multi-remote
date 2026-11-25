@@ -856,6 +856,21 @@ mod diff_tests {
 }
 
 async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResult> {
+    // Read a fresh observation under local ownership, after pulls and asset
+    // preparation. With an unchanged index, native Git already applied the
+    // clean filters when it assembled these paths. Rewalking the worktree
+    // with libgit2 and then git diff HEAD repeats Warden clean-filter work.
+    let snapshot = crate::daemon::inspect_worktree_status(repo, &BTreeSet::new()).await?;
+    if let Some(entries) = snapshot.worktree_entries {
+        return Ok(DiffResult {
+            status: snapshot.status,
+            entries,
+            filter_only_cleared: false,
+        });
+    }
+
+    // A staged-and-unstaged edit can cancel out against HEAD. Preserve the
+    // combined diff for incomplete porcelain records and staged changes.
     let mut status = svc.get_status().await?;
     let mut entries = svc.get_diff_entries().await?;
     let mut filter_only_cleared = false;
@@ -12609,6 +12624,27 @@ auto_bump_versions = false
             0,
             "a partially-refused round must not keep reporting pushed commits as unpushed"
         );
+    }
+
+    #[tokio::test]
+    async fn test_worker_porcelain_reuses_git_filter_aware_paths() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_repo(&tmp, "worker-porcelain");
+        std::fs::write(repo.join(".gitattributes"), "*.txt text eol=lf\n").unwrap();
+        std::fs::write(repo.join("normalized.txt"), "same\n").unwrap();
+        std::fs::write(repo.join("modified.txt"), "old\n").unwrap();
+        git_cmd(&repo, &["add", "."]);
+        git_cmd(&repo, &["commit", "--no-verify", "-qm", "seed"]);
+        std::fs::write(repo.join("normalized.txt"), "same\r\n").unwrap();
+        std::fs::write(repo.join("modified.txt"), "new bytes\n").unwrap();
+        std::fs::write(repo.join("untracked.txt"), "new\n").unwrap();
+
+        let svc = GitService::new(&repo).unwrap();
+        let DiffResult { entries, status, .. } = compute_diff_entries(&svc, &repo).await.unwrap();
+        let paths: BTreeSet<_> = entries.into_iter().map(|entry| entry.path).collect();
+        assert_eq!(paths, BTreeSet::from([PathBuf::from("modified.txt"), PathBuf::from("untracked.txt")]));
+        assert_eq!(status.modified_files, 1);
+        assert_eq!(status.untracked_files, 1);
     }
 
     #[tokio::test]
