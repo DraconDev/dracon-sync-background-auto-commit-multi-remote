@@ -14,7 +14,7 @@ mod tests;
 use anyhow::{Context, Result};
 use std::cell::RefCell;
 use std::future::Future;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 struct LocalWork {
@@ -25,6 +25,19 @@ struct LocalWork {
 tokio::task_local! {
     static LOCAL_WORK: LocalWork;
     static PUSH_PHASE: bool;
+}
+
+/// One heavy publication at a time across the daemon. Repository leases stop
+/// duplicate work for one checkout, but they do not protect the host when
+/// several large pre-push gates run in different repositories. Keep this
+/// process-wide because every daemon worker shares the same Git/Warden and
+/// systemd push slice.
+static PUBLICATION_ADMISSION: OnceLock<Arc<Semaphore>> = OnceLock::new();
+
+fn publication_admission() -> Arc<Semaphore> {
+    PUBLICATION_ADMISSION
+        .get_or_init(|| Arc::new(Semaphore::new(1)))
+        .clone()
 }
 
 pub(crate) async fn with_local_work<T>(
@@ -63,6 +76,13 @@ pub(crate) async fn push_phase<T>(work: impl Future<Output = Result<T>>) -> Resu
         permit.is_some(),
         "nested push phase would violate local-work ownership"
     );
+    // Acquire the fleet-wide publication slot before releasing local-work
+    // capacity. A queued publication therefore does not consume a local
+    // sync permit or admit another heavy push beside it.
+    let _publication = publication_admission()
+        .acquire_owned()
+        .await
+        .context("publication admission semaphore closed")?;
     drop(permit);
     let result = PUSH_PHASE.scope(true, work).await;
     // Restore local execution ownership before any subsequent mutation. This
