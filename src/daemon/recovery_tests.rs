@@ -51,7 +51,7 @@ async fn recovery_status_waits_for_teardown_and_healthy_peer_progresses() {
         (healthy.clone(), fast_abort.into()),
     ]);
     let mut since = HashMap::from([
-        (hung.clone(), now - Duration::from_secs(61)),
+        (hung.clone(), now - Duration::from_secs(STATUS_TASK_TIMEOUT_SECS + 1)),
         (healthy.clone(), now),
     ]);
     let mut results = HashMap::new();
