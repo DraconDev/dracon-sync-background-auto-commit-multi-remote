@@ -124,7 +124,9 @@ stage_op_timeout_secs = 10
         with_local_work(
             capacity,
             permit,
-            crate::sync::sync_repo(
+            // Keep the worker's state off the debug harness's stack, as
+            // the daemon does when it spawns each repository worker.
+            Box::pin(crate::sync::sync_repo(
                 repo,
                 &self.policy,
                 &Default::default(),
@@ -132,7 +134,7 @@ stage_op_timeout_secs = 10
                 None,
                 false,
                 None,
-            ),
+            )),
         )
         .await
         .unwrap_or_else(|error| panic!("fixture sync {} failed: {error:#}", repo.display()))
@@ -265,7 +267,7 @@ async fn integrated_failure_recovery_harness() {
         eprintln!("skip: node is not available in this environment");
         return;
     }
-    tokio::time::timeout(Duration::from_secs(60), episode())
+    tokio::time::timeout(Duration::from_secs(60), Box::pin(episode()))
         .await
         .expect("integrated episode exceeded its wall-clock budget");
 }
