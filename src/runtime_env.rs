@@ -64,7 +64,10 @@ const DAEMON_HOOK_DEFAULTS: &[(&str, &str)] = &[
 
 /// Call only from synchronous main, before constructing the Tokio runtime.
 pub(crate) fn initialize() -> anyhow::Result<()> {
-    if std::env::args_os().nth(1).is_some_and(|arg| arg == "daemon") {
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "daemon")
+    {
         for (key, value) in DAEMON_HOOK_DEFAULTS {
             if std::env::var_os(key).is_none() {
                 std::env::set_var(key, value);
@@ -125,7 +128,10 @@ mod tests {
         assert_eq!(set, "'gc.auto'='0' 'maintenance.auto'='false'");
         assert_eq!(daemon_git_config_parameters(Some(&set)), None);
         let kept = daemon_git_config_parameters(Some("'core.pager'='cat'")).unwrap();
-        assert_eq!(kept, "'core.pager'='cat' 'gc.auto'='0' 'maintenance.auto'='false'");
+        assert_eq!(
+            kept,
+            "'core.pager'='cat' 'gc.auto'='0' 'maintenance.auto'='false'"
+        );
     }
 
     /// Git itself must parse the value and apply it over repository config.
@@ -136,7 +142,10 @@ mod tests {
             crate::policy::std_git_command()
                 .args(args)
                 .current_dir(repo.path())
-                .env("GIT_CONFIG_PARAMETERS", daemon_git_config_parameters(None).unwrap())
+                .env(
+                    "GIT_CONFIG_PARAMETERS",
+                    daemon_git_config_parameters(None).unwrap(),
+                )
                 .output()
                 .unwrap()
         };

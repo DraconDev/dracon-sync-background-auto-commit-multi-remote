@@ -81,7 +81,9 @@ impl SyncRecovery {
             .iter()
             .filter_map(|(repo, started)| {
                 let started = started.get()?;
-                let allowed = self.budgets.get(repo).copied().unwrap_or(budget);
+                let allowed = super::scheduler_evidence::publication_budget(repo)
+                    .or_else(|| self.budgets.get(repo).copied())
+                    .unwrap_or(budget);
                 if elapsed_execution(repo, *started, now) >= allowed
                     && self.cancelling.insert(repo.clone())
                 {
@@ -143,10 +145,28 @@ pub(super) fn execution_budget(
     let targets = (policy.remotes.len() as u64).saturating_add(u64::from(has_origin));
     let idle =
         crate::sync::scale_push_timeout(policy.push_op_timeout_secs, ahead.saturating_add(1));
-    let push = crate::git::progress_hard_timeout_secs(idle)
-        .saturating_mul(u64::from(policy.push_retries.max(1)))
-        .saturating_mul(targets);
-    Duration::from_secs(local.saturating_add(push))
+    planned_execution_budget(policy, idle, targets)
+}
+
+pub(super) fn planned_execution_budget(
+    policy: &crate::policy::SyncPolicy,
+    idle: u64,
+    targets: u64,
+) -> Duration {
+    let attempts = u64::from(policy.push_retries.max(1));
+    // Mirror retries sleep for at most 1 + 2 + … + (attempts - 1)
+    // seconds. Allow ten seconds per Git process for owned cleanup as well.
+    let backoff = attempts.saturating_mul(attempts - 1) / 2;
+    let leg = crate::git::progress_hard_timeout_secs(idle)
+        .saturating_add(10)
+        .saturating_mul(attempts)
+        .saturating_add(backoff);
+    Duration::from_secs(
+        policy
+            .repo_sync_timeout_secs
+            .max(900)
+            .saturating_add(leg.saturating_mul(targets)),
+    )
 }
 
 #[cfg(test)]

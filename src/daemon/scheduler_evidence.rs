@@ -34,6 +34,7 @@ struct WorkerStamp {
     waiting_commands: usize,
     queued_since: Option<Instant>,
     queue_time: Duration,
+    publication_budget: Option<Duration>,
     /// Last observation time, used to expire abandoned stamps.
     touched: Option<Instant>,
 }
@@ -71,9 +72,7 @@ pub(crate) fn worker_not_committing(repo: &Path) {
     update_stamp(repo, |stamp| stamp.committing = false);
 }
 
-/// Record whether a publication command is currently executing. The async
-/// `publish_phase` below is the production path; this is also used by tests to
-/// state the boundary explicitly.
+/// Inject an execution stamp for evidence fixtures.
 #[cfg(test)]
 pub(crate) fn worker_publishing(repo: &Path, active: bool) {
     update_stamp(repo, |stamp| {
@@ -83,6 +82,50 @@ pub(crate) fn worker_publishing(repo: &Path, active: bool) {
             stamp.publishing_since = None;
         }
     });
+}
+
+pub(crate) async fn local_commit_phase<T>(
+    repo: &Path,
+    work: impl std::future::Future<Output = T>,
+) -> T {
+    struct Stamp<'a>(&'a Path);
+    impl Drop for Stamp<'_> {
+        fn drop(&mut self) {
+            worker_not_committing(self.0);
+        }
+    }
+    worker_committing(repo);
+    let _stamp = Stamp(repo);
+    work.await
+}
+
+pub(crate) fn set_publication_budget(
+    repo: &Path,
+    policy: &crate::policy::SyncPolicy,
+    timeout: u64,
+    targets: u64,
+) {
+    update_stamp(repo, |stamp| {
+        stamp.publication_budget = Some(super::recovery::planned_execution_budget(
+            policy, timeout, targets,
+        ));
+    });
+}
+
+pub(super) fn publication_budget(repo: &Path) -> Option<Duration> {
+    worker_phases()
+        .lock()
+        .expect("worker phase map poisoned")
+        .get(repo)
+        .and_then(|stamp| stamp.publication_budget)
+}
+
+pub(super) fn publication_admitted_or_waiting(repo: &Path) -> bool {
+    worker_phases()
+        .lock()
+        .expect("worker phase map poisoned")
+        .get(repo)
+        .is_some_and(|stamp| stamp.running_commands + stamp.waiting_commands > 0)
 }
 
 /// Own one command's queue/execution evidence through completion or cancellation.
@@ -110,7 +153,10 @@ fn update_publication(repo: &Path, update: impl FnOnce(&mut WorkerStamp)) {
 
 pub(crate) fn publication_queued(repo: &Path) -> PublicationCommand {
     update_publication(repo, |stamp| stamp.waiting_commands += 1);
-    PublicationCommand { repo: repo.to_path_buf(), running: false }
+    PublicationCommand {
+        repo: repo.to_path_buf(),
+        running: false,
+    }
 }
 
 impl PublicationCommand {
@@ -137,9 +183,16 @@ impl Drop for PublicationCommand {
 }
 
 pub(super) fn publication_queue_time(repo: &Path, now: Instant) -> Duration {
-    worker_phases().lock().expect("worker phase map poisoned")
+    worker_phases()
+        .lock()
+        .expect("worker phase map poisoned")
         .get(repo)
-        .map(|stamp| stamp.queue_time + stamp.queued_since.map_or(Duration::ZERO, |at| now.saturating_duration_since(at)))
+        .map(|stamp| {
+            stamp.queue_time
+                + stamp
+                    .queued_since
+                    .map_or(Duration::ZERO, |at| now.saturating_duration_since(at))
+        })
         .unwrap_or_default()
 }
 

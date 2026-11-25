@@ -79,6 +79,14 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
         return Current::Paused;
     }
     let phase = row.health.scheduler.as_ref().and_then(|e| e.phase);
+    if row
+        .health
+        .scheduler
+        .as_ref()
+        .is_some_and(|e| e.publication_phase == Some(Phase::Queued) && phase == Some(Phase::Queued))
+    {
+        return Current::Queued;
+    }
     // Local work can continue after the publication budget is exhausted. An
     // active committer/queue is not evidence that this backlog can be pushed.
     // Preserve an actual in-flight publication or an explicit current blocker;
@@ -184,7 +192,9 @@ pub(crate) const ALL_STATUS_LABELS: [&str; 11] = [
 
 pub(super) fn status(row: &RepoReportRow) -> (&'static str, Color) {
     match classify(row) {
-        Current::Converged if super::has_bucket_guard_demotion(row) => (LABEL_REVIEW, Color::Yellow),
+        Current::Converged if super::has_bucket_guard_demotion(row) => {
+            (LABEL_REVIEW, Color::Yellow)
+        }
         Current::Converged => (LABEL_CLEAN, Color::Green),
         Current::Excluded => (LABEL_EXCLUDED, Color::DarkGrey),
         Current::Queued => (LABEL_QUEUED, Color::Cyan),

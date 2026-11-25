@@ -816,7 +816,9 @@ fn mirror_unpublished(
     branch: &str,
     push_legs: &[String],
 ) -> BTreeMap<String, usize> {
-    let mirrors = push_legs.iter().filter(|remote| remote.as_str() != "origin");
+    let mirrors = push_legs
+        .iter()
+        .filter(|remote| remote.as_str() != "origin");
     if mirrors.clone().next().is_none() || !crate::git::is_safe_branch_name(branch) {
         return BTreeMap::new();
     }
@@ -1395,10 +1397,18 @@ async fn inspect_report_status(
             let full_path = repo.join(path);
             let untracked = x == b'?';
             if (!auto_commit_excludes.is_empty()
-                && crate::exclude::matches_untracked_exclude(repo, &full_path, auto_commit_excludes))
+                && crate::exclude::matches_untracked_exclude(
+                    repo,
+                    &full_path,
+                    auto_commit_excludes,
+                ))
                 || (untracked
                     && !untracked_excludes.is_empty()
-                    && crate::exclude::matches_untracked_exclude(repo, &full_path, untracked_excludes))
+                    && crate::exclude::matches_untracked_exclude(
+                        repo,
+                        &full_path,
+                        untracked_excludes,
+                    ))
             {
                 out.excluded += 1;
                 return;
@@ -4195,6 +4205,15 @@ fn apply_report_scheduler_snapshot(
         row.health.mode = snapshot.map(|s| s.mode.clone());
         row.health.current = current_health::classify(row);
         row.hint = current_blocker_hint(row.health.current, &row.hint);
+        if row.health.current == current_health::Current::Queued {
+            if let Some(age) = row.health.scheduler.as_ref().and_then(|e| {
+                (e.publication_phase == Some(crate::daemon::scheduler_evidence::Phase::Queued))
+                    .then_some(e.publication_secs)
+                    .flatten()
+            }) {
+                row.hint = format!("waiting for publication admission ({age}s); {}", row.hint);
+            }
+        }
         row.state_cause = match row.health.current {
             current_health::Current::Converged => StateCause::Idle,
             current_health::Current::Excluded => match row.state_cause.clone() {
@@ -7199,7 +7218,11 @@ fn rich_hint_link_out(rows: &[RepoReportRow], width: usize) -> Option<String> {
             ) || has_bucket_guard_demotion(row)
                 || row.health.push_failure_matches_tip
                 || (!row.health.mirror_unpublished.is_empty()
-                    && row.health.last_push.as_ref().is_some_and(|push| !push.succeeded))
+                    && row
+                        .health
+                        .last_push
+                        .as_ref()
+                        .is_some_and(|push| !push.succeeded))
         })
         .filter(|(_, row)| !row.hint.is_empty() && row.hint != "-")
         .map(|(_, row)| {
@@ -7208,9 +7231,15 @@ fn rich_hint_link_out(rows: &[RepoReportRow], width: usize) -> Option<String> {
                 .unwrap_or_default()
                 .to_string_lossy();
             // Treat footer content as terminal text, never as escape sequences.
-            let summary = if row.hint.starts_with("asset retirement admitted under warn mode") {
+            let summary = if row
+                .hint
+                .starts_with("asset retirement admitted under warn mode")
+            {
                 "asset retirement recorded"
-            } else if row.hint.starts_with("current scheduler evidence unavailable") {
+            } else if row
+                .hint
+                .starts_with("current scheduler evidence unavailable")
+            {
                 "scheduler status unavailable"
             } else {
                 row.hint.split(';').next().unwrap_or_default().trim()
@@ -7274,10 +7303,7 @@ fn print_repos_rich_table(
         println!(
             "{}",
             colorize(
-                &format!(
-                    "↔ Hidden at {width} columns · {}",
-                    hidden.join(" · ")
-                ),
+                &format!("↔ Hidden at {width} columns · {}", hidden.join(" · ")),
                 Color::DarkGrey
             )
         );
@@ -7531,9 +7557,15 @@ fn build_repos_rich_table_with_hidden(
     // Constraints and alignment follow the KEPT columns: positions shift
     // when a column is hidden, so index by original column id.
     for (position, &column) in kept.iter().enumerate() {
-        let column_width = if column == 2 { repo_col } else { all_widths[column] };
+        let column_width = if column == 2 {
+            repo_col
+        } else {
+            all_widths[column]
+        };
         let table_column = table.column_mut(position).expect("rich column");
-        table_column.set_constraint(ColumnConstraint::Absolute(Width::Fixed(column_width as u16)));
+        table_column.set_constraint(ColumnConstraint::Absolute(Width::Fixed(
+            column_width as u16,
+        )));
         // Align counts and sizes by magnitude; the repository and activity
         // columns stay left aligned for reading names and state labels.
         if [0, 4, 5, 6, 7, 11, 12, 13, 14].contains(&column) {
@@ -11248,8 +11280,14 @@ mod tests {
             paths: vec!["web/games/static/games/covers/typing-games-og.jpg".to_owned()],
         };
         let hint = demotion_hint(&demotion);
-        assert!(hint.contains("web/games/static/games/covers/typing-games-og.jpg"), "{hint}");
-        assert!(hint.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"), "{hint}");
+        assert!(
+            hint.contains("web/games/static/games/covers/typing-games-og.jpg"),
+            "{hint}"
+        );
+        assert!(
+            hint.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"),
+            "{hint}"
+        );
         assert!(hint.contains("git revert"), "{hint}");
         assert!(hint.contains("dracon-bucket-guard-demotion.json"), "{hint}");
         // It must not read as healthy or as a transient retry: this is a
@@ -13264,7 +13302,10 @@ mod tests {
             phase: Some(crate::daemon::scheduler_evidence::Phase::Working),
             ..Default::default()
         });
-        working.health.mirror_unpublished.insert("gitlab".into(), 2374);
+        working
+            .health
+            .mirror_unpublished
+            .insert("gitlab".into(), 2374);
         working.health.last_push = Some(crate::daemon::push_history::Observation {
             version: 1,
             repo: working.repo.clone(),
@@ -13274,7 +13315,9 @@ mod tests {
         working.hint = "pending mirror publication (gitlab missing 2374)".into();
         let table = build_repos_rich_table(std::slice::from_ref(&working), false, 200).to_string();
         assert!(table.contains("MIRROR LAG") && table.contains("2374"));
-        assert!(rich_hint_link_out(&[working], 165).unwrap().contains("gitlab missing 2374"));
+        assert!(rich_hint_link_out(&[working], 165)
+            .unwrap()
+            .contains("gitlab missing 2374"));
     }
 
     #[test]
@@ -13332,7 +13375,10 @@ mod tests {
         assert_eq!(hidden, ["1H", "6H", "24H", "GIT SIZE", "TOUCHED"]);
         for width in [137, RICH_TIER_MIN_COLS] {
             let rendered = build_repos_rich_table(&rows, false, width).to_string();
-            assert!(rendered.contains("pi-use-last-selected-thinking-level"), "{rendered}");
+            assert!(
+                rendered.contains("pi-use-last-selected-thinking-level"),
+                "{rendered}"
+            );
         }
         for width in RICH_TIER_FLOOR_COLS..=RICH_TIER_MIN_COLS {
             let header = header_of(width);
@@ -16447,7 +16493,10 @@ mod v011315_tests {
         let github_origin = rem_cell_content(&["github".to_string(), "gitlab".to_string()]);
         let gitlab_origin = rem_cell_content(&["gitlab".to_string(), "github".to_string()]);
         assert_eq!(github_origin, "🐙🦊");
-        assert_eq!(gitlab_origin, "🐙🦊", "leg order must not leak: {gitlab_origin:?}");
+        assert_eq!(
+            gitlab_origin, "🐙🦊",
+            "leg order must not leak: {gitlab_origin:?}"
+        );
 
         // Codeberg sits after GitLab regardless of arrival order.
         assert_eq!(
@@ -16693,8 +16742,12 @@ mod v011316_tests {
             codeberg_public_only: false,
             ..test_sync_policy()
         };
-        let remotes =
-            report_effective_remote_legs(&origin_only_policy, &RepoPolicyOverride::default(), &dir, false);
+        let remotes = report_effective_remote_legs(
+            &origin_only_policy,
+            &RepoPolicyOverride::default(),
+            &dir,
+            false,
+        );
         assert_eq!(
             remotes.legs,
             vec!["origin".to_string()],

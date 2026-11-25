@@ -54,7 +54,9 @@ pub(crate) async fn daemon_scope<T>(
 }
 
 pub(crate) fn daemon_memory_hold() -> bool {
-    POLICY_PATH.try_with(|_| crate::daemon::memory_admission::held()).unwrap_or(false)
+    POLICY_PATH
+        .try_with(|_| crate::daemon::memory_admission::held())
+        .unwrap_or(false)
 }
 
 /// The shared Warden hook can chain a repository-specific pre-push gate.
@@ -64,10 +66,7 @@ pub(crate) fn ordinary_repository(repo: &std::path::Path) -> bool {
         .is_ok_and(|common| !common.join("hooks/pre-push").exists())
 }
 
-pub(crate) async fn sized_publication<T>(
-    small: bool,
-    work: impl Future<Output = T>,
-) -> T {
+pub(crate) async fn sized_publication<T>(small: bool, work: impl Future<Output = T>) -> T {
     SMALL_PUBLICATION.scope(small, work).await
 }
 
@@ -244,10 +243,12 @@ pub(super) async fn command<T>(
     let small = SMALL_PUBLICATION.try_with(|small| *small).unwrap_or(false);
     let weight = if small { 1 } else { 2 };
     let held = || {
-        POLICY_PATH.try_with(|path| {
-            crate::policy::freeze_reason(path).is_some()
-                || crate::daemon::memory_admission::held()
-        }).unwrap_or(false)
+        POLICY_PATH
+            .try_with(|path| {
+                crate::policy::freeze_reason(path).is_some()
+                    || crate::daemon::memory_admission::held()
+            })
+            .unwrap_or(false)
     };
     let (_admission, _push) = loop {
         while held() {

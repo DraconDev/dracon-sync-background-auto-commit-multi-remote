@@ -13,6 +13,7 @@ use tokio::signal::unix::SignalKind;
 use tokio::time::sleep;
 
 mod discovery_scheduler;
+pub(crate) mod memory_admission;
 #[cfg(test)]
 mod probe_race_tests;
 pub(crate) mod push_history;
@@ -20,7 +21,6 @@ mod recovery;
 #[cfg(test)]
 mod recovery_tests;
 pub(crate) mod scheduler_evidence;
-pub(crate) mod memory_admission;
 
 pub(crate) static VERBOSITY: AtomicU8 = AtomicU8::new(0);
 
@@ -589,10 +589,8 @@ async fn inspect_scheduler_status(
 /// A repo with no ready result yet records a `status-pending` hold
 /// and is re-checked next cycle — small repos behind a stalled
 /// giant are inspected and dispatched on time instead of waiting.
-pub(crate) type StatusJoin = tokio::task::JoinHandle<(
-    PathBuf,
-    Result<StatusSnapshot, anyhow::Error>,
-)>;
+pub(crate) type StatusJoin =
+    tokio::task::JoinHandle<(PathBuf, Result<StatusSnapshot, anyhow::Error>)>;
 
 /// Maximum advisory snapshot age, still measured from SPAWN, not collection.
 /// Allow the full bounded inspection plus a 30-second collection window.
@@ -615,13 +613,7 @@ fn collect_ready_status(
     pending: &mut HashSet<PathBuf>,
     aborts: &mut HashMap<PathBuf, ProbeOwner>,
     spawned_at: &mut HashMap<PathBuf, Instant>,
-    results: &mut HashMap<
-        PathBuf,
-        (
-            Result<StatusSnapshot, anyhow::Error>,
-            Instant,
-        ),
-    >,
+    results: &mut HashMap<PathBuf, (Result<StatusSnapshot, anyhow::Error>, Instant)>,
 ) {
     while let Some(joined) = next_ready_classification(jobs) {
         if let Some((repo, outcome)) = identify_probe_join(joined, aborts) {
@@ -1995,10 +1987,26 @@ mod tests {
         let t0 = Instant::now();
         assert!(super::paused_log_due(None, "marker a", t0));
         let seen = ("marker a".to_owned(), t0);
-        assert!(!super::paused_log_due(Some(&seen), "marker a", t0 + Duration::from_secs(1)));
-        assert!(!super::paused_log_due(Some(&seen), "marker a", t0 + Duration::from_secs(299)));
-        assert!(super::paused_log_due(Some(&seen), "marker a", t0 + super::PAUSED_LOG_INTERVAL));
-        assert!(super::paused_log_due(Some(&seen), "marker b", t0 + Duration::from_secs(1)));
+        assert!(!super::paused_log_due(
+            Some(&seen),
+            "marker a",
+            t0 + Duration::from_secs(1)
+        ));
+        assert!(!super::paused_log_due(
+            Some(&seen),
+            "marker a",
+            t0 + Duration::from_secs(299)
+        ));
+        assert!(super::paused_log_due(
+            Some(&seen),
+            "marker a",
+            t0 + super::PAUSED_LOG_INTERVAL
+        ));
+        assert!(super::paused_log_due(
+            Some(&seen),
+            "marker b",
+            t0 + Duration::from_secs(1)
+        ));
     }
 
     /// Shutdown must finish promptly once the owned workers have stopped.
@@ -2610,7 +2618,9 @@ mod tests {
         std::fs::write(repo.join("README.md"), "changed").unwrap();
         std::fs::write(repo.join("new.txt"), "new").unwrap();
 
-        let snapshot = inspect_scheduler_status(&repo, &BTreeSet::new()).await.unwrap();
+        let snapshot = inspect_scheduler_status(&repo, &BTreeSet::new())
+            .await
+            .unwrap();
         let entries = snapshot.worktree_entries.unwrap();
         assert_eq!(entries.len(), 2);
         assert_eq!(entries[0].path, Path::new("README.md"));
@@ -2624,7 +2634,9 @@ mod tests {
             .status()
             .unwrap()
             .success());
-        let staged = inspect_scheduler_status(&repo, &BTreeSet::new()).await.unwrap();
+        let staged = inspect_scheduler_status(&repo, &BTreeSet::new())
+            .await
+            .unwrap();
         assert_eq!(staged.status.staged_files, 1);
         assert!(staged.worktree_entries.is_none());
     }
@@ -2690,7 +2702,7 @@ mod tests {
             changed_at: std::time::Instant::now(),
             dirty_since: None,
             ahead_since: None,
-                    ahead_count: 0,
+            ahead_count: 0,
             behind_since: None,
             mirror_consecutive_fails: HashMap::new(),
             failure_count: 0,
@@ -2882,7 +2894,7 @@ mod tests {
             changed_at: std::time::Instant::now(),
             dirty_since: None,
             ahead_since: None,
-                    ahead_count: 0,
+            ahead_count: 0,
             behind_since: None,
             mirror_consecutive_fails: HashMap::new(),
             failure_count: 0,
@@ -2964,7 +2976,7 @@ mod tests {
             changed_at: std::time::Instant::now(),
             dirty_since: None,
             ahead_since: None,
-                    ahead_count: 0,
+            ahead_count: 0,
             behind_since: None,
             mirror_consecutive_fails: paused.clone(),
             failure_count: 2,
@@ -4339,7 +4351,10 @@ mod tests {
         let now = Instant::now();
         let ago = |secs: u64| now - Duration::from_secs(secs);
         assert!(!status_inspection_wedged(ago(10), now));
-        assert!(!status_inspection_wedged(ago(STATUS_TASK_TIMEOUT_SECS - 1), now));
+        assert!(!status_inspection_wedged(
+            ago(STATUS_TASK_TIMEOUT_SECS - 1),
+            now
+        ));
         assert!(status_inspection_wedged(ago(STATUS_TASK_TIMEOUT_SECS), now));
         assert!(status_inspection_wedged(ago(3600), now));
     }
@@ -4396,7 +4411,10 @@ mod tests {
         });
         aborts.insert(repo.clone(), handle.abort_handle().into());
         pending.insert(repo.clone());
-        spawned_at.insert(repo.clone(), now - Duration::from_secs(STATUS_TASK_TIMEOUT_SECS + 1));
+        spawned_at.insert(
+            repo.clone(),
+            now - Duration::from_secs(STATUS_TASK_TIMEOUT_SECS + 1),
+        );
         assert!(abort_wedged_status_inspection(
             &mut pending,
             &mut spawned_at,
@@ -4450,7 +4468,10 @@ mod tests {
             tokio::spawn(async move { (task_repo, Ok(StatusSnapshot::empty())) });
         let mut aborts = HashMap::from([(repo.clone(), handle.abort_handle().into())]);
         let mut pending = HashSet::from([repo.clone()]);
-        let mut spawned = HashMap::from([(repo.clone(), now - Duration::from_secs(STATUS_TASK_TIMEOUT_SECS + 1))]);
+        let mut spawned = HashMap::from([(
+            repo.clone(),
+            now - Duration::from_secs(STATUS_TASK_TIMEOUT_SECS + 1),
+        )]);
         tokio::time::timeout(Duration::from_secs(3), async {
             while !handle.is_finished() {
                 tokio::task::yield_now().await;
@@ -4559,20 +4580,15 @@ mod tests {
         let mut jobs: FuturesUnordered<StatusJoin> = FuturesUnordered::new();
         let mut pending: HashSet<PathBuf> = HashSet::new();
         let mut spawned_at: HashMap<PathBuf, Instant> = HashMap::new();
-        let mut results: HashMap<
-            PathBuf,
-            (
-                Result<StatusSnapshot, anyhow::Error>,
-                Instant,
-            ),
-        > = HashMap::new();
+        let mut results: HashMap<PathBuf, (Result<StatusSnapshot, anyhow::Error>, Instant)> =
+            HashMap::new();
         let now = Instant::now();
         // Fast repo: already-finished task. Slow repo: never-resolving
         // task (stands in for a slow index/worktree inspection).
         let fast = fast_repo.clone();
-        jobs.push(tokio::spawn(async move {
-            (fast, Ok(StatusSnapshot::empty()))
-        }));
+        jobs.push(tokio::spawn(
+            async move { (fast, Ok(StatusSnapshot::empty())) },
+        ));
         pending.insert(fast_repo.clone());
         spawned_at.insert(fast_repo.clone(), now);
         let slow = slow_repo.clone();
@@ -4658,18 +4674,13 @@ mod tests {
         let mut jobs: FuturesUnordered<StatusJoin> = FuturesUnordered::new();
         let mut pending: HashSet<PathBuf> = HashSet::new();
         let mut spawned_at: HashMap<PathBuf, Instant> = HashMap::new();
-        let mut results: HashMap<
-            PathBuf,
-            (
-                Result<StatusSnapshot, anyhow::Error>,
-                Instant,
-            ),
-        > = HashMap::new();
+        let mut results: HashMap<PathBuf, (Result<StatusSnapshot, anyhow::Error>, Instant)> =
+            HashMap::new();
         let old = Instant::now() - Duration::from_secs(STATUS_RESULT_MAX_AGE_SECS + 15);
         let r = repo.clone();
-        jobs.push(tokio::spawn(async move {
-            (r, Ok(StatusSnapshot::empty()))
-        }));
+        jobs.push(tokio::spawn(
+            async move { (r, Ok(StatusSnapshot::empty())) },
+        ));
         pending.insert(repo.clone());
         spawned_at.insert(repo.clone(), old);
         tokio::task::yield_now().await;
@@ -4816,7 +4827,7 @@ mod tests {
                 changed_at: now,
                 dirty_since: Some(now),
                 ahead_since: None,
-                    ahead_count: 0,
+                ahead_count: 0,
                 behind_since: None,
                 mirror_consecutive_fails: HashMap::new(),
                 failure_count: 0,
@@ -6175,7 +6186,10 @@ fn test_transient_dns_does_not_burn_stuck_budget() {
 fn test_unpushed_alert_throttles_per_repo() {
     let repo = std::path::PathBuf::from("/tmp/dracon-unpushed-alert-throttle-fixture");
     let other = std::path::PathBuf::from("/tmp/dracon-unpushed-alert-throttle-fixture-other");
-    assert!(unpushed_alert_due(&repo), "the first alert for a repo is always due");
+    assert!(
+        unpushed_alert_due(&repo),
+        "the first alert for a repo is always due"
+    );
     assert!(
         !unpushed_alert_due(&repo),
         "an immediate repeat must be suppressed"
@@ -7984,13 +7998,8 @@ pub(crate) async fn run_daemon(
     // ADDED 2026-09-20 (v0.113.85): throttle map for aging-hold
     // warnings (one line per repo per 5 min while held past 60s).
     let mut hold_warn_cooldowns: HashMap<String, Instant> = HashMap::new();
-    let mut status_results: HashMap<
-        PathBuf,
-        (
-            Result<StatusSnapshot, anyhow::Error>,
-            Instant,
-        ),
-    > = HashMap::new();
+    let mut status_results: HashMap<PathBuf, (Result<StatusSnapshot, anyhow::Error>, Instant)> =
+        HashMap::new();
     // ADDED 2026-09-18 (v0.113.74, firehose fairness): per-repo
     // pile window (prev untracked count, cumulative arrival/drain
     // files, window start) backing the rate-aware pile alert.
@@ -8785,7 +8794,7 @@ pub(crate) async fn run_daemon(
                         changed_at: now,
                         dirty_since: None,
                         ahead_since: None,
-                    ahead_count: 0,
+                        ahead_count: 0,
                         behind_since: None,
                         mirror_consecutive_fails: HashMap::new(),
                         failure_count: 0,
@@ -9257,19 +9266,20 @@ pub(crate) async fn run_daemon(
                     tokio::spawn(crate::git::push_resources::daemon_scope(
                         policy_path.clone(),
                         crate::git::push_resources::background_pushes(async move {
-                        let result = if both_defaults {
-                            crate::git::consolidate_to_main(&repair_repo).await
-                        } else {
-                            crate::git::rename_master_to_main(&repair_repo).await
-                        };
-                        if let Err(error) = result {
-                            eprintln!(
-                                "⚠️ {} default-branch repair failed: {}",
-                                repair_repo.display(),
-                                error
-                            );
-                        }
-                    }))),
+                            let result = if both_defaults {
+                                crate::git::consolidate_to_main(&repair_repo).await
+                            } else {
+                                crate::git::rename_master_to_main(&repair_repo).await
+                            };
+                            if let Err(error) = result {
+                                eprintln!(
+                                    "⚠️ {} default-branch repair failed: {}",
+                                    repair_repo.display(),
+                                    error
+                                );
+                            }
+                        }),
+                    )),
                 );
                 continue;
             }
@@ -9352,7 +9362,8 @@ pub(crate) async fn run_daemon(
                 probe_admitted.insert(repo.clone(), now);
                 let status_coverage = Arc::clone(&status_coverage);
                 let status_handle = tokio::spawn(async move {
-                    let outcome = inspect_scheduler_status(&repo_for_status, &status_coverage).await;
+                    let outcome =
+                        inspect_scheduler_status(&repo_for_status, &status_coverage).await;
                     (repo_for_status, outcome)
                 });
                 // v0.113.85: retain the abort handle so the wedge
@@ -9370,7 +9381,10 @@ pub(crate) async fn run_daemon(
             );
             let Some((status_outcome, spawned)) = status_results.remove(&repo) else {
                 if memory_admission::held() && !status_pending.contains(&repo) {
-                    dispatch_holds.insert(repo.clone(), ("memory-pressure (inspection queued)".into(), now));
+                    dispatch_holds.insert(
+                        repo.clone(),
+                        ("memory-pressure (inspection queued)".into(), now),
+                    );
                     continue;
                 }
                 dispatch_holds
@@ -10395,23 +10409,25 @@ pub(crate) async fn run_daemon(
                     return (entry_rf, Err(anyhow::anyhow!("sync semaphore closed")));
                 };
                 let _ = run_started.set(Instant::now());
-                crate::git::push_resources::daemon_scope(policy_path_for_task.clone(),
+                crate::git::push_resources::daemon_scope(
+                    policy_path_for_task.clone(),
                     crate::git::push_resources::with_local_work(sem, permit, async move {
-                    let mut rf = entry_rf;
-                    let r = sync_repo_with_ahead_since(
-                        &repo_for_task,
-                        &policy_for_task,
-                        &excluded_for_task,
-                        secs,
-                        Some(&mut rf),
-                        false,
-                        Some(&policy_path_for_task),
-                        ahead_since_for_task,
-                        commit_only_for_task,
-                    )
-                    .await;
-                    (rf, r)
-                }))
+                        let mut rf = entry_rf;
+                        let r = sync_repo_with_ahead_since(
+                            &repo_for_task,
+                            &policy_for_task,
+                            &excluded_for_task,
+                            secs,
+                            Some(&mut rf),
+                            false,
+                            Some(&policy_path_for_task),
+                            ahead_since_for_task,
+                            commit_only_for_task,
+                        )
+                        .await;
+                        (rf, r)
+                    }),
+                )
                 .await
             });
             sync_workers.insert(repo.clone(), handle.abort_handle());

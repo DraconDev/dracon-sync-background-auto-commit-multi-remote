@@ -34,7 +34,11 @@ impl Admission {
 fn available_pct(meminfo: &str) -> Option<f64> {
     let read = |key| -> Option<f64> {
         meminfo.lines().find_map(|line| {
-            line.strip_prefix(key)?.split_whitespace().next()?.parse().ok()
+            line.strip_prefix(key)?
+                .split_whitespace()
+                .next()?
+                .parse()
+                .ok()
         })
     };
     let total = read("MemTotal:")?;
@@ -57,17 +61,28 @@ pub(crate) fn held() -> bool {
     });
     let mut admission = ADMISSION.lock().expect("memory admission poisoned");
     let now = Instant::now();
-    if admission.last_sample.is_none_or(|at| now.duration_since(at) >= SAMPLE_INTERVAL) {
+    if admission
+        .last_sample
+        .is_none_or(|at| now.duration_since(at) >= SAMPLE_INTERVAL)
+    {
         admission.last_sample = Some(now);
-        let available = std::fs::read_to_string("/proc/meminfo").ok().as_deref().and_then(available_pct);
-        let stall = std::fs::read_to_string("/proc/pressure/memory").ok().as_deref().and_then(full_stall);
+        let available = std::fs::read_to_string("/proc/meminfo")
+            .ok()
+            .as_deref()
+            .and_then(available_pct);
+        let stall = std::fs::read_to_string("/proc/pressure/memory")
+            .ok()
+            .as_deref()
+            .and_then(full_stall);
         let was_held = admission.held;
         admission.observe(now, available, stall);
         if was_held != admission.held {
             if admission.held {
                 eprintln!("scheduler: memory pressure holding new uploads and inspections (available={available:?}%, full stall={stall:?}%)");
             } else {
-                eprintln!("scheduler: memory pressure cleared; resuming upload and inspection admission");
+                eprintln!(
+                    "scheduler: memory pressure cleared; resuming upload and inspection admission"
+                );
             }
         }
     }
@@ -96,7 +111,13 @@ mod tests {
 
     #[test]
     fn reads_available_memory_and_full_stalls() {
-        assert_eq!(available_pct("MemTotal: 1000 kB\nMemAvailable: 125 kB"), Some(12.5));
-        assert_eq!(full_stall("some avg10=15.0\nfull avg10=3.5 avg60=0.0"), Some(3.5));
+        assert_eq!(
+            available_pct("MemTotal: 1000 kB\nMemAvailable: 125 kB"),
+            Some(12.5)
+        );
+        assert_eq!(
+            full_stall("some avg10=15.0\nfull avg10=3.5 avg60=0.0"),
+            Some(3.5)
+        );
     }
 }
