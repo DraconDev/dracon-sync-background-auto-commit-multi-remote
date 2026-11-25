@@ -3591,7 +3591,8 @@ fn legend_display_lines(width: usize) -> Vec<String> {
 /// key keeps the long-form evidence rules.
 fn repos_inline_legend_rows() -> &'static [(&'static str, &'static str)] {
     &[
-        ("STATUS", "✅ clean · 🟡 queued · 🔄 working · 📤 publishing (tip not on remotes yet) · ⏳ retrying · ⏸️ paused · 🔴 stalled · 🚫 blocked/excluded · ❔ unknown (no fresh daemon verdict; not a failure)"),
+        ("STATUS", "✅ clean · 🟡 queued · 🔄 working · 📤 publishing (tip not on remotes yet) · ⏳ retrying · ⏸️ paused · 🔴 stalled · 🚫 blocked/excluded · ❔ unknown (no fresh daemon verdict)"),
+        ("SUMMARY", "Active includes queued, working, publishing and retrying. Warnings include stalled, blocked and unknown. Inspection failures are listed above the table."),
         ("REPO", "🔒 private · > nested repo/submodule"),
         ("MIRROR LAG", "Most commits missing from any configured mirror, based on local tracking refs."),
         ("CHANGES", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded files"),
@@ -4440,7 +4441,9 @@ pub(crate) async fn run_repos_report(
                     Ok(status) => status,
                     Err(e) => {
                         init_status_failures.lock().unwrap().push((repo.clone(), e.to_string()));
-                        emit_repo_failure(json, "status_failed", &repo, &e);
+                        if repo_detail.is_none() {
+                            emit_repo_failure(json, "status_failed", &repo, &e);
+                        }
                         return None;
                     }
                 };
@@ -5497,7 +5500,7 @@ pub(crate) async fn run_repos_report(
     // the single banner line): one styled rule in the legend-rule
     // language, counts inline, padded with ─ to the table width.
     let banner_plain = format!(
-        "── dracon-sync repos ── 📦 {total} inspected · ✅ {ok_count} clean · 🟣 {pending_count} pending · 🔄 {active_count} active · 🟡 {warn_count} · ❌ {concern_count} concerns · ⛔ {init_or_status_failures} inspection failures{filter_note_plain}",
+        "── dracon-sync repos ── 📦 {total} inspected · ✅ {ok_count} clean · 🟣 {pending_count} pending · 🔄 {active_count} active · 🟡 {warn_count} warnings · ❌ {concern_count} concerns · ⛔ {init_or_status_failures} inspection failures{filter_note_plain}",
         total = rows.len(),
         filter_note_plain = match filter {
             RepoFilter::All => String::new(),
@@ -5512,7 +5515,7 @@ pub(crate) async fn run_repos_report(
         },
     );
     let banner_colored = format!(
-        "── dracon-sync repos ── 📦 {} inspected · {} clean · {} pending · {} active · {} · {} concerns · ⛔ {} inspection failures{}",
+        "── dracon-sync repos ── 📦 {} inspected · {} clean · {} pending · {} active · {} warnings · {} concerns · ⛔ {} inspection failures{}",
         rows.len(),
         ansi("32", &format!("✅ {ok_count}")),
         ansi("35", &format!("🟣 {pending_count}")),
@@ -15335,6 +15338,9 @@ mod tests {
                 "last recorded",
                 "configured upstream",
                 "local tracking refs",
+                "publishing and retrying",
+                "stalled, blocked and unknown",
+                "Inspection failures are listed above the table",
                 "--deep",
             ] {
                 // Wrapping can separate words but must preserve all explanations.
