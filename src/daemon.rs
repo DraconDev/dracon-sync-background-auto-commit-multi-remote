@@ -1700,6 +1700,9 @@ pub(crate) struct StuckRepoEntry {
     /// Auto-push only resumed after a manual `repair stuck-unstuck`.
     #[serde(default)]
     pub(crate) failed_tip: Option<String>,
+    /// The destination queue controls retry eligibility for this observation.
+    #[serde(default)]
+    pub(crate) destination_managed: bool,
 }
 
 /// ADDED 2026-08-09 (v0.113.50, pi-goal-loop-audit divergence
@@ -1709,7 +1712,7 @@ pub(crate) struct StuckRepoEntry {
 /// alert and the stuck-ledger hint can name the CAUSE (history
 /// divergence vs transport vs policy) instead of the misleading
 /// "mirror may be unreachable".
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct RemoteFailInfo {
     /// Consecutive failures for this remote (reset on success).
     pub(crate) consecutive: usize,
@@ -2914,6 +2917,7 @@ mod tests {
                 last_error_at: 1_000_001,
                 last_retry_at: 1_000_002,
                 failed_tip: None,
+                destination_managed: false,
             },
         );
         let outcome = apply_outcome(
@@ -2996,6 +3000,7 @@ mod tests {
                 last_error_at: 1_000_001,
                 last_retry_at: 1_000_002,
                 failed_tip: None,
+                destination_managed: false,
             },
         );
 
@@ -3830,6 +3835,7 @@ mod tests {
             last_error_at: 0,
             last_retry_at: 0,
             failed_tip: None,
+            destination_managed: false,
         };
         let json = serde_json::to_string(&entry).unwrap();
         assert!(json.contains("\"/test/repo\""));
@@ -3894,6 +3900,7 @@ mod tests {
             last_error_at: 0,
             last_retry_at: 0,
             failed_tip: None,
+            destination_managed: false,
         };
         let debug = format!("{:?}", entry);
         assert!(debug.contains("/test/repo"));
@@ -3910,6 +3917,7 @@ mod tests {
             last_error_at: 0,
             last_retry_at: 0,
             failed_tip: None,
+            destination_managed: false,
         };
         let cloned = entry.clone();
         assert_eq!(cloned.path, entry.path);
@@ -3926,6 +3934,7 @@ mod tests {
             last_error_at: 0,
             last_retry_at: 0,
             failed_tip: None,
+            destination_managed: false,
         };
         let entry2 = StuckRepoEntry {
             path: PathBuf::from("/test/repo"),
@@ -3935,6 +3944,7 @@ mod tests {
             last_error_at: 0,
             last_retry_at: 0,
             failed_tip: None,
+            destination_managed: false,
         };
         let entry3 = StuckRepoEntry {
             path: PathBuf::from("/other/repo"),
@@ -3944,6 +3954,7 @@ mod tests {
             last_error_at: 0,
             last_retry_at: 0,
             failed_tip: None,
+            destination_managed: false,
         };
         assert_eq!(entry1.path, entry2.path);
         assert_ne!(entry1.path, entry3.path);
@@ -3960,6 +3971,7 @@ mod tests {
             last_error_at: 0,
             last_retry_at: 0,
             failed_tip: None,
+            destination_managed: false,
         };
         assert_eq!(entry.path, path);
         assert_eq!(entry.path.to_string_lossy(), "/home/user/code/my-project");
@@ -3975,6 +3987,7 @@ mod tests {
             last_error_at: 0,
             last_retry_at: 0,
             failed_tip: None,
+            destination_managed: false,
         };
         let new = StuckRepoEntry {
             path: PathBuf::from("/new"),
@@ -3984,6 +3997,7 @@ mod tests {
             last_error_at: 0,
             last_retry_at: 0,
             failed_tip: None,
+            destination_managed: false,
         };
         assert!(old.stuck_since < new.stuck_since);
     }
@@ -4253,6 +4267,7 @@ mod tests {
             last_error_at: 9_000,
             last_retry_at: 9_000,
             failed_tip: Some("aaaaaaaa".into()),
+            destination_managed: false,
         };
         // Same tip: the budget still binds.
         assert_eq!(
@@ -6048,6 +6063,7 @@ fn stuck_entry(
         last_error_at,
         last_retry_at,
         failed_tip: None,
+        destination_managed: false,
     }
 }
 
@@ -6489,7 +6505,9 @@ pub(crate) fn record_push_transient_outage(repo: &Path, error: &str) {
             last_error_at: 0,
             last_retry_at: 0,
             failed_tip: None,
+            destination_managed: false,
         });
+    entry.destination_managed = false;
     entry.last_error = crate::ownership::redact_url_credentials(error);
     entry.last_error_at = now;
     save_stuck_push_repos(&repos);
@@ -6535,6 +6553,14 @@ pub(crate) fn record_gate_failure_artifact(repo: &Path, error: &str, detail: Opt
 }
 
 pub(crate) fn record_push_failure(repo: &Path, error: &str) {
+    record_push_failure_impl(repo, error, false);
+}
+
+pub(crate) fn record_destination_push_failure(repo: &Path, error: &str) {
+    record_push_failure_impl(repo, error, true);
+}
+
+fn record_push_failure_impl(repo: &Path, error: &str, destination_managed: bool) {
     let _guard = lock_stuck_ledger();
     push_history::record(repo, false); // R3-L11: serialize ledger RMW.
     let mut repos = load_stuck_push_repos();
@@ -6549,6 +6575,7 @@ pub(crate) fn record_push_failure(repo: &Path, error: &str) {
             last_error_at: 0,
             last_retry_at: 0,
             failed_tip: None,
+            destination_managed: false,
         });
     // A failure belongs to the revision that was being pushed. When the tip
     // has moved since the last recorded failure, the series restarts at 1 so
@@ -6559,6 +6586,7 @@ pub(crate) fn record_push_failure(repo: &Path, error: &str) {
         entry.consecutive_failures = 0;
     }
     entry.failed_tip = current_tip;
+    entry.destination_managed = destination_managed;
     entry.consecutive_failures = entry.consecutive_failures.saturating_add(1);
     // CHANGED 2026-08-11 (audit LOW): redact embedded URL credentials
     // before the error lands in the ledger — a push_url with userinfo
@@ -9035,7 +9063,7 @@ pub(crate) async fn run_daemon(
             // is silently swallowed — ledger claims an attempt that
             // never happened).
             let mut stamp_retry = false;
-            if let Some(info) = stuck_push_repos.get(&repo).cloned() {
+            if let Some(info) = stuck_push_repos.get(&repo).filter(|info| !info.destination_managed).cloned() {
                 let live_tip = crate::git::head_tip(&repo);
                 let decision = stuck_decision(
                     &info,

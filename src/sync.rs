@@ -2526,6 +2526,11 @@ pub(crate) async fn upload_publication(
             mirror_host(name)
         }
     };
+    if plan.queue.is_some() {
+        let report = Box::pin(publication::upload(repo, policy, plan, &remote_host, &incident_hosts)).await;
+        observe_round_transient_hits(repo, Some(&plan.remote_failures), now_unix, &remote_host);
+        return report;
+    }
     let paused: HashSet<String> =
         paused_remote_names_incident(Some(&plan.remote_failures), now_unix, &|name| {
             remote_host(name).is_some_and(|h| incident_hosts.contains(&h))
@@ -4798,8 +4803,8 @@ async fn stage_commit_and_push(
                 // to PushPaused so commits keep flowing while the
                 // forge is down (a PushFailed outcome would feed the
                 // MAX_FAILURES scan-skip and stall commits).
-                if let Some(hosts) =
-                    incident_shield_hosts(repo, policy, has_origin, ctx.remote_failures.as_deref())
+                if !crate::git::push_resources::daemon_publication()
+                    && let Some(hosts) = incident_shield_hosts(repo, policy, has_origin, ctx.remote_failures.as_deref())
                 {
                     eprintln!(
                         "🛡️ {} push failure shielded by forge incident ({}) — no stuck-budget burn",
@@ -4814,6 +4819,10 @@ async fn stage_commit_and_push(
                     // T1.3: leave a durable, machine-readable record so the
                     // repo's own loop can see which gate refused its push.
                     crate::daemon::record_gate_failure_artifact(repo, &msg, Some(detail));
+                }
+                if crate::git::push_resources::daemon_publication() {
+                    crate::daemon::record_destination_push_failure(repo, &msg);
+                    return Ok(Some(SyncOutcome::PushPaused));
                 }
                 crate::daemon::record_push_failure(repo, &msg);
                 notify_webhook_persistent_push_failure(policy, repo, &names, &cause);
@@ -6525,7 +6534,8 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 // failures propagate as AllPaused (caller maps to
                 // PushPaused: no budget burn, commits keep flowing)
                 // instead of burning the stuck budget + webhook.
-                if let Some(hosts) = incident_shield_hosts(
+                if !crate::git::push_resources::daemon_publication()
+                    && let Some(hosts) = incident_shield_hosts(
                     ctx.repo,
                     ctx.policy,
                     ctx.has_origin,
@@ -6568,6 +6578,10 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 // it is safe on the failure path too. The per-repo cooldown
                 // inside the helper still bounds it.
                 refresh_stale_upstream_ref(ctx.repo).await;
+                if crate::git::push_resources::daemon_publication() {
+                    crate::daemon::record_destination_push_failure(ctx.repo, &msg);
+                    return Ok(PushReport::AllPaused);
+                }
                 crate::daemon::record_push_failure(ctx.repo, &msg);
                 notify_webhook_persistent_push_failure(ctx.policy, ctx.repo, &names, &cause);
                 // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3):

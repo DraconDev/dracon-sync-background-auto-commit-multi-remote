@@ -4785,7 +4785,8 @@ pub(crate) async fn run_repos_report(
         let push_budget_exhausted = stuck_info
             .as_ref()
             .map(|info| {
-                push_max_retries > 0
+                !info.destination_managed
+                    && push_max_retries > 0
                     && info.consecutive_failures >= push_max_retries
             })
             .unwrap_or(false);

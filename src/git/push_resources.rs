@@ -66,6 +66,19 @@ pub(crate) fn daemon_memory_hold() -> bool {
         .unwrap_or(false)
 }
 
+pub(crate) fn daemon_publication() -> bool {
+    POLICY_PATH.try_with(|_| ()).is_ok()
+}
+
+/// Admit a destination before selecting its immutable source. The selected
+/// source stays pinned across transport fallbacks within this admission.
+pub(crate) async fn publication_destination<T>(
+    repo: &std::path::Path,
+    work: impl Future<Output = Result<T>>,
+) -> Result<T> {
+    command(repo, &["push"], work).await
+}
+
 /// The shared Warden hook can chain a repository-specific pre-push gate.
 /// Unknown repository identities are conservatively given the full budget.
 pub(crate) fn ordinary_repository(repo: &std::path::Path) -> bool {
@@ -238,7 +251,7 @@ pub(super) async fn command<T>(
     args: &[&str],
     work: impl Future<Output = Result<T>>,
 ) -> Result<T> {
-    if args.first() != Some(&"push") {
+    if args.first() != Some(&"push") || running_push().is_some() {
         return work.await;
     }
     if !isolated_push(args) {
