@@ -3,6 +3,7 @@
 //! happen here, under local mutation ownership; `upload_publication` then sees
 //! an immutable plan and cannot observe a different tip mid-flight.
 use super::*;
+#[path = "publication/queue.rs"]
 mod queue;
 
 /// Immutable description of one publication round.
@@ -149,8 +150,7 @@ pub(super) async fn plan_publication(
     let targets = crate::git::multi_remote::effective_push_targets(
         origin_url.as_deref(),
         &named,
-        repo
-            .file_name()
+        repo.file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default()
             .as_str(),
@@ -173,11 +173,11 @@ pub(super) async fn plan_publication(
     // the upload holds no local mutation rights.
     let attached_branch = crate::git::current_branch(repo);
     let target = pin_current_tip(repo, attached_branch.as_deref().unwrap_or("main")).await?;
-    let queue = if crate::git::push_resources::daemon_publication() && target.is_some() {
-        queue::Queue::load(repo, has_origin, &remotes)
-    } else {
-        None
-    };
+    let queue = target.as_ref().and_then(|target| {
+        crate::git::push_resources::daemon_publication()
+            .then(|| queue::Queue::load(repo, has_origin, &remotes, target))
+            .flatten()
+    });
     Ok(PublicationPlan {
         target,
         timeout_secs: scaled_timeout,
@@ -193,7 +193,10 @@ pub(super) async fn plan_publication(
 /// Read the exact tip to publish. Deliberately narrow: an unborn HEAD yields
 /// `None`, while any other resolution/deadline failure surfaces so a round is
 /// never planned against an unknown or moving source.
-async fn pin_current_tip(repo: &Path, branch: &str) -> Result<Option<crate::git::PublicationTarget>> {
+async fn pin_current_tip(
+    repo: &Path,
+    branch: &str,
+) -> Result<Option<crate::git::PublicationTarget>> {
     let child = crate::git::spawn_git_command_cancellable(
         repo,
         &["rev-parse", "--verify", "HEAD^{commit}"],
@@ -223,3 +226,4 @@ async fn pin_current_tip(repo: &Path, branch: &str) -> Result<Option<crate::git:
 }
 
 pub(super) use queue::upload;
+pub(crate) use queue::{clear_retry, pending};
