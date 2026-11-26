@@ -15175,10 +15175,18 @@ trusted_authors = ["test"]
 
     #[test]
     fn test_is_backstop_active_threshold_zero_disables() {
-        // threshold = 0 means operator disabled the backstop
         let now = std::time::Instant::now();
         let since = now - std::time::Duration::from_secs(3600);
-        assert!(!is_backstop_active(Some(since), now, 100, 0, 300));
+        let from_toml: SyncPolicy = toml::from_str("").unwrap();
+        for policy in [SyncPolicy::default(), from_toml] {
+            assert!(!is_backstop_active(
+                Some(since),
+                now,
+                100,
+                policy.auto_commit_backstop_threshold,
+                policy.auto_commit_backstop_min_age_secs,
+            ));
+        }
     }
 
     // ============================================================

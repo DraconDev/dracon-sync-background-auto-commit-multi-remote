@@ -776,9 +776,9 @@ pub(crate) struct SyncPolicy {
     /// When a repo has more than this many unpushed commits AND the push
     /// has been pending (ahead_since) for more than
     /// `auto_commit_backstop_min_age_secs`, the daemon stops auto-
-    /// committing and logs the backstop. This prevents the daemon from
-    /// creating a moving target while a push is failing. Set to 0 to
-    /// disable the backstop entirely. The ACTIVITY column shows
+    /// committing and logs the backstop. The default of 0 allows local
+    /// commits to continue while destination retries run independently.
+    /// Set a positive threshold to cap unpublished local work. The ACTIVITY column shows
     /// `⏸ backstop` for repos in this state so the operator can see
     /// the daemon is intentionally pausing.
     #[serde(default = "default_auto_commit_backstop_threshold")]
@@ -1503,7 +1503,7 @@ fn default_alert_unpushed_threshold() -> usize {
 }
 
 fn default_auto_commit_backstop_threshold() -> usize {
-    20
+    0
 }
 
 fn default_auto_commit_backstop_min_age_secs() -> u64 {
@@ -2359,7 +2359,7 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
         incident_ledger_max_age_days: 30,
         webhook_url: None,
         alert_unpushed_threshold: 10,
-        auto_commit_backstop_threshold: 20,
+        auto_commit_backstop_threshold: default_auto_commit_backstop_threshold(),
         auto_commit_backstop_min_age_secs: 300,
         push_max_retries: 5,
         auto_skip_unowned: true,
