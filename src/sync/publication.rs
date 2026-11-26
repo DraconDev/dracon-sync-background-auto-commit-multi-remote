@@ -1,12 +1,11 @@
-//! Publication round planning shared by the daemon workers and the legacy
-//! wrapper. All decisions that read the checkout or mutate Git configuration
-//! happen here, under local mutation ownership; `upload_publication` then sees
-//! an immutable plan and cannot observe a different tip mid-flight.
+//! Prepare the route and initial tip under local mutation ownership.
+//! Daemon destinations can advance that tip at admission. Each upload then
+//! uses one immutable object through all of its transport attempts.
 use super::*;
 #[path = "publication/queue.rs"]
 mod queue;
 
-/// Immutable description of one publication round.
+/// Prepared destinations and the initial source of one publication round.
 pub(crate) struct PublicationPlan {
     /// Exact source object + destination branch. `None` means there is no
     /// publishable tip (unborn HEAD); it must never silently degrade to
@@ -168,9 +167,8 @@ pub(super) async fn plan_publication(
     // PIN LAST. Everything above reads the checkout or mutates Git
     // configuration (auto-create can take seconds). Pinning before that work
     // would publish a tip that predates the configuration the round is about
-    // to use; pinning here means the pinned object is the tip that existed when
-    // this exact destination set became ready. It still cannot move afterwards:
-    // the upload holds no local mutation rights.
+    // to use. The daemon may later select a fast-forward descendant once a
+    // destination gains admission. The one-shot path uses this original pin.
     let attached_branch = crate::git::current_branch(repo);
     let target = pin_current_tip(repo, attached_branch.as_deref().unwrap_or("main")).await?;
     let queue = target.as_ref().and_then(|target| {
