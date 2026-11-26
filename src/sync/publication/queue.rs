@@ -528,13 +528,21 @@ mod tests {
         git(repo, &["init", "-b", "main"]);
         let planned = commit(repo, "original");
 
+        let limiter = std::sync::Arc::new(tokio::sync::Semaphore::new(2));
+        let occupied = limiter.clone().acquire_many_owned(2).await.unwrap();
+        let mut admitted = Box::pin(push_resources::with_test_publication_admission(
+            limiter,
+            push_resources::background_pushes(push_resources::publication_destination(
+                repo,
+                admitted_tip(repo, &planned, Some("main"), false),
+            )),
+        ));
+        assert!(tokio::time::timeout(Duration::from_millis(20), admitted.as_mut())
+            .await
+            .is_err());
         let newer = commit(repo, "arrived while waiting");
-        assert_eq!(
-            admitted_tip(repo, &planned, Some("main"), false)
-                .await
-                .unwrap(),
-            Some(newer.clone())
-        );
+        drop(occupied);
+        assert_eq!(admitted.await.unwrap(), Some(newer.clone()));
         git(repo, &["checkout", "-b", "other"]);
         assert_eq!(
             admitted_tip(repo, &planned, Some("main"), false)

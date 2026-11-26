@@ -66,6 +66,14 @@ pub(crate) fn daemon_memory_hold() -> bool {
         .unwrap_or(false)
 }
 
+#[cfg(test)]
+pub(crate) async fn with_test_publication_admission<T>(
+    semaphore: Arc<Semaphore>,
+    work: impl Future<Output = T>,
+) -> T {
+    TEST_ADMISSION.scope(semaphore, work).await
+}
+
 pub(crate) fn daemon_publication() -> bool {
     POLICY_PATH.try_with(|_| ()).is_ok()
 }
