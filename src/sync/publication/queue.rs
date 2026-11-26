@@ -537,9 +537,11 @@ mod tests {
                 admitted_tip(repo, &planned, Some("main"), false),
             )),
         ));
-        assert!(tokio::time::timeout(Duration::from_millis(20), admitted.as_mut())
-            .await
-            .is_err());
+        assert!(
+            tokio::time::timeout(Duration::from_millis(20), admitted.as_mut())
+                .await
+                .is_err()
+        );
         let newer = commit(repo, "arrived while waiting");
         drop(occupied);
         assert_eq!(admitted.await.unwrap(), Some(newer.clone()));
