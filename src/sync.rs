@@ -2326,6 +2326,9 @@ fn refresh_round<'a>(
         // has yielded its permit. The commit pass acquires its OWN operation
         // lease, so it cannot race the publication owner's post-round work.
         crate::git::push_resources::local_phase(async {
+            if policy_path.is_some_and(|path| crate::policy::freeze_reason(path).is_some()) {
+                return Ok(SyncOutcome::OperationDeferred);
+            }
             crate::daemon::scheduler_evidence::local_commit_phase(
                 repo,
                 sync_repo_local_with_ownership(
