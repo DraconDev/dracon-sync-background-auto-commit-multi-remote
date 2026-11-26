@@ -6449,7 +6449,10 @@ pub(crate) fn unstuck_repo(repo: &Path) -> bool {
     if let Some(entry) = repos.get(repo) {
         if entry.destination_managed {
             if let Err(error) = crate::sync::publication::clear_retry(repo) {
-                eprintln!("⚠️ cannot reset publication retries for {}: {error:#}", repo.display());
+                eprintln!(
+                    "⚠️ cannot reset publication retries for {}: {error:#}",
+                    repo.display()
+                );
                 return false;
             }
         }
@@ -10030,8 +10033,12 @@ pub(crate) async fn run_daemon(
                     policy.max_stage_file_bytes,
                     &gate_excludes2,
                 );
-                let has_local_or_pending_work =
-                    dirty || pending_publication || status.ahead > 0 || status.behind > 0 || !has_origin || !has_upstream;
+                let has_local_or_pending_work = dirty
+                    || pending_publication
+                    || status.ahead > 0
+                    || status.behind > 0
+                    || !has_origin
+                    || !has_upstream;
                 if !has_local_or_pending_work {
                     // ADDED 2026-09-18 (v0.113.65): skip-reason logging
                     // (status-dirty but filter-clean branch only — the

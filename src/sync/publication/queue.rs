@@ -20,6 +20,7 @@ struct Destination {
 
 type Branches = HashMap<String, HashMap<String, Destination>>;
 
+#[derive(Clone)]
 pub(in crate::sync) struct Queue {
     path: PathBuf,
     branches: Branches,
@@ -59,7 +60,11 @@ impl Queue {
             .chain(remotes.iter().map(|remote| remote.name.as_str()))
             .map(|name| (name.to_owned(), push_endpoint(repo, name)))
             .collect();
-        let mut queue = Self { path, branches, endpoints };
+        let mut queue = Self {
+            path,
+            branches,
+            endpoints,
+        };
         queue.schedule(repo, target);
         Some(queue)
     }
@@ -76,7 +81,10 @@ impl Queue {
             let Some(endpoint) = endpoint else { continue };
             let entry = entries.entry(name.clone()).or_default();
             if entry.endpoint != *endpoint {
-                *entry = Destination { endpoint: endpoint.clone(), ..Destination::default() };
+                *entry = Destination {
+                    endpoint: endpoint.clone(),
+                    ..Destination::default()
+                };
             }
             let next = (!confirmed(repo, entry, name, target)).then_some(target.object_id());
             if entry.pending_tip.as_deref() != next {
@@ -158,9 +166,9 @@ pub(crate) fn pending(repo: &Path) -> bool {
         return false;
     };
     let branch = crate::git::current_branch_from_head(repo).unwrap_or_else(|| "main".to_owned());
-    branches.get(&branch).is_some_and(|entries| {
-        entries.values().any(|entry| entry.pending_tip.is_some())
-    })
+    branches
+        .get(&branch)
+        .is_some_and(|entries| entries.values().any(|entry| entry.pending_tip.is_some()))
 }
 
 pub(crate) fn clear_retry(repo: &Path) -> Result<()> {
@@ -176,7 +184,12 @@ pub(crate) fn clear_retry(repo: &Path) -> Result<()> {
         destination.failure = None;
         destination.failed_tip = None;
     }
-    Queue { path, branches, endpoints: HashMap::new() }.save()?;
+    Queue {
+        path,
+        branches,
+        endpoints: HashMap::new(),
+    }
+    .save()?;
     Ok(())
 }
 
@@ -413,11 +426,7 @@ pub(in crate::sync) async fn upload(
     }
     // The in-flight futures read the round-start snapshot. The writer owns
     // its own copy and atomically checkpoints the latest merged results.
-    let mut updated = Queue {
-        path: queue.path.clone(),
-        branches: queue.branches.clone(),
-        endpoints: queue.endpoints.clone(),
-    };
+    let mut updated = queue.clone();
     let mut attempted = false;
     let mut degraded = false;
     let mut failed = false;
@@ -486,4 +495,210 @@ pub(in crate::sync) async fn upload(
         ok: !failed,
         degraded,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn git(repo: &Path, args: &[&str]) -> String {
+        let output = crate::policy::std_git_command()
+            .args(["-c", "core.hooksPath=/dev/null"])
+            .args(args)
+            .current_dir(repo)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{args:?}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8(output.stdout).unwrap().trim().to_owned()
+    }
+
+    fn commit(repo: &Path, message: &str) -> PublicationTarget {
+        git(repo, &["commit", "--allow-empty", "-m", message]);
+        PublicationTarget::new(&git(repo, &["rev-parse", "HEAD"]), "main").unwrap()
+    }
+
+    #[tokio::test]
+    async fn live_tip_is_refreshed_at_admission_and_a_changed_branch_defers() {
+        let root = tempfile::tempdir().unwrap();
+        let repo = root.path();
+        git(repo, &["init", "-b", "main"]);
+        let planned = commit(repo, "original");
+
+        let newer = commit(repo, "arrived while waiting");
+        assert_eq!(
+            admitted_tip(repo, &planned, Some("main"), false)
+                .await
+                .unwrap(),
+            Some(newer.clone())
+        );
+        git(repo, &["checkout", "-b", "other"]);
+        assert_eq!(
+            admitted_tip(repo, &planned, Some("main"), false)
+                .await
+                .unwrap(),
+            None
+        );
+        git(repo, &["checkout", "main"]);
+        git(repo, &["reset", "--hard", planned.object_id()]);
+        let alternate = commit(repo, "rewritten sibling");
+        assert_ne!(alternate, newer);
+        assert_eq!(
+            admitted_tip(repo, &newer, Some("main"), false)
+                .await
+                .unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn pending_and_retry_state_survives_reload_per_destination() {
+        let root = tempfile::tempdir().unwrap();
+        let repo = root.path();
+        git(repo, &["init", "-b", "main"]);
+        git(repo, &["remote", "add", "origin", "./github.git"]);
+        git(repo, &["remote", "add", "gitlab", "./gitlab.git"]);
+        let target = commit(repo, "initial");
+        let mirror: crate::policy::RemoteConfig =
+            toml::from_str("name = 'gitlab'\npush_url = './gitlab.git'\npriority = 10").unwrap();
+        let remotes = [mirror];
+        let mut queue = Queue::load(repo, true, &remotes, &target).unwrap();
+        assert!(
+            pending(repo),
+            "intent must be durable before the first push"
+        );
+        queue.record(&target, "origin", None);
+        git(
+            repo,
+            &["update-ref", "refs/remotes/origin/main", target.object_id()],
+        );
+        let outage = RemoteFailInfo {
+            consecutive: 3,
+            last_error: "network unavailable".to_owned(),
+            last_attempt_unix: 100,
+        };
+        queue.record(&target, "gitlab", Some(outage));
+        drop(queue);
+
+        let queue = Queue::load(repo, true, &remotes, &target).unwrap();
+        let github = queue.destination("main", "origin").unwrap();
+        assert!(confirmed(repo, github, "origin", &target));
+        assert!(github.pending_tip.is_none());
+        let gitlab = queue.destination("main", "gitlab").unwrap();
+        assert!(paused(gitlab, &target, 101, false));
+        assert!(!paused(
+            gitlab,
+            &target,
+            100 + crate::daemon::MIRROR_PAUSE_REPROBE_SECS,
+            false
+        ));
+
+        let latest = commit(repo, "local work continued");
+        let queue = Queue::load(repo, true, &remotes, &latest).unwrap();
+        assert!(!paused(
+            queue.destination("main", "origin").unwrap(),
+            &latest,
+            101,
+            false
+        ));
+        assert!(paused(
+            queue.destination("main", "gitlab").unwrap(),
+            &latest,
+            101,
+            false
+        ));
+        git(
+            repo,
+            &["remote", "set-url", "--push", "gitlab", "./replacement.git"],
+        );
+        let queue = Queue::load(repo, true, &remotes, &latest).unwrap();
+        assert!(!paused(
+            queue.destination("main", "gitlab").unwrap(),
+            &latest,
+            101,
+            false
+        ));
+        assert!(pending(repo));
+        clear_retry(repo).unwrap();
+    }
+    async fn round(
+        repo: &Path,
+        target: PublicationTarget,
+        remotes: &[crate::policy::RemoteConfig],
+    ) -> PublicationPlan {
+        let queue = Queue::load(repo, true, remotes, &target);
+        let mut plan = PublicationPlan {
+            target: Some(target),
+            timeout_secs: 15,
+            has_origin: true,
+            origin_url: None,
+            remotes: remotes.to_vec(),
+            attached_branch: Some("main".to_owned()),
+            queue,
+            remote_failures: HashMap::new(),
+        };
+        let policy: SyncPolicy = toml::from_str("push_retries = 1").unwrap();
+        let report = Box::pin(upload(repo, &policy, &mut plan, |_| None, &HashSet::new())).await;
+        report.unwrap();
+        plan
+    }
+
+    #[tokio::test]
+    async fn healthy_destination_advances_then_failed_mirror_catches_up() {
+        let root = tempfile::tempdir().unwrap();
+        let repo = root.path();
+        let github = repo.join("github.git");
+        let gitlab = repo.join("gitlab.git");
+        git(repo, &["init", "-b", "main"]);
+        git(repo, &["config", "core.hooksPath", "/dev/null"]);
+        git(repo, &["init", "--bare", github.to_str().unwrap()]);
+        git(repo, &["remote", "add", "origin", github.to_str().unwrap()]);
+        git(repo, &["remote", "add", "gitlab", gitlab.to_str().unwrap()]);
+        let remotes = [toml::from_str("name = 'gitlab'\npush_url = './gitlab.git'").unwrap()];
+
+        let first = commit(repo, "first");
+        let first_round = Box::pin(round(repo, first.clone(), &remotes)).await;
+        assert!(first_round.remote_failures.contains_key("gitlab"));
+        assert_eq!(
+            git(&github, &["rev-parse", "refs/heads/main"]),
+            first.object_id()
+        );
+        drop(first_round);
+
+        let latest = commit(repo, "local work during outage");
+        git(repo, &["init", "--bare", gitlab.to_str().unwrap()]);
+        let mut second = Box::pin(round(repo, latest.clone(), &remotes))
+            .await
+            .queue
+            .unwrap();
+        assert_eq!(
+            git(&github, &["rev-parse", "refs/heads/main"]),
+            latest.object_id()
+        );
+        assert!(git(&gitlab, &["for-each-ref", "refs/heads"]).is_empty());
+
+        // Advance the persisted attempt time past the retry window.
+        second
+            .branches
+            .get_mut("main")
+            .unwrap()
+            .get_mut("gitlab")
+            .unwrap()
+            .failure
+            .as_mut()
+            .unwrap()
+            .last_attempt_unix -= crate::daemon::MIRROR_PAUSE_REPROBE_SECS;
+        second.save().unwrap();
+        drop(second);
+        let recovered = Box::pin(round(repo, latest.clone(), &remotes)).await;
+        assert!(recovered.remote_failures.is_empty());
+        assert_eq!(
+            git(&gitlab, &["rev-parse", "refs/heads/main"]),
+            latest.object_id()
+        );
+        assert!(!pending(repo));
+    }
 }
