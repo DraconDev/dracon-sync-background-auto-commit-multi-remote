@@ -366,7 +366,7 @@ async fn episode() {
         changed_at: at,
         dirty_since: Some(at),
         ahead_since: None,
-            ahead_count: 0,
+        ahead_count: 0,
         behind_since: None,
         mirror_consecutive_fails: HashMap::new(),
         failure_count: 0,

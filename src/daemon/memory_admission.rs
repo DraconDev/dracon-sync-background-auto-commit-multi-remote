@@ -95,7 +95,7 @@ pub(crate) fn held() -> bool {
         .is_none_or(|at| now.duration_since(at) >= SAMPLE_INTERVAL)
     {
         admission.last_sample = Some(now);
-        let available = std::fs::read_to_string("/proc/meminfo")
+        let host_available = std::fs::read_to_string("/proc/meminfo")
             .ok()
             .as_deref()
             .and_then(headroom_pct);
@@ -106,6 +106,15 @@ pub(crate) fn held() -> bool {
         let stall = local_pressure_path()
             .and_then(read_full_stall)
             .or_else(|| read_full_stall(Path::new("/proc/pressure/memory")));
+        // A readable daemon-cgroup PSI sample attributes pressure locally.
+        // Host headroom belongs only to the fallback path. Applying both
+        // signals together reintroduced the fleet-wide freeze whenever an
+        // unrelated tenant exhausted reclaimable memory.
+        let available = if local_pressure_path().and_then(read_full_stall).is_some() {
+            None
+        } else {
+            host_available
+        };
         let was_held = admission.held;
         admission.observe(now, available, stall);
         if was_held != admission.held {

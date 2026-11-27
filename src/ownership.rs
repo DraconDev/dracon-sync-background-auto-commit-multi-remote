@@ -680,16 +680,17 @@ pub fn detect_ownership_path_owned(
 pub(crate) fn identity_defect(name: &str, email: &str) -> Option<String> {
     let name_t = name.trim();
     let email_t = email.trim();
-    let bad_token = |v: &str| v.is_empty() || v.starts_with('-') || v.chars().all(|c| !c.is_alphanumeric());
+    let bad_token =
+        |v: &str| v.is_empty() || v.starts_with('-') || v.chars().all(|c| !c.is_alphanumeric());
     let mut problems = Vec::new();
     if bad_token(name_t) {
         problems.push(format!("user.name {name_t:?}"));
     }
     let well_formed_email = !bad_token(email_t)
         && !email_t.chars().any(char::is_whitespace)
-        && email_t
-            .split_once('@')
-            .is_some_and(|(local, domain)| !local.is_empty() && !domain.is_empty() && !domain.contains('@'));
+        && email_t.split_once('@').is_some_and(|(local, domain)| {
+            !local.is_empty() && !domain.is_empty() && !domain.contains('@')
+        });
     if !well_formed_email {
         problems.push(format!("user.email {email_t:?}"));
     }
@@ -747,13 +748,23 @@ mod tests {
         // Verbatim from freeport and hellhunter on 2026-11-13.
         assert!(identity_defect("--global", "--global").is_some());
         assert!(identity_defect("-", "-").is_some());
-        assert!(identity_defect("", "dracsharp@gmail.com").unwrap().contains("user.name"));
-        assert!(identity_defect("DraconDev", "dracsharp").unwrap().contains("user.email"));
+        assert!(identity_defect("", "dracsharp@gmail.com")
+            .unwrap()
+            .contains("user.name"));
+        assert!(identity_defect("DraconDev", "dracsharp")
+            .unwrap()
+            .contains("user.email"));
         assert!(identity_defect("DraconDev", "a b@c").is_some());
         // Well-formed identities pass, trusted or not: trust is a separate check.
         assert_eq!(identity_defect("DraconDev", "dracsharp@gmail.com"), None);
-        assert_eq!(identity_defect("DraconDev", "DraconDev@users.noreply.github.com"), None);
-        assert_eq!(identity_defect("hellhunter-dev", "hellhunter@dracon.local"), None);
+        assert_eq!(
+            identity_defect("DraconDev", "DraconDev@users.noreply.github.com"),
+            None
+        );
+        assert_eq!(
+            identity_defect("hellhunter-dev", "hellhunter@dracon.local"),
+            None
+        );
         assert_eq!(identity_defect("Zoë", "z@x"), None);
     }
 

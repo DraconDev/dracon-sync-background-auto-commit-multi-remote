@@ -2769,7 +2769,9 @@ fn push_failure_message(
             .find_map(|info| crate::git::hook_failure_summary(&info.last_error))
     });
     let msg = match hook_detail.as_deref() {
-        Some(detail) => format!("git push returned non-zero (remotes: {names}) — {cause}: {detail}"),
+        Some(detail) => {
+            format!("git push returned non-zero (remotes: {names}) — {cause}: {detail}")
+        }
         None => format!("git push returned non-zero (remotes: {names}) — {cause}"),
     };
     (msg, hook_detail)
@@ -3697,7 +3699,8 @@ async fn inspect_task_transitions(repo: &Path) -> TaskTransitions {
     // exhaust the daemon's memory headroom or block a runtime thread.
     let result = tokio::time::timeout(Duration::from_secs(10), async {
         let child = crate::git::spawn_git_command_cancellable(repo, TASK_DIFF_ARGS, "task-diff")?;
-        let (exit, output, _) = crate::git::run_git_captured_output(child, repo, "task-diff").await?;
+        let (exit, output, _) =
+            crate::git::run_git_captured_output(child, repo, "task-diff").await?;
         anyhow::ensure!(exit.success(), "staged task diff failed");
         Ok::<_, anyhow::Error>(output)
     })
@@ -5129,7 +5132,10 @@ async fn run_configured_hook(
         hook,
         &[
             ("GIT_EDITOR", ":"),
-            (crate::bucket_guard::GUARD_MODE_ENV, crate::bucket_guard::GUARD_MODE_WARN),
+            (
+                crate::bucket_guard::GUARD_MODE_ENV,
+                crate::bucket_guard::GUARD_MODE_WARN,
+            ),
         ],
     )
     .await
@@ -6496,7 +6502,10 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     if ctx.policy.auto_push && should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
         // Owned publication (see `run_publication_actor`): one pinned round
         // whose upload overlaps fresh local commits in this repository.
-        let ahead = count_ahead_commits(ctx.repo).await.unwrap_or(u64::MAX).max(ahead);
+        let ahead = count_ahead_commits(ctx.repo)
+            .await
+            .unwrap_or(u64::MAX)
+            .max(ahead);
         let has_origin = ctx.has_origin;
         match run_publication_actor(&mut *ctx, has_origin, ahead).await {
             Ok(PushReport::Attempted {
@@ -6660,20 +6669,14 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     // recorded FAILURE from an earlier cycle is stale. See
     // `record_converged_push_success` for why the PUSH column must not be
     // allowed to stay red forever.
-    if ctx.policy.auto_push
-        && !should_push
-        && (ctx.has_origin || !ctx.policy.remotes.is_empty())
-    {
+    if ctx.policy.auto_push && !should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
         record_converged_push_success(ctx.repo);
     }
     // Converged with nothing to push: the repo is already published, so a
     // recorded FAILURE from an earlier cycle is stale. See
     // `record_converged_push_success` for why the PUSH column must not be
     // allowed to stay red forever.
-    if ctx.policy.auto_push
-        && !should_push
-        && (ctx.has_origin || !ctx.policy.remotes.is_empty())
-    {
+    if ctx.policy.auto_push && !should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
         record_converged_push_success(ctx.repo);
     }
     Ok(PushReport::Attempted {
@@ -6756,7 +6759,10 @@ mod tests {
         crate::daemon::record_push_failure(&repo, "transient network hiccup");
         let observed = crate::daemon::push_history::load(&repo)
             .expect("a failed push must leave an observation");
-        assert!(!observed.succeeded, "precondition: observation is a failure");
+        assert!(
+            !observed.succeeded,
+            "precondition: observation is a failure"
+        );
 
         // The cause is fixed and the operator clears the ledger, exactly as
         // `dracon-sync repair stuck-unstuck` does.
@@ -9848,7 +9854,10 @@ auto_bump_versions = false
         let detail = detail.expect("gate refusal must yield detail");
         assert!(detail.contains("tabmon/TEST"), "{detail}");
         assert!(msg.contains(&detail), "{msg}");
-        assert!(msg.starts_with("git push returned non-zero (remotes: origin)"), "{msg}");
+        assert!(
+            msg.starts_with("git push returned non-zero (remotes: origin)"),
+            "{msg}"
+        );
 
         // A transport error carries no hook detail: bare message, None.
         let mut plain: HashMap<String, crate::daemon::RemoteFailInfo> = HashMap::new();
@@ -12533,14 +12542,8 @@ auto_bump_versions = false
         // shape: capture-anime-girls had `origin/main == HEAD` (8c9692f6)
         // while `gitlab/main` was pinned at d191dde3 — real remote tip 8c9692f6.
         git_cmd(&repo, &["push", "-q", "github", "HEAD:refs/heads/main"]);
-        git_cmd(
-            &repo,
-            &["update-ref", "refs/remotes/origin/main", "HEAD"],
-        );
-        git_cmd(
-            &repo,
-            &["update-ref", "refs/remotes/github/main", "HEAD~1"],
-        );
+        git_cmd(&repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+        git_cmd(&repo, &["update-ref", "refs/remotes/github/main", "HEAD~1"]);
         let upstream = String::from_utf8_lossy(
             &git_cmd(&repo, &["rev-parse", "refs/remotes/origin/main"]).stdout,
         )
@@ -12555,7 +12558,10 @@ auto_bump_versions = false
         )
         .trim()
         .to_string();
-        assert_ne!(mirror, head, "precondition: the mirror name must start stale");
+        assert_ne!(
+            mirror, head,
+            "precondition: the mirror name must start stale"
+        );
         // The poison the daemon actually saw: one stale name makes the
         // MAXIMUM count wrong even though the checkout is fully pushed.
         assert_eq!(
@@ -12668,13 +12674,17 @@ auto_bump_versions = false
         std::fs::write(repo.join("untracked.txt"), "new\n").unwrap();
 
         let svc = GitService::new(&repo).unwrap();
-        let DiffResult { entries, status, .. } = compute_diff_entries(&svc, &repo).await.unwrap();
+        let DiffResult {
+            entries, status, ..
+        } = compute_diff_entries(&svc, &repo).await.unwrap();
         let paths: BTreeSet<_> = entries.into_iter().map(|entry| entry.path).collect();
         assert!(paths.contains(Path::new("modified.txt")));
         assert!(paths.contains(Path::new("untracked.txt")));
         // Git can list a mode or stat candidate even when the eventual
         // clean conversion leaves the blob unchanged.
-        assert!(paths.len() == 2 || paths.len() == 3 && paths.contains(Path::new("normalized.txt")));
+        assert!(
+            paths.len() == 2 || paths.len() == 3 && paths.contains(Path::new("normalized.txt"))
+        );
         assert_eq!(status.staged_files, 0);
         assert_eq!(status.untracked_files, 1);
     }

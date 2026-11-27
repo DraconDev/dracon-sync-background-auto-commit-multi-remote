@@ -337,7 +337,11 @@ mod cache_discovery_tests {
         std::fs::write(real.join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
         let linked = root.path().join("linked");
         std::fs::create_dir_all(&linked).unwrap();
-        std::fs::write(linked.join(".git"), "gitdir: /elsewhere/.git/worktrees/linked\n").unwrap();
+        std::fs::write(
+            linked.join(".git"),
+            "gitdir: /elsewhere/.git/worktrees/linked\n",
+        )
+        .unwrap();
 
         assert!(!is_git_marker(&phantom.join(".git")));
         assert!(is_git_marker(&real.join(".git")));

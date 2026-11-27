@@ -95,7 +95,6 @@ impl GuardDemotion {
             }
         )
     }
-
 }
 
 /// Parse the demoter's machine-readable warning out of the guard's stderr.
@@ -172,9 +171,7 @@ pub(crate) fn record_demotion(repo: &Path, demotion: &GuardDemotion) {
     crate::report::record_sync_alert(
         repo,
         "Asset Retirement Admitted",
-        &format!(
-            "{summary}; bytes remain in history and `git revert` restores them"
-        ),
+        &format!("{summary}; bytes remain in history and `git revert` restores them"),
     );
     let Some(path) = demotion_record_path(repo) else {
         return;
@@ -725,7 +722,10 @@ exit 0
         // the path and the code.
         let summary = demotion.summary();
         assert!(summary.contains("static/art/a.png"), "{summary}");
-        assert!(summary.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"), "{summary}");
+        assert!(
+            summary.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"),
+            "{summary}"
+        );
     }
 
     /// A genuinely clean verdict (no demotion line) stays `None`, so the
@@ -806,7 +806,9 @@ exit 0
 
         // No record at all: nothing to report, and not an error.
         std::fs::remove_file(&path).unwrap();
-        assert!(pending_demotion(&repo).expect("absent is not an error").is_none());
+        assert!(pending_demotion(&repo)
+            .expect("absent is not an error")
+            .is_none());
     }
 
     /// The alert ledger is one of the THREE surfaces a demotion must reach — a
@@ -831,7 +833,10 @@ exit 0
         let content = std::fs::read_to_string(&ledger).expect("alert ledger");
         assert!(content.contains("Asset Retirement Admitted"), "{content}");
         // The alert must name the path and the recovery route, not just the code.
-        assert!(content.contains("web/games/static/games/covers/gone.jpg"), "{content}");
+        assert!(
+            content.contains("web/games/static/games/covers/gone.jpg"),
+            "{content}"
+        );
         assert!(content.contains("git revert"), "{content}");
     }
 

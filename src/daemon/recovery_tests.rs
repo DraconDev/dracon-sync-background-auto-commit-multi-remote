@@ -40,8 +40,7 @@ async fn recovery_status_waits_for_teardown_and_healthy_peer_progresses() {
     let mut jobs = FuturesUnordered::new();
     jobs.push(handle);
     let path = healthy.clone();
-    let fast: StatusJoin =
-        tokio::spawn(async move { (path, Ok(StatusSnapshot::empty())) });
+    let fast: StatusJoin = tokio::spawn(async move { (path, Ok(StatusSnapshot::empty())) });
     let fast_abort = fast.abort_handle();
     finished(&fast_abort).await;
     jobs.push(fast);
@@ -51,7 +50,10 @@ async fn recovery_status_waits_for_teardown_and_healthy_peer_progresses() {
         (healthy.clone(), fast_abort.into()),
     ]);
     let mut since = HashMap::from([
-        (hung.clone(), now - Duration::from_secs(STATUS_TASK_TIMEOUT_SECS + 1)),
+        (
+            hung.clone(),
+            now - Duration::from_secs(STATUS_TASK_TIMEOUT_SECS + 1),
+        ),
         (healthy.clone(), now),
     ]);
     let mut results = HashMap::new();

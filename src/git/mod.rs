@@ -6019,7 +6019,10 @@ mod auto_gc_tests {
     async fn loose_trigger_defers_while_a_push_is_in_flight() {
         let repo = crate::test_helpers::create_test_repo();
         std::fs::write(repo.join("new.txt"), "fresh loose content\n").unwrap();
-        for args in [&["add", "new.txt"][..], &["commit", "-q", "-m", "add new"][..]] {
+        for args in [
+            &["add", "new.txt"][..],
+            &["commit", "-q", "-m", "add new"][..],
+        ] {
             let out = crate::policy::std_git_command()
                 .args(args)
                 .current_dir(&repo)

@@ -372,10 +372,7 @@ impl Unit {
         // (2026-11-13: 78 such lines in ten minutes). Anything else is logged.
         if !cleanup.status.success() && !stderr.contains("not loaded") {
             // This bookkeeping failure cannot invalidate observed family emptiness.
-            eprintln!(
-                "epoch producer unit cleanup: {}",
-                stderr.trim_end()
-            );
+            eprintln!("epoch producer unit cleanup: {}", stderr.trim_end());
         }
         Ok(())
     }
@@ -647,7 +644,10 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let manager = flaky_control(dir.path(), SHOW_ATTEMPTS - 1);
         let properties = manager.show("x.service").await.unwrap();
-        assert_eq!(properties.get("LoadState").map(String::as_str), Some("loaded"));
+        assert_eq!(
+            properties.get("LoadState").map(String::as_str),
+            Some("loaded")
+        );
     }
 
     #[tokio::test]
