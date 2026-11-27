@@ -3643,11 +3643,17 @@ fn repos_legend_lines() -> Vec<String> {
 }
 
 /// Print a compact, styled key above the rich repositories table.
-fn print_repos_legend_footer() {
+fn print_repos_legend_footer(rows: &[RepoReportRow]) {
     let width = usize::from(terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16)).clamp(60, 160);
+    let show_mirror_lag = show_mirror_lag(rows);
+    let legend = repos_inline_legend_rows()
+        .iter()
+        .copied()
+        .filter(|(label, _)| *label != RICH_COLUMN_NAMES[MIRROR_LAG_COLUMN] || show_mirror_lag)
+        .collect::<Vec<_>>();
     print_legend_panel(&legend_panel_lines(
         "READING THIS TABLE",
-        repos_inline_legend_rows(),
+        &legend,
         width,
     ));
 }
@@ -5503,7 +5509,7 @@ pub(crate) async fn run_repos_report(
             // columns — printing it with the compact/full tiers
             // described columns those tiers don't have. `--legend`
             // remains the on-demand form for every tier.
-            print_repos_legend_footer();
+            print_repos_legend_footer(&rows);
             print_repos_rich_table(
                 &rows,
                 &filter,
@@ -7331,6 +7337,7 @@ fn build_repos_rich_table(
 /// column `i`; the width array in `build_repos_rich_table_with_hidden`
 /// uses the same order.
 const RICH_COLUMN_COUNT: usize = 16;
+const MIRROR_LAG_COLUMN: usize = 3;
 const RICH_COLUMN_NAMES: [&str; RICH_COLUMN_COUNT] = [
     "#",
     "STATUS",
@@ -7352,7 +7359,7 @@ const RICH_COLUMN_NAMES: [&str; RICH_COLUMN_COUNT] = [
 /// ADDED 2026-11-20: columns hidden, in this order, when the terminal is
 /// narrower than the full rich table — least decision-relevant first.
 /// STATUS, REPO, MIRROR LAG, the change counts, A/B, PUSH and REM are
-/// never dropped: they are what tells the operator whether sync is healthy.
+/// never dropped to fit the terminal. Mirror lag is omitted when inapplicable.
 const RICH_DROP_ORDER: [usize; 5] = [15, 11, 12, 13, 14];
 
 /// Rendered width of the kept columns: Absolute widths include padding,
@@ -7362,8 +7369,12 @@ fn rich_columns_total(widths: &[usize; RICH_COLUMN_COUNT], kept: &[usize]) -> us
 }
 
 /// Drop columns in `RICH_DROP_ORDER` until the table fits `terminal`.
-fn rich_kept_columns(widths: &[usize; RICH_COLUMN_COUNT], terminal: usize) -> Vec<usize> {
-    let mut kept: Vec<usize> = (0..RICH_COLUMN_COUNT).collect();
+fn rich_kept_columns(
+    widths: &[usize; RICH_COLUMN_COUNT],
+    terminal: usize,
+    columns: &[usize],
+) -> Vec<usize> {
+    let mut kept = columns.to_vec();
     for column in RICH_DROP_ORDER {
         if rich_columns_total(widths, &kept) <= terminal {
             break;
@@ -7371,6 +7382,13 @@ fn rich_kept_columns(widths: &[usize; RICH_COLUMN_COUNT], terminal: usize) -> Ve
         kept.retain(|&kept_column| kept_column != column);
     }
     kept
+}
+
+fn show_mirror_lag(rows: &[RepoReportRow]) -> bool {
+    rows.iter().any(|row| {
+        row.push_to_remotes.len() > 1
+            || row.health.mirror_unpublished.values().any(|lag| *lag > 0)
+    })
 }
 
 fn keep_rich_cells<T>(cells: Vec<T>, kept: &[usize]) -> Vec<T> {
@@ -7473,7 +7491,11 @@ fn build_repos_rich_table_with_hidden(
         SIZE_COL,
         TOUCHED_COL,
     ];
-    let kept = rich_kept_columns(&all_widths, width);
+    let show_mirror_lag = show_mirror_lag(rows);
+    let columns: Vec<_> = (0..RICH_COLUMN_COUNT)
+        .filter(|column| *column != MIRROR_LAG_COLUMN || show_mirror_lag)
+        .collect();
+    let kept = rich_kept_columns(&all_widths, width, &columns);
     let repo_col = width
         .saturating_sub(rich_columns_total(&all_widths, &kept) - all_widths[2])
         .max(MIN_REPO_COL.saturating_sub(push_col - PUSH_COL));
@@ -7738,7 +7760,8 @@ fn build_repos_rich_table_with_hidden(
         table.add_row(keep_rich_cells(cells, &kept));
     }
 
-    let hidden = (0..RICH_COLUMN_COUNT)
+    let hidden = columns
+        .into_iter()
         .filter(|column| !kept.contains(column))
         .map(|column| RICH_COLUMN_NAMES[column])
         .collect();
@@ -13325,6 +13348,19 @@ mod tests {
         assert!(rich_hint_link_out(&[working], 165)
             .unwrap()
             .contains("gitlab missing 2374"));
+    }
+
+    #[test]
+    fn rich_table_omits_mirror_lag_for_github_only() {
+        let mut row = make_activity_row("5 minutes ago", 3, 0, "OK");
+        row.push_to_remotes = vec!["origin".into()];
+        row.push_to_forges = vec!["github".into()];
+        row.ahead = 3;
+        let (table, hidden) = build_repos_rich_table_with_hidden(&[row], false, 200);
+        let rendered = table.to_string();
+        assert!(!rendered.contains("MIRROR LAG"), "{rendered}");
+        assert!(rendered.contains("A/B") && rendered.contains("↑3"), "{rendered}");
+        assert!(hidden.is_empty(), "{hidden:?}");
     }
 
     #[test]
