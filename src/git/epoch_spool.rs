@@ -112,6 +112,7 @@ pub(crate) async fn preview_redundant_spools(
 pub(crate) async fn verify_spool_recovery(
     repo: &Path,
     name: &str,
+    destination: &Path,
     timeout: u64,
 ) -> Result<PathBuf> {
     ensure!(
@@ -122,10 +123,26 @@ pub(crate) async fn verify_spool_recovery(
         .await
         .ok_or_else(|| anyhow::anyhow!("cannot establish originating gitdir"))?;
     let spool = gitdir.join(name);
+    let destination = destination.canonicalize()?;
+    let metadata = std::fs::metadata(&destination)?;
+    ensure!(metadata.is_dir(), "recovery destination must be a directory");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        ensure!(
+            metadata.uid() == unsafe { libc::geteuid() } && metadata.mode() & 0o077 == 0,
+            "recovery destination must be owned by you with no group or public access"
+        );
+    }
+    ensure!(
+        !destination.starts_with(repo.canonicalize()?) && !destination.starts_with(&gitdir),
+        "recovery destination must be outside the checkout and Git directory"
+    );
     let timeout = timeout.clamp(30, 600);
     let owner = ownership::ReclaimOwner::acquire(&gitdir, &spool, std::time::Duration::ZERO)?;
     owner.proves_inactivity()?;
-    let (receipt, owner) = recovery::prepare_owned_record(repo, &spool, timeout, owner).await?;
+    let (receipt, owner) =
+        recovery::prepare_owned_record_in(repo, &spool, timeout, owner, destination).await?;
     recovery::verify_receipt(&receipt.record, &receipt.manifest_sha256, timeout).await?;
     let owner = recovery::verify_source_owned(&receipt.record, &spool, owner).await?;
     owner.proves_inactivity()?;

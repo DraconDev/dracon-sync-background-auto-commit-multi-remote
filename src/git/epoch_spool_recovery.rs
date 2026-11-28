@@ -493,7 +493,7 @@ async fn prepare_with_fault(
     seconds: u64,
     fault: Fault,
 ) -> Result<DurableReceipt> {
-    Ok(prepare_guarded(repo, spool, seconds, fault, ()).await?.0)
+    Ok(prepare_guarded(repo, spool, seconds, fault, (), None).await?.0)
 }
 
 /// Preserve the actual kernel fence across requester cancellation too. Keeping
@@ -505,7 +505,17 @@ pub(super) async fn prepare_owned_record(
     seconds: u64,
     owner: super::ownership::ReclaimOwner,
 ) -> Result<(DurableReceipt, super::ownership::ReclaimOwner)> {
-    prepare_guarded(repo, spool, seconds, Fault::None, owner).await
+    prepare_guarded(repo, spool, seconds, Fault::None, owner, None).await
+}
+
+pub(super) async fn prepare_owned_record_in(
+    repo: &Path,
+    spool: &Path,
+    seconds: u64,
+    owner: super::ownership::ReclaimOwner,
+    destination: PathBuf,
+) -> Result<(DurableReceipt, super::ownership::ReclaimOwner)> {
+    prepare_guarded(repo, spool, seconds, Fault::None, owner, Some(destination)).await
 }
 
 pub(super) async fn verify_source_owned(
@@ -528,7 +538,7 @@ pub(super) async fn prepare_owned_fault(
     owner: super::ownership::ReclaimOwner,
     fault: Fault,
 ) -> Result<(DurableReceipt, super::ownership::ReclaimOwner)> {
-    prepare_guarded(repo, spool, seconds, fault, owner).await
+    prepare_guarded(repo, spool, seconds, fault, owner, None).await
 }
 
 async fn prepare_guarded<G: Send + 'static>(
@@ -537,10 +547,11 @@ async fn prepare_guarded<G: Send + 'static>(
     seconds: u64,
     fault: Fault,
     guard: G,
+    destination: Option<PathBuf>,
 ) -> Result<(DurableReceipt, G)> {
     let (repo, spool) = (repo.to_path_buf(), spool.to_path_buf());
     let preparation = tokio::spawn(async move {
-        let receipt = prepare_inner(&repo, &spool, seconds, fault).await?;
+        let receipt = prepare_inner(&repo, &spool, seconds, fault, destination).await?;
         Ok((receipt, guard))
     });
     tokio::time::timeout(std::time::Duration::from_secs(seconds), preparation)
@@ -554,6 +565,7 @@ async fn prepare_inner(
     spool: &Path,
     timeout: u64,
     _fault: Fault,
+    destination: Option<PathBuf>,
 ) -> Result<DurableReceipt> {
     let gitdir = PathBuf::from(text(repo, &["rev-parse", "--absolute-git-dir"], timeout).await?);
     ensure!(
@@ -601,7 +613,7 @@ async fn prepare_inner(
             .any(|b| b":\n\"".contains(b)),
         "unsupported object directory path"
     );
-    let rescue = gitdir.join("dracon-rescue");
+    let rescue = destination.unwrap_or_else(|| gitdir.join("dracon-rescue"));
     match fs::create_dir(&rescue) {
         Ok(()) => (),
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => (),
@@ -611,7 +623,7 @@ async fn prepare_inner(
         fs::symlink_metadata(&rescue)?.is_dir(),
         "recovery area is not a real directory"
     );
-    File::open(&gitdir)?.sync_all()?;
+    File::open(rescue.parent().context("recovery area has no parent")?)?.sync_all()?;
     let work = tempfile::Builder::new()
         .prefix(".prepare-")
         .tempdir_in(&rescue)?;
@@ -1209,7 +1221,7 @@ mod tests {
         .unwrap();
         let (r, s) = (repo.clone(), spool.clone());
         let request = tokio::spawn(async move {
-            prepare_guarded(&r, &s, 20, Fault::SlowBeforeVerify, owner).await
+            prepare_guarded(&r, &s, 20, Fault::SlowBeforeVerify, owner, None).await
         });
         let rescue = repo.join(".git/dracon-rescue");
         let record = tokio::time::timeout(std::time::Duration::from_secs(5), async {

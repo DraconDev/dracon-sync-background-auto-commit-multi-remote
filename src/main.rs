@@ -547,6 +547,9 @@ enum RepairCommands {
         repo: PathBuf,
         /// Directory name within the repository's Git directory.
         spool: String,
+        /// Existing private directory outside the checkout.
+        #[arg(long)]
+        destination: PathBuf,
     },
     /// List repos that are permanently stuck on push.
     StuckList,
@@ -1443,8 +1446,12 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     println!("\n🔧 Run 'dracon-sync repair origins --apply' to fix them");
                 }
             }
-            RepairCommands::VerifySpoolRecovery { repo, spool } => {
-                let record = git::verify_spool_recovery(&repo, &spool, 600).await?;
+            RepairCommands::VerifySpoolRecovery {
+                repo,
+                spool,
+                destination,
+            } => {
+                let record = git::verify_spool_recovery(&repo, &spool, &destination, 600).await?;
                 println!("Verified recovery record at {}", record.display());
             }
             RepairCommands::Spools {
