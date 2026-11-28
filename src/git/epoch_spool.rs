@@ -125,7 +125,10 @@ pub(crate) async fn verify_spool_recovery(
     let spool = gitdir.join(name);
     let destination = destination.canonicalize()?;
     let metadata = std::fs::metadata(&destination)?;
-    ensure!(metadata.is_dir(), "recovery destination must be a directory");
+    ensure!(
+        metadata.is_dir(),
+        "recovery destination must be a directory"
+    );
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;

@@ -86,11 +86,17 @@ async fn named_recovery_verification_keeps_the_source_and_refuses_unowned_spools
     assert_eq!(fs::read(record.join("metadata/index")).unwrap(), index);
     assert!(record.join("receipt").is_file());
     assert!(!record.join("reclaim-intent.json").exists());
-    assert!(verify_spool_recovery(&f.repo, "../dracon-staging-fixture", destination.path(), 30)
-        .await
-        .is_err());
+    assert!(
+        verify_spool_recovery(&f.repo, "../dracon-staging-fixture", destination.path(), 30)
+            .await
+            .is_err()
+    );
     let unowned = fixture(false, false);
-    assert!(verify_spool_recovery(&unowned.repo, name, destination.path(), 30).await.is_err());
+    assert!(
+        verify_spool_recovery(&unowned.repo, name, destination.path(), 30)
+            .await
+            .is_err()
+    );
 }
 
 fn fixture(mixed: bool, sealed: bool) -> Fixture {

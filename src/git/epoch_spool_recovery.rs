@@ -327,7 +327,13 @@ async fn verify(store: &Path, roots: &Path, timeout: u64) -> Result<()> {
     ensure!(results.next().is_none(), "unexpected batch result");
     text(
         store,
-        &["fsck", "--full", "--strict", "--no-reflogs", "--no-dangling"],
+        &[
+            "fsck",
+            "--full",
+            "--strict",
+            "--no-reflogs",
+            "--no-dangling",
+        ],
         timeout,
     )
     .await?;
@@ -413,7 +419,9 @@ pub(super) async fn verify_receipt(record: &Path, expected: &str, timeout: u64) 
             "--batch-check=%(objectname) %(objecttype) %(objectsize)",
         ])
         .stdout(listing.try_clone()?);
-    run(command, timeout).await.context("enumerate verified objects")?;
+    run(command, timeout)
+        .await
+        .context("enumerate verified objects")?;
     listing.rewind()?;
     // Both inventories use Git's default OID order for batch-all-objects.
     let mut actual = BufReader::new(listing).lines();
@@ -506,7 +514,9 @@ async fn prepare_with_fault(
     seconds: u64,
     fault: Fault,
 ) -> Result<DurableReceipt> {
-    Ok(prepare_guarded(repo, spool, seconds, fault, (), None).await?.0)
+    Ok(prepare_guarded(repo, spool, seconds, fault, (), None)
+        .await?
+        .0)
 }
 
 /// Preserve the actual kernel fence across requester cancellation too. Keeping
@@ -731,7 +741,11 @@ async fn prepare_inner(
     // that tree subject to pruning in the main repository.
     for entry in fs::read_dir(&metadata)? {
         let entry = entry?;
-        if !entry.file_name().as_encoded_bytes().starts_with(b"producer-io-") {
+        if !entry
+            .file_name()
+            .as_encoded_bytes()
+            .starts_with(b"producer-io-")
+        {
             continue;
         }
         // Producer logs that are not object references are preserved verbatim.

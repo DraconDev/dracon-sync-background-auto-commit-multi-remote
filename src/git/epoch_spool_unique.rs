@@ -30,7 +30,9 @@ pub(super) async fn prepare(
     let mut missing = BTreeSet::new();
     for object in BufReader::new(File::open(source)?).lines() {
         let object = object?;
-        let row = rows.next().context("incomplete main ODB classification")??;
+        let row = rows
+            .next()
+            .context("incomplete main ODB classification")??;
         let fields: Vec<_> = row.split_whitespace().collect();
         ensure!(
             oid(&object, width) && fields.len() == 2 && fields[0] == object,
@@ -135,7 +137,9 @@ pub(super) async fn prepare(
     let inventory: BTreeSet<_> = inventory.lines().collect();
     let mut uncompressed_bytes = 0u64;
     for expected in &missing {
-        let actual = rows.next().context("incomplete isolated unique readback")??;
+        let actual = rows
+            .next()
+            .context("incomplete isolated unique readback")??;
         ensure!(
             actual.split_whitespace().next() == Some(expected.as_str())
                 && inventory.contains(actual.as_str()),
