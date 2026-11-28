@@ -1,10 +1,76 @@
 #[cfg(test)]
 use anyhow::Result;
 pub(crate) mod hygiene;
-use std::collections::BTreeSet;
-use std::path::Path;
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::{Path, PathBuf};
 
 use crate::policy::{debug_enabled, SyncPolicy};
+use dracon_sync::storage_core::reference::Fingerprint;
+
+/// Operator-reviewed LFS identities. The manifest lives in the checkout's
+/// Git directory so incoming commits cannot grant this staging exception.
+pub(crate) fn reviewed_lfs_payloads(repo: &Path) -> Option<BTreeMap<PathBuf, Fingerprint>> {
+    use std::io::Read;
+
+    let manifest = crate::git::path_gitdir(repo)?.join("dracon-lfs-stage");
+    let mut records = String::new();
+    std::fs::File::open(manifest)
+        .ok()?
+        .take(64 * 1024 + 1)
+        .read_to_string(&mut records)
+        .ok()?;
+    if records.len() > 64 * 1024 {
+        return None;
+    }
+    let mut payloads = BTreeMap::new();
+    for line in records.lines() {
+        let (sha, rest) = line.split_once('\t')?;
+        let (size, name) = rest.split_once('\t')?;
+        let name = PathBuf::from(name);
+        if name.as_os_str().is_empty()
+            || !name
+                .components()
+                .all(|part| matches!(part, std::path::Component::Normal(_)))
+        {
+            return None;
+        }
+        let payload = Fingerprint::new(sha.to_owned(), size.parse().ok()?).ok()?;
+        if payloads.insert(name, payload).is_some() {
+            return None;
+        }
+    }
+    Some(payloads)
+}
+
+pub(crate) fn exceeds_worktree_stage_limit(
+    repo: &Path,
+    path: &Path,
+    bytes: u64,
+    max_bytes: u64,
+) -> bool {
+    if bytes <= max_bytes {
+        return false;
+    }
+    if !reviewed_lfs_payloads(repo).is_some_and(|payloads| {
+        payloads
+            .get(path)
+            .is_some_and(|payload| payload.bytes() == bytes)
+    }) {
+        return true;
+    }
+    let mut command = crate::policy::std_git_command();
+    command.current_dir(repo);
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(key);
+        }
+    }
+    !command
+        .args(["check-attr", "-z", "filter", "--"])
+        .arg(path)
+        .output()
+        .is_ok_and(|result| result.status.success() && result.stdout.ends_with(b"\0filter\0lfs\0"))
+}
 
 pub(crate) fn normalized_dir_name(value: &str) -> String {
     value.trim_matches('/').to_ascii_lowercase()
@@ -1727,7 +1793,7 @@ pub(crate) fn should_stage_entry(
 
     match std::fs::metadata(&full_path) {
         Ok(meta) if meta.is_file() => {
-            if meta.len() > max_stage_file_bytes {
+            if exceeds_worktree_stage_limit(repo, &entry.path, meta.len(), max_stage_file_bytes) {
                 eprintln!(
                     "ℹ️ skip large file {} ({} bytes > {} bytes)",
                     full_path.display(),
@@ -1823,7 +1889,9 @@ pub(crate) fn is_large_untracked(
     }
     let full_path = repo.join(&entry.path);
     match std::fs::metadata(&full_path) {
-        Ok(meta) if meta.is_file() => meta.len() > threshold,
+        Ok(meta) if meta.is_file() => {
+            exceeds_worktree_stage_limit(repo, &entry.path, meta.len(), threshold)
+        }
         _ => false,
     }
 }

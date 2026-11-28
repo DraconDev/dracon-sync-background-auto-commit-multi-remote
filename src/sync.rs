@@ -1457,7 +1457,12 @@ async fn stage_existing_files_in_index(
                             // untracked dir bypassed them.
                             if let Some((policy, auto_commit_excl)) = filter {
                                 let rel_path = rel.to_path_buf();
-                                if meta.len() > policy.max_stage_file_bytes {
+                                if crate::exclude::exceeds_worktree_stage_limit(
+                                    repo,
+                                    rel,
+                                    meta.len(),
+                                    policy.max_stage_file_bytes,
+                                ) {
                                     eprintln!(
                                         "ℹ️ skip large file {} ({} bytes > {} bytes)",
                                         cp.display(),

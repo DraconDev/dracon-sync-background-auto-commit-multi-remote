@@ -1421,8 +1421,15 @@ async fn inspect_report_status(
             // The daemon measures an unstaged candidate's worktree size.
             // Staged content has its own blob-size check and must stay visible.
             let oversized = matches!(y, b'M' | b'A' | b'C' | b'R')
-                && std::fs::metadata(&full_path)
-                    .is_ok_and(|meta| meta.is_file() && meta.len() > max_stage_file_bytes);
+                && std::fs::metadata(&full_path).is_ok_and(|meta| {
+                    meta.is_file()
+                        && crate::exclude::exceeds_worktree_stage_limit(
+                            repo,
+                            path,
+                            meta.len(),
+                            max_stage_file_bytes,
+                        )
+                });
             out.committable_staged += usize::from(staged);
             if modified && oversized {
                 out.excluded += 1;
@@ -3518,7 +3525,7 @@ fn repos_inline_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("PUSH", "✅ OK / ❌ FAIL and age show the last recorded push attempt."),
         ("REM", "Push destinations · 🐙 GitHub · 🦊 GitLab · 🗻 Codeberg"),
         ("1H 6H 24H", "commits in the last hour / 6 hours / 24 hours"),
-        ("GIT SIZE", "local Git history, not worktree; includes nested repos · GitHub limit is 2 GiB per push"),
+        ("GIT SIZE", "local Git storage (own+nested) · 🟡 own ≥1 GiB · 🔴 pending push flagged over GitHub’s 2 GiB limit"),
         ("TOUCHED", "author of the latest commit"),
         ("DETAILS", "dracon-sync repos <name> · --legend for the full key · --deep to refresh pack/history checks"),
     ]
@@ -15312,6 +15319,8 @@ mod tests {
                 "publishing and retrying",
                 "stalled, blocked and unknown",
                 "Inspection failures are listed above the table",
+                "own ≥1 GiB",
+                "pending push flagged over GitHub’s 2 GiB limit",
                 "--deep",
             ] {
                 // Wrapping can separate words but must preserve all explanations.

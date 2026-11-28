@@ -382,6 +382,7 @@ impl Epoch {
             measured.insert(path, fields[2].parse::<u64>()?);
         }
         ensure!(records.next().is_none(), "extra cached size records");
+        let reviewed_lfs = crate::exclude::reviewed_lfs_payloads(repo).unwrap_or_default();
         let mut rejected = Vec::new();
         for ((raw, entry), path) in self.snapshot.changed.iter().zip(self.entries()?) {
             let size = measured.get(raw).copied().unwrap_or(0);
@@ -418,6 +419,22 @@ impl Epoch {
             )) {
                 rejected.push(raw.clone());
                 continue;
+            }
+            if let (Some(entry), Some(expected)) = (entry, reviewed_lfs.get(&path.path)) {
+                // Only the reviewed payload may cross the worktree size gate.
+                // Read the captured blob after its size is bounded, even if an
+                // attribute or filter changed between inspection and staging.
+                let approved = if size <= 1024 && matches!(entry.mode, 0o100644 | 0o100755) {
+                    let blob = git(repo, &["cat-file", "blob", &entry.oid], None).await?;
+                    dracon_sync::storage_core::reference::Pointer::parse(&blob.stdout)
+                        .is_ok_and(|pointer| pointer.payload() == expected)
+                } else {
+                    false
+                };
+                if !approved {
+                    rejected.push(raw.clone());
+                    continue;
+                }
             }
             // Preserve the existing untracked opt-outs, without interpreting a
             // worktree rewrite as the content of an already-staged blob.
@@ -1424,6 +1441,67 @@ mod tests {
             std::fs::read(repo.join("file")).unwrap(),
             b"foreign unstaged bytes\n"
         );
+    }
+
+    #[tokio::test]
+    async fn reviewed_large_lfs_path_requires_the_exact_pointer() {
+        use dracon_sync::storage_core::reference::{Fingerprint, Pointer};
+
+        let (root, policy) = fixture().await;
+        let repo = root.path();
+        let path = Path::new("reviewed.mp4");
+        let sha = "a".repeat(64);
+        let bytes = 2048;
+        let limit = 1024;
+        let oversized = || crate::exclude::exceeds_worktree_stage_limit(repo, path, bytes, limit);
+        assert!(oversized());
+        std::fs::write(
+            repo.join(".git/dracon-lfs-stage"),
+            format!("{sha}\t{bytes}\treviewed.mp4\n"),
+        )
+        .unwrap();
+        assert!(oversized());
+        std::fs::write(repo.join(".gitattributes"), b"reviewed.mp4 filter=lfs\n").unwrap();
+        assert!(!oversized());
+        assert!(crate::exclude::exceeds_worktree_stage_limit(
+            repo,
+            Path::new("other.mp4"),
+            bytes,
+            limit
+        ));
+
+        for (fingerprint, eligible) in [(sha, true), ("b".repeat(64), false)] {
+            let pointer = Pointer::new(Fingerprint::new(fingerprint, bytes).unwrap()).unwrap();
+            let blob = git(
+                repo,
+                &["hash-object", "-w", "--stdin"],
+                Some(&pointer.encode()),
+            )
+            .await
+            .unwrap();
+            let oid = std::str::from_utf8(&blob.stdout).unwrap().trim();
+            git(
+                repo,
+                &[
+                    "update-index",
+                    "--add",
+                    "--cacheinfo",
+                    &format!("100644,{oid},reviewed.mp4"),
+                ],
+                None,
+            )
+            .await
+            .unwrap();
+            let epoch = Epoch::capture(repo, 60).await.unwrap();
+            assert_eq!(
+                epoch
+                    .ineligible_paths(repo, &policy, &BTreeSet::new())
+                    .await
+                    .unwrap()
+                    .is_empty(),
+                eligible
+            );
+        }
     }
 
     #[tokio::test]
