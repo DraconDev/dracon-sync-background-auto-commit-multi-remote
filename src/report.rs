@@ -2914,6 +2914,21 @@ fn demotion_hint(demotion: &crate::bucket_guard::GuardDemotion) -> String {
 }
 
 fn current_blocker_hint(current: current_health::Current, hint: &str) -> String {
+    use current_health::Current;
+
+    let (action, details) = hint.split_once(';').unwrap_or((hint, ""));
+    if matches!(
+        current,
+        Current::Queued | Current::Working | Current::Publishing | Current::Retrying
+    ) && action == "run dracon-sync repair concerns --apply (push or rewrite)"
+    {
+        let action = "local commits await daemon publication";
+        return if details.is_empty() {
+            action.to_owned()
+        } else {
+            format!("{action};{details}")
+        };
+    }
     if current == current_health::Current::Unknown
         && (hint.starts_with("healthy")
             || hint.starts_with("daemon will push after changes settle")
@@ -17970,8 +17985,24 @@ mod v011321_tests {
             assert!(!unknown.contains("push or rewrite"), "{unknown}");
             assert!(unknown.contains("GitHub pack guard clear"));
             assert!(unknown.contains("deep checks deferred"));
-            // A known state must retain its original advice.
-            assert_eq!(current_blocker_hint(Current::Working, &hint), hint);
+            assert_eq!(current_blocker_hint(Current::Stalled, &hint), hint);
+        }
+    }
+
+    #[test]
+    fn active_publication_replaces_generic_repair_advice_and_keeps_diagnostics() {
+        use super::current_health::Current;
+        let generic = "run dracon-sync repair concerns --apply (push or rewrite); GitHub pack guard clear";
+        let expected = "local commits await daemon publication; GitHub pack guard clear";
+        let failure = "last push failed for this revision: hook refused";
+        for current in [
+            Current::Queued,
+            Current::Working,
+            Current::Publishing,
+            Current::Retrying,
+        ] {
+            assert_eq!(current_blocker_hint(current, generic), expected);
+            assert_eq!(current_blocker_hint(current, failure), failure);
         }
     }
 
