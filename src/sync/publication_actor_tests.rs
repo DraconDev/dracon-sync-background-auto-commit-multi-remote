@@ -110,7 +110,7 @@ impl Fixture {
             // The production entry owns admission: it takes publication
             // ownership when free, or commits behind the current publisher.
             crate::git::push_resources::with_local_work(local, permit, async move {
-                Box::pin(sync_repo_with_ahead_since(
+                sync_repo_with_ahead_since(
                     &repo,
                     &policy,
                     &std::collections::BTreeSet::new(),
@@ -120,7 +120,7 @@ impl Fixture {
                     None,
                     None,
                     false,
-                ))
+                )
                 .await
                 .unwrap()
             })
