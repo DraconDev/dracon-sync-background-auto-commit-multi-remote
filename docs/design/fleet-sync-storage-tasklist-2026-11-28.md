@@ -26,6 +26,7 @@
 - [x] Make Git LFS available on the daemon's existing PATH. Local tests produced canonical pointers and restored original bytes for generated writer EPUBs and covers and for browser design evidence PNGs.
 - [ ] Publish the verified video files through the existing GitHub LFS endpoint after approval of the exact files, then confirm retrieval from a fresh cache.
   - Separately verified all seven LFS objects already on video’s published `main` by fetching into an empty cache and comparing each payload with its pointer SHA-256.
+  - Prepared a fast-forward candidate from the audited published tip. Its diff contains the exact 11 pointer replacements and their path-specific attributes. All 11 cached payloads matched their reviewed size and SHA-256.
 - [ ] Prepare forward-only LFS intake for writer's generated book EPUBs and covers. The seven-day audit found about 2.1 GiB of ordinary EPUB and JPEG blob churn.
   - The broad rules match 4,481 paths and 4.03 GiB of distinct blobs at the audited published tip. A scratch pilot narrowed this to one EPUB and one cover, 698,371 bytes total, with exact paths and SHA-256 hashes recorded for review.
 - [ ] Prepare browser design evidence PNGs for forward-only LFS intake after writer. The seven-day audit found about 733 MiB of ordinary PNG blob churn, with Adblock Pro design evidence the most frequently changed group.
