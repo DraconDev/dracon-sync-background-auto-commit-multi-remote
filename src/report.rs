@@ -6573,7 +6573,7 @@ mod v011318_tests {
             "gitlab".to_string(),
             "codeberg".to_string(),
         ];
-        assert_eq!(rem_column_width(&known), 8);
+        assert_eq!(rem_column_width(&rem_cell_content(&known)), 8);
 
         let extended = [
             "github".to_string(),
@@ -6582,8 +6582,8 @@ mod v011318_tests {
             "backup".to_string(),
         ];
         let content = rem_cell_content(&extended);
-        assert!(rem_column_width(&extended) >= UnicodeWidthStr::width(content.as_str()) + 2);
-        assert!(rem_column_width(&extended) > 8);
+        assert!(rem_column_width(&content) >= UnicodeWidthStr::width(content.as_str()) + 2);
+        assert!(rem_column_width(&content) > 8);
     }
 
     #[test]
@@ -6959,6 +6959,7 @@ impl crate::report::RepoReportRow {
             push_error: String::new(),
             push_to_remotes: vec![],
             push_to_forges: vec![],
+            github_owner: None,
             excluded_remotes: vec![],
             duplicate_mirrors: vec![],
             codeberg_skip_reason: None,
@@ -12220,6 +12221,7 @@ mod tests {
                 "codeberg".to_string(),
                 "gitlab".to_string(),
             ],
+            github_owner: None,
             excluded_remotes: vec![],
             duplicate_mirrors: vec![],
             codeberg_skip_reason: None,
@@ -12280,6 +12282,7 @@ mod tests {
             push_error: String::new(),
             push_to_remotes: vec!["origin".to_string()],
             push_to_forges: vec!["github".to_string()],
+            github_owner: None,
             excluded_remotes: vec![],
             duplicate_mirrors: vec![],
             codeberg_skip_reason: None,
@@ -12577,6 +12580,7 @@ mod tests {
             push_error: String::new(),
             push_to_remotes: vec![],
             push_to_forges: vec![],
+            github_owner: None,
             excluded_remotes: vec![],
             duplicate_mirrors: vec![],
             codeberg_skip_reason: None,
@@ -13278,6 +13282,7 @@ mod tests {
                 "codeberg".to_string(),
                 "gitlab".to_string(),
             ],
+            github_owner: None,
             excluded_remotes: vec![],
             duplicate_mirrors: vec![],
             codeberg_skip_reason: None,
@@ -14155,6 +14160,7 @@ mod tests {
             push_error: "ahead=5, push failing".to_string(),
             push_to_remotes: vec!["codeberg".to_string()],
             push_to_forges: vec!["codeberg".to_string()],
+            github_owner: None,
             excluded_remotes: vec!["github".to_string(), "gitlab".to_string()],
             duplicate_mirrors: vec![],
             codeberg_skip_reason: None,
@@ -15192,6 +15198,7 @@ mod tests {
             push_error: String::new(),
             push_to_remotes: vec![],
             push_to_forges: vec![],
+            github_owner: None,
             excluded_remotes: vec![],
             duplicate_mirrors: vec![],
             codeberg_skip_reason: None,
@@ -16439,6 +16446,7 @@ mod v011313_tests {
             push_error: String::new(),
             push_to_remotes: vec![],
             push_to_forges: vec![],
+            github_owner: None,
             excluded_remotes: vec![],
             duplicate_mirrors: vec![],
             codeberg_skip_reason: None,
@@ -16600,8 +16608,8 @@ mod v011315_tests {
         );
 
         // ...and the column width follows the cell, not the input order.
-        let a = rem_column_width(&["github".to_string(), "gitlab".to_string()]);
-        let b = rem_column_width(&["gitlab".to_string(), "github".to_string()]);
+        let a = rem_column_width(&rem_cell_content(&["github".into(), "gitlab".into()]));
+        let b = rem_column_width(&rem_cell_content(&["gitlab".into(), "github".into()]));
         assert_eq!(a, b);
     }
 
@@ -17470,6 +17478,7 @@ mod v011321_tests {
             push_error: String::new(),
             push_to_remotes: vec!["origin".into()],
             push_to_forges: vec!["github".into()],
+            github_owner: None,
             excluded_remotes: vec![],
             duplicate_mirrors: vec![],
             codeberg_skip_reason: None,
