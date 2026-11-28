@@ -76,6 +76,7 @@ impl StagedIntentSnapshot {
                 read(repo, &args).await?
             };
             let entries = parse_index_observation(&raw, deadline)?;
+            drop(raw);
             let base = match &head {
                 CapturedHead::Commit(oid) => {
                     let tree = read(repo, &["ls-tree", "-r", "-z", "--full-tree", oid]).await?;
@@ -380,44 +381,7 @@ pub(crate) fn parse_entries(
     );
     for record in bytes.split(|b| *b == 0).filter(|r| !r.is_empty()) {
         ensure!(Instant::now() < deadline, "staged intent deadline expired");
-        let tab = record
-            .iter()
-            .position(|b| *b == b'\t')
-            .context("missing entry path")?;
-        let header = std::str::from_utf8(&record[..tab])?;
-        let fields: Vec<_> = header.split(' ').collect();
-        ensure!(fields.len() == 3, "invalid entry header");
-        let (oid, kind) = if index {
-            (fields[1], fields[2])
-        } else {
-            (fields[2], fields[1])
-        };
-        ensure!(
-            !index || kind == "0",
-            "unmerged index refuses staged intent capture"
-        );
-        let mode = u32::from_str_radix(fields[0], 8)?;
-        ensure!(
-            matches!(mode, 0o100644 | 0o100755 | 0o120000 | 0o160000),
-            "unsupported index/tree mode"
-        );
-        ensure!(
-            index || kind == if mode == 0o160000 { "commit" } else { "blob" },
-            "unsupported tree entry"
-        );
-        ensure!(
-            super::is_valid_object_id(oid) && !oid.bytes().all(|b| b == b'0'),
-            "invalid entry object ID"
-        );
-        let path = &record[tab + 1..];
-        ensure!(
-            !path.is_empty()
-                && !path.starts_with(b"/")
-                && path
-                    .split(|b| *b == b'/')
-                    .all(|p| !p.is_empty() && p != b"." && p != b".."),
-            "invalid entry path"
-        );
+        let (path, mode, oid) = parse_entry(record, index)?;
         ensure!(
             entries
                 .insert(
@@ -434,6 +398,52 @@ pub(crate) fn parse_entries(
     Ok(entries)
 }
 
+fn parse_entry(record: &[u8], index: bool) -> Result<(&[u8], u32, &str)> {
+    let tab = record
+        .iter()
+        .position(|b| *b == b'\t')
+        .context("missing entry path")?;
+    let header = std::str::from_utf8(&record[..tab])?;
+    let mut fields = header.split(' ');
+    let (Some(mode), Some(second), Some(third), None) =
+        (fields.next(), fields.next(), fields.next(), fields.next())
+    else {
+        anyhow::bail!("invalid entry header");
+    };
+    let (oid, kind) = if index {
+        (second, third)
+    } else {
+        (third, second)
+    };
+    ensure!(
+        !index || kind == "0",
+        "unmerged index refuses staged intent capture"
+    );
+    let mode = u32::from_str_radix(mode, 8)?;
+    ensure!(
+        matches!(mode, 0o100644 | 0o100755 | 0o120000 | 0o160000),
+        "unsupported index/tree mode"
+    );
+    ensure!(
+        index || kind == if mode == 0o160000 { "commit" } else { "blob" },
+        "unsupported tree entry"
+    );
+    ensure!(
+        super::is_valid_object_id(oid) && !oid.bytes().all(|b| b == b'0'),
+        "invalid entry object ID"
+    );
+    let path = &record[tab + 1..];
+    ensure!(
+        !path.is_empty()
+            && !path.starts_with(b"/")
+            && path
+                .split(|b| *b == b'/')
+                .all(|p| !p.is_empty() && p != b"." && p != b".."),
+        "invalid entry path"
+    );
+    Ok((path, mode, oid))
+}
+
 fn parse_index_observation(
     mut bytes: &[u8],
     deadline: Instant,
@@ -447,8 +457,11 @@ fn parse_index_observation(
             .context("missing index path terminator")?;
         // Parse identity and exact byte path before consuming this same entry's
         // debug payload. Never join flags from a second index read.
-        let record = parse_entries(&bytes[..=nul], true, deadline)?;
-        let (path, identity) = record.into_iter().next().context("missing index entry")?;
+        let (path, mode, oid) = parse_entry(&bytes[..nul], true)?;
+        let identity = CachedIdentity {
+            mode,
+            oid: oid.to_owned(),
+        };
         bytes = &bytes[nul + 1..];
         for prefix in [
             b"  ctime: ".as_slice(),
@@ -476,7 +489,7 @@ fn parse_index_observation(
             bytes = &bytes[end + 1..];
         }
         ensure!(
-            entries.insert(path, identity).is_none(),
+            entries.insert(path.to_vec(), identity).is_none(),
             "duplicate index path"
         );
     }

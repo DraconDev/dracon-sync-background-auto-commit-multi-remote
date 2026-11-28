@@ -977,14 +977,17 @@ impl Staging {
         };
         let deadline = staging.baseline.deadline;
         tokio::time::timeout_at(deadline, async {
-            let tree = staging
-                .baseline
-                .snapshot
-                .materialize_tree(repo, deadline)
-                .await?;
+            // The empty staged delta proves the captured index has the
+            // same entries as this commit. Seed the private index directly
+            // without rebuilding every tree in a large repository.
+            let mut args = vec!["read-tree"];
+            match &staging.baseline.snapshot.head {
+                CapturedHead::Commit(oid) => args.push(oid),
+                CapturedHead::Unborn { .. } => args.push("--empty"),
+            }
             run_index_git(
                 repo,
-                &["read-tree", &tree],
+                &args,
                 3600,
                 "initialize private staging",
                 Some(&staging.index),
