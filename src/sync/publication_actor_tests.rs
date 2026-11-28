@@ -5,6 +5,22 @@ use super::*;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use std::sync::Arc;
+use tokio::sync::Semaphore;
+
+struct PublicationSlots {
+    primary: Arc<Semaphore>,
+    short: Arc<Semaphore>,
+}
+
+impl PublicationSlots {
+    fn new() -> Self {
+        Self {
+            primary: Arc::new(Semaphore::new(2)),
+            short: Arc::new(Semaphore::new(1)),
+        }
+    }
+}
 
 fn git(cwd: &Path, args: &[&str]) -> String {
     let out = std::process::Command::new(crate::policy::git_binary())
@@ -101,15 +117,17 @@ impl Fixture {
     }
 
     /// One production sync pass: commit everything and publish it.
-    fn sync(&self, local: &std::sync::Arc<tokio::sync::Semaphore>) -> SyncGuard {
+    fn sync(&self, local: &Arc<Semaphore>, slots: &PublicationSlots) -> SyncGuard {
         let repo = self.repo.clone();
         let local = local.clone();
+        let primary = slots.primary.clone();
+        let short = slots.short.clone();
         SyncGuard(Some(tokio::spawn(async move {
             let policy: SyncPolicy = toml::from_str("").unwrap();
             let permit = local.clone().acquire_owned().await.unwrap();
             // The production entry owns admission: it takes publication
             // ownership when free, or commits behind the current publisher.
-            crate::git::push_resources::with_local_work(local, permit, async move {
+            let work = crate::git::push_resources::with_local_work(local, permit, async move {
                 sync_repo_with_ahead_since(
                     &repo,
                     &policy,
@@ -123,8 +141,10 @@ impl Fixture {
                 )
                 .await
                 .unwrap()
-            })
-            .await
+            });
+            crate::git::push_resources::with_test_short_publication_admission(
+                primary, short, Box::pin(work),
+            ).await
         })))
     }
 
@@ -194,12 +214,13 @@ async fn blocked_publication_does_not_stall_cross_repo_or_same_repo_commits() {
     let a = Fixture::new("a", true);
     let b = Fixture::new("b", false);
     let local = std::sync::Arc::new(tokio::sync::Semaphore::new(1));
+    let slots = PublicationSlots::new();
     let a_baseline = git(&a.repo, &["rev-parse", "HEAD"]);
     let b_baseline = git(&b.repo, &["rev-parse", "HEAD"]);
 
     // A publishes a first commit, then its hook parks the upload.
     std::fs::write(a.repo.join("data"), "A first commit\n").unwrap();
-    let first = a.sync(&local);
+    let first = a.sync(&local, &slots);
     a.wait_for("hook-entered", 20).await;
     let a_pinned = git(&a.repo, &["rev-parse", "HEAD"]);
     assert_ne!(a_pinned, a_baseline);
@@ -209,7 +230,7 @@ async fn blocked_publication_does_not_stall_cross_repo_or_same_repo_commits() {
 
     // B must be able to commit and publish while A's hook is still parked.
     std::fs::write(b.repo.join("data"), "B concurrent commit\n").unwrap();
-    let b_outcome = b.sync(&local).join(60).await;
+    let b_outcome = b.sync(&local, &slots).join(60).await;
     b.publication_released(30).await;
     let b_published = b.remote_tip();
     assert_ne!(
@@ -223,7 +244,7 @@ async fn blocked_publication_does_not_stall_cross_repo_or_same_repo_commits() {
     let b_tip = git(&b.repo, &["rev-parse", "HEAD"]);
     assert_ne!(b_tip, b_baseline, "B must commit during A's blocked push");
     if b_published != b_tip {
-        let b_follow_up = b.sync(&local).join(60).await;
+        let b_follow_up = b.sync(&local, &slots).join(60).await;
         b.publication_released(30).await;
         assert_eq!(
             b.remote_tip(),
@@ -295,7 +316,7 @@ async fn blocked_publication_does_not_stall_cross_repo_or_same_repo_commits() {
         if a.remote_tip() == git(&a.repo, &["rev-parse", "HEAD"]) {
             break;
         }
-        last = a.sync(&local).join(90).await;
+        last = a.sync(&local, &slots).join(90).await;
         a.publication_released(30).await;
     }
     let newest = git(&a.repo, &["rev-parse", "HEAD"]);
@@ -379,7 +400,7 @@ async fn unpublished_tip_from_another_process_is_rediscovered() {
     assert_ne!(external_tip, baseline);
     assert_eq!(fixture.remote_tip(), "");
     // The daemon has no queued request for it; only inspection of real state.
-    let outcome = fixture.sync(&local).join(90).await;
+    let outcome = fixture.sync(&local, &PublicationSlots::new()).join(90).await;
     fixture.publication_released(30).await;
     assert_eq!(
         fixture.remote_tip(),

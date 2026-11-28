@@ -38,6 +38,8 @@ tokio::task_local! {
     static RUNNING_PUSH: Arc<RunningPush>;
     #[cfg(test)]
     static TEST_ADMISSION: Arc<Semaphore>;
+    #[cfg(test)]
+    static TEST_SHORT_ADMISSION: Arc<Semaphore>;
 }
 
 // Normal admission still reserves both permits for a heavy push. An extra
@@ -102,6 +104,17 @@ pub(crate) async fn with_test_publication_admission<T>(
     work: impl Future<Output = T>,
 ) -> T {
     TEST_ADMISSION.scope(semaphore, work).await
+}
+
+#[cfg(test)]
+pub(crate) async fn with_test_short_publication_admission<T>(
+    primary: Arc<Semaphore>,
+    short: Arc<Semaphore>,
+    work: impl Future<Output = T>,
+) -> T {
+    TEST_ADMISSION
+        .scope(primary, TEST_SHORT_ADMISSION.scope(short, work))
+        .await
 }
 
 pub(crate) fn daemon_publication() -> bool {
@@ -378,11 +391,21 @@ pub(super) async fn command<T>(
         }
         // Wait for pending repack before taking any fleet capacity.
         let push = super::repo_maintenance::begin_push(repo).await?;
-        let overflow = (small && (daemon_publication() || cfg!(test)))
-            .then(|| SHORT_PUBLICATION.get_or_init(|| Arc::new(Semaphore::new(1))));
-        let admission = acquire_publication(publication_admission(), weight, overflow, || {
+        #[cfg(test)]
+        let fixture_short = TEST_SHORT_ADMISSION.try_with(Arc::clone).ok();
+        #[cfg(not(test))]
+        let fixture_short: Option<Arc<Semaphore>> = None;
+        let overflow = small
+            .then(|| {
+                fixture_short.clone().or_else(|| {
+                    daemon_publication()
+                        .then(|| SHORT_PUBLICATION.get_or_init(|| Arc::new(Semaphore::new(1))).clone())
+                })
+            })
+            .flatten();
+        let admission = acquire_publication(publication_admission(), weight, overflow.as_ref(), || {
             !held()
-                && (cfg!(test) || crate::daemon::memory_admission::short_push_headroom())
+                && (fixture_short.is_some() || crate::daemon::memory_admission::short_push_headroom())
         })
         .await?;
         // Pressure or a manual pause may have arrived while this command

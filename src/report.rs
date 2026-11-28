@@ -15474,14 +15474,13 @@ mod tests {
                 .all(|(label, _)| *label != "USED"),
             "USED column was dropped"
         );
-        // v0.113.15: REM icon semantics explained. v0.113.22: REM
-        // shows ACTIVE push remotes only (the v0.113.21 dim-excluded
-        // suffix was fleet-wide noise under the quota posture).
-        assert!(text.contains("🐙"), "REM github icon in legend");
-        assert!(
-            text.contains("excluded not shown"),
-            "REM active-only note in legend"
-        );
+        let owner = repos_legend_rows()
+            .into_iter()
+            .find(|(label, _)| *label == "OWNER")
+            .expect("legend must explain owners")
+            .1;
+        assert!(owner.contains("GitHub repository owner beside 🐙"));
+        assert!(owner.contains("show active destinations"));
         // v0.113.16: REPO cell semantics (branch fold + privacy marker).
         assert!(text.contains("🔒"), "REPO private marker in legend");
         assert!(text.contains("public"), "REPO public wording in legend");
