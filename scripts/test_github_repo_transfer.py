@@ -20,13 +20,16 @@ class GithubTransferTest(unittest.TestCase):
         self.addCleanup(work.cleanup)
         self.repo = Path(work.name) / "repo"
         self.repo.mkdir()
-        subprocess.run(["git", "init", "-q", self.repo], check=True)
+        subprocess.run(["git", "init", "-q", "-b", "main", self.repo], check=True)
         subprocess.run(["git", "-C", self.repo, "remote", "add", "origin",
                         "git@github.com:personal/example.git"], check=True)
         self.options = SimpleNamespace(
             source="personal", destination="team", state=Path(work.name), apply=True
         )
-        self.sha = "a" * 40
+        subprocess.run(["git", "-C", self.repo, "-c", "core.hooksPath=/dev/null",
+                        "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                        "commit", "--allow-empty", "-qm", "Published baseline"], check=True)
+        self.sha = transfer.git(self.repo, "rev-parse", "HEAD")
         self.owner = "personal"
         self.posts = 0
 
@@ -72,6 +75,15 @@ class GithubTransferTest(unittest.TestCase):
         relative = ".dracon/dracon-sync.toml"
         self.assertEqual(actual_git(self.repo, "check-ignore", relative), relative)
         self.assertIn('exclude_remotes = ["github"]', (self.repo / relative).read_text())
+
+    def test_missing_upstream_tip_defers_without_remote_change(self):
+        self.sha = "f" * 40
+        with (patch.object(transfer, "api", side_effect=self.api),
+              patch.object(transfer, "own_bytes", return_value=transfer.LIMIT_BYTES + 1)):
+            with self.assertRaisesRegex(transfer.Busy, "current tip"):
+                transfer.transfer(self.repo, "personal/example", self.options)
+        self.assertEqual(self.posts, 0)
+        self.assertFalse((self.options.state / "123.json").exists())
 
     def test_exactly_two_gib_does_not_transfer(self):
         with (patch.object(transfer, "api") as api,

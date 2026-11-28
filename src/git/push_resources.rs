@@ -60,9 +60,9 @@ pub(crate) async fn daemon_scope<T>(
     POLICY_PATH.scope(policy_path, work).await
 }
 
-pub(crate) fn daemon_memory_hold() -> bool {
+pub(crate) fn daemon_maintenance_held() -> bool {
     POLICY_PATH
-        .try_with(|_| crate::daemon::memory_admission::held())
+        .try_with(|_| crate::daemon::memory_admission::maintenance_held())
         .unwrap_or(false)
 }
 

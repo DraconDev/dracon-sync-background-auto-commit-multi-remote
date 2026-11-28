@@ -20,14 +20,13 @@ repos remain clean. An upstream commit's age is not a push timestamp.
 See the [health legend and evidence rules](docs/design/current-health-2026-10-15.md)
 or run `dracon-sync repos --legend`.
 
-
 ## Transfer large private GitHub repositories
 
 Run `scripts/transfer-large-github-repos.py --source ACCOUNT --destination ORG`
 to preview transfers. Run the same command with `--apply` from a user timer
 to enable the rule. Authenticate `gh` as the source account with admin access
 to the destination organization. The script checks repositories marked owned
-by `dracon-sync ownership` and measures their loose objects and committed pack
+by `dracon-sync ownership` and measures their loose objects and finalized pack
 files. It transfers eligible private repositories above 2 GiB, updates their
 GitHub URLs and parent submodule URLs, and disables the personal GitHub mirror
 for each checkout. It records pending cutovers under

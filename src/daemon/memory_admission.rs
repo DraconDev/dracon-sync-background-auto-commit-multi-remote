@@ -130,6 +130,17 @@ pub(crate) fn held() -> bool {
     admission.held
 }
 
+/// Background Git cleanup can wait for host headroom even when the daemon's
+/// own cgroup is calm. Keep the host-only check out of commit and push admission.
+pub(crate) fn maintenance_held() -> bool {
+    held()
+        || std::fs::read_to_string("/proc/meminfo")
+            .ok()
+            .as_deref()
+            .and_then(headroom_pct)
+            .is_some_and(|pct| pct <= 8.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

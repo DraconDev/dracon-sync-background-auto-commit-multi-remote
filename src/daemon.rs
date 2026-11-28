@@ -287,6 +287,13 @@ fn log_paused(reason: &str) {
         .unwrap_or_else(|poison| poison.into_inner());
     let now = Instant::now();
     if paused_log_due(last.as_ref(), reason, now) {
+        // A completed repository walk can leave free pages in glibc arenas.
+        // Return those pages while paused so the guard can release its hold.
+        #[cfg(all(target_os = "linux", target_env = "gnu"))]
+        // SAFETY: malloc_trim takes a size and manages glibc's arenas internally.
+        unsafe {
+            libc::malloc_trim(0);
+        }
         eprintln!("⏸️ sync daemon paused ({})", reason);
         *last = Some((reason.to_owned(), now));
     }

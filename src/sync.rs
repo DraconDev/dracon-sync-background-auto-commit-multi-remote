@@ -5528,7 +5528,7 @@ async fn sync_repo_local_with_ownership(
         // objects; they are simply not automatically repacked.
         let gc_override = crate::policy::load_repo_override(repo);
         if !crate::policy::repo_auto_gc_disabled(policy, &gc_override)
-            && !crate::git::push_resources::daemon_memory_hold()
+            && !crate::git::push_resources::daemon_maintenance_held()
         {
             crate::git::maybe_auto_gc(
                 repo,
@@ -5591,7 +5591,7 @@ async fn sync_repo_local_with_ownership(
         // is a separate route with its own entry point; it never widens
         // age-only deletion authority.
         static SPOOL_MAINTENANCE: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(1);
-        if !crate::git::push_resources::daemon_memory_hold() {
+        if !crate::git::push_resources::daemon_maintenance_held() {
             if let Ok(_permit) = SPOOL_MAINTENANCE.try_acquire() {
                 crate::git::reap_abandoned_spools(
                     repo,

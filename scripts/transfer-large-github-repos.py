@@ -175,12 +175,15 @@ def source_eligible(meta, old):
 
 def transfer(repo, old, options, journal=None):
     destination = options.destination
-    slug = old.split("/", 1)[1]
-    if old.split("/", 1)[0] != options.source.lower():
+    source, slug = old.split("/", 1)
+    if source != options.source.lower():
         raise RuntimeError("transfer journal is outside the configured source account")
     target = f"{destination}/{slug}"
     new = target.lower()
     canonical = f"git@github.com:{target}.git"
+    top = Path(git(repo, "rev-parse", "--show-toplevel"))
+    if top.resolve() != repo.resolve():
+        raise RuntimeError("checkout no longer identifies the expected repository")
     parent_path = git(repo, "rev-parse", "--show-superproject-working-tree")
     parent = Path(parent_path) if parent_path else None
     with ExitStack() as stack:
@@ -203,6 +206,15 @@ def transfer(repo, old, options, journal=None):
                 return
             branch = meta["default_branch"]
             sha = api(f"repos/{old}/git/ref/heads/{branch}")["object"]["sha"]
+            local_branch = f"refs/heads/{branch}"
+            if not (git(repo, "for-each-ref", "--format=%(refname)", local_branch) == local_branch
+                    and run("git", "-C", repo, "merge-base", "--is-ancestor", sha, local_branch,
+                            missing=lambda result: result.returncode in (1, 128)) is not None):
+                raise Busy(f"local {branch} does not include GitHub's current tip; waiting for sync")
+            ref = f"refs/heads/{branch}"
+            source_ref = git(repo, "ls-remote", "--exit-code", f"git@github.com:{old}.git", ref)
+            if source_ref.split() != [sha, ref]:
+                raise Busy(f"{old} API and Git ref differ in preflight")
             record = dict(repo=str(repo), old=old, target=new, id=meta["id"], branch=branch, sha=sha)
             journal = options.state / f"{meta['id']}.json"
 
@@ -295,25 +307,28 @@ def main():
                 transfer(repo, record["old"], options, journal)
             except Busy as error:
                 print(f"Deferred {repo}: {error}", file=sys.stderr)
-            except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+            except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
                 errors += 1
                 print(f"Transfer needs attention for {repo}: {error}", file=sys.stderr)
 
         rows = json.loads(run(options.sync, "ownership", "--json"))["results"]
+        inspected = 0
         for row in sorted(rows, key=lambda row: (-len(Path(row["repo"]).parts), row["repo"])):
             repo = Path(row["repo"])
             old = project(row["origin_url"])
             if (repo in pending or row["report"]["kind"] != "owned"
                     or not old or old.split("/")[0] != user.lower()):
                 continue
+            inspected += 1
             try:
                 if own_bytes(repo) > LIMIT_BYTES:
                     transfer(repo, old, options)
             except Busy as error:
                 print(f"Deferred {repo}: {error}", file=sys.stderr)
-            except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+            except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
                 errors += 1
                 print(f"Transfer needs attention for {repo}: {error}", file=sys.stderr)
+        print(f"Checked {inspected} owned GitHub checkouts under {user}")
         return bool(errors)
 
 
@@ -322,5 +337,5 @@ if __name__ == "__main__":
         sys.exit(main())
     except Busy as error:
         print(f"Deferred: {error}", file=sys.stderr)
-    except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+    except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
         sys.exit(str(error))
