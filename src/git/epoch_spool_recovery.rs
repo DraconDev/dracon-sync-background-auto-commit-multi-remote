@@ -303,17 +303,19 @@ async fn verify(store: &Path, roots: &Path, timeout: u64) -> Result<()> {
         .stdin(File::open(roots)?)
         .stdout(Stdio::null());
     run(c, timeout).await?;
+    let checks = tempfile::tempfile_in(roots.parent().context("missing root list parent")?)?;
     let mut c = git(store);
     c.args(["cat-file", "--batch-check=%(objectname) %(objecttype)"])
-        .stdin(File::open(roots)?);
-    let result = String::from_utf8(run(c, timeout).await?)?;
-    let requested = fs::read_to_string(roots)?;
-    let lines: Vec<_> = result.lines().collect();
-    ensure!(
-        lines.len() == requested.lines().count(),
-        "missing batch results"
-    );
-    for (root, line) in requested.lines().zip(lines) {
+        .stdin(File::open(roots)?)
+        .stdout(checks.try_clone()?);
+    run(c, timeout).await.context("check recovery roots")?;
+    use std::io::Seek;
+    let mut checks = checks;
+    checks.rewind()?;
+    let mut results = BufReader::new(checks).lines();
+    for root in BufReader::new(File::open(roots)?).lines() {
+        let root = root?;
+        let line = results.next().context("missing batch result")??;
         let fields: Vec<_> = line.split_whitespace().collect();
         ensure!(
             fields.len() == 2
@@ -322,9 +324,10 @@ async fn verify(store: &Path, roots: &Path, timeout: u64) -> Result<()> {
             "missing recovery root"
         );
     }
+    ensure!(results.next().is_none(), "unexpected batch result");
     text(
         store,
-        &["fsck", "--full", "--strict", "--no-reflogs"],
+        &["fsck", "--full", "--strict", "--no-reflogs", "--no-dangling"],
         timeout,
     )
     .await?;
@@ -400,20 +403,30 @@ pub(super) async fn verify_receipt(record: &Path, expected: &str, timeout: u64) 
     }
     let store = record.join("store.git");
     verify(&store, &record.join("roots"), timeout).await?;
-    let actual = text(
-        &store,
-        &[
+    use std::io::Seek;
+    let mut listing = tempfile::tempfile_in(record.parent().context("missing recovery parent")?)?;
+    let mut command = git(&store);
+    command
+        .args([
             "cat-file",
             "--batch-all-objects",
             "--batch-check=%(objectname) %(objecttype) %(objectsize)",
-        ],
-        timeout,
-    )
-    .await?;
-    let actual: BTreeSet<_> = actual.lines().collect();
-    for required in fs::read_to_string(record.join("objects.tsv"))?.lines() {
+        ])
+        .stdout(listing.try_clone()?);
+    run(command, timeout).await.context("enumerate verified objects")?;
+    listing.rewind()?;
+    // Both inventories use Git's default OID order for batch-all-objects.
+    let mut actual = BufReader::new(listing).lines();
+    for required in BufReader::new(File::open(record.join("objects.tsv"))?).lines() {
+        let required = required?;
         ensure!(
-            actual.contains(required),
+            loop {
+                match actual.next().transpose()? {
+                    Some(line) if line == required => break true,
+                    Some(line) if line < required => continue,
+                    _ => break false,
+                }
+            },
             "recovery object/type/size missing"
         );
     }
@@ -731,12 +744,17 @@ async fn prepare_inner(
     // Only the temporary builder may consult the main ODB. Published config and
     // object storage never contain that dependency.
     let index = work.path().join("index");
+    let listing = work.path().join("index-entries");
     let mut c = git(&build);
     c.args(["ls-files", "--stage", "-z"])
         .env("GIT_INDEX_FILE", &index)
-        .env("GIT_ALTERNATE_OBJECT_DIRECTORIES", &objects);
-    let entries = run(c, timeout).await?;
-    for entry in entries.split(|b| *b == 0).filter(|e| !e.is_empty()) {
+        .env("GIT_ALTERNATE_OBJECT_DIRECTORIES", &objects)
+        .stdout(File::create(&listing)?);
+    run(c, timeout).await.context("enumerate recovery index")?;
+    let mut entries = BufReader::new(File::open(listing)?);
+    let mut entry = Vec::new();
+    while entries.read_until(0, &mut entry)? != 0 {
+        ensure!(entry.pop() == Some(0), "unterminated index entry");
         let header = entry
             .split(|b| *b == b'\t')
             .next()
@@ -753,6 +771,7 @@ async fn prepare_inner(
         if fields[0] != "160000" {
             roots.insert(fields[1].to_owned());
         }
+        entry.clear();
     }
     fs::write(
         record.path().join("source-oids"),
