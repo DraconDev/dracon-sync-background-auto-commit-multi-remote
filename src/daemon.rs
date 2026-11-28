@@ -5685,8 +5685,8 @@ fn test_notify_state_round_trip_and_expiry() {
 /// The age computation must be mtime-based (oldest file wins),
 /// skip `Deleted` entries (no worktree mtime) and skip oversized
 /// files (never staged, so they must not trigger pile-up alerts).
-#[test]
-fn test_oldest_dirty_change_secs_core_mtime_based() {
+#[tokio::test]
+async fn test_oldest_dirty_change_secs_core_mtime_based() {
     use crate::daemon::oldest_dirty_change_secs_core;
     use dracon_git::types::{DiffFile, FileStatus};
     use std::fs::File;
@@ -5715,7 +5715,9 @@ fn test_oldest_dirty_change_secs_core_mtime_based() {
     ];
     let names = crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
     let (age, count, oldest_rel, _) =
-        oldest_dirty_change_secs_core(&dir, &entries, &names, &[], 100_000_000, &[]).unwrap();
+        oldest_dirty_change_secs_core(&dir, &entries, &names, &[], 100_000_000, &[])
+            .await
+            .unwrap();
     assert_eq!(oldest_rel, PathBuf::from("old.txt"));
     // The oldest file (old.txt) drives the age; tolerate skew.
     assert!((110..=130).contains(&age), "expected ~120s, got {age}");
@@ -5723,13 +5725,13 @@ fn test_oldest_dirty_change_secs_core_mtime_based() {
     // Deletions have no mtime → no age → None (caller stays silent).
     let del = vec![DiffFile::new(PathBuf::from("old.txt"), FileStatus::Deleted)];
     assert_eq!(
-        oldest_dirty_change_secs_core(&dir, &del, &names, &[], 100_000_000, &[]),
+        oldest_dirty_change_secs_core(&dir, &del, &names, &[], 100_000_000, &[]).await,
         None
     );
     // Oversized files are never staged → excluded from aging.
     let big = vec![DiffFile::new(PathBuf::from("new.txt"), FileStatus::Added)];
     assert_eq!(
-        oldest_dirty_change_secs_core(&dir, &big, &names, &[], 1, &[]),
+        oldest_dirty_change_secs_core(&dir, &big, &names, &[], 1, &[]).await,
         None
     );
     // Excluded patterns → not committable → no age.
@@ -5741,7 +5743,8 @@ fn test_oldest_dirty_change_secs_core_mtime_based() {
             &[],
             100_000_000,
             &["*.txt".to_string()],
-        ),
+        )
+        .await,
         None
     );
     let _ = std::fs::remove_dir_all(&dir);
@@ -5776,8 +5779,8 @@ fn test_stale_entry_persisted_matrix() {
 /// update, not by the submodule DIRECTORY's mtime (which only
 /// moves on file create/delete inside, so it fabricates huge
 /// ages for healthy, actively-committing submodules). v0.113.45.
-#[test]
-fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
+#[tokio::test]
+async fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
     use crate::daemon::oldest_dirty_change_secs_core;
     use dracon_git::types::{DiffFile, FileStatus};
     use std::time::SystemTime;
@@ -5845,7 +5848,9 @@ fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
     let entries = vec![DiffFile::new(PathBuf::from("sub"), FileStatus::Modified)];
     let names = crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
     let (age, count, oldest_rel, _) =
-        oldest_dirty_change_secs_core(&parent, &entries, &names, &[], 100_000_000, &[]).unwrap();
+        oldest_dirty_change_secs_core(&parent, &entries, &names, &[], 100_000_000, &[])
+            .await
+            .unwrap();
     assert_eq!(oldest_rel, PathBuf::from("sub"));
     assert!(
         (260..=340).contains(&age),
@@ -5860,8 +5865,8 @@ fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
 /// forever (observed live: `.dracon/convos/` paged a 70h pile-up
 /// every 30 min). Tracked submodules keep gitlink-age behavior
 /// (previous test). v0.113.77.
-#[test]
-fn test_oldest_dirty_change_secs_core_skips_never_committed_nested_repo() {
+#[tokio::test]
+async fn test_oldest_dirty_change_secs_core_skips_never_committed_nested_repo() {
     use crate::daemon::oldest_dirty_change_secs_core;
     use dracon_git::types::{DiffFile, FileStatus};
     use std::fs::File;
@@ -5886,7 +5891,7 @@ fn test_oldest_dirty_change_secs_core_skips_never_committed_nested_repo() {
     let entries = vec![DiffFile::new(PathBuf::from("nested"), FileStatus::Added)];
     let names = crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
     assert_eq!(
-        oldest_dirty_change_secs_core(parent, &entries, &names, &[], 100_000_000, &[]),
+        oldest_dirty_change_secs_core(parent, &entries, &names, &[], 100_000_000, &[]).await,
         None,
         "never-committed nested repo must not age the parent alert"
     );
@@ -5904,7 +5909,9 @@ fn test_oldest_dirty_change_secs_core_skips_never_committed_nested_repo() {
         DiffFile::new(PathBuf::from("top.txt"), FileStatus::Modified),
     ];
     let (age, count, oldest_rel, _) =
-        oldest_dirty_change_secs_core(parent, &entries2, &names, &[], 100_000_000, &[]).unwrap();
+        oldest_dirty_change_secs_core(parent, &entries2, &names, &[], 100_000_000, &[])
+            .await
+            .unwrap();
     assert_eq!(oldest_rel, PathBuf::from("top.txt"));
     assert!(age > 249_000, "plain old file must still age, got {age}");
     assert_eq!(
@@ -6752,27 +6759,23 @@ pub(crate) async fn oldest_dirty_change_secs(
     max_stage_file_bytes: u64,
     auto_commit_exclude_patterns: &[String],
 ) -> Option<(u64, usize, PathBuf, u64)> {
-    let repo_owned = repo.to_path_buf();
-    let entries_owned = entries.to_vec();
-    let names = excluded_dir_names.clone();
-    let pats = excluded_file_patterns.to_vec();
-    let acp = auto_commit_exclude_patterns.to_vec();
-    tokio::task::spawn_blocking(move || {
+    tokio::time::timeout(
+        Duration::from_secs(5),
         oldest_dirty_change_secs_core(
-            &repo_owned,
-            &entries_owned,
-            &names,
-            &pats,
+            repo,
+            entries,
+            excluded_dir_names,
+            excluded_file_patterns,
             max_stage_file_bytes,
-            &acp,
-        )
-    })
+            auto_commit_exclude_patterns,
+        ),
+    )
     .await
     .ok()
     .flatten()
 }
 
-fn oldest_dirty_change_secs_core(
+async fn oldest_dirty_change_secs_core(
     repo: &Path,
     entries: &[dracon_git::types::DiffFile],
     excluded_dir_names: &BTreeSet<String>,
@@ -6842,18 +6845,24 @@ fn oldest_dirty_change_secs_core(
         // never-committed dirs without `.git` keep the conservative
         // dir-mtime fallback.
         let modified = if meta.is_dir() {
-            let logged = crate::git::git_cmd()
+            let mut command = crate::policy::tokio_git_command();
+            command
                 .current_dir(repo)
-                .args(["log", "-1", "--format=%ct", "--"])
-                .arg(rel)
-                .output()
-                .ok()
-                .filter(|o| o.status.success())
-                .and_then(|o| {
-                    let s = String::from_utf8_lossy(&o.stdout);
-                    let secs: u64 = s.trim().parse().ok()?;
-                    std::time::UNIX_EPOCH.checked_add(std::time::Duration::from_secs(secs))
-                });
+                .args(["--literal-pathspecs", "log", "-1", "--format=%ct", "--"])
+                .arg(rel);
+            let logged = crate::git::run_command_captured_output(
+                command.into_tokio(),
+                3,
+                "stale-dirty directory history",
+                None,
+            )
+            .await
+            .ok()
+            .filter(|output| output.status.success())
+            .and_then(|output| {
+                let secs = std::str::from_utf8(&output.stdout).ok()?.trim().parse().ok()?;
+                std::time::UNIX_EPOCH.checked_add(Duration::from_secs(secs))
+            });
             match (repo.join(rel).join(".git").exists(), logged) {
                 (true, None) => continue,
                 (_, Some(t)) => t,
