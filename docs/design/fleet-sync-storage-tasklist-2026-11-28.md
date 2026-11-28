@@ -13,6 +13,7 @@
 - [x] Compact writer, browser, and Hellhunter while preserving branch tips. Keep the private recovery archives.
 - [x] Move background spool maintenance off the commit path. The latest targeted sweep removed 54 writer, 232 platform, and 114 browser spools after proving their data was already published.
 - [ ] Qualify one writer spool for recovery and measure disk usage before and after, including recovery-store growth. Writer remains the largest source of aged spool bytes. Follow the [durable recovery requirements](epoch-spool-durable-recovery-2026-10-31.md).
+  - Stopped the full-closure trial after it had written 3.6 GiB for a 35 MiB source spool. The original directory and index hash were verified after the attempt. Check whether a retained independent writer archive plus verified supplemental objects can recover the same source with less new storage. The sample had 1,349 roots absent from that archive.
 - [ ] Repeat the fleet health check after recovery. Preserve spools whose ownership or contents cannot be proved.
 
 ## Git LFS
