@@ -79,7 +79,18 @@ impl StagedIntentSnapshot {
             drop(raw);
             let base = match &head {
                 CapturedHead::Commit(oid) => {
-                    let tree = read(repo, &["ls-tree", "-r", "-z", "--full-tree", oid]).await?;
+                    let tree = read(
+                        repo,
+                        &[
+                            "--no-replace-objects",
+                            "ls-tree",
+                            "-r",
+                            "-z",
+                            "--full-tree",
+                            oid,
+                        ],
+                    )
+                    .await?;
                     parse_entries(&tree, false, deadline)?
                 }
                 CapturedHead::Unborn { .. } => BTreeMap::new(),

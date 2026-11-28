@@ -980,7 +980,7 @@ impl Staging {
             // The empty staged delta proves the captured index has the
             // same entries as this commit. Seed the private index directly
             // without rebuilding every tree in a large repository.
-            let mut args = vec!["read-tree"];
+            let mut args = vec!["--no-replace-objects", "read-tree"];
             match &staging.baseline.snapshot.head {
                 CapturedHead::Commit(oid) => args.push(oid),
                 CapturedHead::Unborn { .. } => args.push("--empty"),
@@ -1115,7 +1115,19 @@ impl Staging {
                 }
             }
             std::fs::File::open(&self.directory)?.sync_all()?;
-            let entries = git(repo, &["ls-tree", "-r", "-z", "--full-tree", tree], None).await?;
+            let entries = git(
+                repo,
+                &[
+                    "--no-replace-objects",
+                    "ls-tree",
+                    "-r",
+                    "-z",
+                    "--full-tree",
+                    tree,
+                ],
+                None,
+            )
+            .await?;
             let mut candidate = std::collections::BTreeMap::new();
             for record in entries.stdout.split(|b| *b == 0).filter(|r| !r.is_empty()) {
                 let tab = record
@@ -1169,6 +1181,7 @@ impl Staging {
             // Only this epoch's own verified artifact de-index survives the
             // exclusion gate; every other excluded path is still refused.
             let rejected = epoch.ineligible_paths(repo, policy, excluded).await?;
+            let reuse_candidate_tree = rejected.is_empty() && epoch.deletions.is_empty();
             if !rejected.is_empty() {
                 std::fs::write(
                     self.directory.join("preserve-rejected"),
@@ -1190,10 +1203,16 @@ impl Staging {
                 epoch.snapshot.changed.remove(&path);
             }
             epoch.eligible(repo, policy, excluded).await?;
-            let selected = epoch.snapshot.materialize_tree(repo, deadline).await?;
+            // With no removed paths or artifact reconciliation, the tree
+            // already written by the private index is the eligible candidate.
+            let selected = if reuse_candidate_tree {
+                tree.to_owned()
+            } else {
+                epoch.snapshot.materialize_tree(repo, deadline).await?
+            };
             run_index_git(
                 repo,
-                &["read-tree", &selected],
+                &["--no-replace-objects", "read-tree", &selected],
                 3600,
                 "select eligible private candidate",
                 Some(&self.index),
