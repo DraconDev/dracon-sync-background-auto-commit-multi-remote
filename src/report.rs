@@ -804,6 +804,8 @@ pub(crate) struct ReportEffectiveRemotes {
     /// `codeberg`, or the remote name when the host is not a recognised
     /// forge — an internal git server must never render as GitHub).
     pub forges: Vec<String>,
+    /// GitHub account on the origin, or on the first active GitHub mirror.
+    github_owner: Option<String>,
     /// The operator's explicit opt-outs.
     pub excluded: Vec<String>,
     /// Mirrors the forge-identity dedupe dropped.
@@ -885,12 +887,22 @@ pub(crate) fn report_effective_remote_legs(
         &filtered,
         &repo_name,
     );
+    let github_owner = origin_url
+        .as_deref()
+        .and_then(crate::visibility::parse_github_owner_repo)
+        .or_else(|| {
+            targets.kept.iter().find_map(|remote| {
+                crate::visibility::parse_github_owner_repo(&remote.resolve_push_url(&repo_name))
+            })
+        })
+        .map(|(owner, _)| owner);
     // Three distinct answers, never conflated: where commits GO (legs), which
     // forge family each leg publishes to (icons), what the OPERATOR excluded,
     // and which MIRRORS were de-duplicated.
     ReportEffectiveRemotes {
         legs: targets.legs(),
         forges: targets.forges(),
+        github_owner,
         excluded,
         duplicate_mirrors: targets.duplicate_mirrors,
     }
@@ -1528,6 +1540,8 @@ pub(crate) struct RepoReportRow {
     /// server never renders as GitHub). ADDED 2026-11-09 with the leg/forge
     /// split; this is what the REM icons read.
     push_to_forges: Vec<String>,
+    /// Account in the configured GitHub repository URL.
+    github_owner: Option<String>,
     /// Remotes explicitly excluded from this repo by the per-repo override
     /// (`exclude_remotes` in `<repo>/.dracon/dracon-sync.toml` — there is
     /// no global `policy.exclude_remotes`; FIXED 2026-10-03, audit
@@ -3523,7 +3537,7 @@ fn repos_inline_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("CHANGES", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded files"),
         ("A/B", "Commits ahead of or behind the configured upstream."),
         ("PUSH", "✅ OK / ❌ FAIL and age show the last recorded push attempt."),
-        ("REM", "Push destinations · 🐙 GitHub · 🦊 GitLab · 🗻 Codeberg"),
+        ("REM", "Push destinations · 🐙 GitHub and account · 🦊 GitLab · 🗻 Codeberg"),
         ("1H 6H 24H", "commits in the last hour / 6 hours / 24 hours"),
         ("GIT SIZE", "local Git storage (own+nested) · 🟡 own ≥1 GiB · 🔴 pending push flagged over GitHub’s 2 GiB limit"),
         ("TOUCHED", "author of the latest commit"),
@@ -3625,7 +3639,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ),
         (
             "REM",
-            "🐙 github · 🦊 gitlab · 🗻 codeberg (active only; excluded not shown)",
+            "🐙 GitHub and configured account · 🦊 GitLab · 🗻 Codeberg (active only)",
         ),
         ("", ""),
         ("1H/6H/24H", "commit pulse: last 1h / 6h / 24h"),
@@ -5180,6 +5194,7 @@ pub(crate) async fn run_repos_report(
             // mirror had just been de-duplicated away.
             push_to_remotes: effective_remotes.legs,
             push_to_forges: effective_remotes.forges,
+            github_owner: effective_remotes.github_owner,
             excluded_remotes: effective_remotes.excluded.clone(),
             duplicate_mirrors: effective_remotes.duplicate_mirrors,
             // When codeberg is in excluded_remotes AND the skip came
@@ -5750,6 +5765,9 @@ fn print_repos_vertical(
             )
         );
         println!("{gutter}push-to:   {push_to_text}");
+        if let Some(owner) = &row.github_owner {
+            println!("{gutter}github:    {owner}");
+        }
         println!("{gutter}push:      {push_styled}");
         let (git_size, git_color) = size_cell_text(
             row.git_size_bytes,
@@ -6675,9 +6693,9 @@ fn forge_display_key(name: &str) -> (u8, String) {
 /// `comfy-table`'s fixed width includes two padding cells. Keep the old
 /// eight-column floor for the normal three-forge topology, but grow safely
 /// when an operator has more active remotes or an unfamiliar remote label.
-fn rem_column_width(push_to: &[String]) -> usize {
+fn rem_column_width(content: &str) -> usize {
     const REM_MIN_COL: usize = 8;
-    unicode_width::UnicodeWidthStr::width(rem_cell_content(push_to).as_str())
+    unicode_width::UnicodeWidthStr::width(content)
         .saturating_add(2)
         .max(REM_MIN_COL)
 }
@@ -7442,9 +7460,19 @@ fn build_repos_rich_table_with_hidden(
         .collect();
 
     const REM_MIN_COL: usize = 8;
-    let rem_col = rows
+    let rem_cells: Vec<_> = indexed
         .iter()
-        .map(|row| rem_column_width(&row.push_to_forges))
+        .map(|(_, row)| {
+            let icons = rem_cell_content(&row.push_to_forges);
+            match &row.github_owner {
+                Some(owner) => format!("{icons} {}", truncate_unicode_width(owner, 18)),
+                None => icons,
+            }
+        })
+        .collect();
+    let rem_col = rem_cells
+        .iter()
+        .map(|cell| rem_column_width(cell))
         .max()
         .unwrap_or(REM_MIN_COL);
 
@@ -7713,7 +7741,7 @@ fn build_repos_rich_table_with_hidden(
         // not the leg names — `origin` is a leg, `github` is the forge it
         // publishes to, and the target list must not pretend a leg named
         // `github` still exists after the dedupe removed it.
-        let rem_text = rem_cell_content(&row.push_to_forges);
+        let rem_text = &rem_cells[display_idx];
 
         // CHANGED 2026-07-29 (v0.113.13): USED column dropped
         // (duplicated ACTIVITY) and COMMITS split into three columns.
