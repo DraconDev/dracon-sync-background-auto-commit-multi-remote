@@ -92,6 +92,14 @@ def mutate_ownership(text):
         '    }\n\n') + text[end:]
 
 
+def mutate_endpoint_roots(text):
+    return replace_once(
+        text,
+        'if !entry.file_name().as_encoded_bytes().starts_with(b"producer-io-") {',
+        'if true { // MUTATION: archive endpoint bytes without following object IDs.',
+    )
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--workspace', type=Path, default=Path(__file__).resolve().parents[4])
@@ -153,6 +161,9 @@ def main():
         ('ownership', 'epoch_spool_ownership.rs', mutate_ownership,
          'git::epoch_spool::tests::old_but_live_owner_cannot_be_reclaimed',
          'assertion failed: attempt(&f, reclaim::Fault::None).await.is_err()'),
+        ('endpoint-roots', 'epoch_spool_recovery.rs', mutate_endpoint_roots,
+         'git::epoch_spool::recovery::tests::recovery_preserves_an_unpublished_tree_named_only_by_a_producer_endpoint',
+         'recovery Git failed: fatal:'),
     ]
     for label, filename, mutation, test, assertion in cases:
         path = workspace / 'dracon-sync/src/git' / filename
@@ -182,11 +193,11 @@ def main():
     # The live files are read-only inputs throughout; assert mutation targets did
     # not drift while demonstrating the copied regressions.
     captured = {row['path']: row.get('sha256') for row in inputs}
-    for filename in {'epoch_spool_unique.rs', 'epoch_spool_ownership.rs'}:
+    for filename in {case[1] for case in cases}:
         relative = 'dracon-sync/src/git/' + filename
         if digest(source / relative) != captured[relative]:
             raise RuntimeError('live input changed; do not treat this as current-tree evidence')
-    (report / 'PASS').write_text('All three safety mutations failed their named behavioral assertions; each restored case and the restored complete spool suite passed.\n')
+    (report / 'PASS').write_text('All safety mutations failed their named behavioral assertions; each restored case and the restored complete spool suite passed.\n')
     print(f'REPORT={report}', flush=True)
 
 
