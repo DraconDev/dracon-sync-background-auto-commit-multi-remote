@@ -15457,9 +15457,14 @@ mod tests {
         ] {
             assert!(text.contains(col), "legend must explain column {col}");
         }
-        assert!(text.contains("🟡 own ≥2 GiB"), "SIZE yellow tier (≥ 2 GiB)");
+        let size = repos_legend_rows()
+            .into_iter()
+            .find(|(label, _)| *label == "GIT SIZE")
+            .expect("legend must explain Git size")
+            .1;
+        assert!(size.contains("🟡 own ≥2 GiB"), "SIZE yellow tier (≥ 2 GiB)");
         assert!(
-            text.contains("🔴 GitHub 2 GiB/push guard"),
+            size.contains("🔴 GitHub 2 GiB/push guard"),
             "SIZE red tier (github 2 GiB push limit)"
         );
         // USED was dropped in v0.113.13 — the legend must not resurrect it.
