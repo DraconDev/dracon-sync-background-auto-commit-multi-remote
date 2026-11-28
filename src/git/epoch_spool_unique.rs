@@ -18,26 +18,26 @@ pub(super) async fn prepare(
     timeout: u64,
     corrupt_after_write: bool,
 ) -> Result<Payload> {
-    let requested = fs::read_to_string(record.join("source-oids"))?;
+    let source = record.join("source-oids");
+    let classification = work.join("main-classification");
     let mut command = git(repo);
     command
         .args(["cat-file", "--batch-check=%(objectname) %(objecttype)"])
-        .stdin(File::open(record.join("source-oids"))?);
-    let output = String::from_utf8(run(command, timeout).await?)?;
-    let rows: Vec<_> = output.lines().collect();
-    ensure!(
-        rows.len() == requested.lines().count(),
-        "incomplete main ODB classification"
-    );
+        .stdin(File::open(&source)?)
+        .stdout(File::create(&classification)?);
+    run(command, timeout).await?;
+    let mut rows = BufReader::new(File::open(classification)?).lines();
     let mut missing = BTreeSet::new();
-    for (object, row) in requested.lines().zip(rows) {
+    for object in BufReader::new(File::open(source)?).lines() {
+        let object = object?;
+        let row = rows.next().context("incomplete main ODB classification")??;
         let fields: Vec<_> = row.split_whitespace().collect();
         ensure!(
-            oid(object, width) && fields.len() == 2 && fields[0] == object,
+            oid(&object, width) && fields.len() == 2 && fields[0] == object,
             "invalid main classification row"
         );
         if fields[1] == "missing" {
-            missing.insert(object.to_owned());
+            missing.insert(object);
         } else {
             ensure!(
                 ["blob", "tree", "commit", "tag"].contains(&fields[1]),
@@ -45,6 +45,7 @@ pub(super) async fn prepare(
             );
         }
     }
+    ensure!(rows.next().is_none(), "extra main ODB classification rows");
     let missing_path = record.join("missing-oids");
     fs::write(
         &missing_path,
@@ -119,25 +120,25 @@ pub(super) async fn prepare(
         .stdin(File::open(&missing_path)?)
         .stdout(Stdio::null());
     run(command, timeout).await?;
+    let readback = record.join("unique-readback.tsv");
     let mut command = git(&isolated);
     command
         .args([
             "cat-file",
             "--batch-check=%(objectname) %(objecttype) %(objectsize)",
         ])
-        .stdin(File::open(&missing_path)?);
-    let readback = String::from_utf8(run(command, timeout).await?)?;
+        .stdin(File::open(&missing_path)?)
+        .stdout(File::create(&readback)?);
+    run(command, timeout).await?;
+    let mut rows = BufReader::new(File::open(readback)?).lines();
     let inventory = fs::read_to_string(record.join("objects.tsv"))?;
     let inventory: BTreeSet<_> = inventory.lines().collect();
-    ensure!(
-        readback.lines().count() == missing.len(),
-        "incomplete isolated unique readback"
-    );
     let mut uncompressed_bytes = 0u64;
-    for (expected, actual) in missing.iter().zip(readback.lines()) {
+    for expected in &missing {
+        let actual = rows.next().context("incomplete isolated unique readback")??;
         ensure!(
             actual.split_whitespace().next() == Some(expected.as_str())
-                && inventory.contains(actual),
+                && inventory.contains(actual.as_str()),
             "isolated unique object/content identity mismatch"
         );
         let size: u64 = actual
@@ -149,7 +150,7 @@ pub(super) async fn prepare(
             .checked_add(size)
             .context("unique byte count overflow")?;
     }
-    fs::write(record.join("unique-readback.tsv"), readback)?;
+    ensure!(rows.next().is_none(), "extra isolated unique readback rows");
     Ok(Payload {
         count: missing.len(),
         uncompressed_bytes,

@@ -73,6 +73,11 @@ async fn named_recovery_verification_keeps_the_source_and_refuses_unowned_spools
     let name = f.spool.file_name().unwrap().to_str().unwrap();
     let index = fs::read(f.spool.join("index")).unwrap();
     let destination = tempfile::tempdir().unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(destination.path(), fs::Permissions::from_mode(0o700)).unwrap();
+    }
     let record = verify_spool_recovery(&f.repo, name, destination.path(), 30)
         .await
         .unwrap();
