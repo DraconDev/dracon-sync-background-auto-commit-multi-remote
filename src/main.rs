@@ -520,21 +520,18 @@ enum RepairCommands {
         #[arg(long)]
         apply: bool,
     },
-    /// Reclaim abandoned private-epoch spool directories in git dirs.
+    /// Inspect and reclaim inactive private-epoch spools in Git directories.
     ///
-    /// Every sync epoch allocates `<gitdir>/dracon-staging-*` (a full-tree
-    /// index plus an independent object pack, ~875 MiB on a large repo) and
-    /// keeps it after publication. The daemon now reaps these itself, but
-    /// this subcommand reports and reclaims historic litter (dry-run by
-    /// default).
+    /// By default, report aged spools and preview the published-content proof.
+    /// Applying the operation requires proof of inactivity and preservation.
     Spools {
-        /// Actually delete the abandoned spools (default: report only).
+        /// Remove spools that pass the reclamation proofs.
         #[arg(long)]
         apply: bool,
         /// Only scan this repository path.
         #[arg(long)]
         repo: Option<PathBuf>,
-        /// Maximum age in seconds before a spool counts as abandoned.
+        /// Minimum age in seconds to consider a spool for proof.
         #[arg(long)]
         max_age_secs: Option<u64>,
         /// Emit machine-readable JSON.
@@ -1509,7 +1506,7 @@ async fn run_cli(cli: Cli) -> Result<()> {
                     if apply {
                         reclaimed_total += git::reap_abandoned_spools(
                             &repo,
-                            policy.epoch_spool_max_age_secs,
+                            max_age,
                             policy.stage_op_timeout_secs,
                         )
                         .await;
@@ -1520,7 +1517,7 @@ async fn run_cli(cli: Cli) -> Result<()> {
                         // transaction above stays interlocked off.
                         redundant_total += git::reap_redundant_spools(
                             &repo,
-                            policy.epoch_spool_max_age_secs,
+                            max_age,
                             policy.stage_op_timeout_secs,
                         )
                         .await;
