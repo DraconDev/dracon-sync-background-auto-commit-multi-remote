@@ -706,10 +706,11 @@ async fn prepare_inner(
     // that tree subject to pruning in the main repository.
     for entry in fs::read_dir(&metadata)? {
         let entry = entry?;
-        if let Some(name) = entry.file_name().to_str()
-            && name.starts_with("producer-io-")
-            && let Ok(names) = super::redundant::producer_names(&entry.path(), width)
-        {
+        if !entry.file_name().as_encoded_bytes().starts_with(b"producer-io-") {
+            continue;
+        }
+        // Producer logs that are not object references are preserved verbatim.
+        if let Ok(names) = super::redundant::producer_names(&entry.path(), width) {
             roots.extend(names.into_iter().filter(|name| {
                 !pack_names.contains(name) && name.bytes().any(|byte| byte != b'0')
             }));
