@@ -895,7 +895,12 @@ pub(crate) fn report_effective_remote_legs(
                 crate::visibility::parse_github_owner_repo(&remote.resolve_push_url(&repo_name))
             })
         })
-        .map(|(owner, _)| owner);
+        .map(|(owner, _)| owner)
+        .filter(|owner| {
+            owner
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+        });
     // Three distinct answers, never conflated: where commits GO (legs), which
     // forge family each leg publishes to (icons), what the OPERATOR excluded,
     // and which MIRRORS were de-duplicated.
@@ -13395,11 +13400,13 @@ mod tests {
         let mut row = make_activity_row("5 minutes ago", 3, 0, "OK");
         row.push_to_remotes = vec!["origin".into()];
         row.push_to_forges = vec!["github".into()];
+        row.github_owner = Some("dracon-uk".into());
         row.ahead = 3;
         let (table, hidden) = build_repos_rich_table_with_hidden(&[row], false, 200);
         let rendered = table.to_string();
         assert!(!rendered.contains("MIRROR LAG"), "{rendered}");
         assert!(rendered.contains("A/B") && rendered.contains("↑3"), "{rendered}");
+        assert!(rendered.contains("🐙 dracon-uk"), "{rendered}");
         assert!(hidden.is_empty(), "{hidden:?}");
     }
 
@@ -16846,6 +16853,20 @@ mod v011316_tests {
             "origin's forge must be named so GitHub is not invisible: {:?}",
             remotes.forges
         );
+        assert_eq!(remotes.github_owner.as_deref(), Some("DraconDev"));
+        run(&[
+            "remote",
+            "set-url",
+            "origin",
+            "https://github.com/dracon-uk/browser-extensions-shared.git",
+        ]);
+        let moved = report_effective_remote_legs(
+            &origin_only_policy,
+            &RepoPolicyOverride::default(),
+            &dir,
+            false,
+        );
+        assert_eq!(moved.github_owner.as_deref(), Some("dracon-uk"));
         let _ = std::fs::remove_dir_all(&dir);
 
         // The distinct gitlab mirror must survive alongside origin's github.
