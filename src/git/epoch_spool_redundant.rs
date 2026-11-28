@@ -25,7 +25,7 @@
 //! reachability is judged against the repository's own objects only.
 
 use super::ownership::ReclaimOwner;
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result, ensure};
 use std::collections::{BTreeSet, HashSet};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
@@ -812,7 +812,7 @@ fn retained_pack_stems(spool: &Path) -> Result<BTreeSet<String>> {
 /// `^{blob}`). The same shape covers an object id and a retained pack stem, so
 /// the caller decides which of the two each name is. Anything else means the
 /// file carries bytes of its own.
-fn producer_names(path: &Path, width: usize) -> Result<Vec<String>> {
+pub(super) fn producer_names(path: &Path, width: usize) -> Result<Vec<String>> {
     const LIMIT: u64 = 1024 * 1024;
     let file = fs::File::open(path)?;
     ensure!(

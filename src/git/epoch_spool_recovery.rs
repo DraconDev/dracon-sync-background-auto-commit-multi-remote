@@ -4,7 +4,7 @@
 //! independent GC roots and complete metadata; physical savings are measured,
 //! not assumed. Unsupported recovery semantics fail closed.
 
-use anyhow::{bail, ensure, Context, Result};
+use anyhow::{Context, Result, bail, ensure};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::fs::{self, File, OpenOptions};
@@ -678,13 +678,20 @@ async fn prepare_inner(
     fs::copy(metadata.join("index"), work.path().join("index"))?;
     let packdir = build.join("objects/pack");
     let mut roots = BTreeSet::new();
+    let mut pack_names = BTreeSet::new();
     for (i, name) in packs.iter().enumerate() {
         let pack = packdir.join(format!("source-{i}.pack"));
         copy_regular(&inputs.join(name), &pack)?;
         let count = pack_count(&pack)?;
         let mut c = git(&build);
         c.arg("index-pack").arg(&pack);
-        run(c, timeout).await?;
+        let indexed = String::from_utf8(run(c, timeout).await?)?;
+        let pack_id = indexed
+            .split_whitespace()
+            .last()
+            .context("missing pack ID")?;
+        ensure!(oid(pack_id, width), "invalid indexed pack ID");
+        pack_names.insert(pack_id.to_owned());
         let listing = work.path().join(format!("listing-{i}"));
         let mut c = git(&build);
         c.arg("verify-pack")
@@ -693,6 +700,20 @@ async fn prepare_inner(
             .stdout(File::create(&listing)?);
         run(c, timeout).await?;
         roots.extend(listed_objects(&listing, width, count)?);
+    }
+    // A producer can report a tree that differs from the final index and is
+    // absent from the retained packs. Exact endpoint bytes alone would leave
+    // that tree subject to pruning in the main repository.
+    for entry in fs::read_dir(&metadata)? {
+        let entry = entry?;
+        if let Some(name) = entry.file_name().to_str()
+            && name.starts_with("producer-io-")
+            && let Ok(names) = super::redundant::producer_names(&entry.path(), width)
+        {
+            roots.extend(names.into_iter().filter(|name| {
+                !pack_names.contains(name) && name.bytes().any(|byte| byte != b'0')
+            }));
+        }
     }
     // Only the temporary builder may consult the main ODB. Published config and
     // object storage never contain that dependency.
@@ -884,6 +905,61 @@ mod tests {
         run(c, 10).await.unwrap();
     }
 
+    #[tokio::test]
+    async fn recovery_preserves_an_unpublished_tree_named_only_by_a_producer_endpoint() {
+        let (_root, repo, spool, indexed_blob) = fixture("sha1").await;
+        fs::write(repo.join("endpoint-payload"), b"payload outside the index").unwrap();
+        let blob = text(&repo, &["hash-object", "-w", "endpoint-payload"], 10)
+            .await
+            .unwrap();
+        let input = repo.join("tree-input");
+        fs::write(&input, format!("100644 blob {blob}\tendpoint-payload\n")).unwrap();
+        let mut command = git(&repo);
+        command.arg("mktree").stdin(File::open(input).unwrap());
+        let tree = String::from_utf8(run(command, 10).await.unwrap())
+            .unwrap()
+            .trim()
+            .to_owned();
+        pack(&repo, &spool, &[indexed_blob], "retained").await;
+        let pack_path = fs::read_dir(&spool)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .find(|path| path.extension().is_some_and(|ext| ext == "pack"))
+            .unwrap();
+        let pack_id = pack_path
+            .file_stem()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .strip_prefix("retained-")
+            .unwrap();
+        let endpoint = format!("{tree}^{{tree}}\n{pack_id}\n{}\n", "0".repeat(40));
+        fs::write(spool.join("producer-io-objects"), &endpoint).unwrap();
+        fs::write(spool.join("producer-io-diagnostics"), b"opaque error\0\xff").unwrap();
+
+        let receipt = prepare_record(&repo, &spool, 10).await.unwrap();
+        text(&repo, &["gc", "--prune=now"], 10).await.unwrap();
+        verify_receipt(&receipt.record, &receipt.manifest_sha256, 10)
+            .await
+            .unwrap();
+        let store = receipt.record.join("store.git");
+        assert_eq!(
+            text(
+                &store,
+                &["cat-file", "blob", &format!("{tree}:endpoint-payload")],
+                10
+            )
+            .await
+            .unwrap(),
+            "payload outside the index"
+        );
+        assert_eq!(
+            fs::read(receipt.record.join("metadata/producer-io-objects")).unwrap(),
+            endpoint.as_bytes()
+        );
+        assert!(spool.join("index").exists());
+    }
+
     #[cfg(unix)]
     #[tokio::test]
     async fn metadata_cas_preserves_distinct_permissions_in_both_insertion_orders() {
@@ -1053,7 +1129,9 @@ mod tests {
                 .await
                 .unwrap();
             let tree = text(&repo, &["write-tree"], 10).await.unwrap();
-            let commit_data = format!("tree {tree}\nauthor Fixture <fixture@example.invalid> 1 +0000\ncommitter Fixture <fixture@example.invalid> 1 +0000\n\nrecovery commit\n");
+            let commit_data = format!(
+                "tree {tree}\nauthor Fixture <fixture@example.invalid> 1 +0000\ncommitter Fixture <fixture@example.invalid> 1 +0000\n\nrecovery commit\n"
+            );
             fs::write(repo.join("commit-data"), &commit_data).unwrap();
             let commit = text(
                 &repo,
@@ -1236,9 +1314,11 @@ mod tests {
         }
         fs::set_permissions(&pack, permissions).unwrap();
         fs::write(pack, bytes).unwrap();
-        assert!(verify(&store, &receipt.record.join("roots"), 10)
-            .await
-            .is_err());
+        assert!(
+            verify(&store, &receipt.record.join("roots"), 10)
+                .await
+                .is_err()
+        );
         assert_eq!(fs::read(spool.join("index")).unwrap(), source);
     }
 
@@ -1258,10 +1338,12 @@ mod tests {
         fs::create_dir(spool.join("unknown")).unwrap();
         assert!(prepare_record(&repo, &spool, 10).await.is_err());
         assert!(spool.join("index").exists());
-        assert!(fs::read_dir(repo.join(".git/dracon-rescue"))
-            .unwrap()
-            .next()
-            .is_none());
+        assert!(
+            fs::read_dir(repo.join(".git/dracon-rescue"))
+                .unwrap()
+                .next()
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -1289,9 +1371,11 @@ mod tests {
         let (_root, repo, spool, _) = fixture("sha1").await;
         std::os::unix::fs::symlink(repo.join("file with spaces"), spool.join("alias")).unwrap();
         assert!(prepare_record(&repo, &spool, 10).await.is_err());
-        assert!(fs::symlink_metadata(spool.join("alias"))
-            .unwrap()
-            .file_type()
-            .is_symlink());
+        assert!(
+            fs::symlink_metadata(spool.join("alias"))
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
     }
 }
