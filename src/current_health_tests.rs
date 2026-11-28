@@ -486,7 +486,8 @@ fn rich_rendered_states_keep_complete_activity_and_single_line_rows() {
     }
     // Forced rich below its supported floor must remain non-panicking.
     let narrow = super::super::build_repos_rich_table(&rows, false, 80).to_string();
-    assert!(narrow.contains("STATUS") && narrow.contains("MIRROR LAG"));
+    assert!(narrow.contains("STATUS") && narrow.contains("OWNER"));
+    assert!(!narrow.contains("MIRROR LAG"));
 }
 
 #[test]

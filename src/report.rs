@@ -1546,6 +1546,7 @@ pub(crate) struct RepoReportRow {
     /// split; this is what the REM icons read.
     push_to_forges: Vec<String>,
     /// Account in the configured GitHub repository URL.
+    #[serde(skip_serializing_if = "Option::is_none")]
     github_owner: Option<String>,
     /// Remotes explicitly excluded from this repo by the per-repo override
     /// (`exclude_remotes` in `<repo>/.dracon/dracon-sync.toml` — there is
@@ -12447,6 +12448,13 @@ mod tests {
             ],
             "R4-SR-09: exactly the four documented Option fields may be null"
         );
+        assert!(!obj.contains_key("github_owner"));
+        let mut with_owner = row;
+        with_owner.github_owner = Some("dracon-uk".into());
+        assert_eq!(
+            serde_json::to_value(&with_owner).unwrap()["github_owner"],
+            "dracon-uk"
+        );
     }
 
     #[test]
@@ -15449,9 +15457,9 @@ mod tests {
         ] {
             assert!(text.contains(col), "legend must explain column {col}");
         }
-        assert!(text.contains("1 GiB"), "SIZE yellow tier (≥ 1 GiB)");
+        assert!(text.contains("🟡 own ≥2 GiB"), "SIZE yellow tier (≥ 2 GiB)");
         assert!(
-            text.contains("2 GiB"),
+            text.contains("🔴 GitHub 2 GiB/push guard"),
             "SIZE red tier (github 2 GiB push limit)"
         );
         // USED was dropped in v0.113.13 — the legend must not resurrect it.
