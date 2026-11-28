@@ -17,6 +17,7 @@
   - Stopped the full-closure trial after it had written 3.6 GiB for a 35 MiB source spool. The original directory and index hash were verified after the attempt.
   - A scratch repository using hardlinked private archive objects and a 19.8 MiB supplemental pack reconstructed the sampled index tree and verified both producer endpoints, including 988,623 required objects. Its exact metadata copy took 34.8 MiB. The first sample therefore adds about 20 MiB even if its source could be removed. Measure incremental cost across multiple spools before qualifying deletion.
   - A further eight fenced writer spools occupied 273.8 MiB. All eight indexes and the endpoint closure were restored in a repository with no live Git object dependency. Compressed records took 53.7 MiB and the batch supplement took 25.3 MiB. The estimate is 194.8 MiB in savings against the already prepared baseline, or roughly 175 MiB after charging the first supplemental pack to the batch. This excludes scratch copies and is a recovery experiment. The original spools remain.
+  - The isolated batch store passed strict Git object and connectivity checks. Its checksummed receipt binds the eight compressed archives to their reconstructed index trees. Private refs also retain 96 objects named by the original packs.
 - [ ] Repeat the fleet health check after recovery. Preserve spools whose ownership or contents cannot be proved.
 
 ## Git LFS
