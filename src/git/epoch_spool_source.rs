@@ -1,6 +1,6 @@
 //! Source identity/content snapshot. Hashing runs off the async executor; the
 //! enclosing preparation or check task owns the actual reclaimer fence.
-use anyhow::{Context, Result, ensure};
+use anyhow::{ensure, Context, Result};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::{self, Metadata};

@@ -25,7 +25,7 @@
 //! reachability is judged against the repository's own objects only.
 
 use super::ownership::ReclaimOwner;
-use anyhow::{Context, Result, ensure};
+use anyhow::{ensure, Context, Result};
 use std::collections::{BTreeSet, HashSet};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};

@@ -4,7 +4,7 @@
 //! independent GC roots and complete metadata; physical savings are measured,
 //! not assumed. Unsupported recovery semantics fail closed.
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{bail, ensure, Context, Result};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::fs::{self, File, OpenOptions};
@@ -1129,9 +1129,7 @@ mod tests {
                 .await
                 .unwrap();
             let tree = text(&repo, &["write-tree"], 10).await.unwrap();
-            let commit_data = format!(
-                "tree {tree}\nauthor Fixture <fixture@example.invalid> 1 +0000\ncommitter Fixture <fixture@example.invalid> 1 +0000\n\nrecovery commit\n"
-            );
+            let commit_data = format!("tree {tree}\nauthor Fixture <fixture@example.invalid> 1 +0000\ncommitter Fixture <fixture@example.invalid> 1 +0000\n\nrecovery commit\n");
             fs::write(repo.join("commit-data"), &commit_data).unwrap();
             let commit = text(
                 &repo,
@@ -1314,11 +1312,9 @@ mod tests {
         }
         fs::set_permissions(&pack, permissions).unwrap();
         fs::write(pack, bytes).unwrap();
-        assert!(
-            verify(&store, &receipt.record.join("roots"), 10)
-                .await
-                .is_err()
-        );
+        assert!(verify(&store, &receipt.record.join("roots"), 10)
+            .await
+            .is_err());
         assert_eq!(fs::read(spool.join("index")).unwrap(), source);
     }
 
@@ -1338,12 +1334,10 @@ mod tests {
         fs::create_dir(spool.join("unknown")).unwrap();
         assert!(prepare_record(&repo, &spool, 10).await.is_err());
         assert!(spool.join("index").exists());
-        assert!(
-            fs::read_dir(repo.join(".git/dracon-rescue"))
-                .unwrap()
-                .next()
-                .is_none()
-        );
+        assert!(fs::read_dir(repo.join(".git/dracon-rescue"))
+            .unwrap()
+            .next()
+            .is_none());
     }
 
     #[tokio::test]
@@ -1371,11 +1365,9 @@ mod tests {
         let (_root, repo, spool, _) = fixture("sha1").await;
         std::os::unix::fs::symlink(repo.join("file with spaces"), spool.join("alias")).unwrap();
         assert!(prepare_record(&repo, &spool, 10).await.is_err());
-        assert!(
-            fs::symlink_metadata(spool.join("alias"))
-                .unwrap()
-                .file_type()
-                .is_symlink()
-        );
+        assert!(fs::symlink_metadata(spool.join("alias"))
+            .unwrap()
+            .file_type()
+            .is_symlink());
     }
 }
