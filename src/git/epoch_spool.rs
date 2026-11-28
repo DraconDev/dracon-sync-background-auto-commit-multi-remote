@@ -107,6 +107,32 @@ pub(crate) async fn preview_redundant_spools(
     redundant::preview(repo, max_age_secs, op_timeout_secs).await
 }
 
+/// Prepare and verify a recovery record for one named spool while keeping
+/// the source and its ownership fence through the final source check.
+pub(crate) async fn verify_spool_recovery(
+    repo: &Path,
+    name: &str,
+    timeout: u64,
+) -> Result<PathBuf> {
+    ensure!(
+        Path::new(name).file_name().and_then(|name| name.to_str()) == Some(name),
+        "pass a spool directory name, without a path"
+    );
+    let gitdir = absolute_git_dir(repo)
+        .await
+        .ok_or_else(|| anyhow::anyhow!("cannot establish originating gitdir"))?;
+    let spool = gitdir.join(name);
+    let timeout = timeout.clamp(30, 600);
+    let owner = ownership::ReclaimOwner::acquire(&gitdir, &spool, std::time::Duration::ZERO)?;
+    owner.proves_inactivity()?;
+    let (receipt, owner) = recovery::prepare_owned_record(repo, &spool, timeout, owner).await?;
+    recovery::verify_receipt(&receipt.record, &receipt.manifest_sha256, timeout).await?;
+    let owner = recovery::verify_source_owned(&receipt.record, &spool, owner).await?;
+    owner.proves_inactivity()?;
+    recovery::final_source_check(&receipt.record, &spool)?;
+    Ok(receipt.record)
+}
+
 /// Exactly the same transaction is used after a settled-unpublished deadline,
 /// after publication/empty candidates and by the automatic reaper. No branch
 /// treats a present object, an empty pack list or publication as a proof.

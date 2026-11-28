@@ -66,6 +66,24 @@ struct Fixture {
     spool: PathBuf,
     unique: Vec<String>,
 }
+
+#[tokio::test]
+async fn named_recovery_verification_keeps_the_source_and_refuses_unowned_spools() {
+    let f = fixture(true, true);
+    let name = f.spool.file_name().unwrap().to_str().unwrap();
+    let index = fs::read(f.spool.join("index")).unwrap();
+    let record = verify_spool_recovery(&f.repo, name, 30).await.unwrap();
+    assert_eq!(fs::read(f.spool.join("index")).unwrap(), index);
+    assert_eq!(fs::read(record.join("metadata/index")).unwrap(), index);
+    assert!(record.join("receipt").is_file());
+    assert!(!record.join("reclaim-intent.json").exists());
+    assert!(verify_spool_recovery(&f.repo, "../dracon-staging-fixture", 30)
+        .await
+        .is_err());
+    let unowned = fixture(false, false);
+    assert!(verify_spool_recovery(&unowned.repo, name, 30).await.is_err());
+}
+
 fn fixture(mixed: bool, sealed: bool) -> Fixture {
     let root = tempfile::tempdir().unwrap();
     let repo = root.path().join("main");
