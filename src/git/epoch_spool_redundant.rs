@@ -356,13 +356,11 @@ async fn published_refs(repo: &Path, timeout: u64) -> Result<Vec<String>> {
         if name.is_empty() {
             continue;
         }
-        if !remotes.is_empty() {
-            let Some(remote) = remote_of(&name) else {
-                continue;
-            };
-            if !remotes.contains(remote) {
-                continue;
-            }
+        let Some(remote) = remote_of(&name) else {
+            continue;
+        };
+        if !remotes.contains(remote) {
+            continue;
         }
         refs.push(name.to_owned());
     }

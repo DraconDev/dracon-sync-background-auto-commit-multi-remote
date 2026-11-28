@@ -431,6 +431,22 @@ async fn unconfigured_remote_ref_is_not_published_proof() {
 }
 
 #[tokio::test]
+async fn tracking_ref_without_any_configured_remote_preserves_spool() {
+    let f = fixture("no-configured-remote");
+    git(&f.repo, &["config", "--remove-section", "remote.origin"]);
+    assert!(git_text(&f.repo, &["remote"]).is_empty());
+    assert_eq!(
+        git_text(&f.repo, &["rev-parse", "refs/remotes/origin/main"]),
+        git_text(&f.repo, &["rev-parse", "HEAD"])
+    );
+    seal(&f.spool);
+    backdate(&f.spool);
+    assert_eq!(preview(&f.repo, 1, 30).await, 0);
+    assert_eq!(reap(&f.repo).await, 0);
+    assert!(f.spool.exists());
+}
+
+#[tokio::test]
 async fn repository_without_a_published_ref_preserves_everything() {
     let f = fixture("unpublished-repo");
     git(&f.repo, &["update-ref", "-d", "refs/remotes/origin/main"]);
