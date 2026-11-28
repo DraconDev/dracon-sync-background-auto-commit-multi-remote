@@ -3449,6 +3449,65 @@ fn last_push_for_branch(repo: &Path, branch: &str) -> String {
     }
 }
 
+/// Recover a successful push performed outside the daemon when Git recorded
+/// the current origin tip in its remote-tracking reflog.
+fn push_observation(
+    repo: &Path,
+    branch: &str,
+    head: &str,
+    upstream: &str,
+) -> Option<crate::daemon::push_history::Observation> {
+    let mut observed = crate::daemon::push_history::load(repo)?;
+    if observed.succeeded
+        || !crate::git::is_safe_branch_name(branch)
+        || upstream != format!("origin/{branch}")
+    {
+        return Some(observed);
+    }
+    let tracking_ref = format!("refs/remotes/origin/{branch}");
+    let logged = crate::git::git_cmd()
+        .current_dir(repo)
+        .args([
+            "reflog",
+            "show",
+            "-1",
+            "--date=unix",
+            "--format=%H%x09%gD%x09%gs",
+        ])
+        .arg(&tracking_ref)
+        .output();
+    let confirmed = logged.ok().filter(|output| output.status.success()).and_then(|output| {
+        confirmed_push_at(&output.stdout, &tracking_ref, head, observed.attempted_at, timestamp_secs())
+    });
+    if let Some(at) = confirmed {
+        observed.attempted_at = at;
+        observed.succeeded = true;
+    }
+    Some(observed)
+}
+
+fn confirmed_push_at(
+    log: &[u8],
+    tracking_ref: &str,
+    head: &str,
+    failed_at: u64,
+    now: u64,
+) -> Option<u64> {
+    let entry = std::str::from_utf8(log).ok()?.trim_end_matches('\n');
+    let (oid, rest) = entry.split_once('\t')?;
+    let (selector, action) = rest.split_once('\t')?;
+    if oid != head || action != "update by push" {
+        return None;
+    }
+    let at = selector
+        .strip_prefix(tracking_ref)?
+        .strip_prefix("@{")?
+        .strip_suffix('}')?
+        .parse::<u64>()
+        .ok()?;
+    (at > failed_at && at <= now).then_some(at)
+}
+
 fn emit_repo_failure(json: bool, prefix: &str, repo: &Path, error: impl std::fmt::Display) {
     let msg = repo_failure_message(prefix, repo, error);
     if json {
@@ -3541,10 +3600,10 @@ fn repos_inline_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("MIRROR LAG", "Most commits missing from any configured mirror, based on local tracking refs."),
         ("CHANGES", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded files"),
         ("A/B", "Commits ahead of or behind the configured upstream."),
-        ("PUSH", "✅ OK / ❌ FAIL and age show the last recorded push attempt."),
+        ("PUSH", "✅ OK / ❌ FAIL and age show the last recorded push attempt or newer confirmed origin push."),
         ("REM", "Push destinations · 🐙 GitHub and account · 🦊 GitLab · 🗻 Codeberg"),
         ("1H 6H 24H", "commits in the last hour / 6 hours / 24 hours"),
-        ("GIT SIZE", "local Git storage (own+nested) · 🟡 own ≥1 GiB · 🔴 pending push flagged over GitHub’s 2 GiB limit"),
+        ("GIT SIZE", "local Git storage (own+nested) · 🟡 own ≥2 GiB, review assets · 🔴 pending push flagged over GitHub’s 2 GiB limit"),
         ("TOUCHED", "author of the latest commit"),
         ("DETAILS", "dracon-sync repos <name> · --legend for the full key · --deep to refresh pack/history checks"),
     ]
@@ -3650,7 +3709,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("1H/6H/24H", "commit pulse: last 1h / 6h / 24h"),
         (
             "GIT SIZE",
-            "local Git objects/history, not worktree, clone download or bucket bytes · own+nested (children also have rows; do not sum twice) · +? unmeasured nested · 🟡 own ≥1 GiB · 🔴 GitHub 2 GiB/push guard",
+            "local Git objects/history · own+nested (children also have rows) · +? unmeasured nested · 🟡 own ≥2 GiB, review assets · 🔴 GitHub 2 GiB/push guard",
         ),
         ("TOUCHED", "latest commit author (mailmap identity)"),
         ("ON FAIL", "Open dracon-sync repos <name> for the cause. Fix the hook/transport error, then sync-now <path>. If retries are exhausted, use repair stuck-unstuck <name> first."),
@@ -5104,7 +5163,7 @@ pub(crate) async fn run_repos_report(
         let effective_remotes =
             report_effective_remote_legs(policy, &repo_override, repo.as_ref(), pack_too_large.0);
         let mut health = current_health::Evidence {
-            last_push: crate::daemon::push_history::load(&repo),
+            last_push: push_observation(&repo, &effective_status.branch, &last_hash, &upstream_label),
             mirror_unpublished: mirror_unpublished(
                 &repo,
                 &last_hash,
@@ -6800,12 +6859,11 @@ fn push_cell_label(push_status: &str, failure_count: Option<u32>) -> (&'static s
 /// The fix: the caller passes `pack_too_large` (the same bool
 /// the daemon uses for the PACK_SIZE_WARNING concern). Red iff
 /// `pack_too_large == true` (the actual github-rejection
-/// condition). Yellow iff gitdir ≥ 1 GiB (capacity-planning
+/// condition). Yellow iff gitdir ≥ 2 GiB (capacity-planning
 /// warning zone, irrespective of push). White otherwise.
 ///
 /// Threshold constants match `dracon_git::github_pack_too_large`:
-/// 2 GiB = 2 * 1024^3 = 2_147_483_648 bytes. 1 GiB is half the
-/// threshold — the "warning zone" before github refuses.
+/// 2 GiB = 2 * 1024^3 = 2_147_483_648 bytes.
 pub(crate) fn size_label(bytes: Option<u64>, pack_too_large: bool) -> (String, Color) {
     let Some(b) = bytes else {
         return ("?".to_string(), Color::DarkGrey);
@@ -6831,14 +6889,14 @@ pub(crate) fn size_label(bytes: Option<u64>, pack_too_large: bool) -> (String, C
         }
     };
     let label = format_size(b);
-    // Color priority: pack_too_large > gitdir ≥ 1 GiB > normal.
+    // Color priority: pack_too_large > gitdir ≥ 2 GiB > normal.
     // This way the SIZE cell color and the row's CONCERN/ACTIVE
     // state are visually consistent: a red SIZE cell means
     // "github push is broken" (the operator's question),
     // not "gitdir happens to be over 2 GiB".
     let color = if pack_too_large {
         Color::Red
-    } else if b >= GIB {
+    } else if b >= 2 * GIB {
         Color::Yellow
     } else {
         Color::White
@@ -10511,6 +10569,18 @@ mod tests {
     #[test]
     fn test_parse_git_log_meta_line_rejects_blank() {
         assert!(parse_git_log_meta_line("   ").is_none());
+    }
+
+    #[test]
+    fn only_newer_origin_push_for_the_current_tip_supersedes_failure() {
+        let tracking_ref = "refs/remotes/origin/main";
+        let push = b"current\trefs/remotes/origin/main@{20}\tupdate by push\n";
+        assert_eq!(confirmed_push_at(push, tracking_ref, "current", 10, 30), Some(20));
+        assert_eq!(confirmed_push_at(push, tracking_ref, "current", 21, 30), None);
+        assert_eq!(confirmed_push_at(push, tracking_ref, "current", 10, 19), None);
+        assert_eq!(confirmed_push_at(push, tracking_ref, "other", 10, 30), None);
+        let fetch = b"current\trefs/remotes/origin/main@{20}\tfetch: fast-forward\n";
+        assert_eq!(confirmed_push_at(fetch, tracking_ref, "current", 10, 30), None);
     }
 
     #[test]
@@ -15144,8 +15214,8 @@ mod tests {
         // PACK_SIZE_WARNING concern). Gitdir size only governs the
         // yellow (capacity-planning) zone.
         // - pack_too_large=true + any size → red (push genuinely broken)
-        // - pack_too_large=false + gitdir < 1 GiB → white
-        // - pack_too_large=false + gitdir ≥ 1 GiB → yellow
+        // - pack_too_large=false + gitdir < 2 GiB → white
+        // - pack_too_large=false + gitdir ≥ 2 GiB → yellow
         //
         // deathrun's case (gitdir 4 GiB, pushable small) lands here:
         let (_, color_deathrun) = size_label(Some(4 * 1024 * 1024 * 1024), false);
@@ -15166,11 +15236,10 @@ mod tests {
             matches!(color_2gib_no_concern, Color::Yellow),
             "2 GiB gitdir with no pack_too_large concern should be Yellow (not Red)"
         );
-        // 999 MiB is white (under the 1 GiB warning threshold)
-        let (_, color_below_1gib) = size_label(Some(999 * 1024 * 1024), false);
+        let (_, color_below_2gib) = size_label(Some(1536 * 1024 * 1024), false);
         assert!(
-            matches!(color_below_1gib, Color::White),
-            "999 MiB should be White"
+            matches!(color_below_2gib, Color::White),
+            "1.50 GiB should be White"
         );
     }
 
@@ -15361,7 +15430,7 @@ mod tests {
                 "publishing and retrying",
                 "stalled, blocked and unknown",
                 "Inspection failures are listed above the table",
-                "own ≥1 GiB",
+                "own ≥2 GiB",
                 "pending push flagged over GitHub’s 2 GiB limit",
                 "--deep",
             ] {

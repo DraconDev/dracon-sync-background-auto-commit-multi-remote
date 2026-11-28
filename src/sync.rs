@@ -5574,7 +5574,8 @@ async fn sync_repo_local_with_ownership(
             )
             .await;
         }
-        // ADDED 2026-10-26: reclaim abandoned private-epoch spools.
+        // Reclaim abandoned private-epoch spools. Reachability walks can be
+        // large, so let one worker maintain spools while other repos sync.
         // Every epoch allocates `<gitdir>/dracon-staging-*` (a full-tree
         // index + an independent pack) and RETAINS it after publication so
         // prune cannot collect a proven candidate. Nothing released those
@@ -5582,12 +5583,6 @@ async fn sync_repo_local_with_ownership(
         // (101 GiB), filled the root filesystem and wedged every watched
         // repo with `os error 28`. Bounded per-repo-hour like the two
         // janitors above; a live epoch's spool is leased and skipped.
-        crate::git::reap_abandoned_spools(
-            repo,
-            policy.epoch_spool_max_age_secs,
-            policy.stage_op_timeout_secs,
-        )
-        .await;
         // ADDED 2026-11-06: the qualified reclaim transaction above is still
         // interlocked off, so it removes nothing. A spool whose content is
         // PROVABLY REDUNDANT — every object it holds is reachable from a
@@ -5595,12 +5590,23 @@ async fn sync_repo_local_with_ownership(
         // published tree — carries no recovery data at all and can go. This
         // is a separate route with its own entry point; it never widens
         // age-only deletion authority.
-        crate::git::reap_redundant_spools(
-            repo,
-            policy.epoch_spool_max_age_secs,
-            policy.stage_op_timeout_secs,
-        )
-        .await;
+        static SPOOL_MAINTENANCE: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(1);
+        if !crate::git::push_resources::daemon_memory_hold() {
+            if let Ok(_permit) = SPOOL_MAINTENANCE.try_acquire() {
+                crate::git::reap_abandoned_spools(
+                    repo,
+                    policy.epoch_spool_max_age_secs,
+                    policy.stage_op_timeout_secs,
+                )
+                .await;
+                crate::git::reap_redundant_spools(
+                    repo,
+                    policy.epoch_spool_max_age_secs,
+                    policy.stage_op_timeout_secs,
+                )
+                .await;
+            }
+        }
     }
 
     if !is_repo_ready(repo) {
