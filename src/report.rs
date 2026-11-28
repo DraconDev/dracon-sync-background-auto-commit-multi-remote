@@ -5853,7 +5853,7 @@ fn print_repos_vertical(
         );
         println!("{gutter}push-to:   {push_to_text}");
         if let Some(owner) = &row.github_owner {
-            println!("{gutter}github:    {owner}");
+            println!("{gutter}github:    {}", colorize(owner, github_owner_color(owner)));
         }
         println!("{gutter}push:      {push_styled}");
         let (git_size, git_color) = size_cell_text(
@@ -6785,6 +6785,14 @@ fn rem_column_width(content: &str) -> usize {
     unicode_width::UnicodeWidthStr::width(content)
         .saturating_add(2)
         .max(REM_MIN_COL)
+}
+
+/// Keep the same owner color in filtered views and across dashboard refreshes.
+fn github_owner_color(owner: &str) -> Color {
+    let hash = owner.bytes().fold(2_166_136_261u32, |hash, byte| {
+        (hash ^ u32::from(byte.to_ascii_lowercase())).wrapping_mul(16_777_619)
+    });
+    [Color::Blue, Color::Cyan, Color::Magenta][hash as usize % 3]
 }
 
 /// ADDED 2026-07-29 (v0.113.15): append the last-push age to a
@@ -7872,7 +7880,11 @@ fn build_repos_rich_table_with_hidden(
             chg(row.excluded_dirty),
             Cell::new(ab_text).fg(ab_color),
             Cell::new(push_text).fg(push_color),
-            Cell::new(rem_text).fg(Color::Cyan),
+            Cell::new(rem_text).fg(
+                row.github_owner
+                    .as_deref()
+                    .map_or(Color::Cyan, github_owner_color),
+            ),
             pulse(row.commits_1h),
             pulse(row.commits_6h),
             pulse(row.commits_24h),
@@ -13525,6 +13537,18 @@ mod tests {
         assert!(rich_hint_link_out(&[working], 165)
             .unwrap()
             .contains("gitlab missing 2374"));
+    }
+
+    #[test]
+    fn github_owner_colors_distinguish_fleet_accounts_with_stable_case() {
+        assert_eq!(
+            github_owner_color("DraconDev"),
+            github_owner_color("dracondev")
+        );
+        assert_ne!(
+            github_owner_color("DraconDev"),
+            github_owner_color("dracon-uk")
+        );
     }
 
     #[test]
