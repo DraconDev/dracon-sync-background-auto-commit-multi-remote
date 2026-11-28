@@ -15,6 +15,7 @@
 - [ ] Qualify one writer spool for recovery and measure disk usage before and after, including recovery-store growth. Writer remains the largest source of aged spool bytes. Follow the [durable recovery requirements](epoch-spool-durable-recovery-2026-10-31.md).
   - Stopped the full-closure trial after it had written 3.6 GiB for a 35 MiB source spool. The original directory and index hash were verified after the attempt.
   - A scratch repository using hardlinked private archive objects and a 19.8 MiB supplemental pack reconstructed the sampled index tree and verified both producer endpoints, including 988,623 required objects. Its exact metadata copy took 34.8 MiB. The first sample therefore adds about 20 MiB even if its source could be removed. Measure incremental cost across multiple spools before qualifying deletion.
+  - A further eight fenced writer spools occupied 273.8 MiB. All eight indexes and the endpoint closure were restored in a repository with no live Git object dependency. Compressed records took 53.7 MiB and the batch supplement took 25.3 MiB. The estimate is 194.8 MiB in savings against the already prepared baseline, or roughly 175 MiB after charging the first supplemental pack to the batch. This excludes scratch copies and is a recovery experiment. The original spools remain.
 - [ ] Repeat the fleet health check after recovery. Preserve spools whose ownership or contents cannot be proved.
 
 ## Git LFS
@@ -22,5 +23,6 @@
 - [x] Audit all 41 repository tips and recent asset intake. `ai-auto-video` is the first candidate for existing large media. The scratch conversion verified 11 pointers and their restored hashes across 519.5 MiB of media.
 - [x] Make Git LFS available on the daemon's existing PATH. Local tests produced canonical pointers and restored original bytes for generated writer EPUBs and covers and for browser design evidence PNGs.
 - [ ] Publish the verified video files through the existing GitHub LFS endpoint after approval of the exact files, then confirm retrieval from a fresh cache.
+  - Separately verified all seven LFS objects already on video’s published `main` by fetching into an empty cache and comparing each payload with its pointer SHA-256.
 - [ ] Prepare forward-only LFS intake for writer's generated book EPUBs and covers. The seven-day audit found about 2.1 GiB of ordinary EPUB and JPEG blob churn.
 - [ ] Prepare browser design evidence PNGs for forward-only LFS intake after writer. The seven-day audit found about 733 MiB of ordinary PNG blob churn, with Adblock Pro design evidence the most frequently changed group.
