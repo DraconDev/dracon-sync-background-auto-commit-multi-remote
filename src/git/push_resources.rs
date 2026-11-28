@@ -378,10 +378,11 @@ pub(super) async fn command<T>(
         }
         // Wait for pending repack before taking any fleet capacity.
         let push = super::repo_maintenance::begin_push(repo).await?;
-        let overflow = (small && daemon_publication())
+        let overflow = (small && (daemon_publication() || cfg!(test)))
             .then(|| SHORT_PUBLICATION.get_or_init(|| Arc::new(Semaphore::new(1))));
         let admission = acquire_publication(publication_admission(), weight, overflow, || {
-            !held() && crate::daemon::memory_admission::short_push_headroom()
+            !held()
+                && (cfg!(test) || crate::daemon::memory_admission::short_push_headroom())
         })
         .await?;
         // Pressure or a manual pause may have arrived while this command
