@@ -3601,7 +3601,7 @@ fn repos_inline_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("CHANGES", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded files"),
         ("A/B", "Commits ahead of or behind the configured upstream."),
         ("PUSH", "✅ OK / ❌ FAIL and age show the last recorded push attempt or newer confirmed origin push."),
-        ("REM", "Push destinations · 🐙 GitHub and account · 🦊 GitLab · 🗻 Codeberg"),
+        ("OWNER", "Configured GitHub repository owner beside 🐙 · 🦊 GitLab and 🗻 Codeberg show destinations"),
         ("1H 6H 24H", "commits in the last hour / 6 hours / 24 hours"),
         ("GIT SIZE", "local Git storage (own+nested) · 🟡 own ≥2 GiB, review assets · 🔴 pending push flagged over GitHub’s 2 GiB limit"),
         ("TOUCHED", "author of the latest commit"),
@@ -3702,8 +3702,8 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
             "Last daemon-recorded push result + observation age: ✅ OK · ❌ FAIL · — unknown. Historical OK never proves current changes published. REF AGE is upstream commit age, NOT push time. 🩹 current history issue · 🔑 token missing.",
         ),
         (
-            "REM",
-            "🐙 GitHub and configured account · 🦊 GitLab · 🗻 Codeberg (active only)",
+            "OWNER",
+            "Configured GitHub repository owner beside 🐙 · 🦊 GitLab and 🗻 Codeberg show active destinations",
         ),
         ("", ""),
         ("1H/6H/24H", "commit pulse: last 1h / 6h / 24h"),
@@ -4288,6 +4288,21 @@ fn apply_report_scheduler_snapshot(
     now: u64,
 ) {
     let snapshot = snapshot.filter(|snapshot| snapshot.is_fresh(now));
+    let publishers = snapshot
+        .into_iter()
+        .flat_map(|snapshot| &snapshot.repos)
+        .filter(|(_, evidence)| {
+            evidence.publication_phase == Some(crate::daemon::scheduler_evidence::Phase::Pushing)
+        })
+        .map(|(path, evidence)| {
+            let name = path.file_name().unwrap_or(path.as_os_str()).to_string_lossy();
+            match evidence.publication_secs {
+                Some(age) => format!("{name} {age}s"),
+                None => name.into_owned(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
     for row in rows {
         row.health.scheduler = snapshot
             .and_then(|s| s.repos.get(std::path::Path::new(&row.repo)))
@@ -4307,7 +4322,15 @@ fn apply_report_scheduler_snapshot(
                     == Some(crate::daemon::scheduler_evidence::Phase::Queued)
                 {
                     let age = evidence.publication_secs.unwrap_or_default();
-                    row.hint = format!("waiting for publication admission ({age}s); {}", row.hint);
+                    if publishers.is_empty() {
+                        row.hint =
+                            format!("waiting for publication admission ({age}s); {}", row.hint);
+                    } else {
+                        row.hint = format!(
+                            "waiting for publication admission ({age}s) · active push: {publishers}; {}",
+                            row.hint
+                        );
+                    }
                 }
             }
         }
@@ -7438,7 +7461,7 @@ const RICH_COLUMN_NAMES: [&str; RICH_COLUMN_COUNT] = [
     "🚫",
     "A/B",
     "PUSH",
-    "REM",
+    "OWNER",
     "1H",
     "6H",
     "24H",
@@ -13542,7 +13565,7 @@ mod tests {
         }
         for width in RICH_TIER_FLOOR_COLS..=RICH_TIER_MIN_COLS {
             let header = header_of(width);
-            for essential in ["STATUS", "REPO", "MIRROR LAG", "A/B", "PUSH", "REM"] {
+            for essential in ["STATUS", "REPO", "MIRROR LAG", "A/B", "PUSH", "OWNER"] {
                 assert!(
                     header.contains(essential),
                     "{essential} missing at {width}: {header}"
@@ -15153,7 +15176,7 @@ mod tests {
             ("🚫", 5),
             ("A/B", 9),
             ("PUSH", 12),
-            ("REM", 8),
+            ("OWNER", 8),
             ("1H", 7),
             ("6H", 7),
             ("24H", 7),
@@ -15338,7 +15361,7 @@ mod tests {
             "CHANGES",
             "A/B",
             "PUSH",
-            "REM",
+            "OWNER",
             "REPO",
             "1H/6H/24H",
             "SIZE",
