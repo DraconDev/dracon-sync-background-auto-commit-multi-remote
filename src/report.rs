@@ -12975,6 +12975,45 @@ mod tests {
     }
 
     #[test]
+    fn queued_publication_names_active_publisher_even_outside_filtered_rows() {
+        use crate::daemon::scheduler_evidence::{Phase, RepoEvidence, Snapshot};
+        let mut row = RepoReportRow::for_tests("/tmp/dracon-platform");
+        row.ahead = 23;
+        row.push_status = "OK".into();
+        let mut rows = [row];
+        let snapshot = Snapshot {
+            version: 1,
+            written_at: 100,
+            mode: "running".into(),
+            repos: BTreeMap::from([
+                (
+                    PathBuf::from("/tmp/dracon-platform"),
+                    RepoEvidence {
+                        phase: Some(Phase::Queued),
+                        publication_phase: Some(Phase::Queued),
+                        publication_secs: Some(615),
+                        ..Default::default()
+                    },
+                ),
+                (
+                    PathBuf::from("/tmp/ai-auto-writer"),
+                    RepoEvidence {
+                        phase: Some(Phase::Pushing),
+                        publication_phase: Some(Phase::Pushing),
+                        publication_secs: Some(420),
+                        ..Default::default()
+                    },
+                ),
+            ]),
+        };
+        apply_report_scheduler_snapshot(&mut rows, Some(&snapshot), 100);
+        assert_eq!(rows[0].health.current, current_health::Current::Queued);
+        assert!(rich_hint_link_out(&rows, 180)
+            .unwrap()
+            .contains("waiting for publication admission (615s) · active push: ai-auto-writer 420s"));
+    }
+
+    #[test]
     fn test_summary_what_clean_idle_repo() {
         // 2026-07-19 (goal `4555eaf6` v0.112.27): summary view
         // for a clean idle repo should NOT include `push: pending`
@@ -13499,6 +13538,7 @@ mod tests {
         let rendered = table.to_string();
         assert!(!rendered.contains("MIRROR LAG"), "{rendered}");
         assert!(rendered.contains("A/B") && rendered.contains("↑3"), "{rendered}");
+        assert!(rendered.contains("OWNER"), "{rendered}");
         assert!(rendered.contains("🐙 dracon-uk"), "{rendered}");
         assert!(hidden.is_empty(), "{hidden:?}");
     }
