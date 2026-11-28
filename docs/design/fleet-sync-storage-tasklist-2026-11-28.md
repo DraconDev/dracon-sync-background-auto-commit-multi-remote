@@ -12,6 +12,7 @@
 
 - [x] Compact writer, browser, and Hellhunter while preserving branch tips. Keep the private recovery archives.
 - [x] Move background spool maintenance off the commit path. The latest targeted sweep removed 54 writer, 232 platform, and 114 browser spools after proving their data was already published.
+  - The follow-up writer sweep removed 10 more spools using the already-published proof. It preserved 287, including 260 whose producer endpoints could not be proved published. All eight source indexes from the recovery experiment still matched their snapshots after the sweep.
 - [ ] Qualify one writer spool for recovery and measure disk usage before and after, including recovery-store growth. Writer remains the largest source of aged spool bytes. Follow the [durable recovery requirements](epoch-spool-durable-recovery-2026-10-31.md).
   - Stopped the full-closure trial after it had written 3.6 GiB for a 35 MiB source spool. The original directory and index hash were verified after the attempt.
   - A scratch repository using hardlinked private archive objects and a 19.8 MiB supplemental pack reconstructed the sampled index tree and verified both producer endpoints, including 988,623 required objects. Its exact metadata copy took 34.8 MiB. The first sample therefore adds about 20 MiB even if its source could be removed. Measure incremental cost across multiple spools before qualifying deletion.
