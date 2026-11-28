@@ -148,6 +148,31 @@ pub(crate) fn short_push_headroom() -> bool {
     matches!((kib("MemAvailable:"), kib("MemTotal:")), (Some(free), Some(total))
         if free >= (2 * 1024 * 1024).max(total / 10))
         && read_full_stall(Path::new("/proc/pressure/memory")).is_some_and(|pct| pct < 5.0)
+        && push_slice_headroom()
+}
+
+#[cfg(target_os = "linux")]
+fn push_slice_headroom() -> bool {
+    // Use the same operator-UID systemd slice that owns every isolated
+    // push. Missing accounting gives us no basis to overbook the normal slots.
+    let uid = unsafe { libc::geteuid() };
+    let slice = PathBuf::from(format!(
+        "/sys/fs/cgroup/user.slice/user-{uid}.slice/user@{uid}.service/dracon.slice/dracon-sync.slice/dracon-sync-push.slice"
+    ));
+    let read = |file| -> Option<u64> {
+        std::fs::read_to_string(slice.join(file))
+            .ok()?
+            .trim()
+            .parse()
+            .ok()
+    };
+    matches!((read("memory.high"), read("memory.current")), (Some(high), Some(current))
+        if high.saturating_sub(current) >= 512 * 1024 * 1024)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn push_slice_headroom() -> bool {
+    false
 }
 
 /// Background Git cleanup can wait for host headroom even when the daemon's

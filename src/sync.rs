@@ -2799,7 +2799,7 @@ fn push_failure_message(
 /// re-adjudicate origin trust — the daemon loop's ownership gate
 /// already did that before dispatch; this check exists only to
 /// catch identity DRIFT after the cached classification.
-fn commit_allowed_by_ownership(repo: &Path, policy: &SyncPolicy) -> bool {
+pub(crate) fn commit_allowed_by_ownership(repo: &Path, policy: &SyncPolicy) -> bool {
     fn git_config_get(repo: &Path, key: &str) -> Option<String> {
         let out = crate::policy::std_git_command()
             .args(["config", "--get", key])
@@ -5574,38 +5574,21 @@ async fn sync_repo_local_with_ownership(
             )
             .await;
         }
-        // Reclaim abandoned private-epoch spools. Reachability walks can be
-        // large, so let one worker maintain spools while other repos sync.
-        // Every epoch allocates `<gitdir>/dracon-staging-*` (a full-tree
-        // index + an independent pack) and RETAINS it after publication so
-        // prune cannot collect a proven candidate. Nothing released those
-        // directories: browser-extensions-shared accumulated 141 of them
-        // (101 GiB), filled the root filesystem and wedged every watched
-        // repo with `os error 28`. Bounded per-repo-hour like the two
-        // janitors above; a live epoch's spool is leased and skipped.
-        // ADDED 2026-11-06: the qualified reclaim transaction above is still
-        // interlocked off, so it removes nothing. A spool whose content is
-        // PROVABLY REDUNDANT — every object it holds is reachable from a
-        // published remote-tracking ref, and its index describes exactly a
-        // published tree — carries no recovery data at all and can go. This
-        // is a separate route with its own entry point; it never widens
-        // age-only deletion authority.
-        static SPOOL_MAINTENANCE: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(1);
-        if !crate::git::push_resources::daemon_maintenance_held() {
-            if let Ok(_permit) = SPOOL_MAINTENANCE.try_acquire() {
-                crate::git::reap_abandoned_spools(
-                    repo,
-                    policy.epoch_spool_max_age_secs,
-                    policy.stage_op_timeout_secs,
-                )
-                .await;
-                crate::git::reap_redundant_spools(
-                    repo,
-                    policy.epoch_spool_max_age_secs,
-                    policy.stage_op_timeout_secs,
-                )
-                .await;
-            }
+        // Explicit one-shot sync retains its maintenance behavior. The
+        // continuous daemon schedules this proof work outside commit workers.
+        if !crate::git::push_resources::daemon_publication() {
+            crate::git::reap_abandoned_spools(
+                repo,
+                policy.epoch_spool_max_age_secs,
+                policy.stage_op_timeout_secs,
+            )
+            .await;
+            crate::git::reap_redundant_spools(
+                repo,
+                policy.epoch_spool_max_age_secs,
+                policy.stage_op_timeout_secs,
+            )
+            .await;
         }
     }
 

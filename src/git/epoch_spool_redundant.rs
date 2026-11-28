@@ -93,9 +93,8 @@ const GITLINK_MODE: &str = "160000";
 /// ample spacing.
 const REDUNDANT_RECLAIM_COOLDOWN_SECS: u64 = 600;
 
-/// Soft wall-clock budget for one pass's spool loop. The pass runs inline on
-/// the repository's sync worker, so it must not hold commits back for long;
-/// the loop stops between spools once this is spent and the next pass picks
+/// Soft wall-clock budget for one pass's spool loop. The loop stops between
+/// spools once this is spent and the next pass picks
 /// up where it left off (refused spools are memoized, removed ones are gone).
 const REDUNDANT_PASS_BUDGET_SECS: u64 = 120;
 

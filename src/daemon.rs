@@ -8007,6 +8007,9 @@ pub(crate) async fn run_daemon(
     // Forge provisioning may do network I/O. Retain one owner per repo,
     // keeping it off the serial scan and mutually exclusive with sync.
     let mut provisioning_jobs: HashMap<PathBuf, tokio::task::JoinHandle<()>> = HashMap::new();
+    let mut spool_maintenance: Option<tokio::task::JoinHandle<()>> = None;
+    let mut last_spool_repo = PathBuf::new();
+    let mut next_spool_maintenance = Instant::now() + Duration::from_secs(60);
     let mut branch_retry_after: HashMap<PathBuf, Instant> = HashMap::new();
     // Per-repo classification jobs (filter-aware `git diff HEAD` +
     // untracked listing). Spawned outside the pulse loop so a slow or
@@ -8217,6 +8220,10 @@ pub(crate) async fn run_daemon(
         // marker flips, so pause and resume take effect within ~1s of
         // the current cycle ending.
         if let Some(reason) = freeze_reason(&policy_path) {
+            if let Some(job) = spool_maintenance.take() {
+                job.abort();
+                let _ = job.await;
+            }
             log_paused(&reason);
             scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("paused"));
             sleep_responsive(
@@ -8443,6 +8450,10 @@ pub(crate) async fn run_daemon(
         }
 
         if let Some(reason) = freeze_reason(&policy_path) {
+            if let Some(job) = spool_maintenance.take() {
+                job.abort();
+                let _ = job.await;
+            }
             log_paused(&reason);
             scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("paused"));
             // CHANGED 2026-08-11 (audit LOW): responsive sleep — a
@@ -10823,6 +10834,60 @@ pub(crate) async fn run_daemon(
         // ADDED 2026-09-18 (v0.113.68, watchdog audit): drop expired
         // max-fail backoffs instead of carrying dead `until` stamps.
         let persist_now = Instant::now();
+        if spool_maintenance
+            .as_ref()
+            .is_some_and(|job| job.is_finished())
+        {
+            let _ = spool_maintenance
+                .take()
+                .expect("finished maintenance job")
+                .await;
+        }
+        // The reapers fence each spool and recheck its published proof
+        // before removal. Scheduling one idle checkout at a time keeps
+        // those walks off the local commit semaphore.
+        if spool_maintenance.is_none()
+            && persist_now >= next_spool_maintenance
+            && sync_semaphore.available_permits() > 0
+            && !memory_admission::maintenance_held()
+        {
+            next_spool_maintenance = persist_now + Duration::from_secs(15);
+            let candidate = repo_set
+                .range::<PathBuf, _>((
+                    std::ops::Bound::Excluded(&last_spool_repo),
+                    std::ops::Bound::Unbounded,
+                ))
+                .chain(repo_set.iter().take_while(|repo| *repo <= &last_spool_repo))
+                .find(|repo| {
+                    !in_flight.contains(*repo)
+                        && !provisioning_jobs.contains_key(*repo)
+                        && activity
+                            .get(*repo)
+                            .is_none_or(|row| row.dirty_since.is_none())
+                })
+                .cloned();
+            if let Some(repo) = candidate {
+                last_spool_repo = repo.clone();
+                let policy = policy.clone();
+                spool_maintenance = Some(tokio::spawn(async move {
+                    if !crate::sync::commit_allowed_by_ownership(&repo, &policy) {
+                        return;
+                    }
+                    crate::git::reap_abandoned_spools(
+                        &repo,
+                        policy.epoch_spool_max_age_secs,
+                        policy.stage_op_timeout_secs,
+                    )
+                    .await;
+                    crate::git::reap_redundant_spools(
+                        &repo,
+                        policy.epoch_spool_max_age_secs,
+                        policy.stage_op_timeout_secs,
+                    )
+                    .await;
+                }));
+            }
+        }
         prune_expired_cooldowns(&mut max_fail_cooldowns, persist_now);
         save_dispatch_holds(&dispatch_holds, persist_now);
         let evidence_probes = status_pending
@@ -11241,6 +11306,10 @@ pub(crate) async fn run_daemon(
         .await;
     }
     // === Daemon shutdown: stop admission, cancel AND join owned work ===
+    if let Some(job) = spool_maintenance {
+        job.abort();
+        let _ = job.await;
+    }
     for job in provisioning_jobs.values() {
         job.abort();
     }

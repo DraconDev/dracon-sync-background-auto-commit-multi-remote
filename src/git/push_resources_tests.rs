@@ -236,7 +236,7 @@ async fn short_publication_can_use_one_extra_slot_when_memory_allows() {
     drop(another);
     drop(short);
     drop(long);
-    heavy.await.unwrap();
+    drop(heavy.await.unwrap());
 }
 
 #[test]
