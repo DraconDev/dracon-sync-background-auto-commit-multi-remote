@@ -204,3 +204,58 @@ fn repository_maintenance_is_isolated_like_pushes_and_hooks() {
         assert!(!isolated_maintenance(other), "{other:?}");
     }
 }
+
+#[tokio::test]
+async fn short_publication_can_use_one_extra_slot_when_memory_allows() {
+    let primary = Arc::new(Semaphore::new(2));
+    let extra = Arc::new(Semaphore::new(1));
+    let long = acquire_publication(primary.clone(), 2, None, || true)
+        .await
+        .unwrap();
+    let mut pressured = Box::pin(acquire_publication(
+        primary.clone(),
+        1,
+        Some(&extra),
+        || false,
+    ));
+    assert!(futures::poll!(&mut pressured).is_pending());
+    drop(pressured);
+    let short = acquire_publication(primary.clone(), 1, Some(&extra), || true)
+        .await
+        .unwrap();
+    assert_eq!(extra.available_permits(), 0);
+    let mut another = Box::pin(acquire_publication(
+        primary.clone(),
+        1,
+        Some(&extra),
+        || true,
+    ));
+    let mut heavy = Box::pin(acquire_publication(primary.clone(), 2, None, || true));
+    assert!(futures::poll!(&mut another).is_pending());
+    assert!(futures::poll!(&mut heavy).is_pending());
+    drop(another);
+    drop(short);
+    drop(long);
+    heavy.await.unwrap();
+}
+
+#[test]
+fn seeded_warden_hook_is_ordinary_but_foreign_chain_is_heavy() {
+    let root = tempfile::tempdir().unwrap();
+    let hook = root.path().join("pre-push");
+    assert!(ordinary_hook(&hook));
+    std::fs::write(
+        &hook,
+        "#!/bin/sh\n# dracon-warden-managed-hook-v2\nDRACON_FOREIGN_HOOK=''\n",
+    )
+    .unwrap();
+    assert!(ordinary_hook(&hook));
+    std::fs::write(
+        &hook,
+        "#!/bin/sh\n# dracon-warden-managed-hook-v2\nDRACON_FOREIGN_HOOK=/hooks/foreign\n",
+    )
+    .unwrap();
+    assert!(!ordinary_hook(&hook));
+    std::fs::write(&hook, "#!/bin/sh\nnpm run test\n").unwrap();
+    assert!(!ordinary_hook(&hook));
+}

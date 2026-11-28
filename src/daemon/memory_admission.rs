@@ -130,6 +130,26 @@ pub(crate) fn held() -> bool {
     admission.held
 }
 
+/// Extra publication capacity requires physical host headroom and low
+/// host-wide memory stalls, even when the daemon cgroup itself is calm.
+pub(crate) fn short_push_headroom() -> bool {
+    let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo") else {
+        return false;
+    };
+    let kib = |key: &str| -> Option<u64> {
+        meminfo.lines().find_map(|line| {
+            line.strip_prefix(key)?
+                .split_whitespace()
+                .next()?
+                .parse()
+                .ok()
+        })
+    };
+    matches!((kib("MemAvailable:"), kib("MemTotal:")), (Some(free), Some(total))
+        if free >= (2 * 1024 * 1024).max(total / 10))
+        && read_full_stall(Path::new("/proc/pressure/memory")).is_some_and(|pct| pct < 5.0)
+}
+
 /// Background Git cleanup can wait for host headroom even when the daemon's
 /// own cgroup is calm. Keep the host-only check out of commit and push admission.
 pub(crate) fn maintenance_held() -> bool {

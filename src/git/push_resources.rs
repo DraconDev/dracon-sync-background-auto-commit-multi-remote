@@ -14,6 +14,7 @@ mod tests;
 use anyhow::{Context, Result};
 use std::cell::RefCell;
 use std::future::Future;
+use std::io::Read;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
@@ -39,9 +40,38 @@ tokio::task_local! {
     static TEST_ADMISSION: Arc<Semaphore>;
 }
 
-// Two ordinary pushes can overlap. A backlog or repository gate takes both
-// slots. FIFO weighted acquisition lets a heavy push drain ordinary work.
+// Normal admission still reserves both permits for a heavy push. An extra
+// short push can overlap it when the host can absorb another process.
 static PUBLICATION_ADMISSION: OnceLock<Arc<Semaphore>> = OnceLock::new();
+static SHORT_PUBLICATION: OnceLock<Arc<Semaphore>> = OnceLock::new();
+
+async fn acquire_publication(
+    primary: Arc<Semaphore>,
+    weight: u32,
+    overflow: Option<&Arc<Semaphore>>,
+    can_overlap: impl Fn() -> bool,
+) -> Result<OwnedSemaphorePermit> {
+    let normal = primary.acquire_many_owned(weight);
+    let Some(overflow) = overflow else {
+        return normal
+            .await
+            .context("publication admission semaphore closed");
+    };
+    tokio::select! {
+        biased;
+        permit = normal => permit.context("publication admission semaphore closed"),
+        permit = async {
+            loop {
+                if can_overlap() {
+                    if let Ok(permit) = overflow.clone().try_acquire_owned() {
+                        break permit;
+                    }
+                }
+                tokio::time::sleep(Duration::from_secs(1)).await;
+            }
+        } => Ok(permit),
+    }
+}
 
 fn publication_admission() -> Arc<Semaphore> {
     #[cfg(test)]
@@ -87,11 +117,75 @@ pub(crate) async fn publication_destination<T>(
     command(repo, &["push"], work).await
 }
 
-/// The shared Warden hook can chain a repository-specific pre-push gate.
-/// Unknown repository identities are conservatively given the full budget.
-pub(crate) fn ordinary_repository(repo: &std::path::Path) -> bool {
-    super::sync_lease::repository_identity(repo)
-        .is_ok_and(|common| !common.join("hooks/pre-push").exists())
+// Warden's installed wrapper can chain a repo-specific hook. Only its
+// ordinary wrapper and seeded copies qualify for the short-push lane.
+fn ordinary_hook(path: &std::path::Path) -> bool {
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NONBLOCK);
+    }
+    let file = match options.open(path) {
+        Ok(file) => file,
+        Err(error) => return error.kind() == std::io::ErrorKind::NotFound,
+    };
+    if file
+        .metadata()
+        .map_or(true, |meta| !meta.is_file() || meta.len() > 128 * 1024)
+    {
+        return false;
+    }
+    let mut source = String::new();
+    if file
+        .take(128 * 1024 + 1)
+        .read_to_string(&mut source)
+        .is_err()
+    {
+        return false;
+    }
+    source
+        .lines()
+        .any(|line| line == "# dracon-warden-managed-hook-v2")
+        && source
+            .lines()
+            .filter(|line| line.starts_with("DRACON_FOREIGN_HOOK="))
+            .eq(["DRACON_FOREIGN_HOOK=''"])
+}
+
+pub(crate) async fn ordinary_repository(repo: &std::path::Path) -> bool {
+    let Ok(common) = super::sync_lease::repository_identity(repo) else {
+        return false;
+    };
+    let probe = async {
+        let mut child = super::spawn_git_command_cancellable_stdin(
+            repo,
+            &["config", "--path", "--get", "core.hooksPath"],
+            "publication hooks path",
+        )?;
+        drop(child.stdin.take());
+        let (status, output, _) =
+            super::run_git_captured_output(child, repo, "publication hooks path").await?;
+        let local = common.join("hooks/pre-push");
+        match status.code() {
+            Some(0) => {
+                let path = std::str::from_utf8(&output)?.trim_end_matches('\n');
+                anyhow::ensure!(
+                    !path.is_empty() && !path.contains('\n'),
+                    "invalid hooks path"
+                );
+                let effective = repo.join(path).join("pre-push");
+                Ok(ordinary_hook(&effective) && ordinary_hook(&local))
+            }
+            Some(1) => Ok(ordinary_hook(&local)),
+            _ => anyhow::bail!("cannot resolve hooks path"),
+        }
+    };
+    matches!(
+        tokio::time::timeout(Duration::from_secs(3), probe).await,
+        Ok(Ok(true))
+    )
 }
 
 pub(crate) async fn sized_publication<T>(small: bool, work: impl Future<Output = T>) -> T {
@@ -284,10 +378,12 @@ pub(super) async fn command<T>(
         }
         // Wait for pending repack before taking any fleet capacity.
         let push = super::repo_maintenance::begin_push(repo).await?;
-        let admission = publication_admission()
-            .acquire_many_owned(weight)
-            .await
-            .context("publication admission semaphore closed")?;
+        let overflow = (small && daemon_publication())
+            .then(|| SHORT_PUBLICATION.get_or_init(|| Arc::new(Semaphore::new(1))));
+        let admission = acquire_publication(publication_admission(), weight, overflow, || {
+            !held() && crate::daemon::memory_admission::short_push_headroom()
+        })
+        .await?;
         // Pressure or a manual pause may have arrived while this command
         // waited behind another publication.
         if !held() {

@@ -2383,7 +2383,7 @@ async fn run_publication_actor<'a>(
     // Queueing and upload both release local capacity. Git command admission
     // distinguishes actual execution from waiting between mirror legs.
     crate::daemon::scheduler_evidence::worker_not_committing(ctx.repo);
-    let small = ahead_count <= 5 && crate::git::push_resources::ordinary_repository(ctx.repo);
+    let small = ahead_count <= 5 && crate::git::push_resources::ordinary_repository(ctx.repo).await;
     crate::daemon::scheduler_evidence::set_publication_budget(
         ctx.repo,
         ctx.policy,
